@@ -1,0 +1,7 @@
+{
+	"editor.insertSpaces": false,
+	"files.exclude": {
+		".git": true,
+		"out": true
+	}
+}
