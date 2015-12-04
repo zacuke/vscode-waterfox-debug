@@ -10,15 +10,45 @@ export interface ActorProxy {
 	receiveResponse(response: MozDebugProtocol.Response): void;
 }
 
+class PendingRequest<T> {
+	resolve: (t: T) => void;
+	reject: (err: any) => void;
+}
+
+class PendingRequests<T> {
+	
+	private pendingRequests: PendingRequest<T>[] = [];
+	
+	public enqueue(req: PendingRequest<T>) {
+		this.pendingRequests.push(req);
+	}
+	
+	public resolveOne(t: T) {
+		if (this.pendingRequests.length > 0) {
+			let request = this.pendingRequests.shift();
+			request.resolve(t);
+		} else {
+			console.log("Received response without corresponding request!?");
+		}
+	}
+	
+	public rejectOne(err: any) {
+		if (this.pendingRequests.length > 0) {
+			let request = this.pendingRequests.shift();
+			request.reject(err);
+		} else {
+			console.log("Received error response without corresponding request!?");
+		}
+	}
+}
+
 export class RootActorProxy extends EventEmitter implements ActorProxy {
 
-	private tabs: Map<string, TabActorProxy>;
-	private pendingTabsRequests: PendingRequest<Map<string, TabActorProxy>>[];
+	private tabs = new Map<string, TabActorProxy>();
+	private pendingTabsRequests = new PendingRequests<Map<string, TabActorProxy>>();
 	
 	constructor(private connection: any) {
 		super();
-		this.tabs = new Map<string, TabActorProxy>();
-		this.pendingTabsRequests = [];
 		this.connection.register(this);
 	}
 
@@ -58,12 +88,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 			});					
 
 			this.tabs = currentTabs;
-			if (this.pendingTabsRequests.length > 0) {
-				let tabsRequest = this.pendingTabsRequests.shift();
-				tabsRequest.resolve(currentTabs);
-			} else {
-				console.error("Received tabs response without a request!?");
-			}
+			this.pendingTabsRequests.resolveOne(currentTabs);
 			
 		} else if (response['type'] === 'tabListChanged') {
 
@@ -76,8 +101,11 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 		}
 	}
 
-	public fetchTabs() {
-		this.connection.sendRequest({ to: this.name, type: 'listTabs' });
+	public fetchTabs(): Promise<Map<string, TabActorProxy>> {
+		return new Promise<Map<string, TabActorProxy>>((resolve, reject) => {
+			this.pendingTabsRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'listTabs' });
+		})
 	}
 
 	public onInit(cb: (response: MozDebugProtocol.InitialResponse) => void) {
@@ -97,15 +125,10 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 	}
 }
 
-class PendingRequest<T> {
-	resolve: (t: T) => {};
-	reject: (err: MozDebugProtocol.ErrorResponse) => {};
-}
-
 export class TabActorProxy extends EventEmitter implements ActorProxy {
 
-	private resolveAttachPromise: (threadActor: ThreadActorProxy) => void;
-	private rejectAttachPromise: () => void;
+	private pendingAttachRequests = new PendingRequests<ThreadActorProxy>();
+	private pendingDetachRequests = new PendingRequests<void>();
 
 	constructor(private _name: string, private _title: string, private _url: string, private connection: MozDebugConnection) {
 		super();
@@ -131,19 +154,25 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 			let tabAttachedResponse = <MozDebugProtocol.TabAttachedResponse>response;
 			let threadActor = new ThreadActorProxy(tabAttachedResponse.threadActor, this.connection);
 			this.emit('attached', threadActor);
-			this.resolveAttachPromise(threadActor);
-			this.resolveAttachPromise = null;
-			this.rejectAttachPromise = null;
+			this.pendingAttachRequests.resolveOne(threadActor);
 
 		} else if (response['type'] === 'exited') {
 
-			this.rejectAttachPromise();
-			this.resolveAttachPromise = null;
-			this.rejectAttachPromise = null;
+			this.pendingAttachRequests.rejectOne("exited");
 
-		} else if ((response['type'] === 'detached') || (response['type'] === 'tabDetached')) {
+		} else if (response['type'] === 'detached') {
 
+			this.pendingDetachRequests.resolveOne(null);
 			this.emit('detached');
+
+		} else if (response['error'] === 'wrongState') {
+
+			this.pendingDetachRequests.rejectOne("exited");
+
+		} else if (response['type'] === 'tabDetached') {
+
+			// TODO handle pendingRequests
+			this.emit('tabDetached');
 
 		} else if (response['type'] === 'tabNavigated') {
 
@@ -165,16 +194,17 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 	}
 
 	public attach(): Promise<ThreadActorProxy> {
-		let promise = new Promise<ThreadActorProxy>((resolve, reject) => {
-			this.resolveAttachPromise = resolve;
-			this.rejectAttachPromise = reject;
+		return new Promise<ThreadActorProxy>((resolve, reject) => {
+			this.pendingAttachRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'attach' });
 		});
-		this.connection.sendRequest({ to: this.name, type: 'attach' });
-		return promise;
 	}
 
-	public detach(): void {
-		this.connection.sendRequest({ to: this.name, type: 'detach' });
+	public detach(): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			this.pendingDetachRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'detach' });
+		});
 	}
 
 	public onAttached(cb: (threadActor: ThreadActorProxy) => void) {
