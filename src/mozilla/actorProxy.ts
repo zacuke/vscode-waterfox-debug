@@ -55,6 +55,10 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 			this.fetchTabs();
 
+		} else {
+			
+			console.log("Unknown message from RootActor: ", JSON.stringify(response));
+			
 		}
 	}
 
@@ -129,6 +133,11 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 				this._title = didNavigateResponse.title;
 				this.emit('didNavigate');
 			}
+
+		} else {
+			
+			console.log("Unknown message from TabActor: ", JSON.stringify(response));
+			
 		}
 	}
 
@@ -173,5 +182,8 @@ export class ThreadActorProxy implements ActorProxy {
 	}
 
 	public receiveResponse(response: MozDebugProtocol.Response): void {
+			
+		console.log("Unknown message from ThreadActor: ", JSON.stringify(response));
+			
 	}
 }

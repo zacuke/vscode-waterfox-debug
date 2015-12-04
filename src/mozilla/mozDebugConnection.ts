@@ -17,11 +17,10 @@ export class MozDebugConnection {
 		let socket = new Socket();
 		this.transport = new MozDebugProtocolTransport(socket);
 		this.transport.on('message', (response: MozDebugProtocol.Response) => {
-			console.log('Received ' + JSON.stringify(response));
 			if (this.actors.has(response.from)) {
 				this.actors.get(response.from).receiveResponse(response);
 			} else {
-				// TODO
+				console.log('Unknown actor: ' + JSON.stringify(response));
 			}
 		});
 		socket.connect(6000);
