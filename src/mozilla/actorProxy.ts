@@ -40,6 +40,16 @@ class PendingRequests<T> {
 			console.log("Received error response without corresponding request!?");
 		}
 	}
+	
+	public resolveAll(t: T) {
+		this.pendingRequests.forEach((req) => req.resolve(t));
+		this.pendingRequests = [];
+	}
+	
+	public rejectAll(err: any) {
+		this.pendingRequests.forEach((req) => req.reject(err));
+		this.pendingRequests = [];
+	}
 }
 
 export class RootActorProxy extends EventEmitter implements ActorProxy {
@@ -224,9 +234,13 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 	}
 }
 
-export class ThreadActorProxy implements ActorProxy {
+export class ThreadActorProxy extends EventEmitter implements ActorProxy {
+
+	private pendingAttachRequests = new PendingRequests<void>();
+	private pendingDetachRequests = new PendingRequests<void>();
 
 	constructor(private _name: string, private connection: MozDebugConnection) {
+		super();
 		this.connection.register(this);
 	}
 
@@ -235,8 +249,63 @@ export class ThreadActorProxy implements ActorProxy {
 	}
 
 	public receiveResponse(response: MozDebugProtocol.Response): void {
+		
+		if (response['type'] === 'paused') {
 			
-		console.log("Unknown message from ThreadActor: ", JSON.stringify(response));
+			// TODO look at 'why'; what about a PauseActor?
+			console.log('Paused: ' + JSON.stringify(response));
+			this.pendingAttachRequests.resolveAll(null);
+			this.pendingDetachRequests.rejectAll('paused');
+			this.emit('paused');
+
+		} else if (response['type'] === 'exited') {
 			
+			this.pendingAttachRequests.rejectAll('exited');
+			this.pendingDetachRequests.resolveAll(null);
+			this.emit('exited');
+			//TODO send release packet(?)
+			
+		} else if (response['error'] === 'wrongState') {
+			
+			this.pendingAttachRequests.rejectAll('wrongState');
+			this.pendingDetachRequests.rejectAll('wrongState');
+			this.emit('wrongState');
+			
+		} else if (response['type'] === 'detached') {
+			
+			this.pendingAttachRequests.rejectAll('detached');
+			this.pendingDetachRequests.resolveAll(null);
+			this.emit('detached');
+			
+		} else {
+			
+			console.log("Unknown message from ThreadActor: ", JSON.stringify(response));
+
+		}
+			
+	}
+	
+	public attach(): void {
+		this.connection.sendRequest({ to: this.name, type: 'attach' });
+	}
+	
+	public detach(): void {
+		this.connection.sendRequest({ to: this.name, type: 'detach' });
+	}
+	
+	public onPaused(cb: () => void) {
+		this.on('paused', cb);
+	}
+
+	public onExited(cb: () => void) {
+		this.on('exited', cb);
+	}
+
+	public onWrongState(cb: () => void) {
+		this.on('wrongState', cb);
+	}
+
+	public onDetached(cb: () => void) {
+		this.on('detached', cb);
 	}
 }
