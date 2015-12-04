@@ -13,10 +13,12 @@ export interface ActorProxy {
 export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 	private tabs: Map<string, TabActorProxy>;
-
+	private pendingTabsRequests: PendingRequest<Map<string, TabActorProxy>>[];
+	
 	constructor(private connection: any) {
 		super();
 		this.tabs = new Map<string, TabActorProxy>();
+		this.pendingTabsRequests = [];
 		this.connection.register(this);
 	}
 
@@ -33,27 +35,39 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 		} else if (response['tabs']) {
 
 			let tabsResponse = <MozDebugProtocol.TabsResponse>response;
-
-			// remove tabs that have disappeared and emit corresponding tabClosed events
-			this.tabs.forEach((tabActor) => {
-				if (!tabsResponse.tabs.some((tab) => (tab.actor === tabActor.name))) {
-					this.emit('tabClosed', tabActor);
-					this.tabs.delete(tabActor.name);
-				}
-			});
-
-			// add new tabs and emit corresponding tabOpened events
+			let currentTabs = new Map<string, TabActorProxy>();
+			
+			// convert the Tab array int a map of TabActorProxies, re-using already 
+			// existing proxies and emitting tabOpened events for new ones
 			tabsResponse.tabs.forEach((tab) => {
-				if (!this.tabs.has(tab.actor)) {
-					let tabActor = new TabActorProxy(tab.actor, tab.title, tab.url, this.connection);
-					this.tabs.set(tabActor.name, tabActor);
+				let tabActor: TabActorProxy;
+				if (this.tabs.has(tab.actor)) {
+					tabActor = this.tabs.get(tab.actor);
+				} else {
+					tabActor = new TabActorProxy(tab.actor, tab.title, tab.url, this.connection);
 					this.emit('tabOpened', tabActor);
 				}
+				currentTabs.set(tab.actor, tabActor);
 			});
 
+			// emit tabClosed events for tabs that have disappeared
+			this.tabs.forEach((tabActor) => {
+				if (!currentTabs.has(tabActor.name)) {
+					this.emit('tabClosed', tabActor);
+				}
+			});					
+
+			this.tabs = currentTabs;
+			if (this.pendingTabsRequests.length > 0) {
+				let tabsRequest = this.pendingTabsRequests.shift();
+				tabsRequest.resolve(currentTabs);
+			} else {
+				console.error("Received tabs response without a request!?");
+			}
+			
 		} else if (response['type'] === 'tabListChanged') {
 
-			this.fetchTabs();
+			this.emit('tabListChanged');
 
 		} else {
 			
@@ -77,6 +91,15 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 	public onTabClosed(cb: (tabActor: TabActorProxy) => void) {
 		this.on('tabClosed', cb);
 	}
+
+	public onTabListChanged(cb: () => void) {
+		this.on('tabListChanged', cb);
+	}
+}
+
+class PendingRequest<T> {
+	resolve: (t: T) => {};
+	reject: (err: MozDebugProtocol.ErrorResponse) => {};
 }
 
 export class TabActorProxy extends EventEmitter implements ActorProxy {
