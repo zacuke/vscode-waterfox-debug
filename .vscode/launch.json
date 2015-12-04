@@ -19,6 +19,22 @@
 			"externalConsole": true,
 			"sourceMaps": true,
 			"outDir": "out"
+		},
+		{
+			"name": "debug server",
+			"type": "node",
+			"request": "launch",
+			"runtimeArgs": [
+				"--harmony"
+			],
+			"program": "out/firefoxDebug.js",
+			"stopOnEntry": false,
+			"args": [
+				"--server=4711"
+			],
+			"sourceMaps": true,
+			"externalConsole": true,
+			"outDir": "out"
 		}
 	]
 }
