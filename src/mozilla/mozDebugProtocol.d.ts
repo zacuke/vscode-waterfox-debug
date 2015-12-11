@@ -51,6 +51,7 @@ declare namespace MozDebugProtocol {
 
 	interface ThreadPausedResponse extends TypedResponse {
 		actor: string;
+		poppedFrames: Frame[];
 		why: {
 			type: string;
 			frameFinished?: CompletionValue; // if type is 'resumeLimit' or 'clientEvaluated'

@@ -66,6 +66,13 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 		return 'root';
 	}
 
+	public fetchTabs(): Promise<Map<string, TabActorProxy>> {
+		return new Promise<Map<string, TabActorProxy>>((resolve, reject) => {
+			this.pendingTabsRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'listTabs' });
+		})
+	}
+
 	public receiveResponse(response: MozDebugProtocol.Response): void {
 
 		if (response['applicationType']) {
@@ -111,13 +118,6 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 		}
 	}
 
-	public fetchTabs(): Promise<Map<string, TabActorProxy>> {
-		return new Promise<Map<string, TabActorProxy>>((resolve, reject) => {
-			this.pendingTabsRequests.enqueue({ resolve, reject });
-			this.connection.sendRequest({ to: this.name, type: 'listTabs' });
-		})
-	}
-
 	public onInit(cb: (response: MozDebugProtocol.InitialResponse) => void) {
 		this.on('init', cb);
 	}
@@ -155,6 +155,20 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 
 	public get url() {
 		return this._url;
+	}
+
+	public attach(): Promise<ThreadActorProxy> {
+		return new Promise<ThreadActorProxy>((resolve, reject) => {
+			this.pendingAttachRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'attach' });
+		});
+	}
+
+	public detach(): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			this.pendingDetachRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'detach' });
+		});
 	}
 
 	public receiveResponse(response: MozDebugProtocol.Response): void {
@@ -198,23 +212,11 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 
 		} else {
 			
-			console.log("Unknown message from TabActor: ", JSON.stringify(response));
+			if (response['type'] !== 'frameUpdate') {
+				console.log("Unknown message from TabActor: ", JSON.stringify(response));
+			}
 			
 		}
-	}
-
-	public attach(): Promise<ThreadActorProxy> {
-		return new Promise<ThreadActorProxy>((resolve, reject) => {
-			this.pendingAttachRequests.enqueue({ resolve, reject });
-			this.connection.sendRequest({ to: this.name, type: 'attach' });
-		});
-	}
-
-	public detach(): Promise<void> {
-		return new Promise<void>((resolve, reject) => {
-			this.pendingDetachRequests.enqueue({ resolve, reject });
-			this.connection.sendRequest({ to: this.name, type: 'detach' });
-		});
 	}
 
 	public onAttached(cb: (threadActor: ThreadActorProxy) => void) {
@@ -238,6 +240,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
 	private pendingAttachRequests = new PendingRequests<void>();
 	private pendingDetachRequests = new PendingRequests<void>();
+	private pendingSetBreakpointRequests = new PendingRequests<MozDebugProtocol.SourceLocation>();
+	private pendingSourceRequests = new PendingRequests<MozDebugProtocol.Source[]>();
+	private pendingFrameRequests = new PendingRequests<MozDebugProtocol.Frame[]>();
 
 	constructor(private _name: string, private connection: MozDebugConnection) {
 		super();
@@ -248,14 +253,66 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		return this._name;
 	}
 
+	public attach(): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			this.pendingAttachRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'attach' });
+		});
+	}
+
+	public setBreakpoint(location: MozDebugProtocol.SourceLocation): Promise<MozDebugProtocol.SourceLocation> {
+		return new Promise<MozDebugProtocol.SourceLocation[]>((resolve, reject) => {
+			this.pendingSetBreakpointRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'setBreakpoint', location: location });
+		});
+	}
+
+	public fetchSources(): Promise<MozDebugProtocol.Source[]> {
+		return new Promise<MozDebugProtocol.Source[]>((resolve, reject) => {
+			this.pendingSourceRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'sources' });
+		});
+	}
+	
+	public fetchStackFrames(): Promise<MozDebugProtocol.Frame[]> {
+		return new Promise<MozDebugProtocol.Frame[]>((resolve, reject) => {
+			this.pendingFrameRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'sources' });
+		});
+	}
+	
+	public resume(): void {
+		this.connection.sendRequest({ to: this.name, type: 'resume' });
+	}
+	
+	public stepOver(): void {
+		this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'next' }});
+	}
+	
+	public stepInto(): void {
+		this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'step' }});
+	}
+	
+	public stepOut(): void {
+		this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'finish' }});
+	}
+	
+	public detach(): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			this.pendingDetachRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'detach' });
+		});
+	}
+	
 	public receiveResponse(response: MozDebugProtocol.Response): void {
 		
 		if (response['type'] === 'paused') {
 			
-			// TODO look at 'why'; what about a PauseActor?
-			console.log('Paused: ' + JSON.stringify(response));
-			this.pendingAttachRequests.resolveAll(null);
-			this.pendingDetachRequests.rejectAll('paused');
+			let pausedResponse = <MozDebugProtocol.ThreadPausedResponse>response;
+			if (pausedResponse.why.type === 'attached') {
+				this.pendingAttachRequests.resolveAll(null);
+				this.pendingDetachRequests.rejectAll('paused');
+			}
 			this.emit('paused');
 
 		} else if (response['type'] === 'exited') {
@@ -277,20 +334,35 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			this.pendingDetachRequests.resolveAll(null);
 			this.emit('detached');
 			
-		} else {
+		} else if (response['actualLocation']) {
+
+			//TODO actualLocation may be omitted!?
+			//TODO create breakpointActor so that the breakpoint can be deleted
+			let actualLocation = <MozDebugProtocol.SourceLocation>(response['actualLocation']);
+			this.pendingSetBreakpointRequests.resolveOne(actualLocation);
 			
-			console.log("Unknown message from ThreadActor: ", JSON.stringify(response));
+		} else if ((response['error'] === 'noScript') || (response['error'] === 'noCodeAtLineColumn')) {
+			
+			this.pendingSetBreakpointRequests.rejectOne(response['error']);
+			
+		} else if (response['sources']) {
+
+			let sources = <MozDebugProtocol.Source[]>(response['sources']);
+			this.pendingSourceRequests.resolveOne(sources);
+			
+		} else if (response['frames']) {
+
+			let frames = <MozDebugProtocol.Frame[]>(response['frames']);
+			this.pendingFrameRequests.resolveOne(frames);
+			
+		} else {
+
+			if (response['type'] !== 'newGlobal') {
+				console.log("Unknown message from ThreadActor: ", JSON.stringify(response));
+			}			
 
 		}
 			
-	}
-	
-	public attach(): void {
-		this.connection.sendRequest({ to: this.name, type: 'attach' });
-	}
-	
-	public detach(): void {
-		this.connection.sendRequest({ to: this.name, type: 'detach' });
 	}
 	
 	public onPaused(cb: () => void) {

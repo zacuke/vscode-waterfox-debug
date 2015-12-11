@@ -30,7 +30,7 @@ export class MozDebugConnection {
 		return this._rootActor;
 	}
 
-	public sendRequest(request: MozDebugProtocol.Request) {
+	public sendRequest<T extends MozDebugProtocol.Request>(request: T) {
 		this.transport.sendMessage(request);
 	}
 
