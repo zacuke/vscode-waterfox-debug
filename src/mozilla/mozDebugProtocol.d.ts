@@ -49,6 +49,127 @@ declare namespace MozDebugProtocol {
 		title: string;
 	}
 
+	interface ThreadPausedResponse extends TypedResponse {
+		actor: string;
+		why: {
+			type: string;
+			frameFinished?: CompletionValue; // if type is 'resumeLimit' or 'clientEvaluated'
+			actors?: string[]; // if type is 'breakpoint' or 'watchpoint'
+		};
+	}
+	
+	interface CompletionValue {
+		return?: Grip;
+		throw?: Grip;
+		terminated?: boolean;
+	}
+	
+	interface Frame {
+		type: string; // 'global' | 'call' | 'eval' | 'clientEvaluate'
+		actor: string;
+		depth: number;
+		this: Grip;
+		where: SourceLocation;
+		environment: Environment;
+	}
+
+	interface GlobalFrame extends Frame {
+		source: Source;
+	}
+	
+	interface CallFrame extends Frame {
+		callee: Grip;
+		arguments: Grip[];
+	}
+	
+	interface EvalFrame extends Frame {
+	}
+	
+	interface ClientEvalFrame extends Frame {
+	}
+	
+	interface SourceLocation {
+		line?: number;
+		column?: number;
+	}
+	
+	interface UrlSourceLocation extends SourceLocation {
+		url: string;
+	}
+	
+	interface EvalSourceLocation extends SourceLocation {
+		eval: SourceLocation;
+		id: number;
+	}
+	
+	interface FunctionConstructorSourceLocation extends SourceLocation {
+		function: SourceLocation;
+		id: number;
+	}
+	
+	interface Source {
+		actor: string;
+		url: string;
+		isBlackBoxed: boolean;
+	}
+	
+	interface Environment {
+		type: string; // 'object' | 'function' | 'with' | 'block'
+		actor: string;
+		parent?: Environment;
+	}
+	
+	interface ObjectEnvironment extends Environment {
+		object: Grip;
+	}
+	
+	interface FunctionEnvironment extends Environment {
+		function: Grip;
+		bindings: FunctionBindings;
+	}
+	
+	interface WithEnvironment extends Environment {
+		object: Grip;
+	}
+	
+	interface BlockEnvironment extends Environment {
+		bindings: Bindings;
+	}
+
+	interface Bindings {
+		variables: PropertyDescriptors;
+	}
+	
+	interface FunctionBindings extends Bindings {
+		arguments: PropertyDescriptors[];
+	}
+	
+	interface PropertyDescriptor {
+		enumerable: boolean;
+		configurable: boolean;
+	}
+	
+	interface DataPropertyDescriptor extends PropertyDescriptor {
+		value: Grip;
+		writeable: boolean;
+	}
+	
+	interface AccessorPropertyDescriptor extends PropertyDescriptor {
+		get: Grip | { type: string }; // { type: 'undefined' }
+		set: Grip | { type: string }; // { type: 'undefined' }
+	}
+
+	interface SafeGetterValueDescriptor {
+		getterValue: Grip;
+		getterPrototypeLevel: number;
+		enumerable: boolean;
+		writable: boolean;
+	}
+	
+	interface PropertyDescriptors {
+		[name: string]: PropertyDescriptor;
+	}
+	
 	type Grip = boolean | number | string | ComplexGrip;
 
 	interface ComplexGrip {
