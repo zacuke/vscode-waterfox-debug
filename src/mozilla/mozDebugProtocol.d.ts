@@ -59,6 +59,12 @@ declare namespace MozDebugProtocol {
 		};
 	}
 	
+	interface SetBreakpointResponse extends Response {
+		actor: string;
+		isPending: boolean;
+		actualLocation?: SourceLocation;
+	}
+	
 	interface CompletionValue {
 		return?: Grip;
 		throw?: Grip;
