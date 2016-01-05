@@ -176,7 +176,8 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 		if (response['type'] === 'tabAttached') {
 
 			let tabAttachedResponse = <MozDebugProtocol.TabAttachedResponse>response;
-			let threadActor = new ThreadActorProxy(tabAttachedResponse.threadActor, this.connection);
+			let threadActor = this.connection.getOrCreate(tabAttachedResponse.threadActor, 
+				() => new ThreadActorProxy(tabAttachedResponse.threadActor, this.connection));
 			this.emit('attached', threadActor);
 			this.pendingAttachRequests.resolveOne(threadActor);
 
@@ -320,7 +321,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
 			this.knownToBePaused = true;			
 			let pausedResponse = <MozDebugProtocol.ThreadPausedResponse>response;
-			let pauseActor = new PauseActorProxy(pausedResponse.actor, this.connection);
+			let pauseActor = this.connection.getOrCreate(pausedResponse.actor,
+				() => new PauseActorProxy(pausedResponse.actor, this.connection));
 			this.pendingPauseRequests.resolveAll(pauseActor);
 			this.pendingDetachRequests.rejectAll('paused');
 			this.emit('paused');
@@ -347,13 +349,15 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		} else if (response['type'] === 'newSource') {
 			
 			let source = <MozDebugProtocol.Source>(response['source']);
-			let sourceActor = new SourceActorProxy(source, this.connection);
+			let sourceActor = this.connection.getOrCreate(source.actor, 
+				() => new SourceActorProxy(source, this.connection));
 			this.emit('newSource', sourceActor);
 			
 		} else if (response['sources']) {
 
 			let sources = <MozDebugProtocol.Source[]>(response['sources']);
-			let sourceActors = sources.map((source) => new SourceActorProxy(source, this.connection));
+			let sourceActors = sources.map((source) => this.connection.getOrCreate(source.actor, 
+				() => new SourceActorProxy(source, this.connection)));
 			this.pendingSourceRequests.resolveOne(sourceActors);
 			
 		} else if (response['frames']) {
@@ -442,7 +446,8 @@ export class SourceActorProxy extends EventEmitter implements ActorProxy {
 			//TODO create breakpointActor so that the breakpoint can be deleted
 			let setBreakpointResponse = <MozDebugProtocol.SetBreakpointResponse>response;
 			let actualLocation = setBreakpointResponse.actualLocation;
-			let breakpointActor = new BreakpointActorProxy(setBreakpointResponse.actor, this.connection);
+			let breakpointActor = this.connection.getOrCreate(setBreakpointResponse.actor,
+				() => new BreakpointActorProxy(setBreakpointResponse.actor, this.connection));
 			this.pendingSetBreakpointRequests.resolveOne(new SetBreakpointResult(breakpointActor, actualLocation));
 			
 		} else {

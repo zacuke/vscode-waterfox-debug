@@ -41,6 +41,14 @@ export class MozDebugConnection {
 	public unregister(actor: ActorProxy): void {
 		this.actors.delete(actor.name);
 	}
+	
+	public getOrCreate<T extends ActorProxy>(actorName: string, createActor: () => T): T {
+		if (this.actors.has(actorName)) {
+			return <T>this.actors.get(actorName);
+		} else {
+			return createActor();
+		}
+	}
 }
 
 /**

@@ -29,4 +29,5 @@ con.rootActor.onTabOpened(t => {
 con.rootActor.onTabClosed(t => {
 	console.log('Tab ' + t.url + ' closed');
 });
+con.rootActor.onTabListChanged(() => con.rootActor.fetchTabs());
 con.rootActor.fetchTabs();
