@@ -176,10 +176,12 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 		if (response['type'] === 'tabAttached') {
 
 			let tabAttachedResponse = <MozDebugProtocol.TabAttachedResponse>response;
-			let threadActor = this.connection.getOrCreate(tabAttachedResponse.threadActor, 
-				() => new ThreadActorProxy(tabAttachedResponse.threadActor, this.connection));
-			this.emit('attached', threadActor);
-			this.pendingAttachRequests.resolveOne(threadActor);
+			let threadActorPromise = this.connection.getOrCreatePromise(tabAttachedResponse.threadActor, 
+				() => ThreadActorProxy.createAndAttach(tabAttachedResponse.threadActor, this.connection));
+			threadActorPromise.then((threadActor) => {
+				this.emit('attached', threadActor);
+				this.pendingAttachRequests.resolveOne(threadActor);
+			});
 
 		} else if (response['type'] === 'exited') {
 
@@ -251,15 +253,28 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		this.connection.register(this);
 	}
 
+	public static createAndAttach(name: string, connection: MozDebugConnection): Promise<ThreadActorProxy> {
+		let threadActor = new ThreadActorProxy(name, connection);
+		return threadActor.attach().then(() => threadActor);
+	}
+	
 	public get name() {
 		return this._name;
 	}
 
-	public get isKnownToBePaused(): boolean {
-		return this.knownToBePaused;
+	public runOnPausedThread<T>(action: (resume: () => void) => (T | Thenable<T>)): Promise<T> {
+		return new Promise<T>((resolve) => {
+			if (this.knownToBePaused) {
+				resolve(action(() => {}));
+			} else {
+				resolve(this.interrupt().then(() => {
+					return action(() => this.resume());
+				}));
+			}
+		});
 	}
 	
-	public attach(): Promise<PauseActorProxy> {
+	private attach(): Promise<PauseActorProxy> {
 		return new Promise<PauseActorProxy>((resolve, reject) => {
 			this.pendingPauseRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'attach' });
@@ -307,6 +322,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'finish' }});
 	}
 	
+	//TODO also detach the TabActorProxy(?)
 	public detach(): Promise<void> {
 		this.knownToBePaused = false;
 		return new Promise<void>((resolve, reject) => {

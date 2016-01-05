@@ -49,6 +49,14 @@ export class MozDebugConnection {
 			return createActor();
 		}
 	}
+	
+	public getOrCreatePromise<T extends ActorProxy>(actorName: string, createActor: () => Promise<T>): Promise<T> {
+		if (this.actors.has(actorName)) {
+			return Promise.resolve(this.actors.get(actorName));
+		} else {
+			return createActor();
+		}
+	}
 }
 
 /**

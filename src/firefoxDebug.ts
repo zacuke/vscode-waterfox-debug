@@ -100,15 +100,11 @@ class FirefoxDebugSession extends DebugSession {
 	}
 	
 	private setBreakpointsOnSourceActor(breakpointsToSet: number[], sourceInfo: SourceInfo, threadActor: ThreadActorProxy): Promise<BreakpointInfo[]> {
-
-		if (threadActor.isKnownToBePaused) {
-			return this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceInfo);
-		} else {
-			return threadActor.interrupt().then(() => this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceInfo));
-		}
+		return threadActor.runOnPausedThread((resume) => 
+			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceInfo, resume));
 	}
 
-	private setBreakpointsOnPausedSourceActor(breakpointsToSet: number[], sourceInfo: SourceInfo): Promise<BreakpointInfo[]> {
+	private setBreakpointsOnPausedSourceActor(breakpointsToSet: number[], sourceInfo: SourceInfo, resume: () => void): Promise<BreakpointInfo[]> {
 		
 		let result = new Promise<BreakpointInfo[]>((resolve) => {
 			sourceInfo.currentBreakpoints.then((oldBreakpoints) => {
@@ -139,6 +135,7 @@ class FirefoxDebugSession extends DebugSession {
 				
 				Promise.all(breakpointsBeingRemoved).then(() => Promise.all(breakpointsBeingSet)).then(() => {
 					resolve(newBreakpoints);
+					resume();
 				});
 			});
 		});
