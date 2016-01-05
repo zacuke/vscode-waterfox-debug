@@ -238,11 +238,13 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 
 export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
-	private pendingAttachRequests = new PendingRequests<PauseActorProxy>();
+	private pendingPauseRequests = new PendingRequests<PauseActorProxy>();
 	private pendingDetachRequests = new PendingRequests<void>();
 	private pendingSourceRequests = new PendingRequests<SourceActorProxy[]>();
 	private pendingFrameRequests = new PendingRequests<MozDebugProtocol.Frame[]>();
-
+	
+	private knownToBePaused: boolean = false;
+	
 	constructor(private _name: string, private connection: MozDebugConnection) {
 		super();
 		this.connection.register(this);
@@ -252,10 +254,21 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		return this._name;
 	}
 
+	public get isKnownToBePaused(): boolean {
+		return this.knownToBePaused;
+	}
+	
 	public attach(): Promise<PauseActorProxy> {
 		return new Promise<PauseActorProxy>((resolve, reject) => {
-			this.pendingAttachRequests.enqueue({ resolve, reject });
+			this.pendingPauseRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'attach' });
+		});
+	}
+
+	public interrupt(): Promise<PauseActorProxy> {
+		return new Promise<PauseActorProxy>((resolve, reject) => {
+			this.pendingPauseRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'interrupt' });
 		});
 	}
 
@@ -269,27 +282,32 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	public fetchStackFrames(): Promise<MozDebugProtocol.Frame[]> {
 		return new Promise<MozDebugProtocol.Frame[]>((resolve, reject) => {
 			this.pendingFrameRequests.enqueue({ resolve, reject });
-			this.connection.sendRequest({ to: this.name, type: 'sources' });
+			this.connection.sendRequest({ to: this.name, type: 'frames' });
 		});
 	}
 	
 	public resume(): void {
+		this.knownToBePaused = false;
 		this.connection.sendRequest({ to: this.name, type: 'resume' });
 	}
 	
 	public stepOver(): void {
+		this.knownToBePaused = false;
 		this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'next' }});
 	}
 	
 	public stepInto(): void {
+		this.knownToBePaused = false;
 		this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'step' }});
 	}
 	
 	public stepOut(): void {
+		this.knownToBePaused = false;
 		this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'finish' }});
 	}
 	
 	public detach(): Promise<void> {
+		this.knownToBePaused = false;
 		return new Promise<void>((resolve, reject) => {
 			this.pendingDetachRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'detach' });
@@ -299,32 +317,38 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	public receiveResponse(response: MozDebugProtocol.Response): void {
 		
 		if (response['type'] === 'paused') {
-			
+
+			this.knownToBePaused = true;			
 			let pausedResponse = <MozDebugProtocol.ThreadPausedResponse>response;
-			if (pausedResponse.why.type === 'attached') {
-				this.pendingAttachRequests.resolveAll(new PauseActorProxy(pausedResponse.actor, this.connection));
-				this.pendingDetachRequests.rejectAll('paused');
-			}
+			let pauseActor = new PauseActorProxy(pausedResponse.actor, this.connection);
+			this.pendingPauseRequests.resolveAll(pauseActor);
+			this.pendingDetachRequests.rejectAll('paused');
 			this.emit('paused');
 
 		} else if (response['type'] === 'exited') {
 			
-			this.pendingAttachRequests.rejectAll('exited');
+			this.pendingPauseRequests.rejectAll('exited');
 			this.pendingDetachRequests.resolveAll(null);
 			this.emit('exited');
 			//TODO send release packet(?)
 			
 		} else if (response['error'] === 'wrongState') {
 			
-			this.pendingAttachRequests.rejectAll('wrongState');
+			this.pendingPauseRequests.rejectAll('wrongState');
 			this.pendingDetachRequests.rejectAll('wrongState');
 			this.emit('wrongState');
 			
 		} else if (response['type'] === 'detached') {
 			
-			this.pendingAttachRequests.rejectAll('detached');
+			this.pendingPauseRequests.rejectAll('detached');
 			this.pendingDetachRequests.resolveAll(null);
 			this.emit('detached');
+			
+		} else if (response['type'] === 'newSource') {
+			
+			let source = <MozDebugProtocol.Source>(response['source']);
+			let sourceActor = new SourceActorProxy(source, this.connection);
+			this.emit('newSource', sourceActor);
 			
 		} else if (response['sources']) {
 
@@ -362,6 +386,10 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	public onDetached(cb: () => void) {
 		this.on('detached', cb);
 	}
+	
+	public onNewSource(cb: (newSource: SourceActorProxy) => void) {
+		this.on('newSource', cb);
+	}
 }
 
 export class PauseActorProxy extends EventEmitter implements ActorProxy {
@@ -384,7 +412,7 @@ export class PauseActorProxy extends EventEmitter implements ActorProxy {
 
 export class SourceActorProxy extends EventEmitter implements ActorProxy {
 
-	private pendingSetBreakpointRequests = new PendingRequests<MozDebugProtocol.SourceLocation>();
+	private pendingSetBreakpointRequests = new PendingRequests<SetBreakpointResult>();
 
 	constructor(private _source: MozDebugProtocol.Source, private connection: MozDebugConnection) {
 		super();
@@ -399,8 +427,8 @@ export class SourceActorProxy extends EventEmitter implements ActorProxy {
 		return this._source.url;
 	}
 
-	public setBreakpoint(location: MozDebugProtocol.SourceLocation): Promise<MozDebugProtocol.SourceLocation> {
-		return new Promise<MozDebugProtocol.SourceLocation[]>((resolve, reject) => {
+	public setBreakpoint(location: MozDebugProtocol.SourceLocation): Promise<SetBreakpointResult> {
+		return new Promise<SetBreakpointResult>((resolve, reject) => {
 			this.pendingSetBreakpointRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'setBreakpoint', location: location });
 		});
@@ -414,7 +442,8 @@ export class SourceActorProxy extends EventEmitter implements ActorProxy {
 			//TODO create breakpointActor so that the breakpoint can be deleted
 			let setBreakpointResponse = <MozDebugProtocol.SetBreakpointResponse>response;
 			let actualLocation = setBreakpointResponse.actualLocation;
-			this.pendingSetBreakpointRequests.resolveOne(actualLocation);
+			let breakpointActor = new BreakpointActorProxy(setBreakpointResponse.actor, this.connection);
+			this.pendingSetBreakpointRequests.resolveOne(new SetBreakpointResult(breakpointActor, actualLocation));
 			
 		} else {
 			
@@ -427,7 +456,7 @@ export class SourceActorProxy extends EventEmitter implements ActorProxy {
 export class SetBreakpointResult {
 	constructor(
 		public breakpointActor: BreakpointActorProxy,
-		public actualLocation: MozDebugProtocol.UrlSourceLocation
+		public actualLocation: MozDebugProtocol.SourceLocation
 	) {}
 }
 

@@ -10,8 +10,15 @@ con.rootActor.onTabOpened(t => {
 			threadActor.fetchSources().then((sourceActors) => {
 				let testSourceActor = sourceActors.filter((sourceActor) => sourceActor.url == 'file:///home/marvin/Misc/projects/chrome-debug-test/test.js');
 				if (testSourceActor.length > 0) {
-					testSourceActor[0].setBreakpoint({ line: 0 }).then((actualLocation) => {
-						console.log('Actual breakpoint location: ' + actualLocation.line + " , " + actualLocation.column);
+					testSourceActor[0].setBreakpoint({ line: 0 }).then((setBreakpointResult) => {
+						console.log('Actual breakpoint location: ' + setBreakpointResult.actualLocation.line + 
+							" , " + setBreakpointResult.actualLocation.column);
+						threadActor.onPaused(() => {
+							threadActor.fetchStackFrames().then((frames) => {
+								console.log('Frames:\n' + JSON.stringify(frames));
+								threadActor.resume();
+							});
+						});
 						threadActor.resume();
 					});
 				}
