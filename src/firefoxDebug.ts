@@ -1,4 +1,5 @@
-import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, Thread, StackFrame, Scope, Source} from 'vscode-debugadapter';
+import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, Thread, StackFrame, Scope, Source } from 'vscode-debugadapter';
+import { DebugProtocol } from 'vscode-debugprotocol';
 import { ActorProxy, TabActorProxy, ThreadActorProxy, SourceActorProxy, BreakpointActorProxy } from './mozilla/actorProxy';
 import { MozDebugConnection } from './mozilla/mozDebugConnection';
 
