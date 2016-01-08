@@ -341,7 +341,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 				() => new PauseActorProxy(pausedResponse.actor, this.connection));
 			this.pendingPauseRequests.resolveAll(pauseActor);
 			this.pendingDetachRequests.rejectAll('paused');
-			this.emit('paused');
+			this.emit('paused', pausedResponse.why);
 
 		} else if (response['type'] === 'exited') {
 			
@@ -391,7 +391,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			
 	}
 	
-	public onPaused(cb: () => void) {
+	public onPaused(cb: (why: string) => void) {
 		this.on('paused', cb);
 	}
 

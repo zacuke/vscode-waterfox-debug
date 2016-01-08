@@ -41,6 +41,10 @@ class FirefoxDebugSession extends DebugSession {
 					}
 				});
 				
+				threadActor.onPaused((why) => {
+					this.sendEvent(new StoppedEvent(why, threadId));
+				});
+				
 				threadActor.onExited(() => {
 					this.threadsById.delete(threadId);
 					this.threadsByActorName.delete(threadActor.name);
