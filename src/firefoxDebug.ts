@@ -79,7 +79,7 @@ class FirefoxDebugSession extends DebugSession {
 		let firefoxSourceUrl = this.convertDebuggerPathToClient(args.source.path);
 		this.breakpointsBySourceUrl.set(firefoxSourceUrl, args);
 
-		let responseSent = false;		
+		let responseScheduled = false;		
 		this.threadsById.forEach((threadInfo) => {
 			
 			let sourceInfo: SourceInfo = null;
@@ -92,12 +92,16 @@ class FirefoxDebugSession extends DebugSession {
 
 			if (sourceInfo !== null) {
 				let setBreakpointsPromise = this.setBreakpointsOnSourceActor(args.lines, sourceInfo, threadInfo.actor);
-				if (!responseSent) {
+				if (!responseScheduled) {
 					setBreakpointsPromise.then((breakpointInfos) => {
+
 						response.body.breakpoints = breakpointInfos.map((breakpointInfo) => 
 							<DebugProtocol.Breakpoint>{ verified: true, line: breakpointInfo.actualLine });
+
+						this.sendResponse(response);
+						
 					});
-					responseSent = true;
+					responseScheduled = true;
 				}
 			}
 		});
