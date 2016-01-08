@@ -8,8 +8,8 @@ class FirefoxDebugSession extends DebugSession {
 	private mozDebugConnection: MozDebugConnection;
 
 	private nextThreadId = 1;
-	private threadsById = new Map<number, ThreadInfo>();
-	private threadsByActorName = new Map<string, ThreadInfo>();
+	private threadsById = new Map<number, ThreadAdapter>();
+	private threadsByActorName = new Map<string, ThreadAdapter>();
 	private breakpointsBySourceUrl = new Map<string, DebugProtocol.SetBreakpointsArguments>();
 	
 	public constructor(debuggerLinesStartAt1: boolean, isServer: boolean = false) {
@@ -28,16 +28,16 @@ class FirefoxDebugSession extends DebugSession {
 			tabActor.attach().then((threadActor) => {
 
 				let threadId = this.nextThreadId++;
-				let threadInfo = new ThreadInfo(threadId, threadActor);
-				this.threadsById.set(threadId, threadInfo);
-				this.threadsByActorName.set(threadActor.name, threadInfo);
+				let threadAdapter = new ThreadAdapter(threadId, threadActor);
+				this.threadsById.set(threadId, threadAdapter);
+				this.threadsByActorName.set(threadActor.name, threadAdapter);
 
 				threadActor.onNewSource((sourceActor) => {
-					let sourceInfo = new SourceInfo(sourceActor);
-					threadInfo.sources.push(sourceInfo);
+					let sourceAdapter = new SourceAdapter(sourceActor);
+					threadAdapter.sources.push(sourceAdapter);
 					if (this.breakpointsBySourceUrl.has(sourceActor.url)) {
 						let breakpoints = this.breakpointsBySourceUrl.get(sourceActor.url).lines;
-						this.setBreakpointsOnSourceActor(breakpoints, sourceInfo, threadActor);
+						this.setBreakpointsOnSourceActor(breakpoints, sourceAdapter, threadActor);
 					}
 				});
 				
@@ -66,8 +66,8 @@ class FirefoxDebugSession extends DebugSession {
 	protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
 
 		let responseThreads: Thread[] = [];
-		this.threadsById.forEach((threadInfo) => {
-			responseThreads.push(new Thread(threadInfo.id, threadInfo.actor.name));
+		this.threadsById.forEach((threadAdapter) => {
+			responseThreads.push(new Thread(threadAdapter.id, threadAdapter.actor.name));
 		});
 		response.body = { threads: responseThreads };
 		
@@ -80,23 +80,23 @@ class FirefoxDebugSession extends DebugSession {
 		this.breakpointsBySourceUrl.set(firefoxSourceUrl, args);
 
 		let responseScheduled = false;		
-		this.threadsById.forEach((threadInfo) => {
+		this.threadsById.forEach((threadAdapter) => {
 			
-			let sourceInfo: SourceInfo = null;
-			for (let i = 0; i < threadInfo.sources.length; i++) {
-				if (threadInfo.sources[i].actor.url === firefoxSourceUrl) {
-					sourceInfo = threadInfo.sources[i];
+			let sourceAdapter: SourceAdapter = null;
+			for (let i = 0; i < threadAdapter.sources.length; i++) {
+				if (threadAdapter.sources[i].actor.url === firefoxSourceUrl) {
+					sourceAdapter = threadAdapter.sources[i];
 					break;
 				}
 			}
 
-			if (sourceInfo !== null) {
-				let setBreakpointsPromise = this.setBreakpointsOnSourceActor(args.lines, sourceInfo, threadInfo.actor);
+			if (sourceAdapter !== null) {
+				let setBreakpointsPromise = this.setBreakpointsOnSourceActor(args.lines, sourceAdapter, threadAdapter.actor);
 				if (!responseScheduled) {
-					setBreakpointsPromise.then((breakpointInfos) => {
+					setBreakpointsPromise.then((breakpointAdapters) => {
 
-						response.body.breakpoints = breakpointInfos.map((breakpointInfo) => 
-							<DebugProtocol.Breakpoint>{ verified: true, line: breakpointInfo.actualLine });
+						response.body.breakpoints = breakpointAdapters.map((breakpointAdapter) => 
+							<DebugProtocol.Breakpoint>{ verified: true, line: breakpointAdapter.actualLine });
 
 						this.sendResponse(response);
 						
@@ -107,35 +107,35 @@ class FirefoxDebugSession extends DebugSession {
 		});
 	}
 	
-	private setBreakpointsOnSourceActor(breakpointsToSet: number[], sourceInfo: SourceInfo, threadActor: ThreadActorProxy): Promise<BreakpointInfo[]> {
+	private setBreakpointsOnSourceActor(breakpointsToSet: number[], sourceAdapter: SourceAdapter, threadActor: ThreadActorProxy): Promise<BreakpointAdapter[]> {
 		return threadActor.runOnPausedThread((resume) => 
-			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceInfo, resume));
+			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter, resume));
 	}
 
-	private setBreakpointsOnPausedSourceActor(breakpointsToSet: number[], sourceInfo: SourceInfo, resume: () => void): Promise<BreakpointInfo[]> {
+	private setBreakpointsOnPausedSourceActor(breakpointsToSet: number[], sourceAdapter: SourceAdapter, resume: () => void): Promise<BreakpointAdapter[]> {
 		
-		let result = new Promise<BreakpointInfo[]>((resolve) => {
-			sourceInfo.currentBreakpoints.then((oldBreakpoints) => {
+		let result = new Promise<BreakpointAdapter[]>((resolve) => {
+			sourceAdapter.currentBreakpoints.then((oldBreakpoints) => {
 				
-				let newBreakpoints: BreakpointInfo[] = [];
+				let newBreakpoints: BreakpointAdapter[] = [];
 				let breakpointsBeingRemoved: Promise<void>[] = [];
 				let breakpointsBeingSet: Promise<void>[] = [];
 				
-				oldBreakpoints.forEach((breakpointInfo) => {
-					let breakpointIndex = breakpointsToSet.indexOf(breakpointInfo.requestedLine);
+				oldBreakpoints.forEach((breakpointAdapter) => {
+					let breakpointIndex = breakpointsToSet.indexOf(breakpointAdapter.requestedLine);
 					if (breakpointIndex >= 0) {
-						newBreakpoints[breakpointIndex] = breakpointInfo;
+						newBreakpoints[breakpointIndex] = breakpointAdapter;
 						breakpointsToSet[breakpointIndex] = undefined;
 					} else {
-						breakpointsBeingRemoved.push(breakpointInfo.actor.delete());
+						breakpointsBeingRemoved.push(breakpointAdapter.actor.delete());
 					}
 				});
 
 				breakpointsToSet.map((requestedLine, index) => {
 					if (requestedLine !== undefined) {
-						breakpointsBeingSet.push(sourceInfo.actor.setBreakpoint({ line: requestedLine })
+						breakpointsBeingSet.push(sourceAdapter.actor.setBreakpoint({ line: requestedLine })
 						.then((setBreakpointResult) => {
-							newBreakpoints[index] = new BreakpointInfo(
+							newBreakpoints[index] = new BreakpointAdapter(
 								requestedLine, setBreakpointResult.actualLocation.line, setBreakpointResult.breakpointActor); 
 						}));
 					}
@@ -148,7 +148,7 @@ class FirefoxDebugSession extends DebugSession {
 			});
 		});
 		
-		sourceInfo.currentBreakpoints = result;
+		sourceAdapter.currentBreakpoints = result;
 		return result;
 	}
 
@@ -178,10 +178,10 @@ class FirefoxDebugSession extends DebugSession {
 	}
 }
 
-class ThreadInfo {
+class ThreadAdapter {
 	public id: number;
 	public actor: ThreadActorProxy;
-	public sources: SourceInfo[];
+	public sources: SourceAdapter[];
 	
 	public constructor(id: number, actor: ThreadActorProxy) {
 		this.id = id;
@@ -190,9 +190,9 @@ class ThreadInfo {
 	}
 }
 
-class SourceInfo {
+class SourceAdapter {
 	public actor: SourceActorProxy;
-	public currentBreakpoints: Promise<BreakpointInfo[]>;
+	public currentBreakpoints: Promise<BreakpointAdapter[]>;
 	
 	public constructor(actor: SourceActorProxy) {
 		this.actor = actor;
@@ -200,7 +200,7 @@ class SourceInfo {
 	}
 }
 
-class BreakpointInfo {
+class BreakpointAdapter {
 	public requestedLine: number;
 	public actualLine: number;
 	public actor: BreakpointActorProxy;
