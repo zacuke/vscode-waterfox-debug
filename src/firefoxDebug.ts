@@ -152,6 +152,11 @@ class FirefoxDebugSession extends DebugSession {
 		return result;
 	}
 
+	protected pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments): void {
+		this.threadsById.get(args.threadId).actor.interrupt();
+		this.sendResponse(response);
+	}
+	
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
 		this.threadsById.get(args.threadId).actor.resume();
 		this.sendResponse(response);
