@@ -151,6 +151,26 @@ class FirefoxDebugSession extends DebugSession {
 		sourceInfo.currentBreakpoints = result;
 		return result;
 	}
+
+	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
+		this.threadsById.get(args.threadId).actor.resume();
+		this.sendResponse(response);
+	}
+
+	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
+		this.threadsById.get(args.threadId).actor.stepOver();
+		this.sendResponse(response);
+	}
+
+	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
+		this.threadsById.get(args.threadId).actor.stepInto();
+		this.sendResponse(response);
+	}
+
+	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
+		this.threadsById.get(args.threadId).actor.stepOut();
+		this.sendResponse(response);
+	}
 }
 
 class ThreadInfo {
