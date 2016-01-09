@@ -99,7 +99,7 @@ declare namespace MozDebugProtocol {
 		line?: number;
 		column?: number;
 	}
-	
+
 	interface UrlSourceLocation extends SourceLocation {
 		url: string;
 	}

@@ -1,4 +1,4 @@
-import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, Thread, StackFrame, Scope, Source } from 'vscode-debugadapter';
+import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, Thread, StackFrame, Scope, Variable, Source } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { ActorProxy, TabActorProxy, ThreadActorProxy, SourceActorProxy, BreakpointActorProxy } from './mozilla/actorProxy';
 import { MozDebugConnection } from './mozilla/mozDebugConnection';
@@ -11,9 +11,21 @@ class FirefoxDebugSession extends DebugSession {
 	private threadsById = new Map<number, ThreadAdapter>();
 	private threadsByActorName = new Map<string, ThreadAdapter>();
 	private breakpointsBySourceUrl = new Map<string, DebugProtocol.SetBreakpointsArguments>();
-	
+
+	private nextFrameId = 1;
+	private framesById = new Map<number, FrameAdapter>();
+
+	private nextVariablesProviderId = 1;
+	private variablesProvidersById = new Map<number, VariablesProvider>();
+
 	public constructor(debuggerLinesStartAt1: boolean, isServer: boolean = false) {
 		super(debuggerLinesStartAt1, isServer);
+	}
+
+	public registerVariablesProvider(variablesProvider: VariablesProvider) {
+		let providerId = this.nextVariablesProviderId++;
+		variablesProvider.variablesProviderId = providerId;
+		this.variablesProvidersById.set(providerId, variablesProvider);
 	}
 
 	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
@@ -158,23 +170,71 @@ class FirefoxDebugSession extends DebugSession {
 	}
 	
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
+		this.terminatePause();
 		this.threadsById.get(args.threadId).actor.resume();
 		this.sendResponse(response);
 	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
+		this.terminatePause();
 		this.threadsById.get(args.threadId).actor.stepOver();
 		this.sendResponse(response);
 	}
 
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
+		this.terminatePause();
 		this.threadsById.get(args.threadId).actor.stepInto();
 		this.sendResponse(response);
 	}
 
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
+		this.terminatePause();
 		this.threadsById.get(args.threadId).actor.stepOut();
 		this.sendResponse(response);
+	}
+	
+	private terminatePause() {
+		this.variablesProvidersById.clear();
+		this.framesById.clear();
+	}
+	
+	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
+
+		let threadActor = this.threadsById.get(args.threadId).actor;
+
+		threadActor.fetchStackFrames().then((frames) => {
+
+			let frameAdapters = frames.map((frame) => {
+				let frameId = this.nextFrameId++;
+				let frameAdapter = new FrameAdapter(frameId, frame);
+				this.framesById.set(frameId, frameAdapter);
+				return frameAdapter;
+			});
+
+			response.body.stackFrames = frameAdapters.map((frameAdapter) => frameAdapter.getStackframe());
+			this.sendResponse(response);
+		});
+	}
+	
+	protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): void {
+		
+		let frameAdapter = this.framesById.get(args.frameId);
+		let environmentAdapter = EnvironmentAdapter.from(frameAdapter.frame.environment);
+		let scopeAdapters = environmentAdapter.getScopes(this);
+		
+		response.body.scopes = scopeAdapters.map((scopeAdapter) => scopeAdapter.getScope());
+		
+		this.sendResponse(response);
+	}
+	
+	protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): void {
+		
+		let variablesProvider = this.variablesProvidersById.get(args.variablesReference);
+		
+		variablesProvider.getVariables().then((vars) => {
+			response.body.variables = vars;
+			this.sendResponse(response);
+		})
 	}
 }
 
@@ -209,6 +269,196 @@ class BreakpointAdapter {
 		this.requestedLine = requestedLine;
 		this.actualLine = actualLine;
 		this.actor = actor;
+	}
+}
+
+class FrameAdapter {
+	public id: number;
+	public frame: MozDebugProtocol.Frame;
+	
+	public constructor(id: number, frame: MozDebugProtocol.Frame) {
+		this.id = id;
+		this.frame = frame;
+	}
+	
+	public getStackframe(): StackFrame {
+		let sourcePath: string = null;
+		if ((<MozDebugProtocol.UrlSourceLocation>this.frame.where).url !== undefined) {
+			sourcePath = (<MozDebugProtocol.UrlSourceLocation>this.frame.where).url;
+		}
+		let source = new Source('Some source', sourcePath);
+		return new StackFrame(this.id, 'Some frame', source, this.frame.where.line, this.frame.where.column);
+	}
+}
+
+abstract class EnvironmentAdapter {
+	
+	public environment: MozDebugProtocol.Environment;
+	public parent: EnvironmentAdapter;
+	
+	public constructor(environment: MozDebugProtocol.Environment) {
+		this.environment = environment;
+		if (environment.parent !== undefined) {
+			this.parent = EnvironmentAdapter.from(environment.parent);
+		}
+	}
+	
+	public static from(environment: MozDebugProtocol.Environment): EnvironmentAdapter {
+		switch (environment.type) {
+			case 'object':
+				return new ObjectEnvironmentAdapter(<MozDebugProtocol.ObjectEnvironment>environment);
+			case 'function':
+				return new FunctionEnvironmentAdapter(<MozDebugProtocol.FunctionEnvironment>environment);
+			case 'with':
+				return new WithEnvironmentAdapter(<MozDebugProtocol.WithEnvironment>environment);
+			case 'block':
+				return new BlockEnvironmentAdapter(<MozDebugProtocol.BlockEnvironment>environment);
+			default: 
+				return null;
+		}
+	}
+	
+	public getScopes(debugSession: FirefoxDebugSession): ScopeAdapter[] {
+		let scopes = this.getOwnScopes(debugSession);
+		if (this.parent !== undefined) {
+			scopes = scopes.concat(this.parent.getScopes(debugSession));
+		}
+		return scopes;
+	}
+	
+	protected abstract getOwnScopes(debugSession: FirefoxDebugSession): ScopeAdapter[];
+}
+
+class ObjectEnvironmentAdapter extends EnvironmentAdapter {
+	
+	public environment: MozDebugProtocol.ObjectEnvironment;
+	
+	public constructor(environment: MozDebugProtocol.ObjectEnvironment) {
+		super(environment);
+	}
+	
+	protected getOwnScopes(debugSession: FirefoxDebugSession): ScopeAdapter[] {
+		let objectGrip = this.environment.object;
+		if ((typeof objectGrip === 'boolean') || (typeof objectGrip === 'number') || (typeof objectGrip === 'string')) {
+			//TODO this shouldn't happen(?)
+			return [];
+		} else {
+			return [ new ObjectScopeAdapter('Some object scope', objectGrip, debugSession) ];
+		}
+	}
+}
+
+class FunctionEnvironmentAdapter extends EnvironmentAdapter {
+
+	public environment: MozDebugProtocol.FunctionEnvironment;
+	
+	public constructor(environment: MozDebugProtocol.FunctionEnvironment) {
+		super(environment);
+	}
+	
+	protected getOwnScopes(debugSession: FirefoxDebugSession): ScopeAdapter[] {
+		return [
+			new LocalVariablesScopeAdapter('Some local variables', this.environment.bindings.variables, debugSession),
+			new FunctionArgumentsScopeAdapter('Some function arguments', this.environment.bindings.arguments, debugSession)
+		];
+	}
+}
+
+class WithEnvironmentAdapter extends EnvironmentAdapter {
+
+	public environment: MozDebugProtocol.WithEnvironment;
+	
+	public constructor(environment: MozDebugProtocol.WithEnvironment) {
+		super(environment);
+	}
+	
+	protected getOwnScopes(debugSession: FirefoxDebugSession): ScopeAdapter[] {
+		let objectGrip = this.environment.object;
+		if ((typeof objectGrip === 'boolean') || (typeof objectGrip === 'number') || (typeof objectGrip === 'string')) {
+			//TODO this shouldn't happen(?)
+			return [];
+		} else {
+			return [ new ObjectScopeAdapter('Some object scope', objectGrip, debugSession) ];
+		}
+	}
+}
+
+class BlockEnvironmentAdapter extends EnvironmentAdapter {
+
+	public environment: MozDebugProtocol.BlockEnvironment;
+	
+	public constructor(environment: MozDebugProtocol.BlockEnvironment) {
+		super(environment);
+	}
+	
+	protected getOwnScopes(debugSession: FirefoxDebugSession): ScopeAdapter[] {
+		return [ new LocalVariablesScopeAdapter('Some local variables', this.environment.bindings.variables, debugSession) ];
+	}
+}
+
+interface VariablesProvider {
+	variablesProviderId: number;
+	getVariables(): Promise<Variable[]>;
+}
+
+abstract class ScopeAdapter implements VariablesProvider {
+	
+	public name: string;
+	public variablesProviderId: number;
+	
+	public constructor(name: string, debugSession: FirefoxDebugSession) {
+		this.name = name;
+		debugSession.registerVariablesProvider(this);
+	}
+	
+	public getScope(): Scope {
+		return new Scope(this.name, this.variablesProviderId);
+	}
+	
+	public abstract getVariables(): Promise<Variable[]>;
+}
+
+class ObjectScopeAdapter extends ScopeAdapter {
+	
+	public object: MozDebugProtocol.ComplexGrip;
+	
+	public constructor(name: string, object: MozDebugProtocol.ComplexGrip, debugSession: FirefoxDebugSession) {
+		super(name, debugSession);
+		this.object = object;
+	}
+	
+	public getVariables(): Promise<Variable[]> {
+		return Promise.resolve([]); //TODO
+	}
+}
+
+class LocalVariablesScopeAdapter extends ScopeAdapter {
+	
+	public name: string;
+	public variables: MozDebugProtocol.PropertyDescriptors;
+	
+	public constructor(name: string, variables: MozDebugProtocol.PropertyDescriptors, debugSession: FirefoxDebugSession) {
+		super(name, debugSession);
+		this.variables = variables;
+	}
+	
+	public getVariables(): Promise<Variable[]> {
+		return Promise.resolve([]); //TODO
+	}
+}
+
+class FunctionArgumentsScopeAdapter extends ScopeAdapter {
+	
+	public name: string;
+	public args: MozDebugProtocol.PropertyDescriptors[];
+	
+	public constructor(name: string, args: MozDebugProtocol.PropertyDescriptors[], debugSession: FirefoxDebugSession) {
+		super(name, debugSession);
+		this.args = args;
+	}
+	
+	public getVariables(): Promise<Variable[]> {
+		return Promise.resolve([]); //TODO
 	}
 }
 
