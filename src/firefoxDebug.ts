@@ -1,6 +1,6 @@
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, Thread, StackFrame, Scope, Variable, Source } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { ActorProxy, TabActorProxy, ThreadActorProxy, SourceActorProxy, BreakpointActorProxy } from './mozilla/actorProxy';
+import { ActorProxy, TabActorProxy, ThreadActorProxy, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy } from './mozilla/actorProxy';
 import { MozDebugConnection } from './mozilla/mozDebugConnection';
 
 class FirefoxDebugSession extends DebugSession {
@@ -28,6 +28,10 @@ class FirefoxDebugSession extends DebugSession {
 		this.variablesProvidersById.set(providerId, variablesProvider);
 	}
 
+	public createObjectGripActorProxy(objectGrip: MozDebugProtocol.ObjectGrip): ObjectGripActorProxy {
+		return new ObjectGripActorProxy(objectGrip, this.mozDebugConnection);
+	}
+	
 	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
 		this.sendResponse(response);
 
@@ -231,7 +235,7 @@ class FirefoxDebugSession extends DebugSession {
 		
 		let variablesProvider = this.variablesProvidersById.get(args.variablesReference);
 		
-		variablesProvider.getVariables().then((vars) => {
+		variablesProvider.getVariables(this).then((vars) => {
 			response.body.variables = vars;
 			this.sendResponse(response);
 		})
@@ -342,8 +346,11 @@ class ObjectEnvironmentAdapter extends EnvironmentAdapter {
 		if ((typeof objectGrip === 'boolean') || (typeof objectGrip === 'number') || (typeof objectGrip === 'string')) {
 			//TODO this shouldn't happen(?)
 			return [];
+		} else if (objectGrip.type !== 'object') {
+			//TODO this also shouldn't happen(?)
+			return [];
 		} else {
-			return [ new ObjectScopeAdapter('Some object scope', objectGrip, debugSession) ];
+			return [ new ObjectScopeAdapter('Some object scope', <MozDebugProtocol.ObjectGrip>objectGrip, debugSession) ];
 		}
 	}
 }
@@ -373,12 +380,16 @@ class WithEnvironmentAdapter extends EnvironmentAdapter {
 	}
 	
 	protected getOwnScopes(debugSession: FirefoxDebugSession): ScopeAdapter[] {
+		//TODO this is the same as in ObjectEnvironmentAdapter...
 		let objectGrip = this.environment.object;
 		if ((typeof objectGrip === 'boolean') || (typeof objectGrip === 'number') || (typeof objectGrip === 'string')) {
 			//TODO this shouldn't happen(?)
 			return [];
+		} else if (objectGrip.type !== 'object') {
+			//TODO this also shouldn't happen(?)
+			return [];
 		} else {
-			return [ new ObjectScopeAdapter('Some object scope', objectGrip, debugSession) ];
+			return [ new ObjectScopeAdapter('Some object scope', <MozDebugProtocol.ObjectGrip>objectGrip, debugSession) ];
 		}
 	}
 }
@@ -398,7 +409,7 @@ class BlockEnvironmentAdapter extends EnvironmentAdapter {
 
 interface VariablesProvider {
 	variablesProviderId: number;
-	getVariables(): Promise<Variable[]>;
+	getVariables(debugSession: FirefoxDebugSession): Promise<Variable[]>;
 }
 
 abstract class ScopeAdapter implements VariablesProvider {
@@ -415,20 +426,31 @@ abstract class ScopeAdapter implements VariablesProvider {
 		return new Scope(this.name, this.variablesProviderId);
 	}
 	
-	public abstract getVariables(): Promise<Variable[]>;
+	public abstract getVariables(debugSession: FirefoxDebugSession): Promise<Variable[]>;
 }
 
 class ObjectScopeAdapter extends ScopeAdapter {
 	
-	public object: MozDebugProtocol.ComplexGrip;
+	public object: MozDebugProtocol.ObjectGrip;
+	public objectGripActor: ObjectGripActorProxy;
 	
-	public constructor(name: string, object: MozDebugProtocol.ComplexGrip, debugSession: FirefoxDebugSession) {
+	public constructor(name: string, object: MozDebugProtocol.ObjectGrip, debugSession: FirefoxDebugSession) {
 		super(name, debugSession);
 		this.object = object;
+		this.objectGripActor = debugSession.createObjectGripActorProxy(this.object);
 	}
 	
-	public getVariables(): Promise<Variable[]> {
-		return Promise.resolve([]); //TODO
+	public getVariables(debugSession: FirefoxDebugSession): Promise<Variable[]> {
+		
+		return this.objectGripActor.fetchPrototypeAndProperties().then((prototypeAndProperties) => {
+
+			let variables: Variable[] = [];
+			for (let varname in prototypeAndProperties.ownProperties) {
+				variables.push(getVariableFromPropertyDescriptor(varname, prototypeAndProperties.ownProperties[varname], debugSession));
+			}
+			
+			return variables;
+		});
 	}
 }
 
@@ -442,8 +464,14 @@ class LocalVariablesScopeAdapter extends ScopeAdapter {
 		this.variables = variables;
 	}
 	
-	public getVariables(): Promise<Variable[]> {
-		return Promise.resolve([]); //TODO
+	public getVariables(debugSession: FirefoxDebugSession): Promise<Variable[]> {
+		
+		let variables: Variable[] = [];
+		for (let varname in this.variables) {
+			variables.push(getVariableFromPropertyDescriptor(varname, this.variables[varname], debugSession));
+		}
+		
+		return Promise.resolve(variables);
 	}
 }
 
@@ -457,8 +485,45 @@ class FunctionArgumentsScopeAdapter extends ScopeAdapter {
 		this.args = args;
 	}
 	
-	public getVariables(): Promise<Variable[]> {
-		return Promise.resolve([]); //TODO
+	public getVariables(debugSession: FirefoxDebugSession): Promise<Variable[]> {
+
+		let variables: Variable[] = [];
+		this.args.forEach((arg) => {
+			for (let varname in arg) {
+				variables.push(getVariableFromPropertyDescriptor(varname, arg[varname], debugSession));
+			}
+		});
+		
+		return Promise.resolve(variables);
+	}
+}
+
+function getVariableFromPropertyDescriptor(varname: string, propertyDescriptor: PropertyDescriptor, debugSession: FirefoxDebugSession): Variable {
+	if (propertyDescriptor.value !== undefined) {
+		return getVariableFromGrip(varname, propertyDescriptor.value, debugSession);
+	} else {
+		return new Variable(varname, 'unknown');
+	}
+}
+
+function getVariableFromGrip(varname: string, grip: MozDebugProtocol.Grip, debugSession: FirefoxDebugSession): Variable {
+	if ((typeof grip === 'boolean') || (typeof grip === 'number') || (typeof grip === 'string')) {
+		return new Variable(varname, <string>grip);
+	} else {
+		switch (grip.type) {
+			case 'null':
+			case 'undefined':
+			case 'Infinity':
+			case '-Infinity':
+			case 'NaN':
+			case '-0':
+				return new Variable(varname, grip.type);
+			case 'longString':
+				return new Variable(varname, (<MozDebugProtocol.LongStringGrip>grip).initial);
+			case 'object':
+				let variablesProvider = new ObjectScopeAdapter(varname, grip, debugSession);
+				return new Variable(varname, '...', variablesProvider.variablesProviderId);
+		}
 	}
 }
 

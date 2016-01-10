@@ -65,6 +65,12 @@ declare namespace MozDebugProtocol {
 		actualLocation?: SourceLocation;
 	}
 	
+	interface PrototypeAndPropertiesResponse extends TypedResponse {
+		prototype: Grip; // ObjectGrip | { type: 'null' }
+		ownProperties: PropertyDescriptors;
+		safeGetterValues?: SafeGetterValueDescriptors;
+	}
+	
 	interface CompletionValue {
 		return?: Grip;
 		throw?: Grip;
@@ -162,8 +168,8 @@ declare namespace MozDebugProtocol {
 	}
 	
 	interface AccessorPropertyDescriptor extends PropertyDescriptor {
-		get: Grip | { type: string }; // { type: 'undefined' }
-		set: Grip | { type: string }; // { type: 'undefined' }
+		get: Grip;
+		set: Grip;
 	}
 
 	interface SafeGetterValueDescriptor {
@@ -176,11 +182,15 @@ declare namespace MozDebugProtocol {
 	interface PropertyDescriptors {
 		[name: string]: PropertyDescriptor;
 	}
+
+	interface SafeGetterValueDescriptors {
+		[name: string]: SafeGetterValueDescriptor;
+	}
 	
 	type Grip = boolean | number | string | ComplexGrip;
 
 	interface ComplexGrip {
-		type: string;
+		type: string;  // 'null' | 'undefined' | 'Infinity' | '-Infinity' | 'NaN' | '-0' | 'longString' | 'object'
 	}
 
 	interface ObjectGrip extends ComplexGrip {

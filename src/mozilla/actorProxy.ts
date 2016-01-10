@@ -507,3 +507,37 @@ export class BreakpointActorProxy extends EventEmitter implements ActorProxy {
 		
 	}
 }
+
+export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
+	
+	private pendingPrototypeAndPropertiesRequests = new PendingRequests<MozDebugProtocol.PrototypeAndPropertiesResponse>();
+
+	constructor(private grip: MozDebugProtocol.ObjectGrip, private connection: MozDebugConnection) {
+		super();
+		this.connection.register(this);
+	}
+
+	public get name() {
+		return this.grip.actor;
+	}
+
+	public fetchPrototypeAndProperties(): Promise<MozDebugProtocol.PrototypeAndPropertiesResponse> {
+		return new Promise<MozDebugProtocol.PrototypeAndPropertiesResponse>((resolve, reject) => {
+			this.pendingPrototypeAndPropertiesRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'prototypeAndProperties' });
+		});
+	}
+	
+	public receiveResponse(response: MozDebugProtocol.Response): void {
+
+		if ((response['prototype'] !== undefined) && (response['ownProperties'] !== undefined)) {
+			
+			this.pendingPrototypeAndPropertiesRequests.resolveOne(<MozDebugProtocol.PrototypeAndPropertiesResponse>response);
+			
+		} else {
+			
+			console.log("Unknown message from ObjectGripActor: ", JSON.stringify(response));
+			
+		}
+	}
+}
