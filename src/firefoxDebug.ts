@@ -92,7 +92,7 @@ class FirefoxDebugSession extends DebugSession {
 	
     protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 
-		let firefoxSourceUrl = this.convertDebuggerPathToClient(args.source.path);
+		let firefoxSourceUrl = 'file://' + this.convertDebuggerPathToClient(args.source.path);
 		this.breakpointsBySourceUrl.set(firefoxSourceUrl, args);
 
 		let responseScheduled = false;		
@@ -111,8 +111,8 @@ class FirefoxDebugSession extends DebugSession {
 				if (!responseScheduled) {
 					setBreakpointsPromise.then((breakpointAdapters) => {
 
-						response.body.breakpoints = breakpointAdapters.map((breakpointAdapter) => 
-							<DebugProtocol.Breakpoint>{ verified: true, line: breakpointAdapter.actualLine });
+						response.body = { breakpoints: breakpointAdapters.map((breakpointAdapter) => 
+							<DebugProtocol.Breakpoint>{ verified: true, line: breakpointAdapter.actualLine }) };
 
 						this.sendResponse(response);
 						
@@ -151,8 +151,8 @@ class FirefoxDebugSession extends DebugSession {
 					if (requestedLine !== undefined) {
 						breakpointsBeingSet.push(sourceAdapter.actor.setBreakpoint({ line: requestedLine })
 						.then((setBreakpointResult) => {
-							newBreakpoints[index] = new BreakpointAdapter(
-								requestedLine, setBreakpointResult.actualLocation.line, setBreakpointResult.breakpointActor); 
+							let actualLine = (setBreakpointResult.actualLocation === undefined) ? requestedLine : setBreakpointResult.actualLocation.line;
+							newBreakpoints[index] = new BreakpointAdapter(requestedLine, actualLine, setBreakpointResult.breakpointActor); 
 						}));
 					}
 				});
@@ -521,7 +521,7 @@ function getVariableFromGrip(varname: string, grip: MozDebugProtocol.Grip, debug
 			case 'longString':
 				return new Variable(varname, (<MozDebugProtocol.LongStringGrip>grip).initial);
 			case 'object':
-				let variablesProvider = new ObjectScopeAdapter(varname, grip, debugSession);
+				let variablesProvider = new ObjectScopeAdapter(varname, <MozDebugProtocol.ObjectGrip>grip, debugSession);
 				return new Variable(varname, '...', variablesProvider.variablesProviderId);
 		}
 	}
