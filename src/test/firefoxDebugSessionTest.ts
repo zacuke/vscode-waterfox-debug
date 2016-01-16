@@ -1,7 +1,7 @@
-import { MozDebugConnection } from '../mozilla/mozDebugConnection';
-import { ThreadActorProxy, PauseActorProxy } from '../mozilla/actorProxy';
+import { DebugConnection } from '../firefox/connection';
+import { ThreadActorProxy, PauseActorProxy } from '../firefox/index';
 
-let con = new MozDebugConnection();
+let con = new DebugConnection();
 con.rootActor.onInit(r => console.log('Running in ' + r.applicationType));
 con.rootActor.onTabOpened(t => {
 	console.log('Tab ' + t.url + ' opened');

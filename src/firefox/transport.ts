@@ -1,70 +1,11 @@
 import { EventEmitter } from 'events';
-import { Socket } from 'net';
-import { ActorProxy, RootActorProxy } from './actorProxy';
-
-/**
- * Connects to a target supporting the Mozilla Debugging Protocol and sends and receives messages
- */
-export class MozDebugConnection {
-
-	private transport: MozDebugProtocolTransport;
-	private actors: Map<string, ActorProxy>;
-	private _rootActor: RootActorProxy;
-
-	constructor() {
-		this.actors = new Map<string, ActorProxy>();
-		this._rootActor = new RootActorProxy(this);
-		let socket = new Socket();
-		this.transport = new MozDebugProtocolTransport(socket);
-		this.transport.on('message', (response: MozDebugProtocol.Response) => {
-			if (this.actors.has(response.from)) {
-				this.actors.get(response.from).receiveResponse(response);
-			} else {
-				console.log('Unknown actor: ' + JSON.stringify(response));
-			}
-		});
-		socket.connect(6000);
-	}
-
-	public get rootActor() {
-		return this._rootActor;
-	}
-
-	public sendRequest<T extends MozDebugProtocol.Request>(request: T) {
-		this.transport.sendMessage(request);
-	}
-
-	public register(actor: ActorProxy): void {
-		this.actors.set(actor.name, actor);
-	}
-
-	public unregister(actor: ActorProxy): void {
-		this.actors.delete(actor.name);
-	}
-	
-	public getOrCreate<T extends ActorProxy>(actorName: string, createActor: () => T): T {
-		if (this.actors.has(actorName)) {
-			return <T>this.actors.get(actorName);
-		} else {
-			return createActor();
-		}
-	}
-	
-	public getOrCreatePromise<T extends ActorProxy>(actorName: string, createActor: () => Promise<T>): Promise<T> {
-		if (this.actors.has(actorName)) {
-			return Promise.resolve(this.actors.get(actorName));
-		} else {
-			return createActor();
-		}
-	}
-}
 
 /**
  * Implements the Remote Debugging Protocol Stream Transport
  * as defined in https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport
  * Currently bulk data packets are unsupported and error handling is nonexistent
  */
-export class MozDebugProtocolTransport extends EventEmitter {
+export class DebugProtocolTransport extends EventEmitter {
 
 	private static initialBufferLength = 11; // must be large enough to receive a complete header
 	private buffer: Buffer;
@@ -74,7 +15,7 @@ export class MozDebugProtocolTransport extends EventEmitter {
 	constructor(private socket: SocketLike) {
 		super();
 
-		this.buffer = new Buffer(MozDebugProtocolTransport.initialBufferLength);
+		this.buffer = new Buffer(DebugProtocolTransport.initialBufferLength);
 		this.bufferedLength = 0;
 		this.receivingHeader = true;
 
@@ -112,7 +53,7 @@ export class MozDebugProtocolTransport extends EventEmitter {
 						let msgString = this.buffer.toString('utf8');
 						this.emit('message', JSON.parse(msgString));
 						// get ready to receive the next header
-						this.buffer = new Buffer(MozDebugProtocolTransport.initialBufferLength);
+						this.buffer = new Buffer(DebugProtocolTransport.initialBufferLength);
 						this.bufferedLength = 0;
 						this.receivingHeader = true;
 					}

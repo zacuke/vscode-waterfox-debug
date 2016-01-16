@@ -1,4 +1,4 @@
-declare namespace MozDebugProtocol {
+declare namespace FirefoxDebugProtocol {
 
 	interface Request {
 		to: string;
