@@ -260,7 +260,7 @@ export class FirefoxDebugSession extends DebugSession {
 				return frameAdapter;
 			});
 
-			response.body.stackFrames = frameAdapters.map((frameAdapter) => frameAdapter.getStackframe());
+			response.body = { stackFrames: frameAdapters.map((frameAdapter) => frameAdapter.getStackframe()) };
 			this.sendResponse(response);
 		});
 	}

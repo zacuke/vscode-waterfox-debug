@@ -46,8 +46,8 @@ export class FrameAdapter {
 	
 	public getStackframe(): StackFrame {
 		let sourcePath: string = null;
-		if ((<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).url !== undefined) {
-			sourcePath = (<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).url;
+		if ((<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.url !== undefined) {
+			sourcePath = (<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.url;
 		}
 		let source = new Source('Some source', sourcePath);
 		return new StackFrame(this.id, 'Some frame', source, this.frame.where.line, this.frame.where.column);

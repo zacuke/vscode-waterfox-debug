@@ -107,7 +107,7 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface UrlSourceLocation extends SourceLocation {
-		url: string;
+		source: Source;
 	}
 	
 	interface EvalSourceLocation extends SourceLocation {
