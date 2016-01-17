@@ -5,7 +5,7 @@
 			"name": "Launch",
 			"type": "node",
 			"request": "launch",
-			"program": "./out/test/mozDebugConnection.test.js",
+			"program": "./out/test/firefoxDebugSessionTest.js",
 			"stopOnEntry": false,
 			"args": [],
 			"cwd": ".",
@@ -27,7 +27,7 @@
 			"runtimeArgs": [
 				"--harmony"
 			],
-			"program": "out/firefoxDebug.js",
+			"program": "out/firefoxDebugSession.js",
 			"stopOnEntry": false,
 			"args": [
 				"--server=4711"
