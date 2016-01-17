@@ -1,3 +1,4 @@
+import { Log } from './util/log';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, Thread, StackFrame, Scope, Variable, Source } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy } from './firefox/index';
@@ -41,32 +42,52 @@ export class FirefoxDebugSession extends DebugSession {
 		// attach to all tabs, register the corresponding threads
 		// and inform VSCode about them
 		this.firefoxDebugConnection.rootActor.onTabOpened((tabActor) => {
+			
+			Log.info(`Tab opened with url ${tabActor.name}`);
+			
 			tabActor.attach().then((threadActor) => {
+
+				Log.debug(`Attached to tab ${tabActor.name}`);
 
 				let threadId = this.nextThreadId++;
 				let threadAdapter = new ThreadAdapter(threadId, threadActor);
 				this.threadsById.set(threadId, threadAdapter);
 				this.threadsByActorName.set(threadActor.name, threadAdapter);
 
+
 				threadActor.onNewSource((sourceActor) => {
+
+					Log.debug(`New source ${sourceActor.url} in tab ${tabActor.name}`);
+
 					let sourceAdapter = new SourceAdapter(sourceActor);
 					threadAdapter.sources.push(sourceAdapter);
+
 					if (this.breakpointsBySourceUrl.has(sourceActor.url)) {
 						let breakpoints = this.breakpointsBySourceUrl.get(sourceActor.url).lines;
 						this.setBreakpointsOnSourceActor(breakpoints, sourceAdapter, threadActor);
 					}
 				});
 				
+
 				threadActor.onPaused((why) => {
+
+					Log.info(`Thread ${threadActor.name} paused , reason: ${why}`);
+
 					this.sendEvent(new StoppedEvent(why, threadId));
 				});
 				
+
 				threadActor.onExited(() => {
+
+					Log.info(`Thread ${threadActor.name} exited`);
+
 					this.threadsById.delete(threadId);
 					this.threadsByActorName.delete(threadActor.name);
+
 					this.sendEvent(new ThreadEvent('exited', threadId));
 				});
 				
+
 				threadActor.fetchSources();
 
 				this.sendEvent(new ThreadEvent('started', threadId));
@@ -81,6 +102,8 @@ export class FirefoxDebugSession extends DebugSession {
 
 	protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
 
+		Log.debug(`Received threadsRequest - replying with ${this.threadsById.size} threads`);
+		
 		let responseThreads: Thread[] = [];
 		this.threadsById.forEach((threadAdapter) => {
 			responseThreads.push(new Thread(threadAdapter.id, threadAdapter.actor.name));
@@ -91,6 +114,8 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 	
     protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
+
+		Log.debug(`Received setBreakpointsRequest with ${args.breakpoints.length} breakpoints for ${args.source.path}`);
 
 		let firefoxSourceUrl = 'file://' + this.convertDebuggerPathToClient(args.source.path);
 		this.breakpointsBySourceUrl.set(firefoxSourceUrl, args);
@@ -107,12 +132,18 @@ export class FirefoxDebugSession extends DebugSession {
 			}
 
 			if (sourceAdapter !== null) {
+
+				Log.debug(`Found source ${args.source.path} on tab ${threadAdapter.actor.name}`);
+				
 				let setBreakpointsPromise = this.setBreakpointsOnSourceActor(args.lines, sourceAdapter, threadAdapter.actor);
+				
 				if (!responseScheduled) {
 					setBreakpointsPromise.then((breakpointAdapters) => {
 
 						response.body = { breakpoints: breakpointAdapters.map((breakpointAdapter) => 
 							<DebugProtocol.Breakpoint>{ verified: true, line: breakpointAdapter.actualLine }) };
+
+						Log.debug('Replying to setBreakpointsRequest with actual breakpoints from the first thread with this source');
 
 						this.sendResponse(response);
 						
@@ -129,10 +160,15 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 
 	private setBreakpointsOnPausedSourceActor(breakpointsToSet: number[], sourceAdapter: SourceAdapter, resume: () => void): Promise<BreakpointAdapter[]> {
+
+		Log.debug(`Setting ${breakpointsToSet.length} breakpoints for ${sourceAdapter.actor.url}`);
 		
 		let result = new Promise<BreakpointAdapter[]>((resolve) => {
+
 			sourceAdapter.currentBreakpoints.then((oldBreakpoints) => {
-				
+
+				Log.debug(`${oldBreakpoints.length} breakpoints were previously set for ${sourceAdapter.actor.url}`);
+
 				let newBreakpoints: BreakpointAdapter[] = [];
 				let breakpointsBeingRemoved: Promise<void>[] = [];
 				let breakpointsBeingSet: Promise<void>[] = [];
@@ -157,6 +193,8 @@ export class FirefoxDebugSession extends DebugSession {
 					}
 				});
 				
+				Log.debug(`Adding ${breakpointsBeingSet} and removing ${breakpointsBeingRemoved} breakpoints`);
+
 				Promise.all(breakpointsBeingRemoved).then(() => Promise.all(breakpointsBeingSet)).then(() => {
 					resolve(newBreakpoints);
 					resume();
@@ -169,29 +207,34 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 
 	protected pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments): void {
+		Log.debug('Received pauseRequest');
 		this.threadsById.get(args.threadId).actor.interrupt();
 		this.sendResponse(response);
 	}
 	
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
+		Log.debug('Received continueRequest');
 		this.terminatePause();
 		this.threadsById.get(args.threadId).actor.resume();
 		this.sendResponse(response);
 	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
+		Log.debug('Received nextRequest');
 		this.terminatePause();
 		this.threadsById.get(args.threadId).actor.stepOver();
 		this.sendResponse(response);
 	}
 
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
+		Log.debug('Received stepInRequest');
 		this.terminatePause();
 		this.threadsById.get(args.threadId).actor.stepInto();
 		this.sendResponse(response);
 	}
 
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
+		Log.debug('Received stepOutRequest');
 		this.terminatePause();
 		this.threadsById.get(args.threadId).actor.stepOut();
 		this.sendResponse(response);
@@ -205,6 +248,8 @@ export class FirefoxDebugSession extends DebugSession {
 	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
 
 		let threadActor = this.threadsById.get(args.threadId).actor;
+
+		Log.debug(`Received stackTraceRequest for ${threadActor.name}`);
 
 		threadActor.fetchStackFrames().then((frames) => {
 
@@ -221,6 +266,8 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 	
 	protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): void {
+
+		Log.debug('Received scopesRequest');
 		
 		let frameAdapter = this.framesById.get(args.frameId);
 		let environmentAdapter = EnvironmentAdapter.from(frameAdapter.frame.environment);
@@ -232,6 +279,8 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 	
 	protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): void {
+
+		Log.debug('Received variablesRequest');
 		
 		let variablesProvider = this.variablesProvidersById.get(args.variablesReference);
 		

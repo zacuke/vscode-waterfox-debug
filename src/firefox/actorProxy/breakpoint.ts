@@ -1,3 +1,4 @@
+import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { DebugConnection } from '../connection';
 import { PendingRequests } from './pendingRequests';
@@ -17,6 +18,9 @@ export class BreakpointActorProxy extends EventEmitter implements ActorProxy {
 	}
 
 	public delete(): Promise<void> {
+		
+		Log.debug(`Deleting breakpoint ${this.name}`);
+		
 		return new Promise<void>((resolve, reject) => {
 			this.pendingDeleteRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'delete' });
@@ -24,6 +28,8 @@ export class BreakpointActorProxy extends EventEmitter implements ActorProxy {
 	}
 
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
+		
+		Log.debug(`Breakpoint ${this.name} deleted`);
 		
 		this.pendingDeleteRequests.resolveAll(null);
 		

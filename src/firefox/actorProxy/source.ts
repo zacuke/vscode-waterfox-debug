@@ -23,6 +23,9 @@ export class SourceActorProxy extends EventEmitter implements ActorProxy {
 	}
 
 	public setBreakpoint(location: FirefoxDebugProtocol.SourceLocation): Promise<SetBreakpointResult> {
+		
+		Log.debug(`Setting breakpoint at line ${location.line} in ${this.url}`);
+		
 		return new Promise<SetBreakpointResult>((resolve, reject) => {
 			this.pendingSetBreakpointRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'setBreakpoint', location: location });
@@ -32,11 +35,12 @@ export class SourceActorProxy extends EventEmitter implements ActorProxy {
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 		
 		if (response['isPending'] !== undefined) {
-			
-			//TODO actualLocation may be omitted!?
-			//TODO create breakpointActor so that the breakpoint can be deleted
+
 			let setBreakpointResponse = <FirefoxDebugProtocol.SetBreakpointResponse>response;
 			let actualLocation = setBreakpointResponse.actualLocation;
+
+			Log.debug(`Breakpoint has been set at ${JSON.stringify(actualLocation)} in ${this.url}`);
+						
 			let breakpointActor = this.connection.getOrCreate(setBreakpointResponse.actor,
 				() => new BreakpointActorProxy(setBreakpointResponse.actor, this.connection));
 			this.pendingSetBreakpointRequests.resolveOne(new SetBreakpointResult(breakpointActor, actualLocation));

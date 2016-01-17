@@ -19,6 +19,9 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 	}
 
 	public fetchTabs(): Promise<Map<string, TabActorProxy>> {
+		
+		Log.debug('Fetching tabs');
+		
 		return new Promise<Map<string, TabActorProxy>>((resolve, reject) => {
 			this.pendingTabsRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'listTabs' });
@@ -36,15 +39,24 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 			let tabsResponse = <FirefoxDebugProtocol.TabsResponse>response;
 			let currentTabs = new Map<string, TabActorProxy>();
 			
-			// convert the Tab array int a map of TabActorProxies, re-using already 
+			Log.debug(`Received ${tabsResponse.tabs.length} tabs`);
+			
+			// convert the Tab array into a map of TabActorProxies, re-using already 
 			// existing proxies and emitting tabOpened events for new ones
 			tabsResponse.tabs.forEach((tab) => {
+
 				let tabActor: TabActorProxy;
 				if (this.tabs.has(tab.actor)) {
+
 					tabActor = this.tabs.get(tab.actor);
+
 				} else {
+
+					Log.debug(`Tab ${tab.actor} opened`);
+
 					tabActor = new TabActorProxy(tab.actor, tab.title, tab.url, this.connection);
 					this.emit('tabOpened', tabActor);
+
 				}
 				currentTabs.set(tab.actor, tabActor);
 			});
@@ -52,6 +64,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 			// emit tabClosed events for tabs that have disappeared
 			this.tabs.forEach((tabActor) => {
 				if (!currentTabs.has(tabActor.name)) {
+					Log.debug(`Tab ${tabActor.name} closed`);
 					this.emit('tabClosed', tabActor);
 				}
 			});					
@@ -61,6 +74,8 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 			
 		} else if (response['type'] === 'tabListChanged') {
 
+			Log.debug('Received tabListChanged event');
+			
 			this.emit('tabListChanged');
 
 		} else {

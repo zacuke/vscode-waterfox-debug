@@ -18,6 +18,9 @@ export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
 	}
 
 	public fetchPrototypeAndProperties(): Promise<FirefoxDebugProtocol.PrototypeAndPropertiesResponse> {
+		
+		Log.debug(`Fetching prototype and properties from ${this.name}`);
+
 		return new Promise<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>((resolve, reject) => {
 			this.pendingPrototypeAndPropertiesRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'prototypeAndProperties' });
@@ -27,6 +30,8 @@ export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 
 		if ((response['prototype'] !== undefined) && (response['ownProperties'] !== undefined)) {
+		
+			Log.debug(`Prototype and properties fetched from ${this.name}`);
 			
 			this.pendingPrototypeAndPropertiesRequests.resolveOne(<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>response);
 			

@@ -42,6 +42,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	}
 	
 	private attach(): Promise<PauseActorProxy> {
+
+		Log.debug(`Attaching to thread ${this.name}`);
+
 		return new Promise<PauseActorProxy>((resolve, reject) => {
 			this.pendingPauseRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'attach' });
@@ -49,6 +52,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	}
 
 	public interrupt(): Promise<PauseActorProxy> {
+
+		Log.debug(`Interrupting thread ${this.name}`);
+
 		return new Promise<PauseActorProxy>((resolve, reject) => {
 			this.pendingPauseRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'interrupt' });
@@ -56,6 +62,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	}
 
 	public fetchSources(): Promise<SourceActorProxy[]> {
+
+		Log.debug(`Fetching sources from thread ${this.name}`);
+
 		return new Promise<SourceActorProxy[]>((resolve, reject) => {
 			this.pendingSourceRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'sources' });
@@ -63,6 +72,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	}
 	
 	public fetchStackFrames(): Promise<FirefoxDebugProtocol.Frame[]> {
+
+		Log.debug(`Fetching stackframes from thread ${this.name}`);
+
 		return new Promise<FirefoxDebugProtocol.Frame[]>((resolve, reject) => {
 			this.pendingFrameRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'frames' });
@@ -70,27 +82,42 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	}
 	
 	public resume(): void {
+
+		Log.debug(`Resuming thread ${this.name}`);
+
 		this.knownToBePaused = false;
 		this.connection.sendRequest({ to: this.name, type: 'resume' });
 	}
 	
 	public stepOver(): void {
+
+		Log.debug(`Stepping - thread ${this.name}`);
+
 		this.knownToBePaused = false;
 		this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'next' }});
 	}
 	
 	public stepInto(): void {
+
+		Log.debug(`Stepping in - thread ${this.name}`);
+
 		this.knownToBePaused = false;
 		this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'step' }});
 	}
 	
 	public stepOut(): void {
+
+		Log.debug(`Stepping out - thread ${this.name}`);
+
 		this.knownToBePaused = false;
 		this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'finish' }});
 	}
 	
 	//TODO also detach the TabActorProxy(?)
 	public detach(): Promise<void> {
+
+		Log.debug(`Detaching from thread ${this.name}`);
+
 		this.knownToBePaused = false;
 		return new Promise<void>((resolve, reject) => {
 			this.pendingDetachRequests.enqueue({ resolve, reject });
@@ -102,6 +129,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		
 		if (response['type'] === 'paused') {
 
+			Log.debug(`Thread ${this.name} paused`);
+
 			this.knownToBePaused = true;			
 			let pausedResponse = <FirefoxDebugProtocol.ThreadPausedResponse>response;
 			let pauseActor = this.connection.getOrCreate(pausedResponse.actor,
@@ -112,19 +141,25 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
 		} else if (response['type'] === 'exited') {
 			
+			Log.debug(`Thread ${this.name} exited`);
+
 			this.pendingPauseRequests.rejectAll('exited');
 			this.pendingDetachRequests.resolveAll(null);
 			this.emit('exited');
 			//TODO send release packet(?)
 			
 		} else if (response['error'] === 'wrongState') {
-			
+
+			Log.warn(`Thread ${this.name} was in the wrong state for the last request`);
+
 			this.pendingPauseRequests.rejectAll('wrongState');
 			this.pendingDetachRequests.rejectAll('wrongState');
 			this.emit('wrongState');
 			
 		} else if (response['type'] === 'detached') {
 			
+			Log.debug(`Thread ${this.name} detached`);
+
 			this.pendingPauseRequests.rejectAll('detached');
 			this.pendingDetachRequests.resolveAll(null);
 			this.emit('detached');
@@ -132,6 +167,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		} else if (response['type'] === 'newSource') {
 			
 			let source = <FirefoxDebugProtocol.Source>(response['source']);
+
+			Log.debug(`New source ${source.url} on thread ${this.name}`);
+
 			let sourceActor = this.connection.getOrCreate(source.actor, 
 				() => new SourceActorProxy(source, this.connection));
 			this.emit('newSource', sourceActor);
@@ -139,6 +177,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		} else if (response['sources']) {
 
 			let sources = <FirefoxDebugProtocol.Source[]>(response['sources']);
+
+			Log.debug(`Received ${sources.length} sources from thread ${this.name}`);
+
 			let sourceActors = sources.map((source) => this.connection.getOrCreate(source.actor, 
 				() => new SourceActorProxy(source, this.connection)));
 			this.pendingSourceRequests.resolveOne(sourceActors);
@@ -146,11 +187,18 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		} else if (response['frames']) {
 
 			let frames = <FirefoxDebugProtocol.Frame[]>(response['frames']);
+
+			Log.debug(`Received ${frames.length} frames from thread ${this.name}`);
+
 			this.pendingFrameRequests.resolveOne(frames);
 			
 		} else {
 
-			if ((response['type'] !== 'newGlobal') && (response['type'] !== 'resumed')) {
+			if (response['type'] === 'newGlobal') {
+				Log.debug(`Ignored newGlobal event from ${this.name}`);
+			} else if (response['type'] === 'resumed') {
+				Log.debug(`Ignored resumed event from ${this.name}`);
+			} else {
 				Log.warn("Unknown message from ThreadActor: " + JSON.stringify(response));
 			}			
 

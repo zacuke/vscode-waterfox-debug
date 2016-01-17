@@ -28,6 +28,9 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 	}
 
 	public attach(): Promise<ThreadActorProxy> {
+
+		Log.debug(`Attaching to tab ${this.name}`);
+
 		return new Promise<ThreadActorProxy>((resolve, reject) => {
 			this.pendingAttachRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'attach' });
@@ -35,6 +38,9 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 	}
 
 	public detach(): Promise<void> {
+
+		Log.debug(`Detaching from tab ${this.name}`);
+
 		return new Promise<void>((resolve, reject) => {
 			this.pendingDetachRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'detach' });
@@ -44,6 +50,8 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 
 		if (response['type'] === 'tabAttached') {
+
+			Log.debug(`Attached to tab ${this.name}`);
 
 			let tabAttachedResponse = <FirefoxDebugProtocol.TabAttachedResponse>response;
 			let threadActorPromise = this.connection.getOrCreatePromise(tabAttachedResponse.threadActor, 
@@ -55,18 +63,26 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 
 		} else if (response['type'] === 'exited') {
 
+			Log.debug(`Tab ${this.name} exited`);
+
 			this.pendingAttachRequests.rejectOne("exited");
 
 		} else if (response['type'] === 'detached') {
+
+			Log.debug(`Detached from tab ${this.name} as requested`);
 
 			this.pendingDetachRequests.resolveOne(null);
 			this.emit('detached');
 
 		} else if (response['error'] === 'wrongState') {
 
+			Log.warn(`Tab ${this.name} was in the wrong state for the last request`);
+
 			this.pendingDetachRequests.rejectOne("exited");
 
 		} else if (response['type'] === 'tabDetached') {
+
+			Log.debug(`Detached from tab ${this.name} because it was closed`);
 
 			// TODO handle pendingRequests
 			this.emit('tabDetached');
@@ -74,18 +90,26 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 		} else if (response['type'] === 'tabNavigated') {
 
 			if (response['state'] === 'start') {
+
 				this._url = (<FirefoxDebugProtocol.TabWillNavigateResponse>response).url;
+				Log.debug(`Tab ${this.name} will navigate to ${this._url}`);
 				this.emit('willNavigate');
+				
 			} else if (response['state'] === 'stop') {
+
 				let didNavigateResponse = <FirefoxDebugProtocol.TabDidNavigateResponse>response;
 				this._url = didNavigateResponse.url;
 				this._title = didNavigateResponse.title;
+				Log.debug(`Tab ${this.name} did navigate to ${this._url}`);
 				this.emit('didNavigate');
+
 			}
 
 		} else {
 			
-			if (response['type'] !== 'frameUpdate') {
+			if (response['type'] === 'frameUpdate') {
+				Log.debug(`Ignored frameUpdate event from tab ${this.name}`);
+			} else {
 				Log.warn("Unknown message from TabActor: " + JSON.stringify(response));
 			}
 			
