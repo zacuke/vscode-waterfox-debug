@@ -43,7 +43,7 @@ export class FirefoxDebugSession extends DebugSession {
 		// and inform VSCode about them
 		this.firefoxDebugConnection.rootActor.onTabOpened((tabActor) => {
 			
-			Log.info(`Tab opened with url ${tabActor.name}`);
+			Log.info(`Tab opened with url ${tabActor.url}`);
 			
 			tabActor.attach().then((threadActor) => {
 
@@ -115,7 +115,7 @@ export class FirefoxDebugSession extends DebugSession {
 	
     protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 
-		Log.debug(`Received setBreakpointsRequest with ${args.breakpoints.length} breakpoints for ${args.source.path}`);
+		Log.debug(`Received setBreakpointsRequest with ${args.lines.length} breakpoints for ${args.source.path}`);
 
 		let firefoxSourceUrl = 'file://' + this.convertDebuggerPathToClient(args.source.path);
 		this.breakpointsBySourceUrl.set(firefoxSourceUrl, args);
@@ -193,7 +193,7 @@ export class FirefoxDebugSession extends DebugSession {
 					}
 				});
 				
-				Log.debug(`Adding ${breakpointsBeingSet} and removing ${breakpointsBeingRemoved} breakpoints`);
+				Log.debug(`Adding ${breakpointsBeingSet.length} and removing ${breakpointsBeingRemoved.length} breakpoints`);
 
 				Promise.all(breakpointsBeingRemoved).then(() => Promise.all(breakpointsBeingSet)).then(() => {
 					resolve(newBreakpoints);
