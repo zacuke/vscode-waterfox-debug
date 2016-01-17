@@ -1,3 +1,4 @@
+import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { DebugConnection } from '../connection';
 import { ActorProxy } from './interface';
@@ -15,7 +16,7 @@ export class PauseActorProxy extends EventEmitter implements ActorProxy {
 
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 		
-		console.log("Unknown message from PauseActor: ", JSON.stringify(response));
+		Log.warn("Unknown message from PauseActor: " + JSON.stringify(response));
 		
 	}
 }

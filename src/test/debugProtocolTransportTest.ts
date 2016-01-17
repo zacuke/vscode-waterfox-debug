@@ -1,3 +1,4 @@
+import { Log } from '../util/log';
 import { EventEmitter } from 'events';
 import { DebugProtocolTransport, SocketLike } from '../firefox/transport';
 
@@ -9,9 +10,8 @@ class MockSocket extends EventEmitter implements SocketLike {
 }
 
 let mockSocket = new MockSocket();
-console.log(mockSocket);
 let transport = new DebugProtocolTransport(mockSocket);
-transport.on('message', console.log);
+transport.on('message', Log.debug);
 
 mockSocket.receive('14:{"x":0,"y":21}');
 mockSocket.receive('14:{"x":1,"y":17}');

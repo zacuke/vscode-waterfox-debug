@@ -1,3 +1,4 @@
+import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { DebugConnection } from '../connection';
 import { PendingRequests } from './pendingRequests';
@@ -31,7 +32,7 @@ export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
 			
 		} else {
 			
-			console.log("Unknown message from ObjectGripActor: ", JSON.stringify(response));
+			Log.warn("Unknown message from ObjectGripActor: " + JSON.stringify(response));
 			
 		}
 	}

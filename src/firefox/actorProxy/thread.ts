@@ -1,3 +1,4 @@
+import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { DebugConnection } from '../connection';
 import { PendingRequests } from './pendingRequests';
@@ -150,7 +151,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		} else {
 
 			if ((response['type'] !== 'newGlobal') && (response['type'] !== 'resumed')) {
-				console.log("Unknown message from ThreadActor: ", JSON.stringify(response));
+				Log.warn("Unknown message from ThreadActor: " + JSON.stringify(response));
 			}			
 
 		}

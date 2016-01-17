@@ -1,3 +1,4 @@
+import { Log } from '../util/log';
 import { Socket } from 'net';
 import { DebugProtocolTransport } from './transport';
 import { ActorProxy } from './actorProxy/interface';
@@ -21,7 +22,7 @@ export class DebugConnection {
 			if (this.actors.has(response.from)) {
 				this.actors.get(response.from).receiveResponse(response);
 			} else {
-				console.log('Unknown actor: ' + JSON.stringify(response));
+				Log.error('Unknown actor: ' + JSON.stringify(response));
 			}
 		});
 		socket.connect(6000);

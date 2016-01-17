@@ -1,3 +1,4 @@
+import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { PendingRequests } from './pendingRequests';
 import { ActorProxy } from './interface';
@@ -64,7 +65,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 		} else {
 			
-			console.log("Unknown message from RootActor: ", JSON.stringify(response));
+			Log.warn("Unknown message from RootActor: " + JSON.stringify(response));
 			
 		}
 	}

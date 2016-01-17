@@ -1,3 +1,4 @@
+import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { DebugConnection } from '../connection';
 import { PendingRequests } from './pendingRequests';
@@ -85,7 +86,7 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 		} else {
 			
 			if (response['type'] !== 'frameUpdate') {
-				console.log("Unknown message from TabActor: ", JSON.stringify(response));
+				Log.warn("Unknown message from TabActor: " + JSON.stringify(response));
 			}
 			
 		}
