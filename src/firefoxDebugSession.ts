@@ -88,7 +88,7 @@ export class FirefoxDebugSession extends DebugSession {
 				});
 				
 
-				threadActor.fetchSources();
+				threadActor.fetchSources().then(() => threadActor.resume());
 
 				this.sendEvent(new ThreadEvent('started', threadId));
 			});
