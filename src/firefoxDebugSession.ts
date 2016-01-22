@@ -215,7 +215,11 @@ export class FirefoxDebugSession extends DebugSession {
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
 		Log.debug('Received continueRequest');
 		this.terminatePause();
-		this.threadsById.get(args.threadId).actor.resume();
+		//TODO is this really what VSCode wants?
+		this.threadsById.forEach((threadAdapter) => {
+			threadAdapter.actor.resume();
+		});
+//		this.threadsById.get(args.threadId).actor.resume();
 		this.sendResponse(response);
 	}
 
@@ -273,7 +277,7 @@ export class FirefoxDebugSession extends DebugSession {
 		let environmentAdapter = EnvironmentAdapter.from(frameAdapter.frame.environment);
 		let scopeAdapters = environmentAdapter.getScopes(this);
 		
-		response.body.scopes = scopeAdapters.map((scopeAdapter) => scopeAdapter.getScope());
+		response.body = { scopes: scopeAdapters.map((scopeAdapter) => scopeAdapter.getScope()) };
 		
 		this.sendResponse(response);
 	}
@@ -285,7 +289,7 @@ export class FirefoxDebugSession extends DebugSession {
 		let variablesProvider = this.variablesProvidersById.get(args.variablesReference);
 		
 		variablesProvider.getVariables(this).then((vars) => {
-			response.body.variables = vars;
+			response.body = { variables: vars };
 			this.sendResponse(response);
 		})
 	}
