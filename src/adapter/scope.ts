@@ -103,7 +103,7 @@ function getVariableFromPropertyDescriptor(varname: string, propertyDescriptor: 
 
 function getVariableFromGrip(varname: string, grip: FirefoxDebugProtocol.Grip, debugSession: FirefoxDebugSession): Variable {
 	if ((typeof grip === 'boolean') || (typeof grip === 'number') || (typeof grip === 'string')) {
-		return new Variable(varname, <string>grip);
+		return new Variable(varname, grip.toString());
 	} else {
 		switch (grip.type) {
 			case 'null':
