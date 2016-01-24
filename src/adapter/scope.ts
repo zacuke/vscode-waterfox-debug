@@ -61,10 +61,19 @@ export class ObjectScopeAdapter extends ScopeAdapter {
 		return this.objectGripActor.fetchPrototypeAndProperties().then((prototypeAndProperties) => {
 
 			let variables: Variable[] = [];
+			
 			for (let varname in prototypeAndProperties.ownProperties) {
-				variables.push(getVariableFromPropertyDescriptor(varname, prototypeAndProperties.ownProperties[varname], debugSession));
+				variables.push(getVariableFromPropertyDescriptor(varname, 
+					prototypeAndProperties.ownProperties[varname], debugSession));
 			}
 			
+			for (let varname in prototypeAndProperties.safeGetterValues) {
+				variables.push(getVariableFromSafeGetterValueDescriptor(varname, 
+					prototypeAndProperties.safeGetterValues[varname], debugSession));
+			}
+
+			variables.sort((var1, var2) => compareStrings(var1.name, var2.name));
+				
 			return variables;
 		});
 	}
@@ -87,6 +96,8 @@ export class LocalVariablesScopeAdapter extends ScopeAdapter {
 			variables.push(getVariableFromPropertyDescriptor(varname, this.variables[varname], debugSession));
 		}
 		
+		variables.sort((var1, var2) => compareStrings(var1.name, var2.name));
+				
 		return Promise.resolve(variables);
 	}
 }
@@ -121,12 +132,20 @@ export class FunctionScopeAdapter extends ScopeAdapter {
 	}
 }
 
-function getVariableFromPropertyDescriptor(varname: string, propertyDescriptor: PropertyDescriptor, debugSession: FirefoxDebugSession): Variable {
-	if (propertyDescriptor.value !== undefined) {
-		return getVariableFromGrip(varname, propertyDescriptor.value, debugSession);
+function getVariableFromPropertyDescriptor(varname: string, propertyDescriptor: FirefoxDebugProtocol.PropertyDescriptor, 
+	debugSession: FirefoxDebugSession): Variable {
+		
+	if ((<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value !== undefined) {
+		return getVariableFromGrip(varname, (<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value, debugSession);
 	} else {
 		return new Variable(varname, 'unknown');
 	}
+}
+
+function getVariableFromSafeGetterValueDescriptor(varname: string, 
+	safeGetterValueDescriptor: FirefoxDebugProtocol.SafeGetterValueDescriptor, debugSession: FirefoxDebugSession): Variable {
+
+	return getVariableFromGrip(varname, safeGetterValueDescriptor.getterValue, debugSession);	
 }
 
 function getVariableFromGrip(varname: string, grip: FirefoxDebugProtocol.Grip, debugSession: FirefoxDebugSession): Variable {
