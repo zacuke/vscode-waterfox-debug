@@ -102,22 +102,39 @@ function getVariableFromPropertyDescriptor(varname: string, propertyDescriptor: 
 }
 
 function getVariableFromGrip(varname: string, grip: FirefoxDebugProtocol.Grip, debugSession: FirefoxDebugSession): Variable {
-	if ((typeof grip === 'boolean') || (typeof grip === 'number') || (typeof grip === 'string')) {
+
+	if ((typeof grip === 'boolean') || (typeof grip === 'number')) {
+
 		return new Variable(varname, grip.toString());
+
+	} else if (typeof grip === 'string') {
+
+		return new Variable(varname, `"${grip}"`);
+
 	} else {
+
 		switch (grip.type) {
+
 			case 'null':
 			case 'undefined':
 			case 'Infinity':
 			case '-Infinity':
 			case 'NaN':
 			case '-0':
+
 				return new Variable(varname, grip.type);
+
 			case 'longString':
+
 				return new Variable(varname, (<FirefoxDebugProtocol.LongStringGrip>grip).initial);
+
 			case 'object':
-				let variablesProvider = new ObjectScopeAdapter(varname, <FirefoxDebugProtocol.ObjectGrip>grip, debugSession);
-				return new Variable(varname, '...', variablesProvider.variablesProviderId);
+
+				let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
+				let vartype = objectGrip.class;
+				let variablesProvider = new ObjectScopeAdapter(varname, objectGrip, debugSession);
+				return new Variable(varname, vartype, variablesProvider.variablesProviderId);
+
 		}
 	}
 }
