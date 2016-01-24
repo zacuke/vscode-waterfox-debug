@@ -215,11 +215,7 @@ export class FirefoxDebugSession extends DebugSession {
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
 		Log.debug('Received continueRequest');
 		this.terminatePause();
-		//TODO is this really what VSCode wants?
-		this.threadsById.forEach((threadAdapter) => {
-			threadAdapter.actor.resume();
-		});
-//		this.threadsById.get(args.threadId).actor.resume();
+		this.threadsById.get(args.threadId).actor.resume();
 		this.sendResponse(response);
 	}
 
