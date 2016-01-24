@@ -70,25 +70,32 @@ export class LocalVariablesScopeAdapter extends ScopeAdapter {
 	}
 }
 
-export class FunctionArgumentsScopeAdapter extends ScopeAdapter {
+export class FunctionScopeAdapter extends ScopeAdapter {
 	
 	public name: string;
-	public args: FirefoxDebugProtocol.PropertyDescriptors[];
+	public bindings: FirefoxDebugProtocol.FunctionBindings;
 	
-	public constructor(name: string, args: FirefoxDebugProtocol.PropertyDescriptors[], debugSession: FirefoxDebugSession) {
+	public constructor(name: string, bindings: FirefoxDebugProtocol.FunctionBindings, debugSession: FirefoxDebugSession) {
 		super(name, debugSession);
-		this.args = args;
+		this.bindings = bindings;
 	}
 	
 	public getVariables(debugSession: FirefoxDebugSession): Promise<Variable[]> {
 
 		let variables: Variable[] = [];
-		this.args.forEach((arg) => {
+		
+		this.bindings.arguments.forEach((arg) => {
 			for (let varname in arg) {
 				variables.push(getVariableFromPropertyDescriptor(varname, arg[varname], debugSession));
 			}
 		});
 		
+		for (let varname in this.bindings.variables) {
+			variables.push(getVariableFromPropertyDescriptor(varname, this.bindings.variables[varname], debugSession));
+		}
+
+		variables.sort((var1, var2) => compareStrings(var1.name, var2.name));
+				
 		return Promise.resolve(variables);
 	}
 }
@@ -136,5 +143,15 @@ function getVariableFromGrip(varname: string, grip: FirefoxDebugProtocol.Grip, d
 				return new Variable(varname, vartype, variablesProvider.variablesProviderId);
 
 		}
+	}
+}
+
+function compareStrings(s1: string, s2: string): number {
+	if (s1 < s2) {
+		return -1;
+	} else if (s1 == s2) {
+		return 0;
+	} else {
+		return 1;
 	}
 }
