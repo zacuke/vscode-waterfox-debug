@@ -11,17 +11,38 @@ export abstract class ScopeAdapter implements VariablesProvider {
 	
 	public name: string;
 	public variablesProviderId: number;
+	public that: FirefoxDebugProtocol.Grip;
+	public isTopScope = false;
 	
 	public constructor(name: string, debugSession: FirefoxDebugSession) {
 		this.name = name;
 		debugSession.registerVariablesProvider(this);
 	}
 	
+	public addThis(that: FirefoxDebugProtocol.Grip) {
+		this.that = that;
+		this.isTopScope = true;
+	}
+	
 	public getScope(): Scope {
 		return new Scope(this.name, this.variablesProviderId);
 	}
 	
-	public abstract getVariables(debugSession: FirefoxDebugSession): Promise<Variable[]>;
+	public getVariables(debugSession: FirefoxDebugSession): Promise<Variable[]> {
+		
+		let variablesPromise = this.getVariablesInt(debugSession);
+		
+		if (this.isTopScope) {
+			variablesPromise = variablesPromise.then((vars) => {
+				vars.unshift(getVariableFromGrip('this', this.that, debugSession));
+				return vars;
+			});
+		}
+		
+		return variablesPromise;
+	}
+	
+	protected abstract getVariablesInt(debugSession: FirefoxDebugSession): Promise<Variable[]>;
 }
 
 export class ObjectScopeAdapter extends ScopeAdapter {
@@ -35,7 +56,7 @@ export class ObjectScopeAdapter extends ScopeAdapter {
 		this.objectGripActor = debugSession.createObjectGripActorProxy(this.object);
 	}
 	
-	public getVariables(debugSession: FirefoxDebugSession): Promise<Variable[]> {
+	protected getVariablesInt(debugSession: FirefoxDebugSession): Promise<Variable[]> {
 		
 		return this.objectGripActor.fetchPrototypeAndProperties().then((prototypeAndProperties) => {
 
@@ -59,7 +80,7 @@ export class LocalVariablesScopeAdapter extends ScopeAdapter {
 		this.variables = variables;
 	}
 	
-	public getVariables(debugSession: FirefoxDebugSession): Promise<Variable[]> {
+	protected getVariablesInt(debugSession: FirefoxDebugSession): Promise<Variable[]> {
 		
 		let variables: Variable[] = [];
 		for (let varname in this.variables) {
@@ -80,7 +101,7 @@ export class FunctionScopeAdapter extends ScopeAdapter {
 		this.bindings = bindings;
 	}
 	
-	public getVariables(debugSession: FirefoxDebugSession): Promise<Variable[]> {
+	protected getVariablesInt(debugSession: FirefoxDebugSession): Promise<Variable[]> {
 
 		let variables: Variable[] = [];
 		

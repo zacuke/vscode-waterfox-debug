@@ -271,7 +271,8 @@ export class FirefoxDebugSession extends DebugSession {
 		
 		let frameAdapter = this.framesById.get(args.frameId);
 		let environmentAdapter = EnvironmentAdapter.from(frameAdapter.frame.environment);
-		let scopeAdapters = environmentAdapter.getScopes(this);
+		let scopeAdapters = environmentAdapter.getScopeAdapters(this, frameAdapter.frame.this);
+		scopeAdapters[0].addThis(frameAdapter.frame.this);
 		
 		response.body = { scopes: scopeAdapters.map((scopeAdapter) => scopeAdapter.getScope()) };
 		

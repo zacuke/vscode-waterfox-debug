@@ -29,17 +29,24 @@ export abstract class EnvironmentAdapter {
 		}
 	}
 	
-	public getScopes(debugSession: FirefoxDebugSession): ScopeAdapter[] {
+	public getScopeAdapters(debugSession: FirefoxDebugSession, that: FirefoxDebugProtocol.Grip): ScopeAdapter[] {
+
+		let scopes = this.getAllScopeAdapters(debugSession);
+		
+		return scopes;
+	}
+	
+	protected getAllScopeAdapters(debugSession: FirefoxDebugSession): ScopeAdapter[] {
 		
 		let scopes: ScopeAdapter[];
 		
 		if (this.parent !== undefined) {
-			scopes = this.parent.getScopes(debugSession);
+			scopes = this.parent.getAllScopeAdapters(debugSession);
 		} else {
 			scopes = [];
 		}
 		
-		let ownScope = this.getOwnScope(debugSession);
+		let ownScope = this.getOwnScopeAdapter(debugSession);
 		if (ownScope != null) {
 			scopes.unshift(ownScope);
 		}
@@ -47,7 +54,7 @@ export abstract class EnvironmentAdapter {
 		return scopes;
 	}
 	
-	protected abstract getOwnScope(debugSession: FirefoxDebugSession): ScopeAdapter;
+	protected abstract getOwnScopeAdapter(debugSession: FirefoxDebugSession): ScopeAdapter;
 }
 
 export class ObjectEnvironmentAdapter extends EnvironmentAdapter {
@@ -58,7 +65,7 @@ export class ObjectEnvironmentAdapter extends EnvironmentAdapter {
 		super(environment);
 	}
 	
-	protected getOwnScope(debugSession: FirefoxDebugSession): ScopeAdapter {
+	protected getOwnScopeAdapter(debugSession: FirefoxDebugSession): ScopeAdapter {
 		
 		let grip = this.environment.object;
 		
@@ -90,7 +97,7 @@ export class FunctionEnvironmentAdapter extends EnvironmentAdapter {
 		super(environment);
 	}
 	
-	protected getOwnScope(debugSession: FirefoxDebugSession): ScopeAdapter {
+	protected getOwnScopeAdapter(debugSession: FirefoxDebugSession): ScopeAdapter {
 
 		let func = this.environment.function;
 		let funcName: string;
@@ -119,7 +126,7 @@ export class WithEnvironmentAdapter extends EnvironmentAdapter {
 		super(environment);
 	}
 	
-	protected getOwnScope(debugSession: FirefoxDebugSession): ScopeAdapter {
+	protected getOwnScopeAdapter(debugSession: FirefoxDebugSession): ScopeAdapter {
 		
 		let grip = this.environment.object;
 		
@@ -151,7 +158,7 @@ export class BlockEnvironmentAdapter extends EnvironmentAdapter {
 		super(environment);
 	}
 	
-	protected getOwnScope(debugSession: FirefoxDebugSession): ScopeAdapter {
+	protected getOwnScopeAdapter(debugSession: FirefoxDebugSession): ScopeAdapter {
 
 		return new LocalVariablesScopeAdapter('Block', this.environment.bindings.variables, debugSession);
 
