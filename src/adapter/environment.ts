@@ -100,21 +100,21 @@ export class FunctionEnvironmentAdapter extends EnvironmentAdapter {
 	protected getOwnScopeAdapter(debugSession: FirefoxDebugSession): ScopeAdapter {
 
 		let func = this.environment.function;
-		let funcName: string;
+		let scopeName: string;
 		if ((typeof func === 'object') && (func.type === 'object') && 
-			((<FirefoxDebugProtocol.ObjectGrip>func).class === 'Function') &&
-			((<FirefoxDebugProtocol.FunctionGrip>func).name !== undefined)) {
-				
-			funcName = (<FirefoxDebugProtocol.FunctionGrip>func).name;
+			((<FirefoxDebugProtocol.ObjectGrip>func).class === 'Function')) {
+
+			let funcName = (<FirefoxDebugProtocol.FunctionGrip>func).name;
+			scopeName = (funcName !== undefined) ? `Local: ${funcName}` : 'Local';
 
 		} else {
 
 			Log.error(`Unexpected function grip in function environment: ${JSON.stringify(func)}`);
-			funcName = '[unknown]';
+			scopeName = '[unknown]';
 
 		}
 
-		return new FunctionScopeAdapter(`Local: ${funcName}`, this.environment.bindings, debugSession);
+		return new FunctionScopeAdapter(scopeName, this.environment.bindings, debugSession);
 	}
 }
 

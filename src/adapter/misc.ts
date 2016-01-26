@@ -63,10 +63,10 @@ export class FrameAdapter {
 			case 'call':
 				let callee = (<FirefoxDebugProtocol.CallFrame>this.frame).callee;
 				if ((typeof callee === 'object') && (callee.type === 'object') && 
-					((<FirefoxDebugProtocol.ObjectGrip>callee).class === 'Function') &&
-					((<FirefoxDebugProtocol.FunctionGrip>callee).name !== undefined)) {
+					((<FirefoxDebugProtocol.ObjectGrip>callee).class === 'Function')) {
 
-					name = (<FirefoxDebugProtocol.FunctionGrip>callee).name;
+					let calleeName = (<FirefoxDebugProtocol.FunctionGrip>callee).name;
+					name = (calleeName !== undefined) ? calleeName : '[anonymous function]';
 
 				} else {
 
