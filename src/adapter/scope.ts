@@ -73,7 +73,10 @@ export class ObjectScopeAdapter extends ScopeAdapter {
 			}
 
 			variables.sort((var1, var2) => compareStrings(var1.name, var2.name));
-				
+			
+			if (prototypeAndProperties.prototype !== null)
+				variables.push(getVariableFromGrip('[prototype]', prototypeAndProperties.prototype, debugSession));
+			
 			return variables;
 		});
 	}
