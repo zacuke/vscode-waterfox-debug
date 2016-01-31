@@ -6,298 +6,305 @@ import { ActorProxy } from './interface';
 import { PauseActorProxy } from './pause';
 import { SourceActorProxy } from './source';
 
-/**
- * The possible states of a ThreadActorProxy
- */
-enum State {
-	/**
-	 * The proxy is detached
-	 */ 
-	Detached, 
-	
-	/**
-	 * The proxy is attached and the thread is probably running (although it may
-	 * be paused and the proxy hasn't received the corresponding event yet)
-	 */
-	MaybeRunning, 
-	
-	/**
-	 * The proxy is (about to be) attached and the thread is (about to be) paused. 
-	 * It will only resume when resume() is called. 
-	 * More precisely, the thread may still be detached or running but a request 
-	 * has been sent to attach to or pause it. In any case, the thread will be 
-	 * paused when it receives the next request.
-	 */
-	Paused,
-	
-	/**
-	 * The proxy is attached and the thread is (about to be) paused to execute one
-	 * or several operations passed to runOnPausedThread(). When all operations are 
-	 * finished, it will be resumed (if the thread is still in this state).
-	 * More precisely, the thread may still be running but a request has been sent
-	 * to pause it. In any case, the thread will be paused when it receives the next
-	 * request.
-	 */
-	PausedTemporarily 
+class QueuedRequest<T> {
+	send: () => void;
+	resolve: (t: T) => void;
+	reject: (err: any) => void;
 }
 
 /**
- * A ThreadActorProxy is a proxy for a "thread-like actor" (a Tab or a WebWorker)
- * in Firefox
+ * A ThreadActorProxy is a proxy for a "thread-like actor" (a Tab or a WebWorker) in Firefox. 
+ * The ThreadActor is attached immediately and there is no support to detach and re-attach it, 
+ * so unless the thread is exited, the ThreadActor will be either in the running or paused state.
  */
 export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
-	private state: State = State.Detached;
-	private runningOperations = 0;
-	private  get isPaused() : boolean { 
-		return (this.state == State.Paused) || (this.state == State.PausedTemporarily); 
-	}
+	/**
+	 * desiredState determines the state that the thread should "gravitate towards". 
+	 * It may be put in a different state temporarily to set and remove breakpoints or execute 
+	 * a clientEvaluate request, but once these operations have finished, it will be interrupted 
+	 * if desiredState is 'paused' or resumed (with a corresponding resumeLimit if desiredState
+	 * is not 'running') otherwise.
+	 */
+	private desiredState: string = 'paused'; // 'paused' | 'running' | 'stepOver' | stepInto' | 'stepOut'
 	
-	private pendingPauseRequest: PendingRequest<PauseActorProxy> = null;
-	// pausePromise is set if and only if state is PausedTemporarily or Paused
-	private pausePromise: Promise<PauseActorProxy> = null;
+	/**
+	 * The paused flag states if the thread is assumed to be in the paused or the 
+	 * running state.
+	 */
+	private paused: boolean = true;
 	
-	private pendingSourceRequests = new PendingRequests<SourceActorProxy[]>();
+	/**
+	 * The number of operations that are currently running which require the thread to be 
+	 * paused (even if desiredState is not 'paused'). These operations are started using 
+	 * runOnPausedThread() and if the thread is running it will automatically be paused 
+	 * temporarily.
+	 */
+	private operationsRunningOnPausedThread = 0;
+
+	/**
+	 * frame requests can only be run on a paused thread and they can only be sent
+	 * when pauseWanted is set to true because they make no sense otherwise. 
+	 */
 	private pendingFrameRequests = new PendingRequests<FirefoxDebugProtocol.Frame[]>();
+
+	/**
+	 * evaluate requests can only be run on a paused thread and they can only be sent when
+	 * pauseWanted is set to true because they make no sense otherwise.
+	 */
+	private queuedEvaluateRequests: QueuedRequest<FirefoxDebugProtocol.Grip>[] = [];
+	private pendingEvaluateRequest: PendingRequest<FirefoxDebugProtocol.Grip> = null;
 	
+	/**
+	 * Use this constructor to create a ThreadActorProxy. It will be attached immediately.
+	 */
 	constructor(private _name: string, private connection: DebugConnection) {
 		super();
 		this.connection.register(this);
+		this.connection.sendRequest({ to: this.name, type: 'attach' });
+		this.connection.sendRequest({ to: this.name, type: 'sources' });
+		Log.debug(`Created and attached thread ${this.name}`);
 	}
 
-	/**
-	 * Use this method to create a ThreadActorProxy and immediately attach it.
-	 * The Promise returned by this method will be resolved when the created proxy finished
-	 * attaching.
-	 */
-	public static createAndAttach(name: string, connection: DebugConnection): Promise<ThreadActorProxy> {
-
-		let threadActor = new ThreadActorProxy(name, connection);
-
-		return threadActor.attach().then(() => threadActor);
-	}
-	
 	public get name() {
 		return this._name;
 	}
 
-	public attach(): Promise<PauseActorProxy> {
+	private sendPauseRequest(): void {
 
-		if (this.state != State.Detached) {
-			return Promise.reject('Already attached');
-		}
-		
-		Log.debug(`Attaching to thread ${this.name}`);
+		Log.debug(`Sending pause request to thread ${this.name}`);
 
-		this.state = State.Paused;
-
-		return new Promise<PauseActorProxy>((resolve, reject) => {
-			this.pendingPauseRequest = { resolve, reject };
-			this.connection.sendRequest({ to: this.name, type: 'attach' });
-		});
-	}
-
-	private sendPauseRequest(targetState: State): Promise<PauseActorProxy> {
-
-		if (this.state != State.MaybeRunning) {
-			return Promise.reject('Detached or already paused');
-		}
-		if ((targetState != State.PausedTemporarily) && (targetState != State.Paused)) {
-			return Promise.reject('Detached or already paused');
-		}
-		
-		this.pausePromise = new Promise<PauseActorProxy>((resolve, reject) => {
-			this.pendingPauseRequest = { resolve, reject };
-			this.connection.sendRequest({ to: this.name, type: 'interrupt' });
-		});
-		
-		return this.pausePromise;
+		this.connection.sendRequest({ to: this.name, type: 'interrupt' });
+		this.paused = true;
 	}
 	
 	/**
 	 * Run a (possibly asynchronous) operation on the paused thread.
-	 * If the thread is not already paused, it will be paused temporarily and automatically
-	 * resumed when the operation is finished (if there are no other requests to pause the
-	 * thread). The operation is passed a callback that it must call when it is finished.
+	 * If the thread is not already paused, it will be paused temporarily and automatically 
+	 * resumed when the operation is finished (if there are no other reasons to pause the 
+	 * thread). The operation is passed a callback that must be called when it is finished.
 	 */
 	public runOnPausedThread<T>(operation: (finished: () => void) => (T | Thenable<T>)): Promise<T> {
 
-		if (this.state == State.Detached) {
-			return Promise.reject('Detached');
-		}
+		Log.debug('Starting operation on paused thread');
+		this.operationsRunningOnPausedThread++;
 		
 		return new Promise<T>((resolve) => {
 			
-			this.runningOperations++;
-			
-			if (this.state == State.MaybeRunning) {
-
-				this.sendPauseRequest(State.PausedTemporarily).then(() => {
-					resolve(operation(() => this.operationFinished()));
-				});
-			
-			} else {
-				
-				resolve(operation(() => this.operationFinished()));
-				
+			if (!this.paused) {
+				this.sendPauseRequest();
 			}
+
+			var result = operation(() => this.operationFinishedOnPausedThread());
+			resolve(result);
 		});
 	}
 	
-	private operationFinished() {
+	/**
+	 * This method is called when an operation started with runOnPausedThread finishes.
+	 */
+	private operationFinishedOnPausedThread() {
 
-		this.runningOperations--;
-
-		if ((this.state == State.PausedTemporarily) && (this.runningOperations == 0)) {
-			this.resume();
-		}
+		Log.debug('Operation finished on paused thread');
+		this.operationsRunningOnPausedThread--;
+		
+		this.doNext();
 	}
 
 	/**
-	 * Interrupt the thread. If it is paused already, the promise returned by this method
-	 * will already be resolved.
-	 */	
-	public interrupt(): Promise<PauseActorProxy> {
+	 * Figure out what to do next after an operation started with runOnPausedThread has
+	 * finished, an evaluateRequest has been enqueued or has finished or the desiredState
+	 * has changed.
+	 */
+	private doNext() {
 
-		if (this.state == State.Detached) {
-			return Promise.reject('Detached');
-		}
-		
-		Log.debug(`Interrupting thread ${this.name}`);
-
-		if (this.state == State.MaybeRunning) {
-
-			return this.sendPauseRequest(State.Paused);
+		if (this.operationsRunningOnPausedThread > 0) {
+			
+			if (!this.paused) {
+				Log.error('The thread isn\'t paused but an operation that requires the thread to be paused is still running!');
+			}
 			
 		} else {
+
+			if (this.pendingEvaluateRequest != null) {
+				
+				if (this.paused) {
+					this.connection.sendRequest({ to: this.name, type: 'resume' });
+					this.paused = false;
+				}
 			
-			return this.pausePromise.then((pauseActor) => {
-				this.state = State.Paused;
-				return pauseActor;
-			});
-			
+			} else if (this.queuedEvaluateRequests.length > 0) {
+
+				if (this.paused) {
+
+					let queuedEvaluateRequest = this.queuedEvaluateRequests.shift();
+					this.pendingEvaluateRequest = { resolve: queuedEvaluateRequest.resolve, reject: queuedEvaluateRequest.reject };
+					queuedEvaluateRequest.send();
+					this.paused = false;
+					
+				} else {
+					
+					Log.warn('The thread is running but an evaluate request is still queued - rejecting');
+					
+					this.queuedEvaluateRequests.forEach((queuedEvaluateRequest) => {
+						queuedEvaluateRequest.reject('Thread is running');
+					});
+				}
+
+			} else {
+
+				switch (this.desiredState) {
+					
+					case 'paused':
+						if (!this.paused) {
+							this.sendPauseRequest();
+						}
+						break;
+						
+					case 'running':
+						if (this.paused) {
+							this.connection.sendRequest({ to: this.name, type: 'resume' });
+							this.paused = false;
+						}
+						break;
+						
+					case 'stepOver':
+						if (this.paused) {
+							this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'next' } });
+							this.paused = false;
+						}
+						break;
+						
+					case 'stepInto':
+						if (this.paused) {
+							this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'step' } });
+							this.paused = false;
+						}
+						break;
+						
+					case 'stepOut':
+						if (this.paused) {
+							this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'finish' } });
+							this.paused = false;
+						}
+						break;
+				}
+			}
 		}
-	}
-
-	public fetchSources(): Promise<SourceActorProxy[]> {
-
-		if (!this.isPaused) {
-			return Promise.reject('not paused');
-		}
-		
-		Log.debug(`Fetching sources from thread ${this.name}`);
-
-		return new Promise<SourceActorProxy[]>((resolve, reject) => {
-			this.pendingSourceRequests.enqueue({ resolve, reject });
-			this.connection.sendRequest({ to: this.name, type: 'sources' });
-		});
 	}
 	
+	/**
+	 * Interrupt the thread if it isn't paused already and set desiredState to 'paused'.
+	 */	
+	public interrupt(): void {
+
+		Log.debug(`Want thread ${this.name} to be paused`);
+
+		this.desiredState = 'paused';
+		
+		if (!this.paused) {
+			this.sendPauseRequest();
+		}
+	}
+
 	public fetchStackFrames(): Promise<FirefoxDebugProtocol.Frame[]> {
 
-		if (!this.isPaused) {
+		if (this.desiredState != 'paused') {
+			Log.warn(`fetchStackFrames() called but desiredState is ${this.desiredState}`)
 			return Promise.reject('not paused');
 		}
 		
 		Log.debug(`Fetching stackframes from thread ${this.name}`);
 
 		return new Promise<FirefoxDebugProtocol.Frame[]>((resolve, reject) => {
-			this.pendingFrameRequests.enqueue({ resolve, reject });
-			this.connection.sendRequest({ to: this.name, type: 'frames' });
+
+			if (this.paused) {
+
+				this.pendingFrameRequests.enqueue({ resolve, reject });
+				this.connection.sendRequest({ to: this.name, type: 'frames' });
+
+			} else {
+				Log.warn('fetchStackFrames() called but thread is running')
+				reject('not paused');
+			}
+			
 		});
 	}
 	
 	public resume(): void {
 
-		if (!this.isPaused) {
+		if (this.desiredState != 'paused') {
+			Log.warn(`resume() called but desiredState is already ${this.desiredState}`);
 			return;
 		}
 		
 		Log.debug(`Resuming thread ${this.name}`);
 
-		if (this.runningOperations == 0) {
-
-			this.state = State.MaybeRunning;
-			this.connection.sendRequest({ to: this.name, type: 'resume' });
-
-		} else {
-			
-			this.state = State.PausedTemporarily;
-			
-		}
+		this.desiredState = 'running';
+		this.doNext();
+		
 	}
 	
 	public stepOver(): void {
 
-		if (!this.isPaused) {
+		if (this.desiredState != 'paused') {
+			Log.warn(`stepOver() called but desiredState is already ${this.desiredState}`);
 			return;
 		}
 		
-		Log.debug(`Stepping - thread ${this.name}`);
+		Log.debug(`Resuming thread ${this.name}`);
 
-		if (this.runningOperations == 0) {
-
-			this.state = State.MaybeRunning;
-			this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'next' }});
-
-		} else {
-			
-			this.state = State.PausedTemporarily;
-			
-		}
+		this.desiredState = 'stepOver';
+		this.doNext();
+		
 	}
 	
 	public stepInto(): void {
 
-		if (!this.isPaused) {
+		if (this.desiredState != 'paused') {
+			Log.warn(`stepInto() called but desiredState is already ${this.desiredState}`);
 			return;
 		}
 		
-		Log.debug(`Stepping in - thread ${this.name}`);
+		Log.debug(`Resuming thread ${this.name}`);
 
-		if (this.runningOperations == 0) {
-
-			this.state = State.MaybeRunning;
-			this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'step' }});
-
-		} else {
-			
-			this.state = State.PausedTemporarily;
-			
-		}
+		this.desiredState = 'stepInto';
+		this.doNext();
+		
 	}
 	
 	public stepOut(): void {
 
-		if (!this.isPaused) {
+		if (this.desiredState != 'paused') {
+			Log.warn(`stepOut() called but desiredState is already ${this.desiredState}`);
 			return;
 		}
 		
-		Log.debug(`Stepping out - thread ${this.name}`);
+		Log.debug(`Resuming thread ${this.name}`);
 
-		if (this.runningOperations == 0) {
+		this.desiredState = 'stepOut';
+		this.doNext();
+		
+	}
+	
+	public evaluate(expr: string, frameActorName: string): Promise<FirefoxDebugProtocol.Grip> {
 
-			this.state = State.MaybeRunning;
-			this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'finish' }});
-
-		} else {
-			
-			this.state = State.PausedTemporarily;
-			
+		if (this.desiredState != 'paused') {
+			Log.warn(`evaluate() called but desiredState is ${this.desiredState}`);
+			return Promise.reject('not paused');
 		}
+		
+		return new Promise<FirefoxDebugProtocol.Grip>((resolve, reject) => {
+
+			let send = () => {
+				this.connection.sendRequest({ to: this.name, type: 'clientEvaluate', expression: expr, frame: frameActorName});
+			};
+
+			this.queuedEvaluateRequests.push({ send, resolve, reject });
+			this.doNext();
+		});
 	}
-	
-	//TODO also detach the TabActorProxy(?)
-	public detach(): void {
 
-		Log.debug(`Detaching from thread ${this.name}`);
-
-		this.state = State.Detached;
-
-		this.connection.sendRequest({ to: this.name, type: 'detach' });
-	}
-	
-	
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 		
 		if (response['type'] === 'paused') {
@@ -305,81 +312,59 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			Log.debug(`Thread ${this.name} paused`);
 
 			let pausedResponse = <FirefoxDebugProtocol.ThreadPausedResponse>response;
-			let pauseActor = this.connection.getOrCreate(pausedResponse.actor,
-				() => new PauseActorProxy(pausedResponse.actor, this.connection));
 			
 			switch (pausedResponse.why.type) {
 				case 'attached':
+					Log.debug('Received attached event');
+					break;
+
 				case 'interrupted':
-					if (this.state != State.Paused) {
-						Log.error(`Received paused event with reason ${pausedResponse.why.type}, but proxy is in state ${this.state}`);
-						return;
+					Log.debug('Received paused event of type interrupted');
+					this.paused = true;
+					// if the desiredState is not 'paused' then the thread has only been 
+					// interrupted temporarily, so we don't send a 'paused' event.
+					if (this.desiredState == 'paused') {
+						this.emit('paused', pausedResponse.why.type);
 					}
-					
-					if (this.pendingPauseRequest != null) {
-						this.pendingPauseRequest.resolve(pauseActor);
-						this.pendingPauseRequest = null;
-					} else {
-						Log.error(`Received paused event with reason ${pausedResponse.why.type}, but there is no pending pause request`)
-					}
-					
 					break;
 					
 				case 'resumeLimit':
-					if (this.state != State.MaybeRunning) {
-						Log.error(`Received paused event with reason ${pausedResponse.why.type}, but proxy is in state ${this.state}`);
-						return;
-					}
+					Log.debug('Received paused event of type resumeLimit');
+					this.paused = true;
+					this.desiredState = 'paused';
+					this.doNext();
+					this.emit('paused', pausedResponse.why.type);
+					break;
 					
+				case 'breakpoint':
+					Log.debug('Received paused event of type breakpoint');
+					this.paused = true;
+					this.desiredState = 'paused';
+					this.doNext();
+					this.emit('paused', pausedResponse.why.type);
+					break;
+					
+				case 'clientEvaluated':
+					Log.debug('Received paused event of type clientEvaluated');
+					this.paused = true;
+					this.pendingEvaluateRequest.resolve(pausedResponse.why.frameFinished.return);
+					this.pendingEvaluateRequest = null;
+					this.doNext();
+					if (this.paused) {
+						this.emit('paused', pausedResponse.why.type);
+					}
 					break;
 
-				case 'breakpoint':
-					if (this.state != State.MaybeRunning) {
-						Log.error(`Received paused event with reason ${pausedResponse.why.type}, but proxy is in state ${this.state}`);
-						return;
-					}
-					
-					this.state = State.Paused;
-					
-					break;
-					
 				case 'debuggerStatement':
 				case 'watchpoint':
-				case 'clientEvaluated':
 				case 'pauseOnDOMEvents':
 					Log.error(`Paused event with reason ${pausedResponse.why.type} not handled yet`);
 					break;
 			}
-			
-			this.emit('paused', pausedResponse.why.type);
 
-		} else if (response['type'] === 'exited') {
-			
-			Log.debug(`Thread ${this.name} exited`);
+		} else if (response['type'] === 'resumed') {
 
-			if (this.pendingPauseRequest != null) {
-				this.pendingPauseRequest.reject('Exited');
-			}
-			this.pausePromise = null;
-			this.pendingSourceRequests.rejectAll('Exited');
-			this.pendingFrameRequests.rejectAll('Exited');
-			
-			this.state = State.Detached;
-			
-			this.emit('exited');
-			//TODO send release packet(?)
-			
-		} else if (response['error'] === 'wrongState') {
-
-			Log.warn(`Thread ${this.name} was in the wrong state for the last request`);
-
-			//TODO reject last request!
-			
-			this.emit('wrongState');
-			
-		} else if (response['type'] === 'detached') {
-			
-			Log.debug(`Thread ${this.name} detached`);
+			Log.debug(`Received resumed event from ${this.name} (ignoring)`);
 			
 		} else if (response['type'] === 'newSource') {
 			
@@ -397,10 +382,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
 			Log.debug(`Received ${sources.length} sources from thread ${this.name}`);
 
-			let sourceActors = sources.map((source) => this.connection.getOrCreate(source.actor, 
-				() => new SourceActorProxy(source, this.connection)));
-			this.pendingSourceRequests.resolveOne(sourceActors);
-			
 		} else if (response['frames']) {
 
 			let frames = <FirefoxDebugProtocol.Frame[]>(response['frames']);
@@ -409,12 +390,31 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
 			this.pendingFrameRequests.resolveOne(frames);
 			
+		} else if (response['type'] === 'detached') {
+			
+			Log.debug(`Thread ${this.name} detached`);
+			
+		} else if (response['type'] === 'exited') {
+			
+			Log.debug(`Thread ${this.name} exited`);
+
+			this.pendingFrameRequests.rejectAll('Exited');
+			
+			this.emit('exited');
+			//TODO send release packet(?)
+			
+		} else if (response['error'] === 'wrongState') {
+
+			Log.warn(`Thread ${this.name} was in the wrong state for the last request`);
+
+			//TODO reject last request!
+			
+			this.emit('wrongState');
+			
 		} else {
 
 			if (response['type'] === 'newGlobal') {
 				Log.debug(`Received newGlobal event from ${this.name} (ignoring)`);
-			} else if (response['type'] === 'resumed') {
-				Log.debug(`Received resumed event from ${this.name} (ignoring)`);
 			} else {
 				Log.warn("Unknown message from ThreadActor: " + JSON.stringify(response));
 			}			

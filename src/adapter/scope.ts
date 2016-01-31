@@ -151,7 +151,7 @@ function getVariableFromSafeGetterValueDescriptor(varname: string,
 	return getVariableFromGrip(varname, safeGetterValueDescriptor.getterValue, debugSession);	
 }
 
-function getVariableFromGrip(varname: string, grip: FirefoxDebugProtocol.Grip, debugSession: FirefoxDebugSession): Variable {
+export function getVariableFromGrip(varname: string, grip: FirefoxDebugProtocol.Grip, debugSession: FirefoxDebugSession): Variable {
 
 	if ((typeof grip === 'boolean') || (typeof grip === 'number')) {
 

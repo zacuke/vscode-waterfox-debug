@@ -53,7 +53,7 @@ declare namespace FirefoxDebugProtocol {
 		actor: string;
 		poppedFrames: Frame[];
 		why: {
-			type: string;
+			type: string; // 'attached' | 'interrupted' | 'resumeLimit' | 'debuggerStatement' | 'breakpoint' | 'watchpoint' | 'clientEvaluated' | 'pauseOnDOMEvents'
 			frameFinished?: CompletionValue; // if type is 'resumeLimit' or 'clientEvaluated'
 			actors?: string[]; // if type is 'breakpoint' or 'watchpoint'
 		};

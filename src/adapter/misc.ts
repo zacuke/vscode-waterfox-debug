@@ -39,10 +39,12 @@ export class BreakpointAdapter {
 export class FrameAdapter {
 	public id: number;
 	public frame: FirefoxDebugProtocol.Frame;
+	public thread: ThreadActorProxy;
 	
-	public constructor(id: number, frame: FirefoxDebugProtocol.Frame) {
+	public constructor(id: number, frame: FirefoxDebugProtocol.Frame, thread: ThreadActorProxy) {
 		this.id = id;
 		this.frame = frame;
+		this.thread = thread;
 	}
 	
 	public getStackframe(): StackFrame {

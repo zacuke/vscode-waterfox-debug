@@ -3,6 +3,7 @@ import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEv
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy } from './firefox/index';
 import { ThreadAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider } from './adapter/index';
+import { getVariableFromGrip } from './adapter/scope';
 
 export class FirefoxDebugSession extends DebugSession {
 
@@ -88,7 +89,7 @@ export class FirefoxDebugSession extends DebugSession {
 				});
 				
 
-				threadActor.fetchSources().then(() => threadActor.resume());
+				threadActor.resume();
 
 				this.sendEvent(new ThreadEvent('started', threadId));
 			});
@@ -255,7 +256,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 			let frameAdapters = frames.map((frame) => {
 				let frameId = this.nextFrameId++;
-				let frameAdapter = new FrameAdapter(frameId, frame);
+				let frameAdapter = new FrameAdapter(frameId, frame, threadActor);
 				this.framesById.set(frameId, frameAdapter);
 				return frameAdapter;
 			});
@@ -289,6 +290,28 @@ export class FirefoxDebugSession extends DebugSession {
 			response.body = { variables: vars };
 			this.sendResponse(response);
 		})
+	}
+	
+	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
+		
+		Log.debug('Received evaluateRequest');
+		
+		if (args.frameId !== undefined) {
+			
+			let frameAdapter = this.framesById.get(args.frameId);
+			
+			frameAdapter.thread.evaluate(args.expression, frameAdapter.frame.actor)
+			.then((grip) => {
+				let variable = (grip === undefined) ? new Variable('', 'undefined') : getVariableFromGrip('', grip, this);
+				response.body = { result: variable.value, variablesReference: variable.variablesReference };
+				this.sendResponse(response);
+			});
+			
+		} else {
+			//TODO
+			this.sendResponse(response);
+		}
+		
 	}
 }
 

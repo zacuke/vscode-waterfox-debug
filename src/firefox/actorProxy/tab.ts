@@ -54,12 +54,10 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 			Log.debug(`Attached to tab ${this.name}`);
 
 			let tabAttachedResponse = <FirefoxDebugProtocol.TabAttachedResponse>response;
-			let threadActorPromise = this.connection.getOrCreatePromise(tabAttachedResponse.threadActor, 
-				() => ThreadActorProxy.createAndAttach(tabAttachedResponse.threadActor, this.connection));
-			threadActorPromise.then((threadActor) => {
-				this.emit('attached', threadActor);
-				this.pendingAttachRequests.resolveOne(threadActor);
-			});
+			let threadActor = this.connection.getOrCreate(tabAttachedResponse.threadActor, 
+				() => new ThreadActorProxy(tabAttachedResponse.threadActor, this.connection));
+			this.emit('attached', threadActor);
+			this.pendingAttachRequests.resolveOne(threadActor);
 
 		} else if (response['type'] === 'exited') {
 
