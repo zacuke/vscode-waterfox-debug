@@ -20,6 +20,7 @@ export class DebugConnection {
 		this.transport = new DebugProtocolTransport(socket);
 		this.transport.on('message', (response: FirefoxDebugProtocol.Response) => {
 			if (this.actors.has(response.from)) {
+				Log.debug(`Received response/event ${JSON.stringify(response)}`);
 				this.actors.get(response.from).receiveResponse(response);
 			} else {
 				Log.error('Unknown actor: ' + JSON.stringify(response));
@@ -33,6 +34,7 @@ export class DebugConnection {
 	}
 
 	public sendRequest<T extends FirefoxDebugProtocol.Request>(request: T) {
+		Log.debug(`Sending request ${JSON.stringify(request)}`);
 		this.transport.sendMessage(request);
 	}
 
