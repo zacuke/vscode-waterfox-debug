@@ -2,6 +2,8 @@ import { Log } from '../util/log';
 import { ThreadActorProxy } from '../firefox/index';
 import { Source, StackFrame } from 'vscode-debugadapter';
 
+let log = Log.create('FrameAdapter');
+
 export class FrameAdapter {
 	public id: number;
 	public frame: FirefoxDebugProtocol.Frame;
@@ -38,7 +40,7 @@ export class FrameAdapter {
 
 				} else {
 
-					Log.error(`Unexpected callee in call frame: ${JSON.stringify(callee)}`);
+					log.error(`Unexpected callee in call frame: ${JSON.stringify(callee)}`);
 					name = '[unknown]';
 
 				}
@@ -55,7 +57,7 @@ export class FrameAdapter {
 				
 			default:
 				name = `[${this.frame.type}]`;
-				Log.error(`Unexpected frame type ${this.frame.type}`);
+				log.error(`Unexpected frame type ${this.frame.type}`);
 				break;
 		}
 		

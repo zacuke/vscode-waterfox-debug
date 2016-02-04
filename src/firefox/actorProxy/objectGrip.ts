@@ -4,6 +4,8 @@ import { DebugConnection } from '../connection';
 import { PendingRequests } from './pendingRequests';
 import { ActorProxy } from './interface';
 
+let log = Log.create('ObjectGripActorProxy');
+
 export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
 	
 	private pendingPrototypeAndPropertiesRequests = new PendingRequests<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>();
@@ -19,7 +21,7 @@ export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
 
 	public fetchPrototypeAndProperties(): Promise<FirefoxDebugProtocol.PrototypeAndPropertiesResponse> {
 		
-		Log.debug(`Fetching prototype and properties from ${this.name}`);
+		log.debug(`Fetching prototype and properties from ${this.name}`);
 
 		return new Promise<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>((resolve, reject) => {
 			this.pendingPrototypeAndPropertiesRequests.enqueue({ resolve, reject });
@@ -31,13 +33,13 @@ export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
 
 		if ((response['prototype'] !== undefined) && (response['ownProperties'] !== undefined)) {
 		
-			Log.debug(`Prototype and properties fetched from ${this.name}`);
+			log.debug(`Prototype and properties fetched from ${this.name}`);
 			
 			this.pendingPrototypeAndPropertiesRequests.resolveOne(<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>response);
 			
 		} else {
 			
-			Log.warn("Unknown message from ObjectGripActor: " + JSON.stringify(response));
+			log.warn("Unknown message from ObjectGripActor: " + JSON.stringify(response));
 			
 		}
 	}

@@ -5,6 +5,8 @@ import { PendingRequests } from './pendingRequests';
 import { ActorProxy } from './interface';
 import { BreakpointActorProxy } from './breakpoint';
 
+let log = Log.create('SourceActorProxy');
+
 export class SourceActorProxy extends EventEmitter implements ActorProxy {
 
 	private pendingSetBreakpointRequests = new PendingRequests<SetBreakpointResult>();
@@ -24,7 +26,7 @@ export class SourceActorProxy extends EventEmitter implements ActorProxy {
 
 	public setBreakpoint(location: FirefoxDebugProtocol.SourceLocation): Promise<SetBreakpointResult> {
 		
-		Log.debug(`Setting breakpoint at line ${location.line} in ${this.url}`);
+		log.debug(`Setting breakpoint at line ${location.line} in ${this.url}`);
 		
 		return new Promise<SetBreakpointResult>((resolve, reject) => {
 			this.pendingSetBreakpointRequests.enqueue({ resolve, reject });
@@ -39,7 +41,7 @@ export class SourceActorProxy extends EventEmitter implements ActorProxy {
 			let setBreakpointResponse = <FirefoxDebugProtocol.SetBreakpointResponse>response;
 			let actualLocation = setBreakpointResponse.actualLocation;
 
-			Log.debug(`Breakpoint has been set at ${JSON.stringify(actualLocation)} in ${this.url}`);
+			log.debug(`Breakpoint has been set at ${JSON.stringify(actualLocation)} in ${this.url}`);
 						
 			let breakpointActor = this.connection.getOrCreate(setBreakpointResponse.actor,
 				() => new BreakpointActorProxy(setBreakpointResponse.actor, this.connection));
@@ -47,7 +49,7 @@ export class SourceActorProxy extends EventEmitter implements ActorProxy {
 			
 		} else {
 			
-			Log.warn("Unknown message from SourceActor: " + JSON.stringify(response));
+			log.warn("Unknown message from SourceActor: " + JSON.stringify(response));
 		
 		}
 	}

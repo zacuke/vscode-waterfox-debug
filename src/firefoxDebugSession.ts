@@ -5,6 +5,8 @@ import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, SourceAct
 import { ThreadAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider } from './adapter/index';
 import { getVariableFromGrip } from './adapter/scope';
 
+let log = Log.create('FirefoxDebugSession');
+
 export class FirefoxDebugSession extends DebugSession {
 
 	private firefoxDebugConnection: DebugConnection;
@@ -44,11 +46,11 @@ export class FirefoxDebugSession extends DebugSession {
 		// and inform VSCode about them
 		this.firefoxDebugConnection.rootActor.onTabOpened((tabActor) => {
 			
-			Log.info(`Tab opened with url ${tabActor.url}`);
+			log.info(`Tab opened with url ${tabActor.url}`);
 			
 			tabActor.attach().then((threadActor) => {
 
-				Log.debug(`Attached to tab ${tabActor.name}`);
+				log.debug(`Attached to tab ${tabActor.name}`);
 
 				let threadId = this.nextThreadId++;
 				let threadAdapter = new ThreadAdapter(threadId, threadActor);
@@ -58,7 +60,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 				threadActor.onNewSource((sourceActor) => {
 
-					Log.debug(`New source ${sourceActor.url} in tab ${tabActor.name}`);
+					log.debug(`New source ${sourceActor.url} in tab ${tabActor.name}`);
 
 					let sourceAdapter = new SourceAdapter(sourceActor);
 					threadAdapter.sources.push(sourceAdapter);
@@ -72,7 +74,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 				threadActor.onPaused((why) => {
 
-					Log.info(`Thread ${threadActor.name} paused , reason: ${why}`);
+					log.info(`Thread ${threadActor.name} paused , reason: ${why}`);
 
 					this.sendEvent(new StoppedEvent(why, threadId));
 				});
@@ -80,7 +82,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 				threadActor.onExited(() => {
 
-					Log.info(`Thread ${threadActor.name} exited`);
+					log.info(`Thread ${threadActor.name} exited`);
 
 					this.threadsById.delete(threadId);
 					this.threadsByActorName.delete(threadActor.name);
@@ -103,7 +105,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 	protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
 
-		Log.debug(`Received threadsRequest - replying with ${this.threadsById.size} threads`);
+		log.debug(`Received threadsRequest - replying with ${this.threadsById.size} threads`);
 		
 		let responseThreads: Thread[] = [];
 		this.threadsById.forEach((threadAdapter) => {
@@ -116,7 +118,7 @@ export class FirefoxDebugSession extends DebugSession {
 	
     protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 
-		Log.debug(`Received setBreakpointsRequest with ${args.lines.length} breakpoints for ${args.source.path}`);
+		log.debug(`Received setBreakpointsRequest with ${args.lines.length} breakpoints for ${args.source.path}`);
 
 		let firefoxSourceUrl = 'file://' + this.convertDebuggerPathToClient(args.source.path);
 		this.breakpointsBySourceUrl.set(firefoxSourceUrl, args);
@@ -134,7 +136,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 			if (sourceAdapter !== null) {
 
-				Log.debug(`Found source ${args.source.path} on tab ${threadAdapter.actor.name}`);
+				log.debug(`Found source ${args.source.path} on tab ${threadAdapter.actor.name}`);
 				
 				let setBreakpointsPromise = this.setBreakpointsOnSourceActor(args.lines, sourceAdapter, threadAdapter.actor);
 				
@@ -144,7 +146,7 @@ export class FirefoxDebugSession extends DebugSession {
 						response.body = { breakpoints: breakpointAdapters.map((breakpointAdapter) => 
 							<DebugProtocol.Breakpoint>{ verified: true, line: breakpointAdapter.actualLine }) };
 
-						Log.debug('Replying to setBreakpointsRequest with actual breakpoints from the first thread with this source');
+						log.debug('Replying to setBreakpointsRequest with actual breakpoints from the first thread with this source');
 
 						this.sendResponse(response);
 						
@@ -162,13 +164,13 @@ export class FirefoxDebugSession extends DebugSession {
 
 	private setBreakpointsOnPausedSourceActor(breakpointsToSet: number[], sourceAdapter: SourceAdapter, resume: () => void): Promise<BreakpointAdapter[]> {
 
-		Log.debug(`Setting ${breakpointsToSet.length} breakpoints for ${sourceAdapter.actor.url}`);
+		log.debug(`Setting ${breakpointsToSet.length} breakpoints for ${sourceAdapter.actor.url}`);
 		
 		let result = new Promise<BreakpointAdapter[]>((resolve) => {
 
 			sourceAdapter.currentBreakpoints.then((oldBreakpoints) => {
 
-				Log.debug(`${oldBreakpoints.length} breakpoints were previously set for ${sourceAdapter.actor.url}`);
+				log.debug(`${oldBreakpoints.length} breakpoints were previously set for ${sourceAdapter.actor.url}`);
 
 				let newBreakpoints: BreakpointAdapter[] = [];
 				let breakpointsBeingRemoved: Promise<void>[] = [];
@@ -194,7 +196,7 @@ export class FirefoxDebugSession extends DebugSession {
 					}
 				});
 				
-				Log.debug(`Adding ${breakpointsBeingSet.length} and removing ${breakpointsBeingRemoved.length} breakpoints`);
+				log.debug(`Adding ${breakpointsBeingSet.length} and removing ${breakpointsBeingRemoved.length} breakpoints`);
 
 				Promise.all(breakpointsBeingRemoved).then(() => Promise.all(breakpointsBeingSet)).then(() => {
 					resolve(newBreakpoints);
@@ -208,34 +210,34 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 
 	protected pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments): void {
-		Log.debug('Received pauseRequest');
+		log.debug('Received pauseRequest');
 		this.threadsById.get(args.threadId).actor.interrupt();
 		this.sendResponse(response);
 	}
 	
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
-		Log.debug('Received continueRequest');
+		log.debug('Received continueRequest');
 		this.terminatePause();
 		this.threadsById.get(args.threadId).actor.resume();
 		this.sendResponse(response);
 	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
-		Log.debug('Received nextRequest');
+		log.debug('Received nextRequest');
 		this.terminatePause();
 		this.threadsById.get(args.threadId).actor.stepOver();
 		this.sendResponse(response);
 	}
 
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
-		Log.debug('Received stepInRequest');
+		log.debug('Received stepInRequest');
 		this.terminatePause();
 		this.threadsById.get(args.threadId).actor.stepInto();
 		this.sendResponse(response);
 	}
 
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
-		Log.debug('Received stepOutRequest');
+		log.debug('Received stepOutRequest');
 		this.terminatePause();
 		this.threadsById.get(args.threadId).actor.stepOut();
 		this.sendResponse(response);
@@ -250,7 +252,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 		let threadActor = this.threadsById.get(args.threadId).actor;
 
-		Log.debug(`Received stackTraceRequest for ${threadActor.name}`);
+		log.debug(`Received stackTraceRequest for ${threadActor.name}`);
 
 		threadActor.fetchStackFrames().then((frames) => {
 
@@ -268,7 +270,7 @@ export class FirefoxDebugSession extends DebugSession {
 	
 	protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): void {
 
-		Log.debug('Received scopesRequest');
+		log.debug('Received scopesRequest');
 		
 		let frameAdapter = this.framesById.get(args.frameId);
 		let environmentAdapter = EnvironmentAdapter.from(frameAdapter.frame.environment);
@@ -282,7 +284,7 @@ export class FirefoxDebugSession extends DebugSession {
 	
 	protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): void {
 
-		Log.debug('Received variablesRequest');
+		log.debug('Received variablesRequest');
 		
 		let variablesProvider = this.variablesProvidersById.get(args.variablesReference);
 		
@@ -294,7 +296,7 @@ export class FirefoxDebugSession extends DebugSession {
 	
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
 		
-		Log.debug('Received evaluateRequest');
+		log.debug('Received evaluateRequest');
 		
 		if (args.frameId !== undefined) {
 			

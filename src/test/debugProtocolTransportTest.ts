@@ -2,6 +2,8 @@ import { Log } from '../util/log';
 import { EventEmitter } from 'events';
 import { DebugProtocolTransport, SocketLike } from '../firefox/transport';
 
+let log = Log.create('Test');
+
 class MockSocket extends EventEmitter implements SocketLike {
 	public receive(chunk: string) {
 		this.emit('data', new Buffer(chunk))
@@ -11,7 +13,7 @@ class MockSocket extends EventEmitter implements SocketLike {
 
 let mockSocket = new MockSocket();
 let transport = new DebugProtocolTransport(mockSocket);
-transport.on('message', Log.debug);
+transport.on('message', log.debug);
 
 mockSocket.receive('14:{"x":0,"y":21}');
 mockSocket.receive('14:{"x":1,"y":17}');

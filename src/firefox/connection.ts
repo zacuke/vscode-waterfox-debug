@@ -4,6 +4,8 @@ import { DebugProtocolTransport } from './transport';
 import { ActorProxy } from './actorProxy/interface';
 import { RootActorProxy } from './actorProxy/root';
 
+let log = Log.create('DebugConnection');
+
 /**
  * Connects to a target supporting the Firefox Debugging Protocol and sends and receives messages
  */
@@ -20,10 +22,10 @@ export class DebugConnection {
 		this.transport = new DebugProtocolTransport(socket);
 		this.transport.on('message', (response: FirefoxDebugProtocol.Response) => {
 			if (this.actors.has(response.from)) {
-				Log.debug(`Received response/event ${JSON.stringify(response)}`);
+				log.debug(`Received response/event ${JSON.stringify(response)}`);
 				this.actors.get(response.from).receiveResponse(response);
 			} else {
-				Log.error('Unknown actor: ' + JSON.stringify(response));
+				log.error('Unknown actor: ' + JSON.stringify(response));
 			}
 		});
 		socket.connect(6000);
@@ -34,7 +36,7 @@ export class DebugConnection {
 	}
 
 	public sendRequest<T extends FirefoxDebugProtocol.Request>(request: T) {
-		Log.debug(`Sending request ${JSON.stringify(request)}`);
+		log.debug(`Sending request ${JSON.stringify(request)}`);
 		this.transport.sendMessage(request);
 	}
 

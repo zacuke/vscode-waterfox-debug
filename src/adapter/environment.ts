@@ -2,6 +2,8 @@ import { Log } from '../util/log';
 import { FirefoxDebugSession } from '../firefoxDebugSession';
 import { ScopeAdapter, ObjectScopeAdapter, LocalVariablesScopeAdapter, FunctionScopeAdapter } from './scope';
 
+let log = Log.create('EnvironmentAdapter');
+
 export abstract class EnvironmentAdapter {
 	
 	public environment: FirefoxDebugProtocol.Environment;
@@ -71,12 +73,12 @@ export class ObjectEnvironmentAdapter extends EnvironmentAdapter {
 		
 		if ((typeof grip === 'boolean') || (typeof grip === 'number') || (typeof grip === 'string')) {
 
-			Log.error(`Object environment with unexpected grip of type ${typeof grip}`);
+			log.error(`Object environment with unexpected grip of type ${typeof grip}`);
 			return null;
 
 		} else if (grip.type !== 'object') {
 
-			Log.error(`Object environment with unexpected grip of type ${grip.type}`);
+			log.error(`Object environment with unexpected grip of type ${grip.type}`);
 			return null;
 
 		} else {
@@ -109,7 +111,7 @@ export class FunctionEnvironmentAdapter extends EnvironmentAdapter {
 
 		} else {
 
-			Log.error(`Unexpected function grip in function environment: ${JSON.stringify(func)}`);
+			log.error(`Unexpected function grip in function environment: ${JSON.stringify(func)}`);
 			scopeName = '[unknown]';
 
 		}
@@ -132,12 +134,12 @@ export class WithEnvironmentAdapter extends EnvironmentAdapter {
 		
 		if ((typeof grip === 'boolean') || (typeof grip === 'number') || (typeof grip === 'string')) {
 
-			Log.error(`"with" environment with unexpected grip of type ${typeof grip}`);
+			log.error(`"with" environment with unexpected grip of type ${typeof grip}`);
 			return null;
 
 		} else if (grip.type !== 'object') {
 
-			Log.error(`"with" environment with unexpected grip of type ${grip.type}`);
+			log.error(`"with" environment with unexpected grip of type ${grip.type}`);
 			return null;
 
 		} else {

@@ -1,5 +1,7 @@
 import { Log } from '../../util/log';
 
+let log = Log.create('PendingRequests');
+
 export class PendingRequest<T> {
 	resolve: (t: T) => void;
 	reject: (err: any) => void;
@@ -18,7 +20,7 @@ export class PendingRequests<T> {
 			let request = this.pendingRequests.shift();
 			request.resolve(t);
 		} else {
-			Log.error("Received response without corresponding request!?");
+			log.error("Received response without corresponding request!?");
 		}
 	}
 	
@@ -27,7 +29,7 @@ export class PendingRequests<T> {
 			let request = this.pendingRequests.shift();
 			request.reject(err);
 		} else {
-			Log.error("Received error response without corresponding request!?");
+			log.error("Received error response without corresponding request!?");
 		}
 	}
 	

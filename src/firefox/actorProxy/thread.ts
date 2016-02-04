@@ -6,6 +6,8 @@ import { ActorProxy } from './interface';
 import { PauseActorProxy } from './pause';
 import { SourceActorProxy } from './source';
 
+let log = Log.create('ThreadActorProxy');
+
 class QueuedRequest<T> {
 	send: () => void;
 	resolve: (t: T) => void;
@@ -63,7 +65,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		this.connection.register(this);
 		this.connection.sendRequest({ to: this.name, type: 'attach' });
 		this.connection.sendRequest({ to: this.name, type: 'sources' });
-		Log.debug(`Created and attached thread ${this.name}`);
+		log.debug(`Created and attached thread ${this.name}`);
 	}
 
 	public get name() {
@@ -72,7 +74,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
 	private sendPauseRequest(): void {
 
-		Log.debug(`Sending pause request to thread ${this.name}`);
+		log.debug(`Sending pause request to thread ${this.name}`);
 
 		this.connection.sendRequest({ to: this.name, type: 'interrupt' });
 		this.paused = true;
@@ -86,7 +88,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	 */
 	public runOnPausedThread<T>(operation: (finished: () => void) => (T | Thenable<T>)): Promise<T> {
 
-		Log.debug('Starting operation on paused thread');
+		log.debug('Starting operation on paused thread');
 		this.operationsRunningOnPausedThread++;
 		
 		return new Promise<T>((resolve) => {
@@ -105,7 +107,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	 */
 	private operationFinishedOnPausedThread() {
 
-		Log.debug('Operation finished on paused thread');
+		log.debug('Operation finished on paused thread');
 		this.operationsRunningOnPausedThread--;
 		
 		this.doNext();
@@ -121,7 +123,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		if (this.operationsRunningOnPausedThread > 0) {
 			
 			if (!this.paused) {
-				Log.error('The thread isn\'t paused but an operation that requires the thread to be paused is still running!');
+				log.error('The thread isn\'t paused but an operation that requires the thread to be paused is still running!');
 			}
 			
 		} else {
@@ -144,7 +146,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 					
 				} else {
 					
-					Log.warn('The thread is running but an evaluate request is still queued - rejecting');
+					log.warn('The thread is running but an evaluate request is still queued - rejecting');
 					
 					this.queuedEvaluateRequests.forEach((queuedEvaluateRequest) => {
 						queuedEvaluateRequest.reject('Thread is running');
@@ -198,7 +200,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	 */	
 	public interrupt(): void {
 
-		Log.debug(`Want thread ${this.name} to be paused`);
+		log.debug(`Want thread ${this.name} to be paused`);
 
 		this.desiredState = 'paused';
 		
@@ -210,11 +212,11 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	public fetchStackFrames(): Promise<FirefoxDebugProtocol.Frame[]> {
 
 		if (this.desiredState != 'paused') {
-			Log.warn(`fetchStackFrames() called but desiredState is ${this.desiredState}`)
+			log.warn(`fetchStackFrames() called but desiredState is ${this.desiredState}`)
 			return Promise.reject('not paused');
 		}
 		
-		Log.debug(`Fetching stackframes from thread ${this.name}`);
+		log.debug(`Fetching stackframes from thread ${this.name}`);
 
 		return new Promise<FirefoxDebugProtocol.Frame[]>((resolve, reject) => {
 
@@ -224,7 +226,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 				this.connection.sendRequest({ to: this.name, type: 'frames' });
 
 			} else {
-				Log.warn('fetchStackFrames() called but thread is running')
+				log.warn('fetchStackFrames() called but thread is running')
 				reject('not paused');
 			}
 			
@@ -234,11 +236,11 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	public resume(): void {
 
 		if (this.desiredState != 'paused') {
-			Log.warn(`resume() called but desiredState is already ${this.desiredState}`);
+			log.warn(`resume() called but desiredState is already ${this.desiredState}`);
 			return;
 		}
 		
-		Log.debug(`Resuming thread ${this.name}`);
+		log.debug(`Resuming thread ${this.name}`);
 
 		this.desiredState = 'running';
 		this.doNext();
@@ -248,11 +250,11 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	public stepOver(): void {
 
 		if (this.desiredState != 'paused') {
-			Log.warn(`stepOver() called but desiredState is already ${this.desiredState}`);
+			log.warn(`stepOver() called but desiredState is already ${this.desiredState}`);
 			return;
 		}
 		
-		Log.debug(`Resuming thread ${this.name}`);
+		log.debug(`Resuming thread ${this.name}`);
 
 		this.desiredState = 'stepOver';
 		this.doNext();
@@ -262,11 +264,11 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	public stepInto(): void {
 
 		if (this.desiredState != 'paused') {
-			Log.warn(`stepInto() called but desiredState is already ${this.desiredState}`);
+			log.warn(`stepInto() called but desiredState is already ${this.desiredState}`);
 			return;
 		}
 		
-		Log.debug(`Resuming thread ${this.name}`);
+		log.debug(`Resuming thread ${this.name}`);
 
 		this.desiredState = 'stepInto';
 		this.doNext();
@@ -276,11 +278,11 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	public stepOut(): void {
 
 		if (this.desiredState != 'paused') {
-			Log.warn(`stepOut() called but desiredState is already ${this.desiredState}`);
+			log.warn(`stepOut() called but desiredState is already ${this.desiredState}`);
 			return;
 		}
 		
-		Log.debug(`Resuming thread ${this.name}`);
+		log.debug(`Resuming thread ${this.name}`);
 
 		this.desiredState = 'stepOut';
 		this.doNext();
@@ -290,7 +292,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	public evaluate(expr: string, frameActorName: string): Promise<FirefoxDebugProtocol.Grip> {
 
 		if (this.desiredState != 'paused') {
-			Log.warn(`evaluate() called but desiredState is ${this.desiredState}`);
+			log.warn(`evaluate() called but desiredState is ${this.desiredState}`);
 			return Promise.reject('not paused');
 		}
 		
@@ -309,17 +311,17 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		
 		if (response['type'] === 'paused') {
 
-			Log.debug(`Thread ${this.name} paused`);
+			log.debug(`Thread ${this.name} paused`);
 
 			let pausedResponse = <FirefoxDebugProtocol.ThreadPausedResponse>response;
 			
 			switch (pausedResponse.why.type) {
 				case 'attached':
-					Log.debug('Received attached event');
+					log.debug('Received attached event');
 					break;
 
 				case 'interrupted':
-					Log.debug('Received paused event of type interrupted');
+					log.debug('Received paused event of type interrupted');
 					this.paused = true;
 					// if the desiredState is not 'paused' then the thread has only been 
 					// interrupted temporarily, so we don't send a 'paused' event.
@@ -329,7 +331,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 					break;
 					
 				case 'resumeLimit':
-					Log.debug('Received paused event of type resumeLimit');
+					log.debug('Received paused event of type resumeLimit');
 					this.paused = true;
 					this.desiredState = 'paused';
 					this.doNext();
@@ -337,7 +339,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 					break;
 					
 				case 'breakpoint':
-					Log.debug('Received paused event of type breakpoint');
+					log.debug('Received paused event of type breakpoint');
 					this.paused = true;
 					this.desiredState = 'paused';
 					this.doNext();
@@ -345,7 +347,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 					break;
 					
 				case 'clientEvaluated':
-					Log.debug('Received paused event of type clientEvaluated');
+					log.debug('Received paused event of type clientEvaluated');
 					this.paused = true;
 					this.pendingEvaluateRequest.resolve(pausedResponse.why.frameFinished.return);
 					this.pendingEvaluateRequest = null;
@@ -358,19 +360,19 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 				case 'debuggerStatement':
 				case 'watchpoint':
 				case 'pauseOnDOMEvents':
-					Log.error(`Paused event with reason ${pausedResponse.why.type} not handled yet`);
+					log.error(`Paused event with reason ${pausedResponse.why.type} not handled yet`);
 					break;
 			}
 
 		} else if (response['type'] === 'resumed') {
 
-			Log.debug(`Received resumed event from ${this.name} (ignoring)`);
+			log.debug(`Received resumed event from ${this.name} (ignoring)`);
 			
 		} else if (response['type'] === 'newSource') {
 			
 			let source = <FirefoxDebugProtocol.Source>(response['source']);
 
-			Log.debug(`New source ${source.url} on thread ${this.name}`);
+			log.debug(`New source ${source.url} on thread ${this.name}`);
 
 			let sourceActor = this.connection.getOrCreate(source.actor, 
 				() => new SourceActorProxy(source, this.connection));
@@ -380,23 +382,23 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
 			let sources = <FirefoxDebugProtocol.Source[]>(response['sources']);
 
-			Log.debug(`Received ${sources.length} sources from thread ${this.name}`);
+			log.debug(`Received ${sources.length} sources from thread ${this.name}`);
 
 		} else if (response['frames']) {
 
 			let frames = <FirefoxDebugProtocol.Frame[]>(response['frames']);
 
-			Log.debug(`Received ${frames.length} frames from thread ${this.name}`);
+			log.debug(`Received ${frames.length} frames from thread ${this.name}`);
 
 			this.pendingFrameRequests.resolveOne(frames);
 			
 		} else if (response['type'] === 'detached') {
 			
-			Log.debug(`Thread ${this.name} detached`);
+			log.debug(`Thread ${this.name} detached`);
 			
 		} else if (response['type'] === 'exited') {
 			
-			Log.debug(`Thread ${this.name} exited`);
+			log.debug(`Thread ${this.name} exited`);
 
 			this.pendingFrameRequests.rejectAll('Exited');
 			
@@ -405,7 +407,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			
 		} else if (response['error'] === 'wrongState') {
 
-			Log.warn(`Thread ${this.name} was in the wrong state for the last request`);
+			log.warn(`Thread ${this.name} was in the wrong state for the last request`);
 
 			//TODO reject last request!
 			
@@ -414,9 +416,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		} else {
 
 			if (response['type'] === 'newGlobal') {
-				Log.debug(`Received newGlobal event from ${this.name} (ignoring)`);
+				log.debug(`Received newGlobal event from ${this.name} (ignoring)`);
 			} else {
-				Log.warn("Unknown message from ThreadActor: " + JSON.stringify(response));
+				log.warn("Unknown message from ThreadActor: " + JSON.stringify(response));
 			}			
 
 		}

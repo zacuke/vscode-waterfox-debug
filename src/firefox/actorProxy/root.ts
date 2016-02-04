@@ -4,6 +4,8 @@ import { PendingRequests } from './pendingRequests';
 import { ActorProxy } from './interface';
 import { TabActorProxy } from './tab';
 
+let log = Log.create('RootActorProxy');
+
 export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 	private tabs = new Map<string, TabActorProxy>();
@@ -20,7 +22,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 	public fetchTabs(): Promise<Map<string, TabActorProxy>> {
 		
-		Log.debug('Fetching tabs');
+		log.debug('Fetching tabs');
 		
 		return new Promise<Map<string, TabActorProxy>>((resolve, reject) => {
 			this.pendingTabsRequests.enqueue({ resolve, reject });
@@ -39,7 +41,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 			let tabsResponse = <FirefoxDebugProtocol.TabsResponse>response;
 			let currentTabs = new Map<string, TabActorProxy>();
 			
-			Log.debug(`Received ${tabsResponse.tabs.length} tabs`);
+			log.debug(`Received ${tabsResponse.tabs.length} tabs`);
 			
 			// convert the Tab array into a map of TabActorProxies, re-using already 
 			// existing proxies and emitting tabOpened events for new ones
@@ -52,7 +54,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 				} else {
 
-					Log.debug(`Tab ${tab.actor} opened`);
+					log.debug(`Tab ${tab.actor} opened`);
 
 					tabActor = new TabActorProxy(tab.actor, tab.title, tab.url, this.connection);
 					this.emit('tabOpened', tabActor);
@@ -64,7 +66,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 			// emit tabClosed events for tabs that have disappeared
 			this.tabs.forEach((tabActor) => {
 				if (!currentTabs.has(tabActor.name)) {
-					Log.debug(`Tab ${tabActor.name} closed`);
+					log.debug(`Tab ${tabActor.name} closed`);
 					this.emit('tabClosed', tabActor);
 				}
 			});					
@@ -74,13 +76,13 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 			
 		} else if (response['type'] === 'tabListChanged') {
 
-			Log.debug('Received tabListChanged event');
+			log.debug('Received tabListChanged event');
 			
 			this.emit('tabListChanged');
 
 		} else {
 			
-			Log.warn("Unknown message from RootActor: " + JSON.stringify(response));
+			log.warn("Unknown message from RootActor: " + JSON.stringify(response));
 			
 		}
 	}
