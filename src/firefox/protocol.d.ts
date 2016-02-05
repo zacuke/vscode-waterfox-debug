@@ -196,6 +196,9 @@ declare namespace FirefoxDebugProtocol {
 	interface ObjectGrip extends ComplexGrip {
 		class: string;
 		actor: string;
+		preview?: {
+			items?: Grip[];
+		}
 	}
 
 	interface FunctionGrip extends ObjectGrip {

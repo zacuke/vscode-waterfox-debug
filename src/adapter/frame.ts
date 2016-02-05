@@ -1,5 +1,5 @@
 import { Log } from '../util/log';
-import { ThreadActorProxy } from '../firefox/index';
+import { ThreadAdapter } from '../adapter/index';
 import { Source, StackFrame } from 'vscode-debugadapter';
 
 let log = Log.create('FrameAdapter');
@@ -7,12 +7,12 @@ let log = Log.create('FrameAdapter');
 export class FrameAdapter {
 	public id: number;
 	public frame: FirefoxDebugProtocol.Frame;
-	public thread: ThreadActorProxy;
+	public threadAdapter: ThreadAdapter;
 	
-	public constructor(id: number, frame: FirefoxDebugProtocol.Frame, thread: ThreadActorProxy) {
+	public constructor(id: number, frame: FirefoxDebugProtocol.Frame, threadAdapter: ThreadAdapter) {
 		this.id = id;
 		this.frame = frame;
-		this.thread = thread;
+		this.threadAdapter = threadAdapter;
 	}
 	
 	public getStackframe(): StackFrame {

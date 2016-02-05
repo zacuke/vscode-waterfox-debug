@@ -2,7 +2,7 @@ import { Log } from './util/log';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, Thread, StackFrame, Scope, Variable, Source } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy } from './firefox/index';
-import { ThreadAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider } from './adapter/index';
+import { ThreadAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, ObjectReferencesAdapter } from './adapter/index';
 import { getVariableFromGrip } from './adapter/scope';
 
 let log = Log.create('FirefoxDebugSession');
@@ -53,7 +53,7 @@ export class FirefoxDebugSession extends DebugSession {
 				log.debug(`Attached to tab ${tabActor.name}`);
 
 				let threadId = this.nextThreadId++;
-				let threadAdapter = new ThreadAdapter(threadId, threadActor);
+				let threadAdapter = new ThreadAdapter(threadId, threadActor, this);
 				this.threadsById.set(threadId, threadAdapter);
 				this.threadsByActorName.set(threadActor.name, threadAdapter);
 
@@ -250,15 +250,15 @@ export class FirefoxDebugSession extends DebugSession {
 	
 	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
 
-		let threadActor = this.threadsById.get(args.threadId).actor;
+		let threadAdapter = this.threadsById.get(args.threadId);
 
-		log.debug(`Received stackTraceRequest for ${threadActor.name}`);
+		log.debug(`Received stackTraceRequest for ${threadAdapter.actor.name}`);
 
-		threadActor.fetchStackFrames().then((frames) => {
+		threadAdapter.objectReferences.fetchStackFrames().then((frames) => {
 
 			let frameAdapters = frames.map((frame) => {
 				let frameId = this.nextFrameId++;
-				let frameAdapter = new FrameAdapter(frameId, frame, threadActor);
+				let frameAdapter = new FrameAdapter(frameId, frame, threadAdapter);
 				this.framesById.set(frameId, frameAdapter);
 				return frameAdapter;
 			});
@@ -302,7 +302,7 @@ export class FirefoxDebugSession extends DebugSession {
 			
 			let frameAdapter = this.framesById.get(args.frameId);
 			
-			frameAdapter.thread.evaluate(args.expression, frameAdapter.frame.actor)
+			frameAdapter.threadAdapter.objectReferences.evaluateRequest(args.expression, (args.context === 'watch'))
 			.then((grip) => {
 				let variable = (grip === undefined) ? new Variable('', 'undefined') : getVariableFromGrip('', grip, this);
 				response.body = { result: variable.value, variablesReference: variable.variablesReference };

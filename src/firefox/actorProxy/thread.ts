@@ -352,9 +352,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 					this.pendingEvaluateRequest.resolve(pausedResponse.why.frameFinished.return);
 					this.pendingEvaluateRequest = null;
 					this.doNext();
-					if (this.paused) {
-						this.emit('paused', pausedResponse.why.type);
-					}
 					break;
 
 				case 'debuggerStatement':
