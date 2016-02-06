@@ -34,7 +34,7 @@ export abstract class ScopeAdapter implements VariablesProvider {
 		
 		if (this.isTopScope) {
 			variablesPromise = variablesPromise.then((vars) => {
-				vars.unshift(getVariableFromGrip('this', this.that, debugSession));
+				vars.unshift(getVariableFromGrip('this', this.that, false, debugSession));
 				return vars;
 			});
 		}
@@ -51,7 +51,7 @@ export class ObjectScopeAdapter extends ScopeAdapter {
 	
 	public constructor(name: string, object: FirefoxDebugProtocol.ObjectGrip, debugSession: FirefoxDebugSession) {
 		super(name, debugSession);
-		this.objectGripAdapter = new ObjectGripAdapter(object, debugSession);
+		this.objectGripAdapter = new ObjectGripAdapter(object, false, debugSession);
 	}
 	
 	protected getVariablesInt(debugSession: FirefoxDebugSession): Promise<Variable[]> {
@@ -64,10 +64,15 @@ export class ObjectScopeAdapter extends ScopeAdapter {
 export class ObjectGripAdapter implements VariablesProvider {
 	
 	private objectGripActor: ObjectGripActorProxy;
+	public isThreadLifetime: boolean;
 	public variablesProviderId: number;
 
-	public constructor(object: FirefoxDebugProtocol.ObjectGrip, debugSession: FirefoxDebugSession) {
+	public constructor(object: FirefoxDebugProtocol.ObjectGrip, extendLifetime: boolean, debugSession: FirefoxDebugSession) {
 		this.objectGripActor = debugSession.createObjectGripActorProxy(object);
+		this.isThreadLifetime = extendLifetime;
+		if (extendLifetime) {
+			this.objectGripActor.extendLifetime();
+		}
 		debugSession.registerVariablesProvider(this);
 	}
 
@@ -79,18 +84,18 @@ export class ObjectGripAdapter implements VariablesProvider {
 			
 			for (let varname in prototypeAndProperties.ownProperties) {
 				variables.push(getVariableFromPropertyDescriptor(varname, 
-					prototypeAndProperties.ownProperties[varname], debugSession));
+					prototypeAndProperties.ownProperties[varname], this.isThreadLifetime, debugSession));
 			}
 			
 			for (let varname in prototypeAndProperties.safeGetterValues) {
 				variables.push(getVariableFromSafeGetterValueDescriptor(varname, 
-					prototypeAndProperties.safeGetterValues[varname], debugSession));
+					prototypeAndProperties.safeGetterValues[varname], this.isThreadLifetime, debugSession));
 			}
 
 			variables.sort((var1, var2) => compareStrings(var1.name, var2.name));
 			
 			if (prototypeAndProperties.prototype !== null)
-				variables.push(getVariableFromGrip('[prototype]', prototypeAndProperties.prototype, debugSession));
+				variables.push(getVariableFromGrip('[prototype]', prototypeAndProperties.prototype, this.isThreadLifetime, debugSession));
 			
 			return variables;
 		});
@@ -111,7 +116,7 @@ export class LocalVariablesScopeAdapter extends ScopeAdapter {
 		
 		let variables: Variable[] = [];
 		for (let varname in this.variables) {
-			variables.push(getVariableFromPropertyDescriptor(varname, this.variables[varname], debugSession));
+			variables.push(getVariableFromPropertyDescriptor(varname, this.variables[varname], false, debugSession));
 		}
 		
 		variables.sort((var1, var2) => compareStrings(var1.name, var2.name));
@@ -136,12 +141,12 @@ export class FunctionScopeAdapter extends ScopeAdapter {
 		
 		this.bindings.arguments.forEach((arg) => {
 			for (let varname in arg) {
-				variables.push(getVariableFromPropertyDescriptor(varname, arg[varname], debugSession));
+				variables.push(getVariableFromPropertyDescriptor(varname, arg[varname], false, debugSession));
 			}
 		});
 		
 		for (let varname in this.bindings.variables) {
-			variables.push(getVariableFromPropertyDescriptor(varname, this.bindings.variables[varname], debugSession));
+			variables.push(getVariableFromPropertyDescriptor(varname, this.bindings.variables[varname], false, debugSession));
 		}
 
 		variables.sort((var1, var2) => compareStrings(var1.name, var2.name));
@@ -151,22 +156,23 @@ export class FunctionScopeAdapter extends ScopeAdapter {
 }
 
 function getVariableFromPropertyDescriptor(varname: string, propertyDescriptor: FirefoxDebugProtocol.PropertyDescriptor, 
-	debugSession: FirefoxDebugSession): Variable {
+	extendLifetime: boolean, debugSession: FirefoxDebugSession): Variable {
 		
 	if ((<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value !== undefined) {
-		return getVariableFromGrip(varname, (<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value, debugSession);
+		return getVariableFromGrip(varname, (<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value, extendLifetime, debugSession);
 	} else {
 		return new Variable(varname, 'unknown');
 	}
 }
 
 function getVariableFromSafeGetterValueDescriptor(varname: string, 
-	safeGetterValueDescriptor: FirefoxDebugProtocol.SafeGetterValueDescriptor, debugSession: FirefoxDebugSession): Variable {
+	safeGetterValueDescriptor: FirefoxDebugProtocol.SafeGetterValueDescriptor, 
+	extendLifetime: boolean, debugSession: FirefoxDebugSession): Variable {
 
-	return getVariableFromGrip(varname, safeGetterValueDescriptor.getterValue, debugSession);	
+	return getVariableFromGrip(varname, safeGetterValueDescriptor.getterValue, extendLifetime, debugSession);	
 }
 
-export function getVariableFromGrip(varname: string, grip: FirefoxDebugProtocol.Grip, debugSession: FirefoxDebugSession): Variable {
+export function getVariableFromGrip(varname: string, grip: FirefoxDebugProtocol.Grip, extendLifetime: boolean, debugSession: FirefoxDebugSession): Variable {
 
 	if ((typeof grip === 'boolean') || (typeof grip === 'number')) {
 
@@ -197,7 +203,7 @@ export function getVariableFromGrip(varname: string, grip: FirefoxDebugProtocol.
 
 				let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
 				let vartype = objectGrip.class;
-				let variablesProvider = new ObjectGripAdapter(objectGrip, debugSession);
+				let variablesProvider = new ObjectGripAdapter(objectGrip, extendLifetime, debugSession);
 				return new Variable(varname, vartype, variablesProvider.variablesProviderId);
 
 		}

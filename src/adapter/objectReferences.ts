@@ -104,7 +104,9 @@ export class ObjectReferencesAdapter {
 			let promise = this.thread.evaluate(expression, this.currentTopFrame)
 			.then((grip) => {
 				if ((typeof grip === 'object') && (grip.type === 'object')) {
-					return grip; //TODO extend lifetime
+					let actor = this.debugSession.createObjectGripActorProxy(<FirefoxDebugProtocol.ObjectGrip>grip);
+					actor.extendLifetime();
+					return grip;
 				} else {
 					return grip;
 				}

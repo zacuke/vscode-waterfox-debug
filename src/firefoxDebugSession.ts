@@ -33,7 +33,8 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 
 	public createObjectGripActorProxy(objectGrip: FirefoxDebugProtocol.ObjectGrip): ObjectGripActorProxy {
-		return new ObjectGripActorProxy(objectGrip, this.firefoxDebugConnection);
+		return this.firefoxDebugConnection.getOrCreate(objectGrip.actor, () => 
+			new ObjectGripActorProxy(objectGrip, this.firefoxDebugConnection));
 	}
 	
 	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
@@ -244,7 +245,7 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 	
 	private terminatePause() {
-		this.variablesProvidersById.clear();
+//		this.variablesProvidersById.clear(); //TODO
 		this.framesById.clear();
 	}
 	
@@ -304,7 +305,7 @@ export class FirefoxDebugSession extends DebugSession {
 			
 			frameAdapter.threadAdapter.objectReferences.evaluateRequest(args.expression, (args.context === 'watch'))
 			.then((grip) => {
-				let variable = (grip === undefined) ? new Variable('', 'undefined') : getVariableFromGrip('', grip, this);
+				let variable = (grip === undefined) ? new Variable('', 'undefined') : getVariableFromGrip('', grip, (args.context !== 'watch'), this);
 				response.body = { result: variable.value, variablesReference: variable.variablesReference };
 				this.sendResponse(response);
 			});

@@ -19,6 +19,10 @@ export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
 		return this.grip.actor;
 	}
 
+	public extendLifetime() {
+		this.connection.sendRequest({ to: this.name, type: 'threadGrip' });
+	}
+	
 	public fetchPrototypeAndProperties(): Promise<FirefoxDebugProtocol.PrototypeAndPropertiesResponse> {
 		
 		log.debug(`Fetching prototype and properties from ${this.name}`);
