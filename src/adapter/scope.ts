@@ -47,17 +47,32 @@ export abstract class ScopeAdapter implements VariablesProvider {
 
 export class ObjectScopeAdapter extends ScopeAdapter {
 	
-	public object: FirefoxDebugProtocol.ObjectGrip;
-	public objectGripActor: ObjectGripActorProxy;
+	private objectGripAdapter: ObjectGripAdapter;
 	
 	public constructor(name: string, object: FirefoxDebugProtocol.ObjectGrip, debugSession: FirefoxDebugSession) {
 		super(name, debugSession);
-		this.object = object;
-		this.objectGripActor = debugSession.createObjectGripActorProxy(this.object);
+		this.objectGripAdapter = new ObjectGripAdapter(object, debugSession);
 	}
 	
 	protected getVariablesInt(debugSession: FirefoxDebugSession): Promise<Variable[]> {
 		
+		return this.objectGripAdapter.getVariables(debugSession);
+
+	}
+}
+
+export class ObjectGripAdapter implements VariablesProvider {
+	
+	private objectGripActor: ObjectGripActorProxy;
+	public variablesProviderId: number;
+
+	public constructor(object: FirefoxDebugProtocol.ObjectGrip, debugSession: FirefoxDebugSession) {
+		this.objectGripActor = debugSession.createObjectGripActorProxy(object);
+		debugSession.registerVariablesProvider(this);
+	}
+
+	public getVariables(debugSession: FirefoxDebugSession): Promise<Variable[]> {
+
 		return this.objectGripActor.fetchPrototypeAndProperties().then((prototypeAndProperties) => {
 
 			let variables: Variable[] = [];
@@ -182,7 +197,7 @@ export function getVariableFromGrip(varname: string, grip: FirefoxDebugProtocol.
 
 				let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
 				let vartype = objectGrip.class;
-				let variablesProvider = new ObjectScopeAdapter(varname, objectGrip, debugSession);
+				let variablesProvider = new ObjectGripAdapter(objectGrip, debugSession);
 				return new Variable(varname, vartype, variablesProvider.variablesProviderId);
 
 		}
