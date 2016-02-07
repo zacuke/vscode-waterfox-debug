@@ -169,6 +169,15 @@ export class FirefoxDebugSession extends DebugSession {
 				}
 			}
 		});
+		
+		if (!responseScheduled) {
+			log.warn(`Unknown source ${args.source.path}`);
+			response.body = { 
+				breakpoints: args.breakpoints.map(
+					(breakpoint) => <DebugProtocol.Breakpoint>{ verified: false, line: breakpoint.line })
+			};
+			this.sendResponse(response);
+		}
 	}
 	
 	private setBreakpointsOnSourceActor(breakpointsToSet: number[], sourceAdapter: SourceAdapter, threadActor: ThreadActorProxy): Promise<BreakpointAdapter[]> {
