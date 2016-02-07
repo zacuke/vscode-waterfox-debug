@@ -49,7 +49,8 @@ export class FirefoxDebugSession extends DebugSession {
 			
 			log.info(`Tab opened with url ${tabActor.url}`);
 			
-			tabActor.attach().then((threadActor) => {
+			tabActor.attach().then(
+			(threadActor) => {
 
 				log.debug(`Attached to tab ${tabActor.name}`);
 
@@ -95,6 +96,9 @@ export class FirefoxDebugSession extends DebugSession {
 				threadActor.resume();
 
 				this.sendEvent(new ThreadEvent('started', threadId));
+			},
+			(err) => {
+				log.error(`Failed attaching to tab/thread: ${err}`);
 			});
 		});
 
@@ -142,16 +146,25 @@ export class FirefoxDebugSession extends DebugSession {
 				let setBreakpointsPromise = this.setBreakpointsOnSourceActor(args.lines, sourceAdapter, threadAdapter.actor);
 				
 				if (!responseScheduled) {
-					setBreakpointsPromise.then((breakpointAdapters) => {
 
-						response.body = { breakpoints: breakpointAdapters.map((breakpointAdapter) => 
-							<DebugProtocol.Breakpoint>{ verified: true, line: breakpointAdapter.actualLine }) };
+					setBreakpointsPromise.then(
+						(breakpointAdapters) => {
 
-						log.debug('Replying to setBreakpointsRequest with actual breakpoints from the first thread with this source');
+							response.body = { breakpoints: breakpointAdapters.map((breakpointAdapter) => 
+								<DebugProtocol.Breakpoint>{ verified: true, line: breakpointAdapter.actualLine }) };
 
-						this.sendResponse(response);
+							log.debug('Replying to setBreakpointsRequest with actual breakpoints from the first thread with this source');
+
+							this.sendResponse(response);
+							
+						},
+						(err) => {
+							log.error(`Failed setting breakpoints: ${err}`);
+							response.success = false;
+							response.message = String(err);
+							this.sendResponse(response);
+						});
 						
-					});
 					responseScheduled = true;
 				}
 			}
@@ -167,43 +180,52 @@ export class FirefoxDebugSession extends DebugSession {
 
 		log.debug(`Setting ${breakpointsToSet.length} breakpoints for ${sourceAdapter.actor.url}`);
 		
-		let result = new Promise<BreakpointAdapter[]>((resolve) => {
+		let result = new Promise<BreakpointAdapter[]>((resolve, reject) => {
 
-			sourceAdapter.currentBreakpoints.then((oldBreakpoints) => {
-
-				log.debug(`${oldBreakpoints.length} breakpoints were previously set for ${sourceAdapter.actor.url}`);
-
-				let newBreakpoints: BreakpointAdapter[] = [];
-				let breakpointsBeingRemoved: Promise<void>[] = [];
-				let breakpointsBeingSet: Promise<void>[] = [];
+			sourceAdapter.currentBreakpoints.then(
 				
-				oldBreakpoints.forEach((breakpointAdapter) => {
-					let breakpointIndex = breakpointsToSet.indexOf(breakpointAdapter.requestedLine);
-					if (breakpointIndex >= 0) {
-						newBreakpoints[breakpointIndex] = breakpointAdapter;
-						breakpointsToSet[breakpointIndex] = undefined;
-					} else {
-						breakpointsBeingRemoved.push(breakpointAdapter.actor.delete());
-					}
-				});
+				(oldBreakpoints) => {
 
-				breakpointsToSet.map((requestedLine, index) => {
-					if (requestedLine !== undefined) {
-						breakpointsBeingSet.push(sourceAdapter.actor.setBreakpoint({ line: requestedLine })
-						.then((setBreakpointResult) => {
-							let actualLine = (setBreakpointResult.actualLocation === undefined) ? requestedLine : setBreakpointResult.actualLocation.line;
-							newBreakpoints[index] = new BreakpointAdapter(requestedLine, actualLine, setBreakpointResult.breakpointActor); 
-						}));
-					}
-				});
-				
-				log.debug(`Adding ${breakpointsBeingSet.length} and removing ${breakpointsBeingRemoved.length} breakpoints`);
+					log.debug(`${oldBreakpoints.length} breakpoints were previously set for ${sourceAdapter.actor.url}`);
 
-				Promise.all(breakpointsBeingRemoved).then(() => Promise.all(breakpointsBeingSet)).then(() => {
-					resolve(newBreakpoints);
-					resume();
+					let newBreakpoints: BreakpointAdapter[] = [];
+					let breakpointsBeingRemoved: Promise<void>[] = [];
+					let breakpointsBeingSet: Promise<void>[] = [];
+					
+					oldBreakpoints.forEach((breakpointAdapter) => {
+						let breakpointIndex = breakpointsToSet.indexOf(breakpointAdapter.requestedLine);
+						if (breakpointIndex >= 0) {
+							newBreakpoints[breakpointIndex] = breakpointAdapter;
+							breakpointsToSet[breakpointIndex] = undefined;
+						} else {
+							breakpointsBeingRemoved.push(breakpointAdapter.actor.delete());
+						}
+					});
+
+					breakpointsToSet.map((requestedLine, index) => {
+						if (requestedLine !== undefined) {
+							breakpointsBeingSet.push(sourceAdapter.actor.setBreakpoint({ line: requestedLine })
+							.then((setBreakpointResult) => {
+								let actualLine = (setBreakpointResult.actualLocation === undefined) ? requestedLine : setBreakpointResult.actualLocation.line;
+								newBreakpoints[index] = new BreakpointAdapter(requestedLine, actualLine, setBreakpointResult.breakpointActor); 
+							}));
+						}
+					});
+					
+					log.debug(`Adding ${breakpointsBeingSet.length} and removing ${breakpointsBeingRemoved.length} breakpoints`);
+
+					Promise.all(breakpointsBeingRemoved).then(() => 
+					Promise.all(breakpointsBeingSet)).then(
+						() => {
+							resolve(newBreakpoints);
+							resume();
+						},
+						(err) => {
+							log.error(`Failed setting breakpoints: ${err}`);
+							reject(err);
+							resume();
+						});
 				});
-			});
 		});
 		
 		sourceAdapter.currentBreakpoints = result;
@@ -255,18 +277,25 @@ export class FirefoxDebugSession extends DebugSession {
 
 		log.debug(`Received stackTraceRequest for ${threadAdapter.actor.name}`);
 
-		threadAdapter.objectReferences.fetchStackFrames().then((frames) => {
+		threadAdapter.objectReferences.fetchStackFrames().then(
+			(frames) => {
 
-			let frameAdapters = frames.map((frame) => {
-				let frameId = this.nextFrameId++;
-				let frameAdapter = new FrameAdapter(frameId, frame, threadAdapter);
-				this.framesById.set(frameId, frameAdapter);
-				return frameAdapter;
+				let frameAdapters = frames.map((frame) => {
+					let frameId = this.nextFrameId++;
+					let frameAdapter = new FrameAdapter(frameId, frame, threadAdapter);
+					this.framesById.set(frameId, frameAdapter);
+					return frameAdapter;
+				});
+
+				response.body = { stackFrames: frameAdapters.map((frameAdapter) => frameAdapter.getStackframe()) };
+				this.sendResponse(response);
+			},
+			(err) => {
+				log.error(`Failed fetching stackframes: ${err}`);
+				response.success = false;
+				response.message = String(err);
+				this.sendResponse(response);
 			});
-
-			response.body = { stackFrames: frameAdapters.map((frameAdapter) => frameAdapter.getStackframe()) };
-			this.sendResponse(response);
-		});
 	}
 	
 	protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): void {
@@ -274,6 +303,15 @@ export class FirefoxDebugSession extends DebugSession {
 		log.debug('Received scopesRequest');
 		
 		let frameAdapter = this.framesById.get(args.frameId);
+		if (frameAdapter === undefined) {
+			let err = 'scopesRequest failed because the requested frame can\'t be found';
+			log.error(err);
+			response.success = false;
+			response.message = err;
+			this.sendResponse(response);
+			return;
+		}
+		
 		let environmentAdapter = EnvironmentAdapter.from(frameAdapter.frame.environment);
 		let scopeAdapters = environmentAdapter.getScopeAdapters(this, frameAdapter.frame.this);
 		scopeAdapters[0].addThis(frameAdapter.frame.this);
@@ -288,11 +326,25 @@ export class FirefoxDebugSession extends DebugSession {
 		log.debug('Received variablesRequest');
 		
 		let variablesProvider = this.variablesProvidersById.get(args.variablesReference);
-		
-		variablesProvider.getVariables(this).then((vars) => {
-			response.body = { variables: vars };
+		if (variablesProvider === undefined) {
+			let err = 'variablesRequest failed because the requested object reference can\'t be found';
+			log.error(err);
+			response.success = false;
+			response.message = err;
 			this.sendResponse(response);
-		})
+			return;
+		}
+		
+		variablesProvider.getVariables(this).then(
+			(vars) => {
+				response.body = { variables: vars };
+				this.sendResponse(response);
+			},
+			(err) => {
+				response.success = false;
+				response.message = String(err);
+				this.sendResponse(response);
+			});
 	}
 	
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
@@ -304,14 +356,23 @@ export class FirefoxDebugSession extends DebugSession {
 			let frameAdapter = this.framesById.get(args.frameId);
 			
 			frameAdapter.threadAdapter.objectReferences.evaluateRequest(args.expression, (args.context === 'watch'))
-			.then((grip) => {
-				let variable = (grip === undefined) ? new Variable('', 'undefined') : getVariableFromGrip('', grip, (args.context !== 'watch'), this);
-				response.body = { result: variable.value, variablesReference: variable.variablesReference };
-				this.sendResponse(response);
-			});
+			.then(
+				(grip) => {
+					let variable = (grip === undefined) ? new Variable('', 'undefined') : getVariableFromGrip('', grip, (args.context !== 'watch'), this);
+					response.body = { result: variable.value, variablesReference: variable.variablesReference };
+					this.sendResponse(response);
+				},
+				(err) => {
+					log.error(`Failed evaluating "${args.expression}": ${err}`);
+					response.success = false;
+					response.message = String(err);
+					this.sendResponse(response);
+				});
 			
 		} else {
-			//TODO
+			log.error(`Failed evaluating "${args.expression}": Can't find requested evaluation frame`);
+			response.success = false;
+			response.message = String('Can\'t find requested evaluation frame');
 			this.sendResponse(response);
 		}
 		

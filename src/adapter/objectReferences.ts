@@ -1,6 +1,9 @@
+import { Log } from '../util/log';
 import { ThreadActorProxy } from '../firefox/index';
 import { FirefoxDebugSession } from '../firefoxDebugSession';
 import { StoppedEvent } from 'vscode-debugadapter';
+
+let log = Log.create('ObjectReferencesAdapter');
 
 /**
  * This adapter manages the object references that are passed to VSCode in stackframes or
@@ -60,8 +63,14 @@ export class ObjectReferencesAdapter {
 				});
 			}
 
-			this.stackFramePromise.then((frames) => {
+			this.stackFramePromise.then(
+			(frames) => {
 				this.currentTopFrame = frames[0].actor;
+				this.stackFramePromise = null;
+			},
+			(err) => {
+				log.error(`Failed evaluating watches and fetching stackframes: ${err}`);
+				this.currentTopFrame = null;
 				this.stackFramePromise = null;
 			});
 		}
@@ -99,6 +108,11 @@ export class ObjectReferencesAdapter {
 			
 		} else {
 
+			if (this.currentTopFrame === null) {
+				log.error(`Can't evaluate "${expression}" because fetchStackFrames() failed earlier`);
+				return Promise.reject('No stackframe available');
+			}
+			
 			// evaluate the non-watch expression and extend the lifetime of the object reference
 			// if the result is an object
 			let promise = this.thread.evaluate(expression, this.currentTopFrame)
