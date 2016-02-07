@@ -32,7 +32,7 @@ export class DebugProtocolTransport extends EventEmitter {
 				if (this.receivingHeader) {
 					// did we receive a complete header yet?
 					for (var i = 0; i < this.bufferedLength; i++) {
-						if (this.buffer[i] == 58) {
+						if (this.buffer[i] === 58) {
 							// header is complete: parse it
 							let bodyLength = +this.buffer.toString('ascii', 0, i);
 							// create a buffer for the message body
@@ -48,7 +48,7 @@ export class DebugProtocolTransport extends EventEmitter {
 					}
 				} else {
 					// did we receive the complete body yet?
-					if (this.bufferedLength == this.buffer.length) {
+					if (this.bufferedLength === this.buffer.length) {
 						// body is complete: parse and emit it
 						let msgString = this.buffer.toString('utf8');
 						this.emit('message', JSON.parse(msgString));

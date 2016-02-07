@@ -88,7 +88,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	 * resumed when the operation is finished (if there are no other reasons to pause the 
 	 * thread). The operation is passed a callback that must be called when it is finished.
 	 */
-	public runOnPausedThread<T>(operation: (finished: () => void) => (T | Thenable<T>)): Promise<T> {
+	public runOnPausedThread<T>(operation: (finished: () => void) => Promise<T>): Promise<T> {
 
 		log.debug('Starting operation on paused thread');
 		this.operationsRunningOnPausedThread++;
@@ -339,7 +339,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 					this.paused = true;
 					// if the desiredState is not 'paused' then the thread has only been 
 					// interrupted temporarily, so we don't send a 'paused' event.
-					if (this.desiredState == 'paused') {
+					if (this.desiredState === 'paused') {
 						this.emit('paused', pausedResponse.why.type);
 					}
 					break;

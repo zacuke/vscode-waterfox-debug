@@ -213,7 +213,7 @@ export function getVariableFromGrip(varname: string, grip: FirefoxDebugProtocol.
 function compareStrings(s1: string, s2: string): number {
 	if (s1 < s2) {
 		return -1;
-	} else if (s1 == s2) {
+	} else if (s1 === s2) {
 		return 0;
 	} else {
 		return 1;

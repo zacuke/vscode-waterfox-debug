@@ -13,7 +13,6 @@ export class FirefoxDebugSession extends DebugSession {
 
 	private nextThreadId = 1;
 	private threadsById = new Map<number, ThreadAdapter>();
-	private threadsByActorName = new Map<string, ThreadAdapter>();
 	private breakpointsBySourceUrl = new Map<string, DebugProtocol.SetBreakpointsArguments>();
 
 	private nextFrameId = 1;
@@ -57,7 +56,6 @@ export class FirefoxDebugSession extends DebugSession {
 				let threadId = this.nextThreadId++;
 				let threadAdapter = new ThreadAdapter(threadId, threadActor, this);
 				this.threadsById.set(threadId, threadAdapter);
-				this.threadsByActorName.set(threadActor.name, threadAdapter);
 
 
 				threadActor.onNewSource((sourceActor) => {
@@ -87,7 +85,6 @@ export class FirefoxDebugSession extends DebugSession {
 					log.info(`Thread ${threadActor.name} exited`);
 
 					this.threadsById.delete(threadId);
-					this.threadsByActorName.delete(threadActor.name);
 
 					this.sendEvent(new ThreadEvent('exited', threadId));
 				});

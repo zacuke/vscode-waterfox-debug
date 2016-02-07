@@ -20,7 +20,7 @@ export class FrameAdapter {
 		let sourcePath: string = null;
 		if ((<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.url !== undefined) {
 			sourcePath = (<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.url;
-			if (sourcePath.substr(0, 7) == 'file://') {
+			if (sourcePath.substr(0, 7) === 'file://') {
 				sourcePath = sourcePath.substr(7);
 			}
 		}
