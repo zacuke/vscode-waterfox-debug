@@ -386,6 +386,28 @@ export class FirefoxDebugSession extends DebugSession {
 		}
 		
 	}
+	
+	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
+		
+		log.debug('Received disconnectRequest');
+		
+		let detachPromises: Promise<void>[] = [];
+		this.threadsById.forEach((threadAdapter) => {
+			detachPromises.push(threadAdapter.actor.detach());
+		});
+
+		Promise.all(detachPromises).then(
+			() => {
+				log.debug('All threads detached');
+				this.sendResponse(response);
+			},
+			(err) => {
+				log.warn(`Error while detaching: ${err}`);
+				this.sendResponse(response);
+			});
+		
+	}
+
 }
 
 DebugSession.run(FirefoxDebugSession);

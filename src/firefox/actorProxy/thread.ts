@@ -57,6 +57,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	private queuedEvaluateRequests: QueuedRequest<FirefoxDebugProtocol.Grip>[] = [];
 	private pendingEvaluateRequest: PendingRequest<FirefoxDebugProtocol.Grip> = null;
 	
+	private pendingDetachRequest: PendingRequest<void> = null;
+	
 	/**
 	 * Use this constructor to create a ThreadActorProxy. It will be attached immediately.
 	 */
@@ -307,6 +309,18 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		});
 	}
 
+	public detach(): Promise<void> {
+
+		if (this.pendingDetachRequest !== null) {
+			log.error(`Thread ${this.name} received multiple detach requests`);
+		}
+		
+		return new Promise<void>((resolve, reject) => {
+			this.pendingDetachRequest = { resolve, reject };
+			this.connection.sendRequest({ to: this.name, type: 'detach' });
+		});
+	}
+	
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 		
 		if (response['type'] === 'paused') {
@@ -391,14 +405,28 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			
 		} else if (response['type'] === 'detached') {
 			
-			log.debug(`Thread ${this.name} detached`);
+			if (this.pendingDetachRequest !== null) {
+
+				log.debug(`Thread ${this.name} detached`);
+				this.pendingDetachRequest.resolve(undefined);
+				this.pendingDetachRequest = null;
+				
+			} else {
+				log.warn(`Thread ${this.name} detached without a corresponding request`);
+			}
+
+			this.pendingFrameRequests.rejectAll('Exited');
+			if (this.pendingEvaluateRequest !== null) {
+				this.pendingEvaluateRequest.reject('Detached');
+			}
+			this.queuedEvaluateRequests.forEach((queuedRequest) => {
+				queuedRequest.reject('Detached');
+			})
 			
 		} else if (response['type'] === 'exited') {
 			
 			log.debug(`Thread ${this.name} exited`);
 
-			this.pendingFrameRequests.rejectAll('Exited');
-			
 			this.emit('exited');
 			//TODO send release packet(?)
 			
