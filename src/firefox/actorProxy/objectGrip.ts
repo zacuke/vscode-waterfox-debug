@@ -41,6 +41,10 @@ export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
 			
 			this.pendingPrototypeAndPropertiesRequests.resolveOne(<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>response);
 			
+		} else if (Object.keys(response).length === 1) {
+			
+			log.debug('Received response to threadGrip or release request');
+			
 		} else {
 			
 			log.warn("Unknown message from ObjectGripActor: " + JSON.stringify(response));
