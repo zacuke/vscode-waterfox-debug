@@ -3,7 +3,7 @@ import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEv
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy } from './firefox/index';
 import { ThreadAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, ObjectReferencesAdapter } from './adapter/index';
-import { getVariableFromGrip } from './adapter/scope';
+import { VariableAdapter } from './adapter/index';
 
 let log = Log.create('FirefoxDebugSession');
 
@@ -364,7 +364,7 @@ export class FirefoxDebugSession extends DebugSession {
 			frameAdapter.threadAdapter.objectReferences.evaluateRequest(args.expression, (args.context === 'watch'))
 			.then(
 				(grip) => {
-					let variable = (grip === undefined) ? new Variable('', 'undefined') : getVariableFromGrip('', grip, (args.context !== 'watch'), this);
+					let variable = (grip === undefined) ? new Variable('', 'undefined') : VariableAdapter.getVariableFromGrip('', grip, (args.context !== 'watch'), this);
 					response.body = { result: variable.value, variablesReference: variable.variablesReference };
 					this.sendResponse(response);
 				},
