@@ -6,13 +6,13 @@
 	"bundle": "typings/tsd.d.ts",
 	"installed": {
 		"node/node.d.ts": {
-			"commit": "7a3d6944036902996b87981e6150900952b35628"
+			"commit": "1a5b2a729d35b1d41e2d15818db013a3644c6ba4"
 		},
 		"es6-collections/es6-collections.d.ts": {
-			"commit": "7a3d6944036902996b87981e6150900952b35628"
+			"commit": "1a5b2a729d35b1d41e2d15818db013a3644c6ba4"
 		},
 		"es6-promise/es6-promise.d.ts": {
-			"commit": "7a3d6944036902996b87981e6150900952b35628"
+			"commit": "1a5b2a729d35b1d41e2d15818db013a3644c6ba4"
 		}
 	}
 }
