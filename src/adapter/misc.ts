@@ -19,10 +19,12 @@ export class ThreadAdapter {
 }
 
 export class SourceAdapter {
+	public id: number;
 	public actor: SourceActorProxy;
 	public currentBreakpoints: Promise<BreakpointAdapter[]>;
 	
-	public constructor(actor: SourceActorProxy) {
+	public constructor(id: number, actor: SourceActorProxy) {
+		this.id = id;
 		this.actor = actor;
 		this.currentBreakpoints = Promise.resolve([]);
 	}

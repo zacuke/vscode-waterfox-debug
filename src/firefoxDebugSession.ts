@@ -1,7 +1,7 @@
 import { Log } from './util/log';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, Thread, StackFrame, Scope, Variable, Source } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy } from './firefox/index';
+import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, ObjectReferencesAdapter } from './adapter/index';
 import { VariableAdapter } from './adapter/index';
 
@@ -21,6 +21,9 @@ export class FirefoxDebugSession extends DebugSession {
 	private nextVariablesProviderId = 1;
 	private variablesProvidersById = new Map<number, VariablesProvider>();
 
+	private nextSourceId = 1;
+	private sourcesById = new Map<number, SourceAdapter>();
+	
 	public constructor(debuggerLinesStartAt1: boolean, isServer: boolean = false) {
 		super(debuggerLinesStartAt1, isServer);
 	}
@@ -67,7 +70,9 @@ export class FirefoxDebugSession extends DebugSession {
 
 					log.debug(`New source ${sourceActor.url} in tab ${tabActor.name}`);
 
-					let sourceAdapter = new SourceAdapter(sourceActor);
+					let sourceId = this.nextSourceId++;
+					let sourceAdapter = new SourceAdapter(sourceId, sourceActor);
+					this.sourcesById.set(sourceId, sourceAdapter);
 					threadAdapter.sources.push(sourceAdapter);
 
 					if (this.breakpointsBySourceUrl.has(sourceActor.url)) {
@@ -386,9 +391,49 @@ export class FirefoxDebugSession extends DebugSession {
 			response.message = String('Can\'t find requested evaluation frame');
 			this.sendResponse(response);
 		}
-		
 	}
 	
+	protected sourceRequest(response: DebugProtocol.SourceResponse, args: DebugProtocol.SourceArguments): void {
+		
+		log.debug('Received sourceRequest');
+		
+		let sourceAdapter = this.sourcesById.get(args.sourceReference);
+
+		sourceAdapter.actor.fetchSource().then(
+			(sourceGrip) => {
+				
+				if (typeof sourceGrip === 'string') {
+				
+					response.body = { content: sourceGrip };
+					this.sendResponse(response);
+				
+				} else {
+					
+					let longStringGrip = <FirefoxDebugProtocol.LongStringGrip>sourceGrip;
+					let longStringActor = this.createLongStringGripActorProxy(longStringGrip);
+					longStringActor.fetchContent().then(
+						(content) => {
+							
+							response.body = { content };
+							this.sendResponse(response);
+							
+						},
+						(err) => {
+							log.error(`Failed fetching source: ${err}`);
+							response.success = false;
+							response.message = String(err);
+							this.sendResponse(response);
+						});
+				}
+			},
+			(err) => {
+				log.error(`Failed fetching source: ${err}`);
+				response.success = false;
+				response.message = String(err);
+				this.sendResponse(response);
+			});
+	}	
+
 	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
 		
 		log.debug('Received disconnectRequest');
@@ -407,7 +452,6 @@ export class FirefoxDebugSession extends DebugSession {
 				log.warn(`Error while detaching: ${err}`);
 				this.sendResponse(response);
 			});
-		
 	}
 
 }

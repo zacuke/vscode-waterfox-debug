@@ -10,7 +10,8 @@ let log = Log.create('SourceActorProxy');
 export class SourceActorProxy extends EventEmitter implements ActorProxy {
 
 	private pendingSetBreakpointRequests = new PendingRequests<SetBreakpointResult>();
-
+	private pendingFetchSourceRequests = new PendingRequests<FirefoxDebugProtocol.Grip>();
+	
 	constructor(private _source: FirefoxDebugProtocol.Source, private connection: DebugConnection) {
 		super();
 		this.connection.register(this);
@@ -34,6 +35,16 @@ export class SourceActorProxy extends EventEmitter implements ActorProxy {
 		});
 	}
 
+	public fetchSource(): Promise<FirefoxDebugProtocol.Grip> {
+		
+		log.debug(`Fetching source of ${this.url}`);
+		
+		return new Promise<FirefoxDebugProtocol.Grip>((resolve, reject) => {
+			this.pendingFetchSourceRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'source' });
+		});
+	}
+	
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 		
 		if (response['isPending'] !== undefined) {
@@ -46,6 +57,11 @@ export class SourceActorProxy extends EventEmitter implements ActorProxy {
 			let breakpointActor = this.connection.getOrCreate(setBreakpointResponse.actor,
 				() => new BreakpointActorProxy(setBreakpointResponse.actor, this.connection));
 			this.pendingSetBreakpointRequests.resolveOne(new SetBreakpointResult(breakpointActor, actualLocation));
+			
+		} else if (response['source'] !== undefined) {
+			
+			let grip = <FirefoxDebugProtocol.Grip>response['source'];
+			this.pendingFetchSourceRequests.resolveOne(grip);
 			
 		} else {
 			

@@ -18,14 +18,23 @@ export class FrameAdapter {
 	public getStackframe(): StackFrame {
 
 		let sourcePath: string = null;
-		if ((<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.url !== undefined) {
+		if ((<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.url != null) {
 			sourcePath = (<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.url;
 			if (sourcePath.substr(0, 7) === 'file://') {
 				sourcePath = sourcePath.substr(7);
 			}
 		}
 		
-		let source = new Source('', sourcePath);
+		let sourceId = 0;
+		let sourceActorName = (<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.actor;
+		for (var i = 0; i < this.threadAdapter.sources.length; i++) {
+			if (this.threadAdapter.sources[i].actor.name == sourceActorName) {
+				sourceId = this.threadAdapter.sources[i].id;
+				break;
+			}
+		}
+
+		let source = new Source('', sourcePath, sourceId);
 
 		let name: string;
 		switch (this.frame.type) {
