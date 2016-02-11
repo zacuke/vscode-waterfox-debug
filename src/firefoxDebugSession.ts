@@ -76,7 +76,7 @@ export class FirefoxDebugSession extends DebugSession {
 					threadAdapter.sources.push(sourceAdapter);
 
 					if (this.breakpointsBySourceUrl.has(sourceActor.url)) {
-						let breakpoints = this.breakpointsBySourceUrl.get(sourceActor.url).lines;
+						let breakpoints = this.breakpointsBySourceUrl.get(sourceActor.url).breakpoints;
 						this.setBreakpointsOnSourceActor(breakpoints, sourceAdapter, threadActor);
 					}
 				});
@@ -150,7 +150,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 				log.debug(`Found source ${args.source.path} on tab ${threadAdapter.actor.name}`);
 				
-				let setBreakpointsPromise = this.setBreakpointsOnSourceActor(args.lines, sourceAdapter, threadAdapter.actor);
+				let setBreakpointsPromise = this.setBreakpointsOnSourceActor(args.breakpoints, sourceAdapter, threadAdapter.actor);
 				
 				if (!responseScheduled) {
 
@@ -187,12 +187,12 @@ export class FirefoxDebugSession extends DebugSession {
 		}
 	}
 	
-	private setBreakpointsOnSourceActor(breakpointsToSet: number[], sourceAdapter: SourceAdapter, threadActor: ThreadActorProxy): Promise<BreakpointAdapter[]> {
+	private setBreakpointsOnSourceActor(breakpointsToSet: DebugProtocol.SourceBreakpoint[], sourceAdapter: SourceAdapter, threadActor: ThreadActorProxy): Promise<BreakpointAdapter[]> {
 		return threadActor.runOnPausedThread((resume) => 
 			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter, resume));
 	}
 
-	private setBreakpointsOnPausedSourceActor(breakpointsToSet: number[], sourceAdapter: SourceAdapter, resume: () => void): Promise<BreakpointAdapter[]> {
+	private setBreakpointsOnPausedSourceActor(breakpointsToSet: DebugProtocol.SourceBreakpoint[], sourceAdapter: SourceAdapter, resume: () => void): Promise<BreakpointAdapter[]> {
 
 		log.debug(`Setting ${breakpointsToSet.length} breakpoints for ${sourceAdapter.actor.url}`);
 		
@@ -209,7 +209,15 @@ export class FirefoxDebugSession extends DebugSession {
 					let breakpointsBeingSet: Promise<void>[] = [];
 					
 					oldBreakpoints.forEach((breakpointAdapter) => {
-						let breakpointIndex = breakpointsToSet.indexOf(breakpointAdapter.requestedLine);
+						
+						let breakpointIndex = -1;
+						for (let i = 0; i < breakpointsToSet.length; i++) {
+							if (breakpointsToSet[i].line === breakpointAdapter.requestedBreakpoint.line) {
+								breakpointIndex = i;
+								break;
+							}
+						}
+						
 						if (breakpointIndex >= 0) {
 							newBreakpoints[breakpointIndex] = breakpointAdapter;
 							breakpointsToSet[breakpointIndex] = undefined;
@@ -218,13 +226,19 @@ export class FirefoxDebugSession extends DebugSession {
 						}
 					});
 
-					breakpointsToSet.map((requestedLine, index) => {
-						if (requestedLine !== undefined) {
-							breakpointsBeingSet.push(sourceAdapter.actor.setBreakpoint({ line: requestedLine })
-							.then((setBreakpointResult) => {
-								let actualLine = (setBreakpointResult.actualLocation === undefined) ? requestedLine : setBreakpointResult.actualLocation.line;
-								newBreakpoints[index] = new BreakpointAdapter(requestedLine, actualLine, setBreakpointResult.breakpointActor); 
-							}));
+					breakpointsToSet.map((requestedBreakpoint, index) => {
+						if (requestedBreakpoint !== undefined) {
+							breakpointsBeingSet.push(
+								sourceAdapter.actor
+								.setBreakpoint({ line: requestedBreakpoint.line }, requestedBreakpoint.condition)
+								.then((setBreakpointResult) => {
+
+									let actualLine = (setBreakpointResult.actualLocation === undefined) ? 
+										requestedBreakpoint.line : 
+										setBreakpointResult.actualLocation.line;
+
+									newBreakpoints[index] = new BreakpointAdapter(requestedBreakpoint, actualLine, setBreakpointResult.breakpointActor); 
+								}));
 						}
 					});
 					

@@ -25,13 +25,13 @@ export class SourceActorProxy extends EventEmitter implements ActorProxy {
 		return this._source.url;
 	}
 
-	public setBreakpoint(location: FirefoxDebugProtocol.SourceLocation): Promise<SetBreakpointResult> {
+	public setBreakpoint(location: FirefoxDebugProtocol.SourceLocation, condition: string): Promise<SetBreakpointResult> {
 		
 		log.debug(`Setting breakpoint at line ${location.line} in ${this.url}`);
 		
 		return new Promise<SetBreakpointResult>((resolve, reject) => {
 			this.pendingSetBreakpointRequests.enqueue({ resolve, reject });
-			this.connection.sendRequest({ to: this.name, type: 'setBreakpoint', location: location });
+			this.connection.sendRequest({ to: this.name, type: 'setBreakpoint', location, condition });
 		});
 	}
 

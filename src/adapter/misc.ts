@@ -2,6 +2,7 @@ import { Log } from '../util/log';
 import { ThreadActorProxy, SourceActorProxy, BreakpointActorProxy } from '../firefox/index';
 import { ObjectReferencesAdapter } from '../adapter/index';
 import { FirefoxDebugSession } from '../firefoxDebugSession';
+import { DebugProtocol } from 'vscode-debugprotocol';
 import { Source, StackFrame } from 'vscode-debugadapter';
 
 export class ThreadAdapter {
@@ -31,12 +32,12 @@ export class SourceAdapter {
 }
 
 export class BreakpointAdapter {
-	public requestedLine: number;
+	public requestedBreakpoint: DebugProtocol.SourceBreakpoint;
 	public actualLine: number;
 	public actor: BreakpointActorProxy;
 	
-	public constructor(requestedLine: number, actualLine: number, actor: BreakpointActorProxy) {
-		this.requestedLine = requestedLine;
+	public constructor(requestedBreakpoint: DebugProtocol.SourceBreakpoint, actualLine: number, actor: BreakpointActorProxy) {
+		this.requestedBreakpoint = requestedBreakpoint;
 		this.actualLine = actualLine;
 		this.actor = actor;
 	}
