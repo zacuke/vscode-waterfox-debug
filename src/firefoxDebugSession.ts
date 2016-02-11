@@ -36,6 +36,11 @@ export class FirefoxDebugSession extends DebugSession {
 			new ObjectGripActorProxy(objectGrip, this.firefoxDebugConnection));
 	}
 	
+	public createLongStringGripActorProxy(longStringGrip: FirefoxDebugProtocol.LongStringGrip): LongStringGripActorProxy {
+		return this.firefoxDebugConnection.getOrCreate(longStringGrip.actor, () => 
+			new LongStringGripActorProxy(longStringGrip, this.firefoxDebugConnection));
+	}
+	
 	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
 		this.sendResponse(response);
 
