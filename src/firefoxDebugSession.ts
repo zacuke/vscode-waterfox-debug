@@ -2,7 +2,7 @@ import { Log } from './util/log';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, Thread, StackFrame, Scope, Variable, Source } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
-import { ThreadAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider } from './adapter/index';
+import { ThreadAdapter, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider } from './adapter/index';
 import { VariableAdapter } from './adapter/index';
 
 let log = Log.create('FirefoxDebugSession');
@@ -100,7 +100,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 					if (this.breakpointsBySourceUrl.has(sourceActor.url)) {
 						let breakpoints = this.breakpointsBySourceUrl.get(sourceActor.url).breakpoints;
-						this.setBreakpointsOnSourceActor(breakpoints, sourceAdapter, threadActor);
+						BreakpointsAdapter.setBreakpointsOnSourceActor(breakpoints, sourceAdapter, threadActor);
 					}
 				});
 				
@@ -166,7 +166,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 				log.debug(`Found source ${args.source.path} on tab ${threadAdapter.actor.name}`);
 				
-				let setBreakpointsPromise = this.setBreakpointsOnSourceActor(args.breakpoints, sourceAdapter, threadAdapter.actor);
+				let setBreakpointsPromise = BreakpointsAdapter.setBreakpointsOnSourceActor(args.breakpoints, sourceAdapter, threadAdapter.actor);
 				
 				if (!responseScheduled) {
 
@@ -203,83 +203,6 @@ export class FirefoxDebugSession extends DebugSession {
 		}
 	}
 	
-	private setBreakpointsOnSourceActor(breakpointsToSet: DebugProtocol.SourceBreakpoint[], sourceAdapter: SourceAdapter, threadActor: ThreadActorProxy): Promise<BreakpointAdapter[]> {
-		return threadActor.runOnPausedThread((resume) => 
-			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter, resume));
-	}
-
-	private setBreakpointsOnPausedSourceActor(breakpointsToSet: DebugProtocol.SourceBreakpoint[], sourceAdapter: SourceAdapter, resume: () => void): Promise<BreakpointAdapter[]> {
-
-		log.debug(`Setting ${breakpointsToSet.length} breakpoints for ${sourceAdapter.actor.url}`);
-		
-		let result = new Promise<BreakpointAdapter[]>((resolve, reject) => {
-
-			sourceAdapter.currentBreakpoints.then(
-				
-				(oldBreakpoints) => {
-
-					log.debug(`${oldBreakpoints.length} breakpoints were previously set for ${sourceAdapter.actor.url}`);
-
-					let newBreakpoints: BreakpointAdapter[] = [];
-					let breakpointsBeingRemoved: Promise<void>[] = [];
-					let breakpointsBeingSet: Promise<void>[] = [];
-					
-					oldBreakpoints.forEach((breakpointAdapter) => {
-						
-						let breakpointIndex = -1;
-						for (let i = 0; i < breakpointsToSet.length; i++) {
-							if ((breakpointsToSet[i] !== undefined) && 
-								(breakpointsToSet[i].line === breakpointAdapter.requestedBreakpoint.line)) {
-								breakpointIndex = i;
-								break;
-							}
-						}
-						
-						if (breakpointIndex >= 0) {
-							newBreakpoints[breakpointIndex] = breakpointAdapter;
-							breakpointsToSet[breakpointIndex] = undefined;
-						} else {
-							breakpointsBeingRemoved.push(breakpointAdapter.actor.delete());
-						}
-					});
-
-					breakpointsToSet.map((requestedBreakpoint, index) => {
-						if (requestedBreakpoint !== undefined) {
-
-							breakpointsBeingSet.push(
-								sourceAdapter.actor
-								.setBreakpoint({ line: requestedBreakpoint.line }, requestedBreakpoint.condition)
-								.then((setBreakpointResult) => {
-
-									let actualLine = (setBreakpointResult.actualLocation === undefined) ? 
-										requestedBreakpoint.line : 
-										setBreakpointResult.actualLocation.line;
-
-									newBreakpoints[index] = new BreakpointAdapter(requestedBreakpoint, actualLine, setBreakpointResult.breakpointActor); 
-								}));
-						}
-					});
-					
-					log.debug(`Adding ${breakpointsBeingSet.length} and removing ${breakpointsBeingRemoved.length} breakpoints`);
-
-					Promise.all(breakpointsBeingRemoved).then(() => 
-					Promise.all(breakpointsBeingSet)).then(
-						() => {
-							resolve(newBreakpoints);
-							resume();
-						},
-						(err) => {
-							log.error(`Failed setting breakpoints: ${err}`);
-							reject(err);
-							resume();
-						});
-				});
-		});
-		
-		sourceAdapter.currentBreakpoints = result;
-		return result;
-	}
-
 	protected pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments): void {
 		log.debug('Received pauseRequest');
 		this.threadsById.get(args.threadId).actor.interrupt();
