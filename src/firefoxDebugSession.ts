@@ -63,6 +63,12 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 	
 	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
+		
+		response.body = {
+			supportsConfigurationDoneRequest: false,
+			supportsEvaluateForHovers: false,
+			supportsFunctionBreakpoints: false
+		};
 		this.sendResponse(response);
 
 		// connect to Firefox
