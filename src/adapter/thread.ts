@@ -1,5 +1,5 @@
 import { Log } from '../util/log';
-import { ThreadActorProxy } from '../firefox/index';
+import { ThreadActorProxy, SourceActorProxy } from '../firefox/index';
 import { FrameAdapter, ScopeAdapter, SourceAdapter, ObjectGripAdapter } from './index';
 import { FirefoxDebugSession } from '../firefoxDebugSession';
 
@@ -7,19 +7,19 @@ export class ThreadAdapter {
 	
 	public id: number;
 	public actor: ThreadActorProxy;
-	public sources: SourceAdapter[] = []; //TODO make private
 	public get debugSession() {
 		return this._debugSession;
 	}
 	
 	private _debugSession: FirefoxDebugSession;
 	
+	private sources: SourceAdapter[] = [];
+	private frames: FrameAdapter[] = [];
+	private scopes: ScopeAdapter[] = [];
+	
 	private objectGripAdaptersByActorName = new Map<string, ObjectGripAdapter>();
 	private pauseLifetimeObjects: ObjectGripAdapter[] = [];
 	private threadLifetimeObjects: ObjectGripAdapter[] = [];
-	
-	private frames: FrameAdapter[] = [];
-	private scopes: ScopeAdapter[] = [];
 	
 	public constructor(id: number, actor: ThreadActorProxy, debugSession: FirefoxDebugSession) {
 		this.id = id;
@@ -27,6 +27,12 @@ export class ThreadAdapter {
 		this._debugSession = debugSession;
 	}
 
+	public createSourceAdapter(id: number, actor: SourceActorProxy): SourceAdapter {
+		let adapter = new SourceAdapter(id, actor);
+		this.sources.push(adapter);
+		return adapter;
+	}
+	
 	public getOrCreateObjectGripAdapter(objectGrip: FirefoxDebugProtocol.ObjectGrip, threadLifetime: boolean) {
 		
 		let objectGripAdapter = this.objectGripAdaptersByActorName.get(objectGrip.actor);
@@ -56,8 +62,26 @@ export class ThreadAdapter {
 		return objectGripAdapter;
 	}
 
-	public registerScope(scopeAdapter: ScopeAdapter) {
+	public registerScopeAdapter(scopeAdapter: ScopeAdapter) {
 		this.scopes.push(scopeAdapter);
+	}
+
+	public findSourceAdapterForUrl(url: string): SourceAdapter {
+		for (let i = 0; i < this.sources.length; i++) {
+			if (this.sources[i].actor.url === url) {
+				return this.sources[i];
+			}
+		}
+		return null;
+	}
+	
+	public findSourceAdapterForActorName(actorName: string): SourceAdapter {
+		for (let i = 0; i < this.sources.length; i++) {
+			if (this.sources[i].actor.name === actorName) {
+				return this.sources[i];
+			}
+		}
+		return null;
 	}
 	
 	public disposePauseLifetimeAdapters() {

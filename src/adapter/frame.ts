@@ -26,16 +26,10 @@ export class FrameAdapter {
 			}
 		}
 		
-		let sourceId = 0;
 		let sourceActorName = (<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.actor;
-		for (var i = 0; i < this.threadAdapter.sources.length; i++) {
-			if (this.threadAdapter.sources[i].actor.name == sourceActorName) {
-				sourceId = this.threadAdapter.sources[i].id;
-				break;
-			}
-		}
+		let sourceAdapter = this.threadAdapter.findSourceAdapterForActorName(sourceActorName);
 
-		let source = new Source('', sourcePath, sourceId);
+		let source = new Source('', sourcePath, sourceAdapter.id);
 
 		let name: string;
 		switch (this.frame.type) {

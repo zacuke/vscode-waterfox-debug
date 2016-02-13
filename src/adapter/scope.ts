@@ -18,7 +18,7 @@ export abstract class ScopeAdapter implements VariablesProvider {
 	public constructor(name: string, threadAdapter: ThreadAdapter) {
 		this.threadAdapter = threadAdapter;
 		this.name = name;
-		this.threadAdapter.registerScope(this);
+		this.threadAdapter.registerScopeAdapter(this);
 		this.threadAdapter.debugSession.registerVariablesProvider(this);
 	}
 	

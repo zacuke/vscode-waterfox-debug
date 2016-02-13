@@ -89,9 +89,8 @@ export class FirefoxDebugSession extends DebugSession {
 					log.debug(`New source ${sourceActor.url} in tab ${tabActor.name}`);
 
 					let sourceId = this.nextSourceId++;
-					let sourceAdapter = new SourceAdapter(sourceId, sourceActor);
+					let sourceAdapter = threadAdapter.createSourceAdapter(sourceId, sourceActor);
 					this.sourcesById.set(sourceId, sourceAdapter);
-					threadAdapter.sources.push(sourceAdapter);
 
 					if (this.breakpointsBySourceUrl.has(sourceActor.url)) {
 						let breakpoints = this.breakpointsBySourceUrl.get(sourceActor.url).breakpoints;
@@ -156,14 +155,7 @@ export class FirefoxDebugSession extends DebugSession {
 		let responseScheduled = false;		
 		this.threadsById.forEach((threadAdapter) => {
 			
-			let sourceAdapter: SourceAdapter = null;
-			for (let i = 0; i < threadAdapter.sources.length; i++) {
-				if (threadAdapter.sources[i].actor.url === firefoxSourceUrl) {
-					sourceAdapter = threadAdapter.sources[i];
-					break;
-				}
-			}
-
+			let sourceAdapter = threadAdapter.findSourceAdapterForUrl(firefoxSourceUrl);
 			if (sourceAdapter !== null) {
 
 				log.debug(`Found source ${args.source.path} on tab ${threadAdapter.actor.name}`);
