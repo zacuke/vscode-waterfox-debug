@@ -1,10 +1,9 @@
-import { ObjectGripAdapter } from './index';
-import { FirefoxDebugSession } from '../firefoxDebugSession';
+import { ThreadAdapter } from './index';
 import { Variable } from 'vscode-debugadapter';
 
 export class VariableAdapter {
 	
-	public static getVariableFromGrip(varname: string, grip: FirefoxDebugProtocol.Grip, extendLifetime: boolean, debugSession: FirefoxDebugSession): Variable {
+	public static getVariableFromGrip(varname: string, grip: FirefoxDebugProtocol.Grip, threadLifetime: boolean, threadAdapter: ThreadAdapter): Variable {
 
 		if ((typeof grip === 'boolean') || (typeof grip === 'number')) {
 
@@ -35,7 +34,7 @@ export class VariableAdapter {
 
 					let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
 					let vartype = objectGrip.class;
-					let variablesProvider = new ObjectGripAdapter(objectGrip, extendLifetime, debugSession);
+					let variablesProvider = threadAdapter.getOrCreateObjectGripAdapter(objectGrip, threadLifetime);
 					return new Variable(varname, vartype, variablesProvider.variablesProviderId);
 
 			}
@@ -43,10 +42,10 @@ export class VariableAdapter {
 	}
 
 	public static getVariableFromPropertyDescriptor(varname: string, propertyDescriptor: FirefoxDebugProtocol.PropertyDescriptor, 
-		extendLifetime: boolean, debugSession: FirefoxDebugSession): Variable {
+		extendLifetime: boolean, threadAdapter: ThreadAdapter): Variable {
 			
 		if ((<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value !== undefined) {
-			return VariableAdapter.getVariableFromGrip(varname, (<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value, extendLifetime, debugSession);
+			return VariableAdapter.getVariableFromGrip(varname, (<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value, extendLifetime, threadAdapter);
 		} else {
 			return new Variable(varname, 'unknown');
 		}
@@ -54,9 +53,9 @@ export class VariableAdapter {
 
 	public static getVariableFromSafeGetterValueDescriptor(varname: string, 
 		safeGetterValueDescriptor: FirefoxDebugProtocol.SafeGetterValueDescriptor, 
-		extendLifetime: boolean, debugSession: FirefoxDebugSession): Variable {
+		extendLifetime: boolean, threadAdapter: ThreadAdapter): Variable {
 
-		return VariableAdapter.getVariableFromGrip(varname, safeGetterValueDescriptor.getterValue, extendLifetime, debugSession);	
+		return VariableAdapter.getVariableFromGrip(varname, safeGetterValueDescriptor.getterValue, extendLifetime, threadAdapter);	
 	}
 
 	public static sortVariables(variables: Variable[]): void {

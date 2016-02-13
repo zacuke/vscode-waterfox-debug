@@ -33,6 +33,10 @@ export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
 		});
 	}
 	
+	public dispose(): void {
+		this.connection.unregister(this);
+	}
+	
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 
 		if ((response['prototype'] !== undefined) && (response['ownProperties'] !== undefined)) {

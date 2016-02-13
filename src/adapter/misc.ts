@@ -1,33 +1,5 @@
-import { Log } from '../util/log';
-import { ThreadActorProxy, SourceActorProxy, BreakpointActorProxy } from '../firefox/index';
-import { ObjectReferencesAdapter } from '../adapter/index';
-import { FirefoxDebugSession } from '../firefoxDebugSession';
+import { SourceActorProxy, BreakpointActorProxy } from '../firefox/index';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { Source, StackFrame } from 'vscode-debugadapter';
-
-export class ThreadAdapter {
-	
-	public id: number;
-	public actor: ThreadActorProxy;
-	public sources: SourceAdapter[];
-
-	private objectReferences: ObjectReferencesAdapter;
-	
-	public constructor(id: number, actor: ThreadActorProxy, debugSession: FirefoxDebugSession) {
-		this.id = id;
-		this.actor = actor;
-		this.sources = [];
-		this.objectReferences = new ObjectReferencesAdapter(id, actor, debugSession);
-	}
-	
-	public fetchStackFrames(): Promise<FirefoxDebugProtocol.Frame[]> {
-		return this.objectReferences.fetchStackFrames();
-	}
-	
-	public evaluate(expression: string, isWatch: boolean): Promise<FirefoxDebugProtocol.Grip> {
-		return this.objectReferences.evaluate(expression, isWatch);
-	}
-}
 
 export class SourceAdapter {
 	

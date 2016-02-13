@@ -2,7 +2,7 @@ import { Log } from './util/log';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, Thread, StackFrame, Scope, Variable, Source } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
-import { ThreadAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, ObjectReferencesAdapter } from './adapter/index';
+import { ThreadAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider } from './adapter/index';
 import { VariableAdapter } from './adapter/index';
 
 let log = Log.create('FirefoxDebugSession');
@@ -34,12 +34,30 @@ export class FirefoxDebugSession extends DebugSession {
 		this.variablesProvidersById.set(providerId, variablesProvider);
 	}
 
-	public createObjectGripActorProxy(objectGrip: FirefoxDebugProtocol.ObjectGrip): ObjectGripActorProxy {
-		return this.firefoxDebugConnection.getOrCreate(objectGrip.actor, () => 
-			new ObjectGripActorProxy(objectGrip, this.firefoxDebugConnection));
+	public unregisterVariablesProvider(variablesProvider: VariablesProvider) {
+		this.variablesProvidersById.delete(variablesProvider.variablesProviderId);
 	}
 	
-	public createLongStringGripActorProxy(longStringGrip: FirefoxDebugProtocol.LongStringGrip): LongStringGripActorProxy {
+	public registerFrameAdapter(frameAdapter: FrameAdapter) {
+		let frameId = this.nextFrameId++;
+		frameAdapter.id = frameId;
+		this.framesById.set(frameAdapter.id, frameAdapter);
+	}
+	
+	public unregisterFrameAdapter(frameAdapter: FrameAdapter) {
+		this.framesById.delete(frameAdapter.id);
+	}
+	
+	public getOrCreateObjectGripActorProxy(objectGrip: FirefoxDebugProtocol.ObjectGrip): ObjectGripActorProxy {
+		return this.firefoxDebugConnection.getOrCreate(objectGrip.actor, 
+			() => {
+				let actorProxy = new ObjectGripActorProxy(objectGrip, this.firefoxDebugConnection);
+				actorProxy.extendLifetime();
+				return actorProxy;
+			});
+	}
+	
+	public getOrCreateLongStringGripActorProxy(longStringGrip: FirefoxDebugProtocol.LongStringGrip): LongStringGripActorProxy {
 		return this.firefoxDebugConnection.getOrCreate(longStringGrip.actor, () => 
 			new LongStringGripActorProxy(longStringGrip, this.firefoxDebugConnection));
 	}
@@ -212,7 +230,8 @@ export class FirefoxDebugSession extends DebugSession {
 						
 						let breakpointIndex = -1;
 						for (let i = 0; i < breakpointsToSet.length; i++) {
-							if (breakpointsToSet[i].line === breakpointAdapter.requestedBreakpoint.line) {
+							if ((breakpointsToSet[i] !== undefined) && 
+								(breakpointsToSet[i].line === breakpointAdapter.requestedBreakpoint.line)) {
 								breakpointIndex = i;
 								break;
 							}
@@ -228,6 +247,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 					breakpointsToSet.map((requestedBreakpoint, index) => {
 						if (requestedBreakpoint !== undefined) {
+
 							breakpointsBeingSet.push(
 								sourceAdapter.actor
 								.setBreakpoint({ line: requestedBreakpoint.line }, requestedBreakpoint.condition)
@@ -270,35 +290,34 @@ export class FirefoxDebugSession extends DebugSession {
 	
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
 		log.debug('Received continueRequest');
-		this.terminatePause();
-		this.threadsById.get(args.threadId).actor.resume();
+		let threadAdapter = this.threadsById.get(args.threadId);
+		threadAdapter.disposePauseLifetimeAdapters();
+		threadAdapter.actor.resume();
 		this.sendResponse(response);
 	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
 		log.debug('Received nextRequest');
-		this.terminatePause();
-		this.threadsById.get(args.threadId).actor.stepOver();
+		let threadAdapter = this.threadsById.get(args.threadId);
+		threadAdapter.disposePauseLifetimeAdapters();
+		threadAdapter.actor.stepOver();
 		this.sendResponse(response);
 	}
 
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
 		log.debug('Received stepInRequest');
-		this.terminatePause();
-		this.threadsById.get(args.threadId).actor.stepInto();
+		let threadAdapter = this.threadsById.get(args.threadId);
+		threadAdapter.disposePauseLifetimeAdapters();
+		threadAdapter.actor.stepInto();
 		this.sendResponse(response);
 	}
 
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
 		log.debug('Received stepOutRequest');
-		this.terminatePause();
-		this.threadsById.get(args.threadId).actor.stepOut();
+		let threadAdapter = this.threadsById.get(args.threadId);
+		threadAdapter.disposePauseLifetimeAdapters();
+		threadAdapter.actor.stepOut();
 		this.sendResponse(response);
-	}
-	
-	private terminatePause() {
-//		this.variablesProvidersById.clear(); //TODO
-		this.framesById.clear();
 	}
 	
 	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
@@ -308,17 +327,11 @@ export class FirefoxDebugSession extends DebugSession {
 		log.debug(`Received stackTraceRequest for ${threadAdapter.actor.name}`);
 
 		threadAdapter.fetchStackFrames().then(
-			(frames) => {
-
-				let frameAdapters = frames.map((frame) => {
-					let frameId = this.nextFrameId++;
-					let frameAdapter = new FrameAdapter(frameId, frame, threadAdapter);
-					this.framesById.set(frameId, frameAdapter);
-					return frameAdapter;
-				});
+			(frameAdapters) => {
 
 				response.body = { stackFrames: frameAdapters.map((frameAdapter) => frameAdapter.getStackframe()) };
 				this.sendResponse(response);
+
 			},
 			(err) => {
 				log.error(`Failed fetching stackframes: ${err}`);
@@ -343,7 +356,7 @@ export class FirefoxDebugSession extends DebugSession {
 		}
 		
 		let environmentAdapter = EnvironmentAdapter.from(frameAdapter.frame.environment);
-		let scopeAdapters = environmentAdapter.getScopeAdapters(this, frameAdapter.frame.this);
+		let scopeAdapters = environmentAdapter.getScopeAdapters(frameAdapter.threadAdapter, frameAdapter.frame.this);
 		scopeAdapters[0].addThis(frameAdapter.frame.this);
 		
 		response.body = { scopes: scopeAdapters.map((scopeAdapter) => scopeAdapter.getScope()) };
@@ -385,12 +398,14 @@ export class FirefoxDebugSession extends DebugSession {
 			
 			let frameAdapter = this.framesById.get(args.frameId);
 			
-			frameAdapter.threadAdapter.evaluate(args.expression, (args.context === 'watch'))
+			frameAdapter.evaluate(args.expression)
 			.then(
 				(grip) => {
-					let variable = (grip === undefined) ? new Variable('', 'undefined') : VariableAdapter.getVariableFromGrip('', grip, (args.context !== 'watch'), this);
+
+					let variable = (grip === undefined) ? new Variable('', 'undefined') : VariableAdapter.getVariableFromGrip('', grip, (args.context !== 'watch'), frameAdapter.threadAdapter);
 					response.body = { result: variable.value, variablesReference: variable.variablesReference };
 					this.sendResponse(response);
+
 				},
 				(err) => {
 					log.error(`Failed evaluating "${args.expression}": ${err}`);
@@ -424,7 +439,7 @@ export class FirefoxDebugSession extends DebugSession {
 				} else {
 					
 					let longStringGrip = <FirefoxDebugProtocol.LongStringGrip>sourceGrip;
-					let longStringActor = this.createLongStringGripActorProxy(longStringGrip);
+					let longStringActor = this.getOrCreateLongStringGripActorProxy(longStringGrip);
 					longStringActor.fetchContent().then(
 						(content) => {
 							

@@ -1,6 +1,4 @@
-import { FirefoxDebugSession } from '../firefoxDebugSession';
-import { ObjectGripActorProxy } from '../firefox/index';
-import { ObjectGripAdapter, VariableAdapter } from './index';
+import { ThreadAdapter, ObjectGripAdapter, VariableAdapter } from './index';
 import { Scope, Variable } from 'vscode-debugadapter';
 
 export interface VariablesProvider {
@@ -15,12 +13,13 @@ export abstract class ScopeAdapter implements VariablesProvider {
 	public that: FirefoxDebugProtocol.Grip;
 	public isTopScope = false;
 
-	protected debugSession: FirefoxDebugSession;
+	protected threadAdapter: ThreadAdapter;
 	
-	public constructor(name: string, debugSession: FirefoxDebugSession) {
-		this.debugSession = debugSession;
+	public constructor(name: string, threadAdapter: ThreadAdapter) {
+		this.threadAdapter = threadAdapter;
 		this.name = name;
-		debugSession.registerVariablesProvider(this);
+		this.threadAdapter.registerScope(this);
+		this.threadAdapter.debugSession.registerVariablesProvider(this);
 	}
 	
 	public addThis(that: FirefoxDebugProtocol.Grip) {
@@ -34,11 +33,11 @@ export abstract class ScopeAdapter implements VariablesProvider {
 	
 	public getVariables(): Promise<Variable[]> {
 		
-		let variablesPromise = this.getVariablesInt(this.debugSession);
+		let variablesPromise = this.getVariablesInt();
 		
 		if (this.isTopScope) {
 			variablesPromise = variablesPromise.then((vars) => {
-				vars.unshift(VariableAdapter.getVariableFromGrip('this', this.that, false, this.debugSession));
+				vars.unshift(VariableAdapter.getVariableFromGrip('this', this.that, false, this.threadAdapter));
 				return vars;
 			});
 		}
@@ -46,16 +45,20 @@ export abstract class ScopeAdapter implements VariablesProvider {
 		return variablesPromise;
 	}
 	
-	protected abstract getVariablesInt(debugSession: FirefoxDebugSession): Promise<Variable[]>;
+	protected abstract getVariablesInt(): Promise<Variable[]>;
+	
+	public dispose(): void {
+		this.threadAdapter.debugSession.unregisterVariablesProvider(this);
+	}
 }
 
 export class ObjectScopeAdapter extends ScopeAdapter {
 	
 	private objectGripAdapter: ObjectGripAdapter;
 	
-	public constructor(name: string, object: FirefoxDebugProtocol.ObjectGrip, debugSession: FirefoxDebugSession) {
-		super(name, debugSession);
-		this.objectGripAdapter = new ObjectGripAdapter(object, false, debugSession);
+	public constructor(name: string, object: FirefoxDebugProtocol.ObjectGrip, threadAdapter: ThreadAdapter) {
+		super(name, threadAdapter);
+		this.objectGripAdapter = threadAdapter.getOrCreateObjectGripAdapter(object, false);
 	}
 	
 	protected getVariablesInt(): Promise<Variable[]> {
@@ -70,8 +73,8 @@ export class LocalVariablesScopeAdapter extends ScopeAdapter {
 	public name: string;
 	public variables: FirefoxDebugProtocol.PropertyDescriptors;
 	
-	public constructor(name: string, variables: FirefoxDebugProtocol.PropertyDescriptors, debugSession: FirefoxDebugSession) {
-		super(name, debugSession);
+	public constructor(name: string, variables: FirefoxDebugProtocol.PropertyDescriptors, threadAdapter: ThreadAdapter) {
+		super(name, threadAdapter);
 		this.variables = variables;
 	}
 	
@@ -79,7 +82,7 @@ export class LocalVariablesScopeAdapter extends ScopeAdapter {
 		
 		let variables: Variable[] = [];
 		for (let varname in this.variables) {
-			variables.push(VariableAdapter.getVariableFromPropertyDescriptor(varname, this.variables[varname], false, this.debugSession));
+			variables.push(VariableAdapter.getVariableFromPropertyDescriptor(varname, this.variables[varname], false, this.threadAdapter));
 		}
 		
 		VariableAdapter.sortVariables(variables);
@@ -93,8 +96,8 @@ export class FunctionScopeAdapter extends ScopeAdapter {
 	public name: string;
 	public bindings: FirefoxDebugProtocol.FunctionBindings;
 	
-	public constructor(name: string, bindings: FirefoxDebugProtocol.FunctionBindings, debugSession: FirefoxDebugSession) {
-		super(name, debugSession);
+	public constructor(name: string, bindings: FirefoxDebugProtocol.FunctionBindings, threadAdapter: ThreadAdapter) {
+		super(name, threadAdapter);
 		this.bindings = bindings;
 	}
 	
@@ -104,12 +107,12 @@ export class FunctionScopeAdapter extends ScopeAdapter {
 		
 		this.bindings.arguments.forEach((arg) => {
 			for (let varname in arg) {
-				variables.push(VariableAdapter.getVariableFromPropertyDescriptor(varname, arg[varname], false, this.debugSession));
+				variables.push(VariableAdapter.getVariableFromPropertyDescriptor(varname, arg[varname], false, this.threadAdapter));
 			}
 		});
 		
 		for (let varname in this.bindings.variables) {
-			variables.push(VariableAdapter.getVariableFromPropertyDescriptor(varname, this.bindings.variables[varname], false, this.debugSession));
+			variables.push(VariableAdapter.getVariableFromPropertyDescriptor(varname, this.bindings.variables[varname], false, this.threadAdapter));
 		}
 
 		VariableAdapter.sortVariables(variables);

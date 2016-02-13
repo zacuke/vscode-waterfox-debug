@@ -1,6 +1,7 @@
 import { Log } from '../util/log';
 import { FirefoxDebugSession } from '../firefoxDebugSession';
 import { ScopeAdapter, ObjectScopeAdapter, LocalVariablesScopeAdapter, FunctionScopeAdapter } from './scope';
+import { ThreadAdapter } from './thread';
 
 let log = Log.create('EnvironmentAdapter');
 
@@ -31,24 +32,24 @@ export abstract class EnvironmentAdapter {
 		}
 	}
 	
-	public getScopeAdapters(debugSession: FirefoxDebugSession, that: FirefoxDebugProtocol.Grip): ScopeAdapter[] {
+	public getScopeAdapters(threadAdapter: ThreadAdapter, that: FirefoxDebugProtocol.Grip): ScopeAdapter[] {
 
-		let scopes = this.getAllScopeAdapters(debugSession);
+		let scopes = this.getAllScopeAdapters(threadAdapter);
 		
 		return scopes;
 	}
 	
-	protected getAllScopeAdapters(debugSession: FirefoxDebugSession): ScopeAdapter[] {
+	protected getAllScopeAdapters(threadAdapter: ThreadAdapter): ScopeAdapter[] {
 		
 		let scopes: ScopeAdapter[];
 		
 		if (this.parent !== undefined) {
-			scopes = this.parent.getAllScopeAdapters(debugSession);
+			scopes = this.parent.getAllScopeAdapters(threadAdapter);
 		} else {
 			scopes = [];
 		}
 		
-		let ownScope = this.getOwnScopeAdapter(debugSession);
+		let ownScope = this.getOwnScopeAdapter(threadAdapter);
 		if (ownScope != null) {
 			scopes.unshift(ownScope);
 		}
@@ -56,7 +57,7 @@ export abstract class EnvironmentAdapter {
 		return scopes;
 	}
 	
-	protected abstract getOwnScopeAdapter(debugSession: FirefoxDebugSession): ScopeAdapter;
+	protected abstract getOwnScopeAdapter(threadAdapter: ThreadAdapter): ScopeAdapter;
 }
 
 export class ObjectEnvironmentAdapter extends EnvironmentAdapter {
@@ -67,7 +68,7 @@ export class ObjectEnvironmentAdapter extends EnvironmentAdapter {
 		super(environment);
 	}
 	
-	protected getOwnScopeAdapter(debugSession: FirefoxDebugSession): ScopeAdapter {
+	protected getOwnScopeAdapter(threadAdapter: ThreadAdapter): ScopeAdapter {
 		
 		let grip = this.environment.object;
 		
@@ -85,7 +86,7 @@ export class ObjectEnvironmentAdapter extends EnvironmentAdapter {
 
 			let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
 			let name = `Object: ${objectGrip.class}`;
-			return new ObjectScopeAdapter(name, objectGrip, debugSession);
+			return new ObjectScopeAdapter(name, objectGrip, threadAdapter);
 
 		}
 	}
@@ -99,7 +100,7 @@ export class FunctionEnvironmentAdapter extends EnvironmentAdapter {
 		super(environment);
 	}
 	
-	protected getOwnScopeAdapter(debugSession: FirefoxDebugSession): ScopeAdapter {
+	protected getOwnScopeAdapter(threadAdapter: ThreadAdapter): ScopeAdapter {
 
 		let func = this.environment.function;
 		let scopeName: string;
@@ -116,7 +117,7 @@ export class FunctionEnvironmentAdapter extends EnvironmentAdapter {
 
 		}
 
-		return new FunctionScopeAdapter(scopeName, this.environment.bindings, debugSession);
+		return new FunctionScopeAdapter(scopeName, this.environment.bindings, threadAdapter);
 	}
 }
 
@@ -128,7 +129,7 @@ export class WithEnvironmentAdapter extends EnvironmentAdapter {
 		super(environment);
 	}
 	
-	protected getOwnScopeAdapter(debugSession: FirefoxDebugSession): ScopeAdapter {
+	protected getOwnScopeAdapter(threadAdapter: ThreadAdapter): ScopeAdapter {
 		
 		let grip = this.environment.object;
 		
@@ -146,7 +147,7 @@ export class WithEnvironmentAdapter extends EnvironmentAdapter {
 
 			let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
 			let name = `With: ${objectGrip.class}`;
-			return new ObjectScopeAdapter(name, objectGrip, debugSession);
+			return new ObjectScopeAdapter(name, objectGrip, threadAdapter);
 
 		}
 	}
@@ -160,9 +161,9 @@ export class BlockEnvironmentAdapter extends EnvironmentAdapter {
 		super(environment);
 	}
 	
-	protected getOwnScopeAdapter(debugSession: FirefoxDebugSession): ScopeAdapter {
+	protected getOwnScopeAdapter(threadAdapter: ThreadAdapter): ScopeAdapter {
 
-		return new LocalVariablesScopeAdapter('Block', this.environment.bindings.variables, debugSession);
+		return new LocalVariablesScopeAdapter('Block', this.environment.bindings.variables, threadAdapter);
 
 	}
 }

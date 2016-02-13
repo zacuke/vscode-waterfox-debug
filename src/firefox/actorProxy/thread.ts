@@ -308,6 +308,16 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		});
 	}
 
+	public releaseMany(objectGripActorNames: string[]): void {
+		
+		if (this.desiredState !== 'paused') {
+			log.warn(`releaseMany() called but desiredState is ${this.desiredState}`);
+			return;
+		}
+		
+		this.connection.sendRequest({ to: this.name, type: 'releaseMany', actors: objectGripActorNames });
+	}
+	
 	public detach(): Promise<void> {
 
 		if (this.pendingDetachRequest !== null) {
@@ -439,7 +449,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			
 		} else {
 
-			if (response['type'] === 'newGlobal') {
+			if (Object.keys(response).length === 1) {
+				log.debug('Received response to releaseMany request');
+			} else if (response['type'] === 'newGlobal') {
 				log.debug(`Received newGlobal event from ${this.name} (ignoring)`);
 			} else {
 				log.warn("Unknown message from ThreadActor: " + JSON.stringify(response));

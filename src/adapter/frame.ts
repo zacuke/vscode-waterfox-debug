@@ -10,10 +10,10 @@ export class FrameAdapter {
 	public frame: FirefoxDebugProtocol.Frame;
 	public threadAdapter: ThreadAdapter;
 	
-	public constructor(id: number, frame: FirefoxDebugProtocol.Frame, threadAdapter: ThreadAdapter) {
-		this.id = id;
+	public constructor(frame: FirefoxDebugProtocol.Frame, threadAdapter: ThreadAdapter) {
 		this.frame = frame;
 		this.threadAdapter = threadAdapter;
+		this.threadAdapter.debugSession.registerFrameAdapter(this);
 	}
 	
 	public getStackframe(): StackFrame {
@@ -72,5 +72,13 @@ export class FrameAdapter {
 		}
 		
 		return new StackFrame(this.id, name, source, this.frame.where.line, this.frame.where.column);
+	}
+
+	public evaluate(expression: string): Promise<FirefoxDebugProtocol.Grip> {
+		return this.threadAdapter.evaluate(expression, this);
+	}
+	
+	public dispose(): void {
+		this.threadAdapter.debugSession.unregisterFrameAdapter(this);
 	}
 }
