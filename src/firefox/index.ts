@@ -5,6 +5,5 @@ export { TabActorProxy } from './actorProxy/tab';
 export { ThreadActorProxy } from './actorProxy/thread';
 export { SourceActorProxy } from './actorProxy/source';
 export { BreakpointActorProxy } from './actorProxy/breakpoint';
-export { PauseActorProxy } from './actorProxy/pause';
 export { ObjectGripActorProxy } from './actorProxy/objectGrip';
 export { LongStringGripActorProxy } from './actorProxy/longString';

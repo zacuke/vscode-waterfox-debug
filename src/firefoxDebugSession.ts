@@ -307,7 +307,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 		log.debug(`Received stackTraceRequest for ${threadAdapter.actor.name}`);
 
-		threadAdapter.objectReferences.fetchStackFrames().then(
+		threadAdapter.fetchStackFrames().then(
 			(frames) => {
 
 				let frameAdapters = frames.map((frame) => {
@@ -365,7 +365,7 @@ export class FirefoxDebugSession extends DebugSession {
 			return;
 		}
 		
-		variablesProvider.getVariables(this).then(
+		variablesProvider.getVariables().then(
 			(vars) => {
 				response.body = { variables: vars };
 				this.sendResponse(response);
@@ -385,7 +385,7 @@ export class FirefoxDebugSession extends DebugSession {
 			
 			let frameAdapter = this.framesById.get(args.frameId);
 			
-			frameAdapter.threadAdapter.objectReferences.evaluateRequest(args.expression, (args.context === 'watch'))
+			frameAdapter.threadAdapter.evaluate(args.expression, (args.context === 'watch'))
 			.then(
 				(grip) => {
 					let variable = (grip === undefined) ? new Variable('', 'undefined') : VariableAdapter.getVariableFromGrip('', grip, (args.context !== 'watch'), this);

@@ -5,11 +5,14 @@ import { Variable } from 'vscode-debugadapter';
 
 export class ObjectGripAdapter implements VariablesProvider {
 	
-	private objectGripActor: ObjectGripActorProxy;
 	public isThreadLifetime: boolean;
 	public variablesProviderId: number;
 
+	private debugSession: FirefoxDebugSession;
+	private objectGripActor: ObjectGripActorProxy;
+
 	public constructor(object: FirefoxDebugProtocol.ObjectGrip, extendLifetime: boolean, debugSession: FirefoxDebugSession) {
+		this.debugSession = debugSession;
 		this.objectGripActor = debugSession.createObjectGripActorProxy(object);
 		this.isThreadLifetime = extendLifetime;
 		if (extendLifetime) {
@@ -18,7 +21,7 @@ export class ObjectGripAdapter implements VariablesProvider {
 		debugSession.registerVariablesProvider(this);
 	}
 
-	public getVariables(debugSession: FirefoxDebugSession): Promise<Variable[]> {
+	public getVariables(): Promise<Variable[]> {
 
 		return this.objectGripActor.fetchPrototypeAndProperties().then((prototypeAndProperties) => {
 
@@ -26,18 +29,18 @@ export class ObjectGripAdapter implements VariablesProvider {
 			
 			for (let varname in prototypeAndProperties.ownProperties) {
 				variables.push(VariableAdapter.getVariableFromPropertyDescriptor(varname, 
-					prototypeAndProperties.ownProperties[varname], this.isThreadLifetime, debugSession));
+					prototypeAndProperties.ownProperties[varname], this.isThreadLifetime, this.debugSession));
 			}
 			
 			for (let varname in prototypeAndProperties.safeGetterValues) {
 				variables.push(VariableAdapter.getVariableFromSafeGetterValueDescriptor(varname, 
-					prototypeAndProperties.safeGetterValues[varname], this.isThreadLifetime, debugSession));
+					prototypeAndProperties.safeGetterValues[varname], this.isThreadLifetime, this.debugSession));
 			}
 
 			VariableAdapter.sortVariables(variables);
 			
 			if (prototypeAndProperties.prototype !== null)
-				variables.push(VariableAdapter.getVariableFromGrip('[prototype]', prototypeAndProperties.prototype, this.isThreadLifetime, debugSession));
+				variables.push(VariableAdapter.getVariableFromGrip('[prototype]', prototypeAndProperties.prototype, this.isThreadLifetime, this.debugSession));
 			
 			return variables;
 		});

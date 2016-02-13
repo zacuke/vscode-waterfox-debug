@@ -6,20 +6,31 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { Source, StackFrame } from 'vscode-debugadapter';
 
 export class ThreadAdapter {
+	
 	public id: number;
 	public actor: ThreadActorProxy;
-	public objectReferences: ObjectReferencesAdapter;
 	public sources: SourceAdapter[];
+
+	private objectReferences: ObjectReferencesAdapter;
 	
 	public constructor(id: number, actor: ThreadActorProxy, debugSession: FirefoxDebugSession) {
 		this.id = id;
 		this.actor = actor;
-		this.objectReferences = new ObjectReferencesAdapter(id, actor, debugSession);
 		this.sources = [];
+		this.objectReferences = new ObjectReferencesAdapter(id, actor, debugSession);
+	}
+	
+	public fetchStackFrames(): Promise<FirefoxDebugProtocol.Frame[]> {
+		return this.objectReferences.fetchStackFrames();
+	}
+	
+	public evaluate(expression: string, isWatch: boolean): Promise<FirefoxDebugProtocol.Grip> {
+		return this.objectReferences.evaluate(expression, isWatch);
 	}
 }
 
 export class SourceAdapter {
+	
 	public id: number;
 	public actor: SourceActorProxy;
 	public currentBreakpoints: Promise<BreakpointAdapter[]>;
@@ -32,6 +43,7 @@ export class SourceAdapter {
 }
 
 export class BreakpointAdapter {
+	
 	public requestedBreakpoint: DebugProtocol.SourceBreakpoint;
 	public actualLine: number;
 	public actor: BreakpointActorProxy;

@@ -3,7 +3,6 @@ import { EventEmitter } from 'events';
 import { DebugConnection } from '../connection';
 import { PendingRequest, PendingRequests } from './pendingRequests';
 import { ActorProxy } from './interface';
-import { PauseActorProxy } from './pause';
 import { SourceActorProxy } from './source';
 
 let log = Log.create('ThreadActorProxy');

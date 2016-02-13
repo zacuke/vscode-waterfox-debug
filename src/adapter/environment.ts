@@ -6,8 +6,8 @@ let log = Log.create('EnvironmentAdapter');
 
 export abstract class EnvironmentAdapter {
 	
-	public environment: FirefoxDebugProtocol.Environment;
-	public parent: EnvironmentAdapter;
+	protected environment: FirefoxDebugProtocol.Environment;
+	protected parent: EnvironmentAdapter;
 	
 	public constructor(environment: FirefoxDebugProtocol.Environment) {
 		this.environment = environment;
@@ -61,7 +61,7 @@ export abstract class EnvironmentAdapter {
 
 export class ObjectEnvironmentAdapter extends EnvironmentAdapter {
 	
-	public environment: FirefoxDebugProtocol.ObjectEnvironment;
+	protected environment: FirefoxDebugProtocol.ObjectEnvironment;
 	
 	public constructor(environment: FirefoxDebugProtocol.ObjectEnvironment) {
 		super(environment);
@@ -93,7 +93,7 @@ export class ObjectEnvironmentAdapter extends EnvironmentAdapter {
 
 export class FunctionEnvironmentAdapter extends EnvironmentAdapter {
 
-	public environment: FirefoxDebugProtocol.FunctionEnvironment;
+	protected environment: FirefoxDebugProtocol.FunctionEnvironment;
 	
 	public constructor(environment: FirefoxDebugProtocol.FunctionEnvironment) {
 		super(environment);
@@ -122,7 +122,7 @@ export class FunctionEnvironmentAdapter extends EnvironmentAdapter {
 
 export class WithEnvironmentAdapter extends EnvironmentAdapter {
 
-	public environment: FirefoxDebugProtocol.WithEnvironment;
+	protected environment: FirefoxDebugProtocol.WithEnvironment;
 	
 	public constructor(environment: FirefoxDebugProtocol.WithEnvironment) {
 		super(environment);
@@ -154,7 +154,7 @@ export class WithEnvironmentAdapter extends EnvironmentAdapter {
 
 export class BlockEnvironmentAdapter extends EnvironmentAdapter {
 
-	public environment: FirefoxDebugProtocol.BlockEnvironment;
+	protected environment: FirefoxDebugProtocol.BlockEnvironment;
 	
 	public constructor(environment: FirefoxDebugProtocol.BlockEnvironment) {
 		super(environment);

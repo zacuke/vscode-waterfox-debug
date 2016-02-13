@@ -82,7 +82,7 @@ export class ObjectReferencesAdapter {
 	 * called by VSCode through FirefoxDebugSession to evaluate an expression, which is either
 	 * a watch or an expression entered in the debug console
 	 */	
-	public evaluateRequest(expression: string, isWatch: boolean): Promise<FirefoxDebugProtocol.Grip> {
+	public evaluate(expression: string, isWatch: boolean): Promise<FirefoxDebugProtocol.Grip> {
 		
 		if (isWatch) {
 

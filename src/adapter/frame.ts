@@ -5,6 +5,7 @@ import { Source, StackFrame } from 'vscode-debugadapter';
 let log = Log.create('FrameAdapter');
 
 export class FrameAdapter {
+	
 	public id: number;
 	public frame: FirefoxDebugProtocol.Frame;
 	public threadAdapter: ThreadAdapter;
