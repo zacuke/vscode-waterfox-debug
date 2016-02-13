@@ -324,7 +324,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 		log.debug(`Received stackTraceRequest for ${threadAdapter.actor.name}`);
 
-		threadAdapter.fetchStackFrames().then(
+		threadAdapter.fetchStackFrames(args.levels).then(
 			(frameAdapters) => {
 
 				response.body = { stackFrames: frameAdapters.map((frameAdapter) => frameAdapter.getStackframe()) };

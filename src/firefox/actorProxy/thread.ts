@@ -210,7 +210,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		}
 	}
 
-	public fetchStackFrames(): Promise<FirefoxDebugProtocol.Frame[]> {
+	public fetchStackFrames(levels: number): Promise<FirefoxDebugProtocol.Frame[]> {
 
 		if (this.desiredState != 'paused') {
 			log.warn(`fetchStackFrames() called but desiredState is ${this.desiredState}`)
@@ -224,7 +224,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			if (this.paused) {
 
 				this.pendingFrameRequests.enqueue({ resolve, reject });
-				this.connection.sendRequest({ to: this.name, type: 'frames' });
+				this.connection.sendRequest({ to: this.name, type: 'frames', start: 0, count: levels });
 
 			} else {
 				log.warn('fetchStackFrames() called but thread is running')

@@ -107,9 +107,9 @@ export class ThreadAdapter {
 		this.frames = [];
 	}
 	
-	public fetchStackFrames(): Promise<FrameAdapter[]> {
+	public fetchStackFrames(levels: number): Promise<FrameAdapter[]> {
 
-		return this.actor.fetchStackFrames().then((frames) => 
+		return this.actor.fetchStackFrames(levels).then((frames) => 
 			frames.map((frame) => {
 				let frameAdapter = new FrameAdapter(frame, this);
 				this._debugSession.registerFrameAdapter(frameAdapter);
