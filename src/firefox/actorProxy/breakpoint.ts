@@ -34,6 +34,6 @@ export class BreakpointActorProxy extends EventEmitter implements ActorProxy {
 		log.debug(`Breakpoint ${this.name} deleted`);
 		
 		this.pendingDeleteRequests.resolveAll(null);
-		
+		this.connection.unregister(this);
 	}
 }
