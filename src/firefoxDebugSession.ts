@@ -276,11 +276,7 @@ export class FirefoxDebugSession extends DebugSession {
 			return;
 		}
 		
-		let environmentAdapter = EnvironmentAdapter.from(frameAdapter.frame.environment);
-		let scopeAdapters = environmentAdapter.getScopeAdapters(frameAdapter.threadAdapter, frameAdapter.frame.this);
-		scopeAdapters[0].addThis(frameAdapter.frame.this);
-		
-		response.body = { scopes: scopeAdapters.map((scopeAdapter) => scopeAdapter.getScope()) };
+		response.body = { scopes: frameAdapter.scopeAdapters.map((scopeAdapter) => scopeAdapter.getScope()) };
 		
 		this.sendResponse(response);
 	}

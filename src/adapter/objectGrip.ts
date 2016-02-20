@@ -24,27 +24,36 @@ export class ObjectGripAdapter implements VariablesProvider {
 
 	public getVariables(): Promise<Variable[]> {
 
-		return this.actor.fetchPrototypeAndProperties().then((prototypeAndProperties) => {
+		return this.threadAdapter.actor.runOnPausedThread((finished) => 
 
-			let variables: Variable[] = [];
-			
-			for (let varname in prototypeAndProperties.ownProperties) {
-				variables.push(VariableAdapter.getVariableFromPropertyDescriptor(varname, 
-					prototypeAndProperties.ownProperties[varname], this.isThreadLifetime, this.threadAdapter));
-			}
-			
-			for (let varname in prototypeAndProperties.safeGetterValues) {
-				variables.push(VariableAdapter.getVariableFromSafeGetterValueDescriptor(varname, 
-					prototypeAndProperties.safeGetterValues[varname], this.isThreadLifetime, this.threadAdapter));
-			}
+			this.actor.fetchPrototypeAndProperties().then(
+				(prototypeAndProperties) => {
 
-			VariableAdapter.sortVariables(variables);
+					let variables: Variable[] = [];
+					
+					for (let varname in prototypeAndProperties.ownProperties) {
+						variables.push(VariableAdapter.getVariableFromPropertyDescriptor(varname, 
+							prototypeAndProperties.ownProperties[varname], this.isThreadLifetime, this.threadAdapter));
+					}
+					
+					for (let varname in prototypeAndProperties.safeGetterValues) {
+						variables.push(VariableAdapter.getVariableFromSafeGetterValueDescriptor(varname, 
+							prototypeAndProperties.safeGetterValues[varname], this.isThreadLifetime, this.threadAdapter));
+					}
+
+					VariableAdapter.sortVariables(variables);
+					
+					if (prototypeAndProperties.prototype !== null)
+						variables.push(VariableAdapter.getVariableFromGrip('[prototype]', prototypeAndProperties.prototype, this.isThreadLifetime, this.threadAdapter));
 			
-			if (prototypeAndProperties.prototype !== null)
-				variables.push(VariableAdapter.getVariableFromGrip('[prototype]', prototypeAndProperties.prototype, this.isThreadLifetime, this.threadAdapter));
-			
-			return variables;
-		});
+					finished();
+
+					return variables;
+				},
+				(err) => {
+					finished();
+				})
+		);
 	}
 	
 	public dispose(): void {

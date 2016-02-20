@@ -1,5 +1,5 @@
 import { Log } from '../util/log';
-import { ThreadAdapter } from '../adapter/index';
+import { ThreadAdapter, EnvironmentAdapter, ScopeAdapter } from '../adapter/index';
 import { Source, StackFrame } from 'vscode-debugadapter';
 
 let log = Log.create('FrameAdapter');
@@ -8,12 +8,17 @@ export class FrameAdapter {
 	
 	public id: number;
 	public frame: FirefoxDebugProtocol.Frame;
+	public scopeAdapters: ScopeAdapter[];
 	public threadAdapter: ThreadAdapter;
 	
 	public constructor(frame: FirefoxDebugProtocol.Frame, threadAdapter: ThreadAdapter) {
 		this.frame = frame;
 		this.threadAdapter = threadAdapter;
 		this.threadAdapter.debugSession.registerFrameAdapter(this);
+		
+		let environmentAdapter = EnvironmentAdapter.from(this.frame.environment);
+		this.scopeAdapters = environmentAdapter.getScopeAdapters(this.threadAdapter, this.frame.this);
+		this.scopeAdapters[0].addThis(this.frame.this);
 	}
 	
 	public getStackframe(): StackFrame {

@@ -109,13 +109,24 @@ export class ThreadAdapter {
 	
 	public fetchStackFrames(levels: number): Promise<FrameAdapter[]> {
 
-		return this.actor.fetchStackFrames(levels).then((frames) => 
-			frames.map((frame) => {
-				let frameAdapter = new FrameAdapter(frame, this);
-				this._debugSession.registerFrameAdapter(frameAdapter);
-				this.frames.push(frameAdapter);
-				return frameAdapter;
-			})
+		return this.actor.runOnPausedThread((finished) => 
+			this.actor.fetchStackFrames(levels).then(
+				(frames) => {
+
+					let frameAdapters = frames.map((frame) => {
+						let frameAdapter = new FrameAdapter(frame, this);
+						this._debugSession.registerFrameAdapter(frameAdapter);
+						this.frames.push(frameAdapter);
+						return frameAdapter;
+					});
+					
+					finished();
+					
+					return frameAdapters;
+				},
+				(err) => {
+					finished();
+				})
 		);
 	}
 	

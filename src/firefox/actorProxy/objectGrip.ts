@@ -20,6 +20,7 @@ export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
 	}
 
 	public extendLifetime() {
+		log.debug(`Extending lifetime of ${this.name}`);
 		this.connection.sendRequest({ to: this.name, type: 'threadGrip' });
 	}
 	
@@ -42,12 +43,16 @@ export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
 		if ((response['prototype'] !== undefined) && (response['ownProperties'] !== undefined)) {
 		
 			log.debug(`Prototype and properties fetched from ${this.name}`);
-			
 			this.pendingPrototypeAndPropertiesRequests.resolveOne(<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>response);
 			
 		} else if (Object.keys(response).length === 1) {
 			
 			log.debug('Received response to threadGrip or release request');
+			
+		} else if (response['error'] === 'noSuchActor') {
+			
+			log.error(`No such actor ${JSON.stringify(this.grip)}`);
+			this.pendingPrototypeAndPropertiesRequests.rejectAll('No such actor');
 			
 		} else {
 			
