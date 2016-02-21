@@ -52,6 +52,7 @@ export class ObjectGripAdapter implements VariablesProvider {
 				},
 				(err) => {
 					finished();
+					throw err;
 				})
 		);
 	}

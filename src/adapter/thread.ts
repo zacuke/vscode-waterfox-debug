@@ -126,6 +126,7 @@ export class ThreadAdapter {
 				},
 				(err) => {
 					finished();
+					throw err;
 				})
 		);
 	}
