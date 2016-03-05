@@ -64,7 +64,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	constructor(private _name: string, private connection: DebugConnection) {
 		super();
 		this.connection.register(this);
-		this.connection.sendRequest({ to: this.name, type: 'attach' });
+		this.connection.sendRequest({ to: this.name, type: 'attach', options: { useSourceMaps: true } });
 		this.connection.sendRequest({ to: this.name, type: 'sources' });
 		log.debug(`Created and attached thread ${this.name}`);
 	}
