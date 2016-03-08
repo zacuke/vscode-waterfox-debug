@@ -5,17 +5,18 @@
   "publisher": "hbenl",
   "description": "Visual Studio Code debug adapter for Firefox",
   "engines": {
-	  "vscode": "^0.10.10"
+    "vscode": "^0.10.10"
   },
   "categories": [
-	  "Debuggers"
+    "Debuggers"
   ],
   "dependencies": {
-    "vscode-debugadapter": "^1.5.0"
+    "vscode-debugadapter": "^1.6.1"
   },
   "devDependencies": {
-	  "typescript": "^1.8.2",
-	  "tsd": "^0.6.3"
+    "typescript": "^1.8.7",
+    "tsd": "^0.6.5",
+    "vsce": "^1.2.3"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
