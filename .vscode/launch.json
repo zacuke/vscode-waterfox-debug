@@ -5,10 +5,10 @@
 			"name": "Launch",
 			"type": "node",
 			"request": "launch",
-			"program": "./out/test/firefoxDebugSessionTest.js",
+			"program": "${workspaceRoot}/out/test/firefoxDebugSessionTest.js",
 			"stopOnEntry": false,
 			"args": [],
-			"cwd": ".",
+			"cwd": "${workspaceRoot}",
 			"runtimeExecutable": null,
 			"runtimeArgs": [
 				"--nolazy"
@@ -18,7 +18,7 @@
 			},
 			"externalConsole": true,
 			"sourceMaps": true,
-			"outDir": "out"
+			"outDir": "${workspaceRoot}/out"
 		},
 		{
 			"name": "debug server",
@@ -27,14 +27,14 @@
 			"runtimeArgs": [
 				"--harmony"
 			],
-			"program": "out/firefoxDebugSession.js",
+			"program": "${workspaceRoot}/out/firefoxDebugSession.js",
 			"stopOnEntry": false,
 			"args": [
 				"--server=4711"
 			],
 			"sourceMaps": true,
 			"externalConsole": true,
-			"outDir": "out"
+			"outDir": "${workspaceRoot}/out"
 		}
 	]
 }
