@@ -3,5 +3,6 @@
 	"files.exclude": {
 		".git": true,
 		"out": true
-	}
+	},
+	"editor.rulers": [100]
 }
