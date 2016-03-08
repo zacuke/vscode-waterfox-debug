@@ -1,0 +1,37 @@
+{
+  "name": "vscode-firefox-debug",
+  "version": "0.1.0",
+  "author": "Holger Benl <hbenl@evandor.de>",
+  "publisher": "hbenl",
+  "description": "Visual Studio Code debug adapter for Firefox",
+  "engines": {
+	  "vscode": "^0.10.10"
+  },
+  "categories": [
+	  "Debuggers"
+  ],
+  "dependencies": {
+    "vscode-debugadapter": "^1.5.0"
+  },
+  "devDependencies": {
+	  "typescript": "^1.8.2",
+	  "tsd": "^0.6.3"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hbenl/vscode-firefox-debug.git"
+  },
+  "keywords": [
+    "VSCode",
+    "Firefox",
+    "Debugger"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hbenl/vscode-firefox-debug/issues"
+  },
+  "homepage": "https://github.com/hbenl/vscode-firefox-debug"
+}
