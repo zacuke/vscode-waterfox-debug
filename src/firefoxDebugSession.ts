@@ -115,7 +115,8 @@ export class FirefoxDebugSession extends DebugSession {
 								log.debug('Updating breakpoints');
 
 								breakpointAdapters.forEach((breakpointAdapter) => {
-									let breakpoint: DebugProtocol.Breakpoint = new Breakpoint(true, breakpointAdapter.breakpointInfo.actualLine);
+									let breakpoint: DebugProtocol.Breakpoint = 
+										new Breakpoint(true, breakpointAdapter.breakpointInfo.actualLine);
 									breakpoint.id = breakpointAdapter.breakpointInfo.id;
 									this.sendEvent(new BreakpointEvent('update', breakpoint));
 								})
@@ -206,10 +207,11 @@ export class FirefoxDebugSession extends DebugSession {
 
 							response.body = { 
 								breakpoints: breakpointAdapters.map(
-									(breakpointAdapter) => <DebugProtocol.Breakpoint>{
-										id: breakpointAdapter.breakpointInfo.id,
-										line: breakpointAdapter.breakpointInfo.actualLine,
-										verified: true
+									(breakpointAdapter) => {
+										let breakpoint: DebugProtocol.Breakpoint =
+											new Breakpoint(true, breakpointAdapter.breakpointInfo.actualLine);
+										breakpoint.id = breakpointAdapter.breakpointInfo.id;
+										return breakpoint;
 									})
 							};
 
@@ -235,10 +237,11 @@ export class FirefoxDebugSession extends DebugSession {
 			log.debug (`Source ${args.source.path} not seen yet`);
 
 			response.body = { 
-				breakpoints: breakpointInfos.map((breakpointInfo) => <DebugProtocol.Breakpoint>{
-					id: breakpointInfo.id,
-					line: breakpointInfo.requestedLine,
-					verified: false
+				breakpoints: breakpointInfos.map((breakpointInfo) => {
+					let breakpoint: DebugProtocol.Breakpoint =
+						new Breakpoint(false, breakpointInfo.requestedLine);
+					breakpoint.id = breakpointInfo.id;
+					return breakpoint;
 				})
 			};
 
