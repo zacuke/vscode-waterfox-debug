@@ -1,4 +1,5 @@
 import { SourceActorProxy, BreakpointActorProxy } from '../firefox/index';
+import { BreakpointInfo } from './index';
 import { DebugProtocol } from 'vscode-debugprotocol';
 
 export class SourceAdapter {
@@ -16,13 +17,11 @@ export class SourceAdapter {
 
 export class BreakpointAdapter {
 	
-	public requestedBreakpoint: DebugProtocol.SourceBreakpoint;
-	public actualLine: number;
+	public breakpointInfo: BreakpointInfo;
 	public actor: BreakpointActorProxy;
 	
-	public constructor(requestedBreakpoint: DebugProtocol.SourceBreakpoint, actualLine: number, actor: BreakpointActorProxy) {
-		this.requestedBreakpoint = requestedBreakpoint;
-		this.actualLine = actualLine;
+	public constructor(requestedBreakpoint: BreakpointInfo, actor: BreakpointActorProxy) {
+		this.breakpointInfo = requestedBreakpoint;
 		this.actor = actor;
 	}
 }

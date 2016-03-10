@@ -1,8 +1,8 @@
 import { Log } from './util/log';
-import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, Thread, StackFrame, Scope, Variable, Source } from 'vscode-debugadapter';
+import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, Thread, StackFrame, Scope, Variable, Source, Breakpoint } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
-import { ThreadAdapter, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider } from './adapter/index';
+import { ThreadAdapter, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider } from './adapter/index';
 import { VariableAdapter } from './adapter/index';
 
 let log = Log.create('FirefoxDebugSession');
@@ -13,8 +13,11 @@ export class FirefoxDebugSession extends DebugSession {
 
 	private nextThreadId = 1;
 	private threadsById = new Map<number, ThreadAdapter>();
-	private breakpointsBySourceUrl = new Map<string, DebugProtocol.SetBreakpointsArguments>();
-
+	
+	private nextBreakpointId = 1;
+	private breakpointsBySourceUrl = new Map<string, BreakpointInfo[]>();
+	private verifiedBreakpointSources: string[] = [];
+	
 	private nextFrameId = 1;
 	private framesById = new Map<number, FrameAdapter>();
 
@@ -99,8 +102,27 @@ export class FirefoxDebugSession extends DebugSession {
 					this.sourcesById.set(sourceId, sourceAdapter);
 
 					if (this.breakpointsBySourceUrl.has(sourceActor.url)) {
-						let breakpoints = this.breakpointsBySourceUrl.get(sourceActor.url).breakpoints;
-						BreakpointsAdapter.setBreakpointsOnSourceActor(breakpoints, sourceAdapter, threadActor);
+						
+						let breakpointInfos = this.breakpointsBySourceUrl.get(sourceActor.url);
+						let setBreakpointsPromise = BreakpointsAdapter.setBreakpointsOnSourceActor(
+							breakpointInfos, sourceAdapter, threadActor);
+						
+						if (this.verifiedBreakpointSources.indexOf(sourceActor.url) < 0) {
+						
+							setBreakpointsPromise.then((breakpointAdapters) => {
+
+								log.debug('Updating breakpoints');
+
+								breakpointAdapters.forEach((breakpointAdapter) => {
+									let breakpoint: DebugProtocol.Breakpoint = new Breakpoint(true, breakpointAdapter.breakpointInfo.actualLine);
+									breakpoint.id = breakpointAdapter.breakpointInfo.id;
+									this.sendEvent(new BreakpointEvent('update', breakpoint));
+								})
+
+								this.verifiedBreakpointSources.push(sourceActor.url);
+							})
+						}
+						
 					}
 				});
 				
@@ -153,12 +175,19 @@ export class FirefoxDebugSession extends DebugSession {
 	
     protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 
-		log.debug(`Received setBreakpointsRequest with ${args.lines.length} breakpoints for ${args.source.path}`);
+		log.debug(`Received setBreakpointsRequest with ${args.breakpoints.length} breakpoints for ${args.source.path}`);
 
 		let firefoxSourceUrl = 'file://' + this.convertDebuggerPathToClient(args.source.path);
-		this.breakpointsBySourceUrl.set(firefoxSourceUrl, args);
+		let breakpointInfos = args.breakpoints.map((breakpoint) => <BreakpointInfo>{ 
+			id: this.nextBreakpointId++, 
+			requestedLine: breakpoint.line,
+			condition: breakpoint.condition 
+		});
 
-		let responseScheduled = false;		
+		this.breakpointsBySourceUrl.set(firefoxSourceUrl, breakpointInfos);
+		this.verifiedBreakpointSources = 
+			this.verifiedBreakpointSources.filter((sourceUrl) => (sourceUrl !== firefoxSourceUrl));
+		
 		this.threadsById.forEach((threadAdapter) => {
 			
 			let sourceAdapter = threadAdapter.findSourceAdapterForUrl(firefoxSourceUrl);
@@ -166,15 +195,22 @@ export class FirefoxDebugSession extends DebugSession {
 
 				log.debug(`Found source ${args.source.path} on tab ${threadAdapter.actor.name}`);
 				
-				let setBreakpointsPromise = BreakpointsAdapter.setBreakpointsOnSourceActor(args.breakpoints, sourceAdapter, threadAdapter.actor);
+				let setBreakpointsPromise = BreakpointsAdapter.setBreakpointsOnSourceActor(
+					breakpointInfos, sourceAdapter, threadAdapter.actor);
 				
-				if (!responseScheduled) {
+				if (this.verifiedBreakpointSources.indexOf(firefoxSourceUrl) < 0) {
 
 					setBreakpointsPromise.then(
 						(breakpointAdapters) => {
 
-							response.body = { breakpoints: breakpointAdapters.map((breakpointAdapter) => 
-								<DebugProtocol.Breakpoint>{ verified: true, line: breakpointAdapter.actualLine }) };
+							response.body = { 
+								breakpoints: breakpointAdapters.map(
+									(breakpointAdapter) => <DebugProtocol.Breakpoint>{
+										id: breakpointAdapter.breakpointInfo.id,
+										line: breakpointAdapter.breakpointInfo.actualLine,
+										verified: true
+									})
+							};
 
 							log.debug('Replying to setBreakpointsRequest with actual breakpoints from the first thread with this source');
 
@@ -188,17 +224,23 @@ export class FirefoxDebugSession extends DebugSession {
 							this.sendResponse(response);
 						});
 						
-					responseScheduled = true;
+					this.verifiedBreakpointSources.push(firefoxSourceUrl);
 				}
 			}
 		});
 		
-		if (!responseScheduled) {
-			log.warn(`Unknown source ${args.source.path}`);
+		if (this.verifiedBreakpointSources.indexOf(firefoxSourceUrl) < 0) {
+
+			log.debug (`Source ${args.source.path} not seen yet`);
+
 			response.body = { 
-				breakpoints: args.breakpoints.map(
-					(breakpoint) => <DebugProtocol.Breakpoint>{ verified: false, line: breakpoint.line })
+				breakpoints: breakpointInfos.map((breakpointInfo) => <DebugProtocol.Breakpoint>{
+					id: breakpointInfo.id,
+					line: breakpointInfo.requestedLine,
+					verified: false
+				})
 			};
+
 			this.sendResponse(response);
 		}
 	}

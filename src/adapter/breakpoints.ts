@@ -7,12 +7,12 @@ let log = Log.create('BreakpointsAdapter');
 
 export class BreakpointsAdapter {
 
-	public static setBreakpointsOnSourceActor(breakpointsToSet: DebugProtocol.SourceBreakpoint[], sourceAdapter: SourceAdapter, threadActor: ThreadActorProxy): Promise<BreakpointAdapter[]> {
+	public static setBreakpointsOnSourceActor(breakpointsToSet: BreakpointInfo[], sourceAdapter: SourceAdapter, threadActor: ThreadActorProxy): Promise<BreakpointAdapter[]> {
 		return threadActor.runOnPausedThread((resume) => 
 			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter, resume));
 	}
 
-	private static setBreakpointsOnPausedSourceActor(breakpointsToSet: DebugProtocol.SourceBreakpoint[], sourceAdapter: SourceAdapter, resume: () => void): Promise<BreakpointAdapter[]> {
+	private static setBreakpointsOnPausedSourceActor(breakpointsToSet: BreakpointInfo[], sourceAdapter: SourceAdapter, resume: () => void): Promise<BreakpointAdapter[]> {
 
 		log.debug(`Setting ${breakpointsToSet.length} breakpoints for ${sourceAdapter.actor.url}`);
 		
@@ -33,7 +33,7 @@ export class BreakpointsAdapter {
 						let breakpointIndex = -1;
 						for (let i = 0; i < breakpointsToSet.length; i++) {
 							if ((breakpointsToSet[i] !== undefined) && 
-								(breakpointsToSet[i].line === breakpointAdapter.requestedBreakpoint.line)) {
+								(breakpointsToSet[i].requestedLine === breakpointAdapter.breakpointInfo.requestedLine)) {
 								breakpointIndex = i;
 								break;
 							}
@@ -52,14 +52,15 @@ export class BreakpointsAdapter {
 
 							breakpointsBeingSet.push(
 								sourceAdapter.actor
-								.setBreakpoint({ line: requestedBreakpoint.line }, requestedBreakpoint.condition)
+								.setBreakpoint({ line: requestedBreakpoint.requestedLine }, requestedBreakpoint.condition)
 								.then((setBreakpointResult) => {
 
-									let actualLine = (setBreakpointResult.actualLocation === undefined) ? 
-										requestedBreakpoint.line : 
+									requestedBreakpoint.actualLine = 
+										(setBreakpointResult.actualLocation === undefined) ? 
+										requestedBreakpoint.requestedLine : 
 										setBreakpointResult.actualLocation.line;
-
-									newBreakpoints[index] = new BreakpointAdapter(requestedBreakpoint, actualLine, setBreakpointResult.breakpointActor); 
+										
+									newBreakpoints[index] = new BreakpointAdapter(requestedBreakpoint, setBreakpointResult.breakpointActor);
 								}));
 						}
 					});
@@ -84,4 +85,11 @@ export class BreakpointsAdapter {
 		return result;
 	}
 
-} 
+}
+
+export class BreakpointInfo {
+	id: number;
+	requestedLine: number;
+	actualLine: number;
+	condition: string;
+}
