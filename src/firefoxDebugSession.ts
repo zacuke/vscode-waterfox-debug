@@ -70,7 +70,8 @@ export class FirefoxDebugSession extends DebugSession {
 		response.body = {
 			supportsConfigurationDoneRequest: false,
 			supportsEvaluateForHovers: false,
-			supportsFunctionBreakpoints: false
+			supportsFunctionBreakpoints: false,
+			supportsConditionalBreakpoints: true
 		};
 		this.sendResponse(response);
 
