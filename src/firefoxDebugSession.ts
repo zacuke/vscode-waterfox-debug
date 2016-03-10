@@ -1,7 +1,7 @@
 import { Log } from './util/log';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, Thread, StackFrame, Scope, Variable, Source, Breakpoint } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
+import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, ExceptionBreakpoints, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider } from './adapter/index';
 import { VariableAdapter } from './adapter/index';
 
@@ -249,6 +249,22 @@ export class FirefoxDebugSession extends DebugSession {
 		}
 	}
 	
+	protected setExceptionBreakPointsRequest(response: DebugProtocol.SetExceptionBreakpointsResponse, args: DebugProtocol.SetExceptionBreakpointsArguments): void {
+		
+		let exceptionBreakpoints = ExceptionBreakpoints.None;
+		
+		if (args.filters.indexOf('all') >= 0) {
+			exceptionBreakpoints = ExceptionBreakpoints.All;
+		} else if (args.filters.indexOf('uncaught') >= 0) {
+			exceptionBreakpoints = ExceptionBreakpoints.Uncaught;
+		}
+		
+		this.threadsById.forEach((threadAdapter) => 
+			threadAdapter.actor.setExceptionBreakpoints(exceptionBreakpoints));
+
+		this.sendResponse(response);			
+	}
+
 	protected pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments): void {
 		log.debug('Received pauseRequest');
 		this.threadsById.get(args.threadId).actor.interrupt();

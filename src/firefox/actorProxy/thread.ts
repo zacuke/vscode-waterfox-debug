@@ -28,7 +28,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	 * is not 'running') otherwise.
 	 */
 	private desiredState: string = 'paused'; // 'paused' | 'running' | 'stepOver' | stepInto' | 'stepOut'
-	
+
+	private exceptionBreakpoints: ExceptionBreakpoints;
+
 	/**
 	 * The paused flag states if the thread is assumed to be in the paused or the 
 	 * running state.
@@ -81,13 +83,50 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		this.paused = true;
 	}
 	
+	private sendResumeRequest(resumeLimit? : string) {
+
+		let resumeRequest: any = {
+			to: this.name,
+			type: 'resume'
+		};
+
+		if (resumeLimit !== undefined) {
+			resumeRequest.resumeLimit = { type: resumeLimit };
+		}
+		
+		switch (this.exceptionBreakpoints) {
+			case ExceptionBreakpoints.All:
+				resumeRequest.pauseOnExceptions = true;
+				break;
+				
+			case ExceptionBreakpoints.Uncaught:
+				resumeRequest.pauseOnExceptions = true;
+				resumeRequest.ignoreCaughtExceptions = true;
+				break;
+		}
+		
+		this.connection.sendRequest(resumeRequest);
+	}
+	
+	public setExceptionBreakpoints(exceptionBreakpoints: ExceptionBreakpoints) {
+
+		if (this.exceptionBreakpoints !== exceptionBreakpoints) {
+
+			this.exceptionBreakpoints = exceptionBreakpoints;
+
+			// issue a dummy operation using runOnPausedThread to ensure that the thread is paused
+			// and resumed and hence the new exceptionBreakpoints setting is sent to Firefox
+			this.runOnPausedThread<void>((finished) => finished());
+		}
+	}
+	
 	/**
 	 * Run a (possibly asynchronous) operation on the paused thread.
 	 * If the thread is not already paused, it will be paused temporarily and automatically 
 	 * resumed when the operation is finished (if there are no other reasons to pause the 
 	 * thread). The operation is passed a callback that must be called when it is finished.
 	 */
-	public runOnPausedThread<T>(operation: (finished: () => void) => Promise<T>): Promise<T> {
+	public runOnPausedThread<T>(operation: (finished: () => void) => T | Promise<T>): Promise<T> {
 
 		log.debug('Starting operation on paused thread');
 		this.operationsRunningOnPausedThread++;
@@ -132,7 +171,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			if (this.pendingEvaluateRequest != null) {
 				
 				if (this.paused) {
-					this.connection.sendRequest({ to: this.name, type: 'resume' });
+					this.sendResumeRequest();
 					this.paused = false;
 				}
 			
@@ -166,28 +205,28 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 						
 					case 'running':
 						if (this.paused) {
-							this.connection.sendRequest({ to: this.name, type: 'resume' });
+							this.sendResumeRequest();
 							this.paused = false;
 						}
 						break;
 						
 					case 'stepOver':
 						if (this.paused) {
-							this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'next' } });
+							this.sendResumeRequest('next');
 							this.paused = false;
 						}
 						break;
 						
 					case 'stepInto':
 						if (this.paused) {
-							this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'step' } });
+							this.sendResumeRequest('step');
 							this.paused = false;
 						}
 						break;
 						
 					case 'stepOut':
 						if (this.paused) {
-							this.connection.sendRequest({ to: this.name, type: 'resume', resumeLimit: { type: 'finish' } });
+							this.sendResumeRequest('finish');
 							this.paused = false;
 						}
 						break;
@@ -299,8 +338,15 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		
 		return new Promise<FirefoxDebugProtocol.Grip>((resolve, reject) => {
 
+			let escapedExpression = expr.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+			let tryExpression = `eval("try{${escapedExpression}}catch(e){e.name+':'+e.message}")`;
 			let send = () => {
-				this.connection.sendRequest({ to: this.name, type: 'clientEvaluate', expression: expr, frame: frameActorName});
+				this.connection.sendRequest({ 
+					to: this.name, 
+					type: 'clientEvaluate', 
+					expression: tryExpression, 
+					frame: frameActorName
+				});
 			};
 
 			this.queuedEvaluateRequests.push({ send, resolve, reject });
@@ -354,15 +400,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 					break;
 					
 				case 'resumeLimit':
-					log.debug('Received paused event of type resumeLimit');
-					this.paused = true;
-					this.desiredState = 'paused';
-					this.doNext();
-					this.emit('paused', pausedResponse.why.type);
-					break;
-					
 				case 'breakpoint':
-					log.debug('Received paused event of type breakpoint');
+				case 'exception':
+					log.debug(`Received paused event of type ${pausedResponse.why.type}`);
 					this.paused = true;
 					this.desiredState = 'paused';
 					this.doNext();
@@ -377,16 +417,19 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 					this.doNext();
 					break;
 
-				case 'debuggerStatement':
-				case 'watchpoint':
-				case 'pauseOnDOMEvents':
-					log.error(`Paused event with reason ${pausedResponse.why.type} not handled yet`);
+				default:
+					log.warn(`Paused event with reason ${pausedResponse.why.type} not handled yet`);
+					this.paused = true;
+					this.desiredState = 'paused';
+					this.doNext();
+					this.emit('paused', pausedResponse.why.type);
 					break;
 			}
 
 		} else if (response['type'] === 'resumed') {
 
 			log.debug(`Received resumed event from ${this.name} (ignoring)`);
+			this.paused = false;
 			
 		} else if (response['type'] === 'newSource') {
 			
@@ -476,4 +519,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	public onNewSource(cb: (newSource: SourceActorProxy) => void) {
 		this.on('newSource', cb);
 	}
+}
+
+export enum ExceptionBreakpoints {
+	All, Uncaught, None
 }
