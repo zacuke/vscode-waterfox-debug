@@ -37,6 +37,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	 */
 	private paused: boolean = true;
 	
+	private completionValue: FirefoxDebugProtocol.CompletionValue = undefined;
+	
 	/**
 	 * The number of operations that are currently running which require the thread to be 
 	 * paused (even if desiredState is not 'paused'). These operations are started using 
@@ -49,7 +51,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	 * frame requests can only be run on a paused thread and they can only be sent
 	 * when pauseWanted is set to true because they make no sense otherwise. 
 	 */
-	private pendingFrameRequests = new PendingRequests<FirefoxDebugProtocol.Frame[]>();
+	private pendingFrameRequests = 
+		new PendingRequests<[FirefoxDebugProtocol.Frame[], FirefoxDebugProtocol.CompletionValue]>();
 
 	/**
 	 * evaluate requests can only be run on a paused thread and they can only be sent when
@@ -106,6 +109,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		}
 		
 		this.connection.sendRequest(resumeRequest);
+		
+		this.completionValue = undefined;
 	}
 	
 	public setExceptionBreakpoints(exceptionBreakpoints: ExceptionBreakpoints) {
@@ -249,7 +254,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		}
 	}
 
-	public fetchStackFrames(levels: number): Promise<FirefoxDebugProtocol.Frame[]> {
+	public fetchStackFrames(levels: number): Promise<[FirefoxDebugProtocol.Frame[], FirefoxDebugProtocol.CompletionValue]> {
 
 		if (this.desiredState != 'paused') {
 			log.warn(`fetchStackFrames() called but desiredState is ${this.desiredState}`)
@@ -258,19 +263,20 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		
 		log.debug(`Fetching stackframes from thread ${this.name}`);
 
-		return new Promise<FirefoxDebugProtocol.Frame[]>((resolve, reject) => {
+		return new Promise<[FirefoxDebugProtocol.Frame[], FirefoxDebugProtocol.CompletionValue]>(
+			(resolve, reject) => {
 
-			if (this.paused) {
+				if (this.paused) {
 
-				this.pendingFrameRequests.enqueue({ resolve, reject });
-				this.connection.sendRequest({ to: this.name, type: 'frames', start: 0, count: levels });
+					this.pendingFrameRequests.enqueue({ resolve, reject });
+					this.connection.sendRequest({ to: this.name, type: 'frames', start: 0, count: levels });
 
-			} else {
-				log.warn('fetchStackFrames() called but thread is running')
-				reject('not paused');
+				} else {
+					log.warn('fetchStackFrames() called but thread is running')
+					reject('not paused');
+				}
 			}
-			
-		});
+		);
 	}
 	
 	public resume(): void {
@@ -383,6 +389,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			log.debug(`Thread ${this.name} paused`);
 
 			let pausedResponse = <FirefoxDebugProtocol.ThreadPausedResponse>response;
+			this.completionValue = pausedResponse.why.frameFinished;
 			
 			switch (pausedResponse.why.type) {
 				case 'attached':
@@ -453,7 +460,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
 			log.debug(`Received ${frames.length} frames from thread ${this.name}`);
 
-			this.pendingFrameRequests.resolveOne(frames);
+			this.pendingFrameRequests.resolveOne([frames, this.completionValue]);
 			
 		} else if (response['type'] === 'detached') {
 			

@@ -11,8 +11,8 @@ export abstract class ScopeAdapter implements VariablesProvider {
 	public name: string;
 	public variablesProviderId: number;
 	public thisVariable: Variable;
-	public isTopScope = false;
-
+	public completionVariable: Variable;
+	
 	protected threadAdapter: ThreadAdapter;
 	
 	public constructor(name: string, threadAdapter: ThreadAdapter) {
@@ -23,8 +23,24 @@ export abstract class ScopeAdapter implements VariablesProvider {
 	}
 	
 	public addThis(thisGrip: FirefoxDebugProtocol.Grip) {
-		this.thisVariable = VariableAdapter.getVariableFromGrip('this', thisGrip, false, this.threadAdapter);
-		this.isTopScope = true;
+		this.thisVariable = VariableAdapter.getVariableFromGrip(
+			'this', thisGrip, false, this.threadAdapter);
+	}
+
+	public addCompletionValue(completionValue: FirefoxDebugProtocol.CompletionValue) {
+		if (completionValue) {
+
+			if (completionValue.return) {
+			
+				this.completionVariable = VariableAdapter.getVariableFromGrip(
+					'<return>', completionValue.return, false, this.threadAdapter);
+			
+			} else if (completionValue.throw) {
+			
+				this.completionVariable = VariableAdapter.getVariableFromGrip(
+					'<exception>', completionValue.throw, false, this.threadAdapter);
+			}
+		}
 	}
 	
 	public getScope(): Scope {
@@ -35,9 +51,16 @@ export abstract class ScopeAdapter implements VariablesProvider {
 		
 		let variablesPromise = this.getVariablesInt();
 		
-		if (this.isTopScope) {
+		if (this.thisVariable) {
 			variablesPromise = variablesPromise.then((vars) => {
 				vars.unshift(this.thisVariable);
+				return vars;
+			});
+		}
+		
+		if (this.completionVariable) {
+			variablesPromise = variablesPromise.then((vars) => {
+				vars.unshift(this.completionVariable);
 				return vars;
 			});
 		}

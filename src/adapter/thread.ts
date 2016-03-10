@@ -111,7 +111,7 @@ export class ThreadAdapter {
 
 		return this.actor.runOnPausedThread((finished) => 
 			this.actor.fetchStackFrames(levels).then(
-				(frames) => {
+				([frames, completionValue]) => {
 
 					let frameAdapters = frames.map((frame) => {
 						let frameAdapter = new FrameAdapter(frame, this);
@@ -119,6 +119,10 @@ export class ThreadAdapter {
 						this.frames.push(frameAdapter);
 						return frameAdapter;
 					});
+					
+					if (frameAdapters.length > 0) {
+						frameAdapters[0].scopeAdapters[0].addCompletionValue(completionValue);
+					}
 					
 					finished();
 					

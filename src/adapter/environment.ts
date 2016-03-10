@@ -32,7 +32,7 @@ export abstract class EnvironmentAdapter {
 		}
 	}
 	
-	public getScopeAdapters(threadAdapter: ThreadAdapter, that: FirefoxDebugProtocol.Grip): ScopeAdapter[] {
+	public getScopeAdapters(threadAdapter: ThreadAdapter): ScopeAdapter[] {
 
 		let scopes = this.getAllScopeAdapters(threadAdapter);
 		

@@ -17,10 +17,10 @@ export class FrameAdapter {
 		this.threadAdapter.debugSession.registerFrameAdapter(this);
 		
 		let environmentAdapter = EnvironmentAdapter.from(this.frame.environment);
-		this.scopeAdapters = environmentAdapter.getScopeAdapters(this.threadAdapter, this.frame.this);
+		this.scopeAdapters = environmentAdapter.getScopeAdapters(this.threadAdapter);
 		this.scopeAdapters[0].addThis(this.frame.this);
 	}
-	
+
 	public getStackframe(): StackFrame {
 
 		let sourcePath: string = null;
