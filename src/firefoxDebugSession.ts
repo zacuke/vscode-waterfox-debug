@@ -1,14 +1,18 @@
+import { connect, Socket } from 'net';
+import { ChildProcess } from 'child_process';
 import { Log } from './util/log';
+import { launchFirefox, waitForSocket } from './util/launcher';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, Thread, StackFrame, Scope, Variable, Source, Breakpoint } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, ExceptionBreakpoints, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
-import { ThreadAdapter, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider } from './adapter/index';
-import { VariableAdapter } from './adapter/index';
+import { ThreadAdapter, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, VariableAdapter } from './adapter/index';
+import { LaunchConfiguration, AttachConfiguration } from './adapter/launchConfiguration';
 
 let log = Log.create('FirefoxDebugSession');
 
 export class FirefoxDebugSession extends DebugSession {
 
+	private firefoxProc: ChildProcess = null;
 	private firefoxDebugConnection: DebugConnection;
 
 	private nextThreadId = 1;
@@ -64,9 +68,8 @@ export class FirefoxDebugSession extends DebugSession {
 		return this.firefoxDebugConnection.getOrCreate(longStringGrip.actor, () => 
 			new LongStringGripActorProxy(longStringGrip, this.firefoxDebugConnection));
 	}
-	
+
 	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
-		
 		response.body = {
 			supportsConfigurationDoneRequest: false,
 			supportsEvaluateForHovers: false,
@@ -74,9 +77,33 @@ export class FirefoxDebugSession extends DebugSession {
 			supportsConditionalBreakpoints: true
 		};
 		this.sendResponse(response);
+	}
+	
+    protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchConfiguration): void {
 
-		// connect to Firefox
-		this.firefoxDebugConnection = new DebugConnection();
+		this.firefoxProc = launchFirefox(args);
+
+		waitForSocket().then(
+			(socket) => {
+				this.startSession(socket);
+			},
+			(err) => {
+				log.error('Error: ' + err);
+			}
+		);
+		
+		this.sendResponse(response);
+	}
+
+    protected attachRequest(response: DebugProtocol.AttachResponse, args: AttachConfiguration): void {
+		let socket = connect(args.port);
+		this.startSession(socket);
+		this.sendResponse(response);
+	}
+	
+	private startSession(socket: Socket) {
+		
+		this.firefoxDebugConnection = new DebugConnection(socket);
 
 		// attach to all tabs, register the corresponding threads
 		// and inform VSCode about them
@@ -454,14 +481,24 @@ export class FirefoxDebugSession extends DebugSession {
 		Promise.all(detachPromises).then(
 			() => {
 				log.debug('All threads detached');
+				this.disconnect();
 				this.sendResponse(response);
 			},
 			(err) => {
 				log.warn(`Error while detaching: ${err}`);
+				this.disconnect();
 				this.sendResponse(response);
 			});
 	}
 
+	private disconnect() {
+		this.firefoxDebugConnection.disconnect().then(() => {
+			if (this.firefoxProc) {
+				this.firefoxProc.kill('SIGTERM');
+				this.firefoxProc = null;
+			}
+		});
+	}
 }
 
 DebugSession.run(FirefoxDebugSession);

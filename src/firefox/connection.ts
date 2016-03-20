@@ -15,10 +15,9 @@ export class DebugConnection {
 	private actors: Map<string, ActorProxy>;
 	private _rootActor: RootActorProxy;
 
-	constructor() {
+	constructor(socket: Socket) {
 		this.actors = new Map<string, ActorProxy>();
 		this._rootActor = new RootActorProxy(this);
-		let socket = new Socket();
 		this.transport = new DebugProtocolTransport(socket);
 		this.transport.on('message', (response: FirefoxDebugProtocol.Response) => {
 			if (this.actors.has(response.from)) {
@@ -28,7 +27,6 @@ export class DebugConnection {
 				log.error('Unknown actor: ' + JSON.stringify(response));
 			}
 		});
-		socket.connect(6000);
 	}
 
 	public get rootActor() {
@@ -54,5 +52,9 @@ export class DebugConnection {
 		} else {
 			return createActor();
 		}
+	}
+	
+	public disconnect(): Promise<void> {
+		return this.transport.disconnect();
 	}
 }

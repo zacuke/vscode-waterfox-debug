@@ -67,10 +67,18 @@ export class DebugProtocolTransport extends EventEmitter {
 		this.socket.write(msgBuf.length + ':', 'ascii');
 		this.socket.write(msgBuf);
 	}
+	
+	public disconnect(): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			this.socket.on('close', () => resolve());
+			this.socket.end();
+		});
+	}
 }
 
 export interface SocketLike {
 	on(event: string, listener: Function);
 	write(buffer: Buffer);
 	write(str: string, encoding: string);
+	end();
 }

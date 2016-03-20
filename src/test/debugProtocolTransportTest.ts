@@ -9,6 +9,7 @@ class MockSocket extends EventEmitter implements SocketLike {
 		this.emit('data', new Buffer(chunk))
 	}
 	public write(data: Buffer | string, encoding?: string) { }
+	public end() { }
 }
 
 let mockSocket = new MockSocket();
