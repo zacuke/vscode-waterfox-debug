@@ -183,8 +183,12 @@ export class FirefoxDebugSession extends DebugSession {
 			});
 		});
 
-		this.firefoxDebugConnection.rootActor.onInit(() => {
-			this.firefoxDebugConnection.rootActor.fetchTabs();
+		let rootActor = this.firefoxDebugConnection.rootActor;
+		rootActor.onTabListChanged(() => {
+			rootActor.fetchTabs();
+		});
+		rootActor.onInit(() => {
+			rootActor.fetchTabs();
 		});
 		
 		// now we are ready to accept breakpoints -> fire the initialized event to give UI a chance to set breakpoints
