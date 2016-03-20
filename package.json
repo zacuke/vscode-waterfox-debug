@@ -34,5 +34,89 @@
   "bugs": {
     "url": "https://github.com/hbenl/vscode-firefox-debug/issues"
   },
-  "homepage": "https://github.com/hbenl/vscode-firefox-debug"
+  "homepage": "https://github.com/hbenl/vscode-firefox-debug",
+  "contributes": {
+    "debuggers": [
+      {
+        "type": "firefox",
+        "label": "Firefox",
+        "program": "./out/firefoxDebugSession.js",
+        "runtime": "node",
+        "initialConfigurations": [
+          {
+            "name": "Launch index.html",
+            "type": "firefox",
+            "request": "launch",
+            "file": "${workspaceRoot}/index.html"
+          },
+          {
+            "name": "Attach",
+            "type": "firefox",
+            "request": "attach"
+          }
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "required": [],
+            "properties": {
+              "file": {
+                "type": "string",
+                "description": "The file to open in the browser",
+                "default": "${workspaceRoot}/index.html"
+              },
+              "url": {
+                "type": "string",
+                "description": "The url to open in the browser",
+                "default": "http://localhost:8080/index.html"
+              },
+              "webRoot": {
+                "type": "string",
+                "description": "If the 'url' property is specified, this property specifies the workspace absolute path corresponding to the webserver root",
+                "default": "${workspaceRoot}"
+              },
+              "firefoxExecutable": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Absolute path to the Firefox executable",
+                "default": null
+              },
+              "profile": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The name of the Firefox profile to use",
+                "default": null
+              },
+              "port": {
+                "type": "number",
+                "description": "The remote debugging port to use",
+                "default": 6000
+              },
+              "firefoxArgs": {
+                "type": "array",
+                "description": "Additional arguments passed to Firefox",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              }
+            }
+          },
+          "attach": {
+            "required": [],
+            "properties": {
+              "port": {
+                "type": "number",
+                "description": "The remote debugging port to use",
+                "default": 6000
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
 }
