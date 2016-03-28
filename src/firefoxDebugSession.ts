@@ -80,7 +80,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 		this.firefoxProc = launchFirefox(args);
 
-		waitForSocket().then(
+		waitForSocket(args).then(
 			(socket) => {
 				this.startSession(socket);
 				this.sendResponse(response);

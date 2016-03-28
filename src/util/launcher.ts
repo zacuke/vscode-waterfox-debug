@@ -27,9 +27,10 @@ export function launchFirefox(config: LaunchConfiguration): ChildProcess {
 	return childProc;
 }
 
-export function waitForSocket(): Promise<Socket> {
+export function waitForSocket(config: LaunchConfiguration): Promise<Socket> {
+	let port = config.port || 6000;
 	return new Promise<Socket>((resolve, reject) => {
-		tryConnect(200, 25, resolve, reject);
+		tryConnect(port, 200, 25, resolve, reject);
 	});
 }
 
@@ -82,12 +83,14 @@ function isExecutable(path: string): boolean {
 	}
 }
 
-function tryConnect(retryAfter: number, tries: number, resolve: (sock: Socket) => void, reject: (err: any) => void) {
-	let socket = connect(6000);
+function tryConnect(port: number, retryAfter: number, tries: number, 
+	resolve: (sock: Socket) => void, reject: (err: any) => void) {
+	
+	let socket = connect(port);
 	socket.on('connect', () => resolve(socket));
 	socket.on('error', (err) => {
 		if (tries > 0) {
-			setTimeout(() => tryConnect(retryAfter, tries - 1, resolve, reject), retryAfter);
+			setTimeout(() => tryConnect(port, retryAfter, tries - 1, resolve, reject), retryAfter);
 		} else {
 			reject(err);
 		}
