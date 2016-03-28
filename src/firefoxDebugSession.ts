@@ -83,19 +83,31 @@ export class FirefoxDebugSession extends DebugSession {
 		waitForSocket().then(
 			(socket) => {
 				this.startSession(socket);
+				this.sendResponse(response);
 			},
 			(err) => {
 				log.error('Error: ' + err);
+				response.success = false;
+				response.message = String(err);
+				this.sendResponse(response);
 			}
 		);
-		
-		this.sendResponse(response);
 	}
 
     protected attachRequest(response: DebugProtocol.AttachResponse, args: AttachConfiguration): void {
+
 		let socket = connect(args.port);
 		this.startSession(socket);
-		this.sendResponse(response);
+
+		socket.on('connect', () => {
+			this.sendResponse(response);
+		});
+
+		socket.on('error', (err) => {
+			response.success = false;
+			response.message = String(err);
+			this.sendResponse(response);
+		});
 	}
 	
 	private startSession(socket: Socket) {
@@ -547,12 +559,14 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 
 	private disconnect() {
-		this.firefoxDebugConnection.disconnect().then(() => {
-			if (this.firefoxProc) {
-				this.firefoxProc.kill('SIGTERM');
-				this.firefoxProc = null;
-			}
-		});
+		if (this.firefoxDebugConnection) {
+			this.firefoxDebugConnection.disconnect().then(() => {
+				if (this.firefoxProc) {
+					this.firefoxProc.kill('SIGTERM');
+					this.firefoxProc = null;
+				}
+			});
+		}
 	}
 }
 
