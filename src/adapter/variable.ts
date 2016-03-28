@@ -1,17 +1,37 @@
-import { ThreadAdapter } from './index';
+import { ThreadAdapter, ObjectGripAdapter } from './index';
 import { Variable } from 'vscode-debugadapter';
 
 export class VariableAdapter {
 	
-	public static getVariableFromGrip(varname: string, grip: FirefoxDebugProtocol.Grip, threadLifetime: boolean, threadAdapter: ThreadAdapter): Variable {
+	private varname: string;
+	private value: string;
+	private objectGripAdapter: ObjectGripAdapter;
+	
+	public constructor(varname: string, value: string, objectGripAdapter?: ObjectGripAdapter) {
+		this.varname = varname;
+		this.value = value;
+		this.objectGripAdapter = objectGripAdapter;
+	}
+	
+	public getVariable(): Variable {
+		return new Variable(this.varname, this.value, 
+			this.objectGripAdapter ? this.objectGripAdapter.variablesProviderId : undefined);
+	}
+	
+	public getObjectGripAdapter(): ObjectGripAdapter {
+		return this.objectGripAdapter;
+	}
+	
+	public static fromGrip(varname: string, grip: FirefoxDebugProtocol.Grip, 
+		threadLifetime: boolean, threadAdapter: ThreadAdapter): VariableAdapter {
 
 		if ((typeof grip === 'boolean') || (typeof grip === 'number')) {
 
-			return new Variable(varname, grip.toString());
+			return new VariableAdapter(varname, grip.toString());
 
 		} else if (typeof grip === 'string') {
 
-			return new Variable(varname, `"${grip}"`);
+			return new VariableAdapter(varname, `"${grip}"`);
 
 		} else {
 
@@ -24,42 +44,43 @@ export class VariableAdapter {
 				case 'NaN':
 				case '-0':
 
-					return new Variable(varname, grip.type);
+					return new VariableAdapter(varname, grip.type);
 
 				case 'longString':
 
-					return new Variable(varname, (<FirefoxDebugProtocol.LongStringGrip>grip).initial);
+					return new VariableAdapter(varname, 
+						(<FirefoxDebugProtocol.LongStringGrip>grip).initial);
 
 				case 'object':
 
 					let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
 					let vartype = objectGrip.class;
-					let variablesProvider = threadAdapter.getOrCreateObjectGripAdapter(objectGrip, threadLifetime);
-					return new Variable(varname, vartype, variablesProvider.variablesProviderId);
+					let objectGripAdapter = threadAdapter.getOrCreateObjectGripAdapter(objectGrip, threadLifetime);
+					return new VariableAdapter(varname, vartype, objectGripAdapter);
 
 			}
 		}
 	}
 
-	public static getVariableFromPropertyDescriptor(varname: string, propertyDescriptor: FirefoxDebugProtocol.PropertyDescriptor, 
-		extendLifetime: boolean, threadAdapter: ThreadAdapter): Variable {
+	public static fromPropertyDescriptor(varname: string, propertyDescriptor: FirefoxDebugProtocol.PropertyDescriptor, 
+		threadLifetime: boolean, threadAdapter: ThreadAdapter): VariableAdapter {
 			
 		if ((<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value !== undefined) {
-			return VariableAdapter.getVariableFromGrip(varname, (<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value, extendLifetime, threadAdapter);
+			return VariableAdapter.fromGrip(varname, (<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value, threadLifetime, threadAdapter);
 		} else {
-			return new Variable(varname, 'unknown');
+			return new VariableAdapter(varname, 'unknown');
 		}
 	}
 
-	public static getVariableFromSafeGetterValueDescriptor(varname: string, 
+	public static fromSafeGetterValueDescriptor(varname: string, 
 		safeGetterValueDescriptor: FirefoxDebugProtocol.SafeGetterValueDescriptor, 
-		extendLifetime: boolean, threadAdapter: ThreadAdapter): Variable {
+		threadLifetime: boolean, threadAdapter: ThreadAdapter): VariableAdapter {
 
-		return VariableAdapter.getVariableFromGrip(varname, safeGetterValueDescriptor.getterValue, extendLifetime, threadAdapter);	
+		return VariableAdapter.fromGrip(varname, safeGetterValueDescriptor.getterValue, threadLifetime, threadAdapter);
 	}
 
-	public static sortVariables(variables: Variable[]): void {
-		variables.sort((var1, var2) => VariableAdapter.compareStrings(var1.name, var2.name));
+	public static sortVariables(variables: VariableAdapter[]): void {
+		variables.sort((var1, var2) => VariableAdapter.compareStrings(var1.varname, var2.varname));
 	}
 	
 	private static compareStrings(s1: string, s2: string): number {

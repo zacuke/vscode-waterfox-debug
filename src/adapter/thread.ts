@@ -87,12 +87,12 @@ export class ThreadAdapter {
 	public disposePauseLifetimeAdapters() {
 		
 		let objectGripActorsToRelease = this.pauseLifetimeObjects.map(
-			(objectGripAdapter) => objectGripAdapter.actorName);
+			(objectGripAdapter) => objectGripAdapter.actor.name);
 		this.actor.releaseMany(objectGripActorsToRelease);
 		
 		this.pauseLifetimeObjects.forEach((objectGripAdapter) => {
 			objectGripAdapter.dispose();
-			this.objectGripAdaptersByActorName.delete(objectGripAdapter.actorName);
+			this.objectGripAdaptersByActorName.delete(objectGripAdapter.actor.name);
 		});
 		this.pauseLifetimeObjects = [];
 
@@ -107,34 +107,33 @@ export class ThreadAdapter {
 		this.frames = [];
 	}
 	
+	/**
+	 * get the FrameAdapters for this thread's stackframes.
+	 * This method can only be called when the thread is paused.
+	 */
 	public fetchStackFrames(levels: number): Promise<FrameAdapter[]> {
 
-		return this.actor.runOnPausedThread((finished) => 
-			this.actor.fetchStackFrames(levels).then(
-				([frames, completionValue]) => {
+		return this.actor.fetchStackFrames(levels).then(([frames, completionValue]) => {
 
-					let frameAdapters = frames.map((frame) => {
-						let frameAdapter = new FrameAdapter(frame, this);
-						this._debugSession.registerFrameAdapter(frameAdapter);
-						this.frames.push(frameAdapter);
-						return frameAdapter;
-					});
-					
-					if (frameAdapters.length > 0) {
-						frameAdapters[0].scopeAdapters[0].addCompletionValue(completionValue);
-					}
-					
-					finished();
-					
-					return frameAdapters;
-				},
-				(err) => {
-					finished();
-					throw err;
-				})
-		);
+			let frameAdapters = frames.map((frame) => {
+				let frameAdapter = new FrameAdapter(frame, this);
+				this._debugSession.registerFrameAdapter(frameAdapter);
+				this.frames.push(frameAdapter);
+				return frameAdapter;
+			});
+			
+			if (frameAdapters.length > 0) {
+				frameAdapters[0].scopeAdapters[0].addCompletionValue(completionValue);
+			}
+			
+			return frameAdapters;
+		});
 	}
 	
+	/**
+	 * evaluate a javascript expression on the given stackframe.
+	 * This method can only be called when the thread is paused.
+	 */
 	public evaluate(expression: string, frameAdapter: FrameAdapter): Promise<FirefoxDebugProtocol.Grip> {
 		return this.actor.evaluate(expression, frameAdapter.frame.actor);
 	}

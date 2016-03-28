@@ -6,55 +6,51 @@ export class ObjectGripAdapter implements VariablesProvider {
 	
 	public isThreadLifetime: boolean;
 	public variablesProviderId: number;
-	public get actorName(): string {
-		return this.actor.name;
+	public threadAdapter: ThreadAdapter;
+	public get actor(): ObjectGripActorProxy {
+		return this._actor;
 	}
 	
-	private threadAdapter: ThreadAdapter;
-	private actor: ObjectGripActorProxy;
+	private _actor: ObjectGripActorProxy;
 
 	public constructor(objectGrip: FirefoxDebugProtocol.ObjectGrip, threadLifetime: boolean, threadAdapter: ThreadAdapter) {
 
 		this.threadAdapter = threadAdapter;
-		this.actor = threadAdapter.debugSession.getOrCreateObjectGripActorProxy(objectGrip);
+		this._actor = threadAdapter.debugSession.getOrCreateObjectGripActorProxy(objectGrip);
 		this.isThreadLifetime = threadLifetime;
 
 		this.threadAdapter.debugSession.registerVariablesProvider(this);
 	}
 
-	public getVariables(): Promise<Variable[]> {
+	/**
+	 * get the referenced object's properties and its prototype as an array of Variables.
+	 * This method can only be called when the thread is paused.
+	 */
+	public getVariables(): Promise<VariableAdapter[]> {
 
-		return this.threadAdapter.actor.runOnPausedThread((finished) => 
+		return this.actor.fetchPrototypeAndProperties().then((prototypeAndProperties) => {
 
-			this.actor.fetchPrototypeAndProperties().then(
-				(prototypeAndProperties) => {
-
-					let variables: Variable[] = [];
-					
-					for (let varname in prototypeAndProperties.ownProperties) {
-						variables.push(VariableAdapter.getVariableFromPropertyDescriptor(varname, 
-							prototypeAndProperties.ownProperties[varname], this.isThreadLifetime, this.threadAdapter));
-					}
-					
-					for (let varname in prototypeAndProperties.safeGetterValues) {
-						variables.push(VariableAdapter.getVariableFromSafeGetterValueDescriptor(varname, 
-							prototypeAndProperties.safeGetterValues[varname], this.isThreadLifetime, this.threadAdapter));
-					}
-
-					VariableAdapter.sortVariables(variables);
-					
-					if (prototypeAndProperties.prototype !== null)
-						variables.push(VariableAdapter.getVariableFromGrip('[prototype]', prototypeAndProperties.prototype, this.isThreadLifetime, this.threadAdapter));
+			let variables: VariableAdapter[] = [];
 			
-					finished();
+			for (let varname in prototypeAndProperties.ownProperties) {
+				variables.push(VariableAdapter.fromPropertyDescriptor(varname,
+					prototypeAndProperties.ownProperties[varname], this.isThreadLifetime, this.threadAdapter));
+			}
+			
+			for (let varname in prototypeAndProperties.safeGetterValues) {
+				variables.push(VariableAdapter.fromSafeGetterValueDescriptor(varname, 
+					prototypeAndProperties.safeGetterValues[varname], this.isThreadLifetime, this.threadAdapter));
+			}
 
-					return variables;
-				},
-				(err) => {
-					finished();
-					throw err;
-				})
-		);
+			VariableAdapter.sortVariables(variables);
+			
+			if (prototypeAndProperties.prototype !== null) {
+				variables.push(VariableAdapter.fromGrip('[prototype]', 
+					prototypeAndProperties.prototype, this.isThreadLifetime, this.threadAdapter));
+			}
+	
+			return variables;
+		});
 	}
 	
 	public dispose(): void {

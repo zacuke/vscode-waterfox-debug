@@ -1,14 +1,16 @@
 import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { DebugConnection } from '../connection';
-import { PendingRequests } from './pendingRequests';
+import { PendingRequests, PendingRequest } from './pendingRequests';
 import { ActorProxy } from './interface';
 
 let log = Log.create('ObjectGripActorProxy');
 
 export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
-	
-	private pendingPrototypeAndPropertiesRequests = new PendingRequests<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>();
+
+	private pendingThreadGripRequest: PendingRequest<void> = null;
+	private threadGripPromise: Promise<void> = null;
+ 	private pendingPrototypeAndPropertiesRequests = new PendingRequests<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>();
 
 	constructor(private grip: FirefoxDebugProtocol.ObjectGrip, private connection: DebugConnection) {
 		super();
@@ -19,9 +21,18 @@ export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
 		return this.grip.actor;
 	}
 
-	public extendLifetime() {
-		log.debug(`Extending lifetime of ${this.name}`);
-		this.connection.sendRequest({ to: this.name, type: 'threadGrip' });
+	public extendLifetime(): Promise<void> {
+		if (this.threadGripPromise != null) {
+			return this.threadGripPromise;
+		}
+		
+ 		log.debug(`Extending lifetime of ${this.name}`);
+		
+		this.threadGripPromise = new Promise<void>((resolve, reject) => {
+			this.pendingThreadGripRequest = { resolve, reject };
+			this.connection.sendRequest({ to: this.name, type: 'threadGrip' });
+		});
+		return this.threadGripPromise;
 	}
 	
 	public fetchPrototypeAndProperties(): Promise<FirefoxDebugProtocol.PrototypeAndPropertiesResponse> {
@@ -47,13 +58,24 @@ export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
 			
 		} else if (Object.keys(response).length === 1) {
 			
-			log.debug('Received response to threadGrip or release request');
+			log.debug('Received response to threadGrip request');
+
+			if (this.pendingThreadGripRequest != null) {
+				this.pendingThreadGripRequest.resolve(undefined);
+				this.pendingThreadGripRequest = null;
+			} else {
+				log.warn('Received threadGrip response without pending request');
+			}
 			
 		} else if (response['error'] === 'noSuchActor') {
 			
 			log.error(`No such actor ${JSON.stringify(this.grip)}`);
 			this.pendingPrototypeAndPropertiesRequests.rejectAll('No such actor');
-			
+			if (this.pendingThreadGripRequest != null) {
+				this.pendingThreadGripRequest.resolve(undefined);
+				this.pendingThreadGripRequest = null;
+			}
+
 		} else {
 			
 			log.warn("Unknown message from ObjectGripActor: " + JSON.stringify(response));

@@ -1,5 +1,6 @@
 import { Log } from '../util/log';
-import { ThreadAdapter, EnvironmentAdapter, ScopeAdapter } from '../adapter/index';
+import { concatArrays } from '../util/misc';
+import { ThreadAdapter, EnvironmentAdapter, ScopeAdapter, ObjectGripAdapter } from '../adapter/index';
 import { Source, StackFrame } from 'vscode-debugadapter';
 
 let log = Log.create('FrameAdapter');
@@ -73,6 +74,11 @@ export class FrameAdapter {
 		return new StackFrame(this.id, name, source, this.frame.where.line, this.frame.where.column);
 	}
 
+	public getObjectGripAdapters(): ObjectGripAdapter[] {
+		return concatArrays(this.scopeAdapters.map(
+			(scopeAdapter) => scopeAdapter.getObjectGripAdapters()));
+	}
+	
 	public evaluate(expression: string): Promise<FirefoxDebugProtocol.Grip> {
 		return this.threadAdapter.evaluate(expression, this);
 	}

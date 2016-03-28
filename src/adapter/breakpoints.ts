@@ -8,11 +8,11 @@ let log = Log.create('BreakpointsAdapter');
 export class BreakpointsAdapter {
 
 	public static setBreakpointsOnSourceActor(breakpointsToSet: BreakpointInfo[], sourceAdapter: SourceAdapter, threadActor: ThreadActorProxy): Promise<BreakpointAdapter[]> {
-		return threadActor.runOnPausedThread((resume) => 
-			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter, resume));
+		return threadActor.runOnPausedThread((finished) => 
+			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter, finished));
 	}
 
-	private static setBreakpointsOnPausedSourceActor(breakpointsToSet: BreakpointInfo[], sourceAdapter: SourceAdapter, resume: () => void): Promise<BreakpointAdapter[]> {
+	private static setBreakpointsOnPausedSourceActor(breakpointsToSet: BreakpointInfo[], sourceAdapter: SourceAdapter, finished: () => void): Promise<BreakpointAdapter[]> {
 
 		log.debug(`Setting ${breakpointsToSet.length} breakpoints for ${sourceAdapter.actor.url}`);
 		
@@ -71,12 +71,12 @@ export class BreakpointsAdapter {
 					Promise.all(breakpointsBeingSet)).then(
 						() => {
 							resolve(newBreakpoints);
-							resume();
+							finished();
 						},
 						(err) => {
 							log.error(`Failed setting breakpoints: ${err}`);
 							reject(err);
-							resume();
+							finished();
 						});
 				});
 		});

@@ -1,11 +1,12 @@
 import { connect, Socket } from 'net';
 import { ChildProcess } from 'child_process';
 import { Log } from './util/log';
+import { concatArrays } from './util/misc';
 import { launchFirefox, waitForSocket } from './util/launcher';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, Thread, StackFrame, Scope, Variable, Source, Breakpoint } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, ExceptionBreakpoints, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
-import { ThreadAdapter, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, VariableAdapter } from './adapter/index';
+import { ThreadAdapter, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, VariableAdapter, ObjectGripAdapter } from './adapter/index';
 import { LaunchConfiguration, AttachConfiguration } from './adapter/launchConfiguration';
 
 let log = Log.create('FirefoxDebugSession');
@@ -56,12 +57,8 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 	
 	public getOrCreateObjectGripActorProxy(objectGrip: FirefoxDebugProtocol.ObjectGrip): ObjectGripActorProxy {
-		return this.firefoxDebugConnection.getOrCreate(objectGrip.actor, 
-			() => {
-				let actorProxy = new ObjectGripActorProxy(objectGrip, this.firefoxDebugConnection);
-				actorProxy.extendLifetime();
-				return actorProxy;
-			});
+		return this.firefoxDebugConnection.getOrCreate(objectGrip.actor, () => 
+			new ObjectGripActorProxy(objectGrip, this.firefoxDebugConnection));
 	}
 	
 	public getOrCreateLongStringGripActorProxy(longStringGrip: FirefoxDebugProtocol.LongStringGrip): LongStringGripActorProxy {
@@ -105,14 +102,12 @@ export class FirefoxDebugSession extends DebugSession {
 		
 		this.firefoxDebugConnection = new DebugConnection(socket);
 
-		// attach to all tabs, register the corresponding threads
-		// and inform VSCode about them
+		// attach to all tabs, register the corresponding threads and inform VSCode about them
 		this.firefoxDebugConnection.rootActor.onTabOpened((tabActor) => {
 			
 			log.info(`Tab opened with url ${tabActor.url}`);
 			
-			tabActor.attach().then(
-			(threadActor) => {
+			tabActor.attach().then((threadActor) => {
 
 				log.debug(`Attached to tab ${tabActor.name}`);
 
@@ -342,19 +337,31 @@ export class FirefoxDebugSession extends DebugSession {
 
 		log.debug(`Received stackTraceRequest for ${threadAdapter.actor.name}`);
 
-		threadAdapter.fetchStackFrames(args.levels).then(
-			(frameAdapters) => {
+		threadAdapter.actor.runOnPausedThread((finished) => {
+			threadAdapter.fetchStackFrames(args.levels).then(
+				(frameAdapters) => {
 
-				response.body = { stackFrames: frameAdapters.map((frameAdapter) => frameAdapter.getStackframe()) };
-				this.sendResponse(response);
+					response.body = { stackFrames: frameAdapters.map(
+						(frameAdapter) => frameAdapter.getStackframe()) };
+					this.sendResponse(response);
 
-			},
-			(err) => {
-				log.error(`Failed fetching stackframes: ${err}`);
-				response.success = false;
-				response.message = String(err);
-				this.sendResponse(response);
-			});
+					let objectGripAdapters = concatArrays(frameAdapters.map(
+						(frameAdapter) => frameAdapter.getObjectGripAdapters()));
+					
+					let extendLifetimePromises = objectGripAdapters.map(
+						(objectGripAdapter) => objectGripAdapter.actor.extendLifetime());
+					
+					Promise.all(extendLifetimePromises).then(() => finished());
+					
+				},
+				(err) => {
+					log.error(`Failed fetching stackframes: ${err}`);
+					response.success = false;
+					response.message = String(err);
+					this.sendResponse(response);
+					finished();
+				});
+		});
 	}
 	
 	protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): void {
@@ -390,16 +397,31 @@ export class FirefoxDebugSession extends DebugSession {
 			return;
 		}
 		
-		variablesProvider.getVariables().then(
-			(vars) => {
-				response.body = { variables: vars };
-				this.sendResponse(response);
-			},
-			(err) => {
-				response.success = false;
-				response.message = String(err);
-				this.sendResponse(response);
-			});
+		variablesProvider.threadAdapter.actor.runOnPausedThread((finished) => {
+			variablesProvider.getVariables().then(
+				(variableAdapters) => {
+					
+					response.body = { variables: variableAdapters.map(
+						(variableAdapter) => variableAdapter.getVariable()) };
+					this.sendResponse(response);
+					
+					let objectGripAdapters = variableAdapters
+						.map((variableAdapter) => variableAdapter.getObjectGripAdapter())
+						.filter((objectGripAdapter) => (objectGripAdapter != null));
+					
+					let extendLifetimePromises = objectGripAdapters.map(
+						(objectGripAdapter) => objectGripAdapter.actor.extendLifetime());
+					
+					Promise.all(extendLifetimePromises).then(() => finished());
+					
+				},
+				(err) => {
+					response.success = false;
+					response.message = String(err);
+					this.sendResponse(response);
+					finished();
+				});
+		});
 	}
 	
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
@@ -409,27 +431,54 @@ export class FirefoxDebugSession extends DebugSession {
 		if (args.frameId !== undefined) {
 			
 			let frameAdapter = this.framesById.get(args.frameId);
-			
-			frameAdapter.evaluate(args.expression)
-			.then(
-				(grip) => {
 
-					let variable = (grip === undefined) ? new Variable('', 'undefined') : VariableAdapter.getVariableFromGrip('', grip, (args.context !== 'watch'), frameAdapter.threadAdapter);
-					response.body = { result: variable.value, variablesReference: variable.variablesReference };
-					this.sendResponse(response);
+			frameAdapter.threadAdapter.actor.runOnPausedThread((finished) => {
+				frameAdapter.evaluate(args.expression).then(
+					(grip) => {
 
-				},
-				(err) => {
-					log.error(`Failed evaluating "${args.expression}": ${err}`);
-					response.success = false;
-					response.message = String(err);
-					this.sendResponse(response);
-				});
+						if (grip !== undefined) {
+							
+							let variableAdapter = VariableAdapter.fromGrip(
+								'', grip, (args.context !== 'watch'), frameAdapter.threadAdapter);
+							
+							let variable = variableAdapter.getVariable();
+							response.body = { 
+								result: variable.value, 
+								variablesReference: variable.variablesReference
+							};
+							this.sendResponse(response);
+
+							let objectGripAdapter = variableAdapter.getObjectGripAdapter();
+							if (objectGripAdapter != null) {
+								objectGripAdapter.actor.extendLifetime().then(() => finished());
+							} else {
+								finished();
+							}
+							
+						} else {
+
+							response.body = { 
+								result: 'undefined',
+								variablesReference: undefined
+							};
+							this.sendResponse(response);
+							finished();
+							
+						}
+					},
+					(err) => {
+						log.error(`Failed evaluating "${args.expression}": ${err}`);
+						response.success = false;
+						response.message = String(err);
+						this.sendResponse(response);
+						finished();
+					});
+			});
 			
 		} else {
 			log.error(`Failed evaluating "${args.expression}": Can't find requested evaluation frame`);
 			response.success = false;
-			response.message = String('Can\'t find requested evaluation frame');
+			response.message = 'Can\'t find requested evaluation frame';
 			this.sendResponse(response);
 		}
 	}
