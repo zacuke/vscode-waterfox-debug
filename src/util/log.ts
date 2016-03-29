@@ -33,6 +33,8 @@ export class Log {
 		Log.logs.forEach((log) => log.configure());
 	}
 	
+	public static consoleLog: (msg: string) => void = console.log;
+	
 	public static create(name: string): Log {
 		return new Log(name);
 	}
@@ -81,7 +83,7 @@ export class Log {
 				fs.write(Log.fileDescriptor, logMsg + '\n');
 			}
 			if (level >= this.consoleLevel) {
-				console.log(logMsg);
+				Log.consoleLog(logMsg);
 			}
 		}
 	}

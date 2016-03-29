@@ -34,6 +34,12 @@ export class FirefoxDebugSession extends DebugSession {
 	
 	public constructor(debuggerLinesStartAt1: boolean, isServer: boolean = false) {
 		super(debuggerLinesStartAt1, isServer);
+		
+		if (!isServer) {
+			Log.consoleLog = (msg: string) => {
+				this.sendEvent(new OutputEvent(msg + '\n'));
+			}
+		}
 	}
 
 	public registerVariablesProvider(variablesProvider: VariablesProvider) {
