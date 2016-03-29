@@ -40,9 +40,21 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 			let tabsResponse = <FirefoxDebugProtocol.TabsResponse>response;
 			let currentTabs = new Map<string, TabActorProxy>();
+
+			// sometimes Firefox returns 0 tabs if the listTabs request was sent 
+			// shortly after launching it
+			if (tabsResponse.tabs.length === 0) {
+				log.info('Received 0 tabs - will retry in 100ms');
+				
+				setTimeout(() => {
+					this.connection.sendRequest({ to: this.name, type: 'listTabs' });
+				}, 100);
+				
+				return;
+			}
 			
 			log.debug(`Received ${tabsResponse.tabs.length} tabs`);
-			
+
 			// convert the Tab array into a map of TabActorProxies, re-using already 
 			// existing proxies and emitting tabOpened events for new ones
 			tabsResponse.tabs.forEach((tab) => {
