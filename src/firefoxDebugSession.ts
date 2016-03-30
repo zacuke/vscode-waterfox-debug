@@ -148,7 +148,7 @@ export class FirefoxDebugSession extends DebugSession {
 
     protected attachRequest(response: DebugProtocol.AttachResponse, args: AttachConfiguration): void {
 
-		let socket = connect(args.port);
+		let socket = connect(args.port || 6000);
 		this.startSession(socket);
 
 		socket.on('connect', () => {
