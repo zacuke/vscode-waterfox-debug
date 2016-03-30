@@ -1,15 +1,18 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
 
-export interface LaunchConfiguration extends DebugProtocol.LaunchRequestArguments {
-	file?: string;
+export interface WebRootConfiguration {
 	url?: string;
 	webRoot?: string;
+}
+
+export interface LaunchConfiguration extends WebRootConfiguration, DebugProtocol.LaunchRequestArguments {
+	file?: string;
 	firefoxExecutable?: string;
 	profile?: string;
 	port?: number;
 	firefoxArgs?: string[];
 }
 
-export interface AttachConfiguration extends DebugProtocol.AttachRequestArguments {
+export interface AttachConfiguration extends WebRootConfiguration, DebugProtocol.AttachRequestArguments {
 	port?: number;
 }

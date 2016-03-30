@@ -8,7 +8,7 @@ import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEv
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, ExceptionBreakpoints, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, VariableAdapter, ObjectGripAdapter } from './adapter/index';
-import { LaunchConfiguration, AttachConfiguration } from './adapter/launchConfiguration';
+import { WebRootConfiguration, LaunchConfiguration, AttachConfiguration } from './adapter/launchConfiguration';
 
 let log = Log.create('FirefoxDebugSession');
 
@@ -122,13 +122,7 @@ export class FirefoxDebugSession extends DebugSession {
 	
     protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchConfiguration): void {
 
-		if (args.url) {
-			this.webRootUrl = args.url;
-			if (this.webRootUrl.indexOf('/') >= 0) {
-				this.webRootUrl = this.webRootUrl.substr(0, this.webRootUrl.lastIndexOf('/'));
-			}
-			this.webRoot = args.webRoot;
-		}
+		this.readWebRootConfiguration(args);
 		
 		this.firefoxProc = launchFirefox(args);
 
@@ -148,6 +142,8 @@ export class FirefoxDebugSession extends DebugSession {
 
     protected attachRequest(response: DebugProtocol.AttachResponse, args: AttachConfiguration): void {
 
+		this.readWebRootConfiguration(args);
+		
 		let socket = connect(args.port || 6000);
 		this.startSession(socket);
 
@@ -160,6 +156,16 @@ export class FirefoxDebugSession extends DebugSession {
 			response.message = String(err);
 			this.sendResponse(response);
 		});
+	}
+	
+	private readWebRootConfiguration(args: WebRootConfiguration) {
+		if (args.url) {
+			this.webRootUrl = args.url;
+			if (this.webRootUrl.indexOf('/') >= 0) {
+				this.webRootUrl = this.webRootUrl.substr(0, this.webRootUrl.lastIndexOf('/'));
+			}
+			this.webRoot = args.webRoot;
+		}
 	}
 	
 	private startSession(socket: Socket) {

@@ -65,9 +65,9 @@
                 "default": "${workspaceRoot}/index.html"
               },
               "url": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "The url to open in the browser",
-                "default": "http://localhost:8080/index.html"
+                "default": null
               },
               "webRoot": {
                 "type": "string",
@@ -75,18 +75,12 @@
                 "default": "${workspaceRoot}"
               },
               "firefoxExecutable": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "description": "Absolute path to the Firefox executable",
                 "default": null
               },
               "profile": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "description": "The name of the Firefox profile to use",
                 "default": null
               },
@@ -108,6 +102,16 @@
           "attach": {
             "required": [],
             "properties": {
+              "url": {
+                "type": ["string", "null"],
+                "description": "The url to open in the browser",
+                "default": null
+              },
+              "webRoot": {
+                "type": "string",
+                "description": "If the 'url' property is specified, this property specifies the workspace absolute path corresponding to the path of the url",
+                "default": "${workspaceRoot}"
+              },
               "port": {
                 "type": "number",
                 "description": "The remote debugging port to use",
