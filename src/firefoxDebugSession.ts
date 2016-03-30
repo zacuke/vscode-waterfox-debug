@@ -37,6 +37,8 @@ export class FirefoxDebugSession extends DebugSession {
 	private nextSourceId = 1;
 	private sourcesById = new Map<number, SourceAdapter>();
 	
+	private exceptionBreakpoints: ExceptionBreakpoints = ExceptionBreakpoints.All;
+	
 	public constructor(debuggerLinesStartAt1: boolean, isServer: boolean = false) {
 		super(debuggerLinesStartAt1, isServer);
 
@@ -241,7 +243,7 @@ export class FirefoxDebugSession extends DebugSession {
 					this.sendEvent(new ThreadEvent('exited', threadId));
 				});
 				
-
+				threadActor.setExceptionBreakpoints(this.exceptionBreakpoints);
 				threadActor.resume();
 
 				this.sendEvent(new ThreadEvent('started', threadId));
@@ -352,16 +354,16 @@ export class FirefoxDebugSession extends DebugSession {
 	
 	protected setExceptionBreakPointsRequest(response: DebugProtocol.SetExceptionBreakpointsResponse, args: DebugProtocol.SetExceptionBreakpointsArguments): void {
 		
-		let exceptionBreakpoints = ExceptionBreakpoints.None;
+		this.exceptionBreakpoints = ExceptionBreakpoints.None;
 		
 		if (args.filters.indexOf('all') >= 0) {
-			exceptionBreakpoints = ExceptionBreakpoints.All;
+			this.exceptionBreakpoints = ExceptionBreakpoints.All;
 		} else if (args.filters.indexOf('uncaught') >= 0) {
-			exceptionBreakpoints = ExceptionBreakpoints.Uncaught;
+			this.exceptionBreakpoints = ExceptionBreakpoints.Uncaught;
 		}
 		
 		this.threadsById.forEach((threadAdapter) => 
-			threadAdapter.actor.setExceptionBreakpoints(exceptionBreakpoints));
+			threadAdapter.actor.setExceptionBreakpoints(this.exceptionBreakpoints));
 
 		this.sendResponse(response);			
 	}
