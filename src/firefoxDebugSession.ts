@@ -165,6 +165,9 @@ export class FirefoxDebugSession extends DebugSession {
 				this.webRootUrl = this.webRootUrl.substr(0, this.webRootUrl.lastIndexOf('/'));
 			}
 			this.webRoot = args.webRoot;
+			if (this.isWindowsPlatform) {
+				this.webRoot = this.webRoot.replace(/\\/g, '/');
+			}
 		}
 	}
 	
