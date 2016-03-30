@@ -71,7 +71,7 @@
               },
               "webRoot": {
                 "type": "string",
-                "description": "If the 'url' property is specified, this property specifies the workspace absolute path corresponding to the webserver root",
+                "description": "If the 'url' property is specified, this property specifies the workspace absolute path corresponding to the path of the url",
                 "default": "${workspaceRoot}"
               },
               "firefoxExecutable": {

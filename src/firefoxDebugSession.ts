@@ -1,3 +1,4 @@
+import { platform } from 'os';
 import { connect, Socket } from 'net';
 import { ChildProcess } from 'child_process';
 import { Log } from './util/log';
@@ -16,6 +17,10 @@ export class FirefoxDebugSession extends DebugSession {
 	private firefoxProc: ChildProcess = null;
 	private firefoxDebugConnection: DebugConnection;
 
+	private webRootUrl: string;
+	private webRoot: string;
+	private isWindowsPlatform: boolean;
+	
 	private nextThreadId = 1;
 	private threadsById = new Map<number, ThreadAdapter>();
 	
@@ -34,6 +39,8 @@ export class FirefoxDebugSession extends DebugSession {
 	
 	public constructor(debuggerLinesStartAt1: boolean, isServer: boolean = false) {
 		super(debuggerLinesStartAt1, isServer);
+
+		this.isWindowsPlatform = (platform() === 'win32');
 		
 		if (!isServer) {
 			Log.consoleLog = (msg: string) => {
@@ -72,6 +79,37 @@ export class FirefoxDebugSession extends DebugSession {
 			new LongStringGripActorProxy(longStringGrip, this.firefoxDebugConnection));
 	}
 
+	public convertPathToFirefoxUrl(path: string): string {
+		if (this.isWindowsPlatform) {
+			path = path.replace(/\\/g, '/');
+		}
+		if (this.webRoot) {
+			if (path.substr(0, this.webRoot.length) === this.webRoot) {
+				return this.webRootUrl + path.substr(this.webRoot.length);
+			} else {
+				log.warn(`Can't convert path ${path} to url`);
+				return null;
+			}
+		} else {
+			return (this.isWindowsPlatform ? 'file:///' : 'file://') + path;
+		}
+	}
+	
+	public convertFirefoxUrlToPath(url: string): string {
+		if (this.webRootUrl && (url.substr(0, this.webRootUrl.length) === this.webRootUrl)) {
+			url = this.webRoot + url.substr(this.webRootUrl.length);
+		} else if (url.substr(0, 7) === 'file://') {
+			url = url.substr(this.isWindowsPlatform ? 8 : 7);
+		} else {
+			log.warn(`Can't convert url ${url} to local path`);
+			return null;
+		}
+		if (this.isWindowsPlatform) {
+			url = url.replace(/\//g, '\\');
+		}
+		return url;
+	}
+	
 	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
 		response.body = {
 			supportsConfigurationDoneRequest: false,
@@ -84,6 +122,14 @@ export class FirefoxDebugSession extends DebugSession {
 	
     protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchConfiguration): void {
 
+		if (args.url) {
+			this.webRootUrl = args.url;
+			if (this.webRootUrl.indexOf('/') >= 0) {
+				this.webRootUrl = this.webRootUrl.substr(0, this.webRootUrl.lastIndexOf('/'));
+			}
+			this.webRoot = args.webRoot;
+		}
+		
 		this.firefoxProc = launchFirefox(args);
 
 		waitForSocket(args).then(
@@ -225,7 +271,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 		log.debug(`Received setBreakpointsRequest with ${args.breakpoints.length} breakpoints for ${args.source.path}`);
 
-		let firefoxSourceUrl = 'file://' + this.convertDebuggerPathToClient(args.source.path);
+		let firefoxSourceUrl = this.convertPathToFirefoxUrl(args.source.path);
 		let breakpointInfos = args.breakpoints.map((breakpoint) => <BreakpointInfo>{ 
 			id: this.nextBreakpointId++, 
 			requestedLine: breakpoint.line,
