@@ -124,7 +124,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 		this.readWebRootConfiguration(args);
 		
-		this.firefoxProc = launchFirefox(args);
+		this.firefoxProc = launchFirefox(args, (path) => this.convertPathToFirefoxUrl(path));
 
 		waitForSocket(args).then(
 			(socket) => {

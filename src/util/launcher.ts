@@ -4,12 +4,13 @@ import { connect, Socket } from 'net';
 import { spawn, ChildProcess } from 'child_process';
 import { LaunchConfiguration } from '../adapter/launchConfiguration';
 
-export function launchFirefox(config: LaunchConfiguration): ChildProcess {
+export function launchFirefox(
+	config: LaunchConfiguration, convertPathToFirefoxUrl: (path: string) => string): ChildProcess {
 
 	let firefoxPath = getFirefoxExecutablePath(config);	
 	
 	let port = config.port || 6000;
-	let firefoxArgs: string[] = [ '--start-debugger-server', String(port), '--no-remote' ];
+	let firefoxArgs: string[] = [ '-start-debugger-server', String(port), '-no-remote' ];
 	if (config.profile) {
 		firefoxArgs.push('-P', config.profile);
 	}
@@ -17,7 +18,7 @@ export function launchFirefox(config: LaunchConfiguration): ChildProcess {
 		firefoxArgs = firefoxArgs.concat(config.firefoxArgs);
 	}
 	if (config.file) {
-		firefoxArgs.push(config.file);
+		firefoxArgs.push(convertPathToFirefoxUrl(config.file));
 	} else if (config.url) {
 		firefoxArgs.push(config.url);
 	}
