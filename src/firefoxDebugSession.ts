@@ -144,7 +144,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 		this.readWebRootConfiguration(args);
 		
-		let socket = connect(args.port || 6000);
+		let socket = connect(args.port || 6000, args.host || 'localhost');
 		this.startSession(socket);
 
 		socket.on('connect', () => {

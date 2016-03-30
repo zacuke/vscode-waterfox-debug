@@ -15,4 +15,5 @@ export interface LaunchConfiguration extends WebRootConfiguration, DebugProtocol
 
 export interface AttachConfiguration extends WebRootConfiguration, DebugProtocol.AttachRequestArguments {
 	port?: number;
+	host?: string;
 }

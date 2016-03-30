@@ -116,6 +116,11 @@
                 "type": "number",
                 "description": "The remote debugging port to use",
                 "default": 6000
+              },
+              "host": {
+                "type": "string",
+                "description": "The remote debugging host to use",
+                "default": "localhost"
               }
             }
           }
