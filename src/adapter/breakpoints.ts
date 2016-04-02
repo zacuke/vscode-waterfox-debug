@@ -1,18 +1,19 @@
 import { Log } from '../util/log';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { ThreadActorProxy } from '../firefox/index';
-import { SourceAdapter, BreakpointAdapter } from '../adapter/index';
+import { ThreadCoordinator, SourceAdapter, BreakpointAdapter } from '../adapter/index';
 
 let log = Log.create('BreakpointsAdapter');
 
 export class BreakpointsAdapter {
 
-	public static setBreakpointsOnSourceActor(breakpointsToSet: BreakpointInfo[], sourceAdapter: SourceAdapter, threadActor: ThreadActorProxy): Promise<BreakpointAdapter[]> {
-		return threadActor.runOnPausedThread((finished) => 
+	public static setBreakpointsOnSourceActor(breakpointsToSet: BreakpointInfo[], 
+	sourceAdapter: SourceAdapter, threadCoordinator: ThreadCoordinator): Promise<BreakpointAdapter[]> {
+		return threadCoordinator.runOnPausedThread((finished) => 
 			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter, finished));
 	}
 
-	private static setBreakpointsOnPausedSourceActor(breakpointsToSet: BreakpointInfo[], sourceAdapter: SourceAdapter, finished: () => void): Promise<BreakpointAdapter[]> {
+	private static setBreakpointsOnPausedSourceActor(breakpointsToSet: BreakpointInfo[], 
+	sourceAdapter: SourceAdapter, finished: () => void): Promise<BreakpointAdapter[]> {
 
 		log.debug(`Setting ${breakpointsToSet.length} breakpoints for ${sourceAdapter.actor.url}`);
 		

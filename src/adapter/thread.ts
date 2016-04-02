@@ -1,17 +1,23 @@
 import { Log } from '../util/log';
-import { ThreadActorProxy, SourceActorProxy } from '../firefox/index';
-import { FrameAdapter, ScopeAdapter, SourceAdapter, ObjectGripAdapter } from './index';
+import { concatArrays } from '../util/misc';
+import { ExceptionBreakpoints, ThreadActorProxy, SourceActorProxy } from '../firefox/index';
+import { ThreadCoordinator, BreakpointInfo, BreakpointsAdapter, FrameAdapter, ScopeAdapter, SourceAdapter, BreakpointAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
 import { FirefoxDebugSession } from '../firefoxDebugSession';
+import { Variable } from 'vscode-debugadapter';
 
 export class ThreadAdapter {
 	
 	public id: number;
-	public actor: ThreadActorProxy;
 	public get debugSession() {
 		return this._debugSession;
 	}
+	public get actorName() {
+		return this.actor.name;
+	}
 	
 	private _debugSession: FirefoxDebugSession;
+	private actor: ThreadActorProxy;
+	private coordinator: ThreadCoordinator;
 	
 	private sources: SourceAdapter[] = [];
 	private frames: FrameAdapter[] = [];
@@ -21,10 +27,26 @@ export class ThreadAdapter {
 	private pauseLifetimeObjects: ObjectGripAdapter[] = [];
 	private threadLifetimeObjects: ObjectGripAdapter[] = [];
 	
+	private completionValue: FirefoxDebugProtocol.CompletionValue;
+	
 	public constructor(id: number, actor: ThreadActorProxy, debugSession: FirefoxDebugSession) {
 		this.id = id;
 		this.actor = actor;
 		this._debugSession = debugSession;
+	}
+	
+	public init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
+		this.actor.onPaused((reason) => {
+			this.completionValue = reason.frameFinished;
+		});
+		this.coordinator = new ThreadCoordinator(this.actor);
+		return this.actor.attach().then(() => {
+//			this.coordinator = new ThreadCoordinator(this.actor);
+			this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
+			return this.actor.fetchSources().then(
+				() => this.coordinator.resume(() => Promise.resolve(undefined)));
+//			return this.coordinator.resume(() => Promise.resolve(undefined));
+		});
 	}
 
 	public createSourceAdapter(id: number, actor: SourceActorProxy): SourceAdapter {
@@ -83,12 +105,128 @@ export class ThreadAdapter {
 		}
 		return null;
 	}
+
+	public interrupt(): Promise<void> {
+		return this.coordinator.interrupt();
+	}
 	
-	public disposePauseLifetimeAdapters() {
+	public resume(): Promise<void> {
+		return this.coordinator.resume(() => this.disposePauseLifetimeAdapters());
+	}
+	
+	public stepOver(): Promise<void> {
+		return this.coordinator.resume(() => this.disposePauseLifetimeAdapters(), 'next');
+	}
+	
+	public stepIn(): Promise<void> {
+		return this.coordinator.resume(() => this.disposePauseLifetimeAdapters(), 'step');
+	}
+	
+	public stepOut(): Promise<void> {
+		return this.coordinator.resume(() => this.disposePauseLifetimeAdapters(), 'finish');
+	}
+
+	public setBreakpoints(breakpointInfos: BreakpointInfo[], sourceAdapter: SourceAdapter): Promise<BreakpointAdapter[]> {
+		return BreakpointsAdapter.setBreakpointsOnSourceActor(breakpointInfos, sourceAdapter, this.coordinator);
+	}
+	
+	public setExceptionBreakpoints(exceptionBreakpoints: ExceptionBreakpoints) {
+		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
+	}
+	
+	public fetchStackFrames(levels: number): Promise<FrameAdapter[]> {
+		return this.coordinator.runOnPausedThread((finished) => 
+
+			this.actor.fetchStackFrames(levels).then(
+				(frames) => {
+					let frameAdapters = frames.map((frame) => {
+						let frameAdapter = new FrameAdapter(frame, this);
+						this._debugSession.registerFrameAdapter(frameAdapter);
+						this.frames.push(frameAdapter);
+						return frameAdapter;
+					});
+					
+					if (frameAdapters.length > 0) {
+						frameAdapters[0].scopeAdapters[0].addCompletionValue(this.completionValue);
+					}
+					
+					let objectGripAdapters = concatArrays(frameAdapters.map(
+						(frameAdapter) => frameAdapter.getObjectGripAdapters()));
+					
+					let extendLifetimePromises = objectGripAdapters.map(
+						(objectGripAdapter) => objectGripAdapter.actor.extendLifetime());
+					
+					Promise.all(extendLifetimePromises).then(
+						() => finished(),
+						(err) => { 
+							finished(); 
+							throw err;
+						});
+
+					return frameAdapters;
+				},
+				(err) => {
+					finished();
+					throw err;
+				})
+		);
+	}
+
+	public fetchVariables(variablesProvider: VariablesProvider): Promise<Variable[]> {
+		return this.coordinator.runOnPausedThread((finished) => 
+			variablesProvider.getVariables().then(
+				(variableAdapters) => {
+					
+					let objectGripAdapters = variableAdapters
+						.map((variableAdapter) => variableAdapter.getObjectGripAdapter())
+						.filter((objectGripAdapter) => (objectGripAdapter != null));
+					
+					let extendLifetimePromises = objectGripAdapters.map(
+						(objectGripAdapter) => objectGripAdapter.actor.extendLifetime());
+					
+					Promise.all(extendLifetimePromises).then(() => finished());
+
+					return variableAdapters.map(
+						(variableAdapter) => variableAdapter.getVariable());
+						
+				},
+				(err) => {
+					finished();
+					throw err;
+				}
+			)
+		);
+	}
+	
+	public evaluate(expression: string, frameActorName: string, threadLifetime: boolean): Promise<Variable> {
+		return this.coordinator.evaluate(expression, frameActorName).then(([grip, finished]) => {
+				
+			let variableAdapter: VariableAdapter;
+			if (grip) {
+				variableAdapter = new VariableAdapter('', 'undefined');
+			} else {
+				variableAdapter = VariableAdapter.fromGrip('', grip, threadLifetime, this);
+			}
+
+			let objectGripAdapter = variableAdapter.getObjectGripAdapter();
+			if (objectGripAdapter) {
+				objectGripAdapter.actor.extendLifetime().then(() => finished());
+			} else {
+				finished();
+			}
+
+			return variableAdapter.getVariable();
+		});
+	}
+	
+	public detach(): Promise<void> {
+		return this.actor.detach();
+	}
+	
+	private disposePauseLifetimeAdapters(): Promise<void> {
 		
 		let objectGripActorsToRelease = this.pauseLifetimeObjects.map(
 			(objectGripAdapter) => objectGripAdapter.actor.name);
-		this.actor.releaseMany(objectGripActorsToRelease);
 		
 		this.pauseLifetimeObjects.forEach((objectGripAdapter) => {
 			objectGripAdapter.dispose();
@@ -105,36 +243,7 @@ export class ThreadAdapter {
 			frameAdapter.dispose();
 		});
 		this.frames = [];
-	}
-	
-	/**
-	 * get the FrameAdapters for this thread's stackframes.
-	 * This method can only be called when the thread is paused.
-	 */
-	public fetchStackFrames(levels: number): Promise<FrameAdapter[]> {
-
-		return this.actor.fetchStackFrames(levels).then(([frames, completionValue]) => {
-
-			let frameAdapters = frames.map((frame) => {
-				let frameAdapter = new FrameAdapter(frame, this);
-				this._debugSession.registerFrameAdapter(frameAdapter);
-				this.frames.push(frameAdapter);
-				return frameAdapter;
-			});
-			
-			if (frameAdapters.length > 0) {
-				frameAdapters[0].scopeAdapters[0].addCompletionValue(completionValue);
-			}
-			
-			return frameAdapters;
-		});
-	}
-	
-	/**
-	 * evaluate a javascript expression on the given stackframe.
-	 * This method can only be called when the thread is paused.
-	 */
-	public evaluate(expression: string, frameAdapter: FrameAdapter): Promise<FirefoxDebugProtocol.Grip> {
-		return this.actor.evaluate(expression, frameAdapter.frame.actor);
+		
+		return this.actor.releaseMany(objectGripActorsToRelease);
 	}
 }

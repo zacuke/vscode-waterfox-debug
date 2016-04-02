@@ -77,10 +77,6 @@ export class FrameAdapter {
 			(scopeAdapter) => scopeAdapter.getObjectGripAdapters()));
 	}
 	
-	public evaluate(expression: string): Promise<FirefoxDebugProtocol.Grip> {
-		return this.threadAdapter.evaluate(expression, this);
-	}
-	
 	public dispose(): void {
 		this.threadAdapter.debugSession.unregisterFrameAdapter(this);
 	}

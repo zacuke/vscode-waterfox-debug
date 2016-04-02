@@ -202,8 +202,8 @@ export class FirefoxDebugSession extends DebugSession {
 					if (this.breakpointsBySourceUrl.has(sourceActor.url)) {
 						
 						let breakpointInfos = this.breakpointsBySourceUrl.get(sourceActor.url);
-						let setBreakpointsPromise = BreakpointsAdapter.setBreakpointsOnSourceActor(
-							breakpointInfos, sourceAdapter, threadActor);
+						let setBreakpointsPromise = threadAdapter.setBreakpoints(
+							breakpointInfos, sourceAdapter);
 						
 						if (this.verifiedBreakpointSources.indexOf(sourceActor.url) < 0) {
 						
@@ -226,27 +226,23 @@ export class FirefoxDebugSession extends DebugSession {
 				});
 				
 
-				threadActor.onPaused((why) => {
-
-					log.info(`Thread ${threadActor.name} paused , reason: ${why}`);
-
-					this.sendEvent(new StoppedEvent(why, threadId));
+				threadActor.onPaused((reason) => {
+					log.info(`Thread ${threadActor.name} paused , reason: ${reason.type}`);
+					this.sendEvent(new StoppedEvent(reason.type, threadId));
 				});
 				
 
 				threadActor.onExited(() => {
-
 					log.info(`Thread ${threadActor.name} exited`);
-
 					this.threadsById.delete(threadId);
-
 					this.sendEvent(new ThreadEvent('exited', threadId));
 				});
-				
-				threadActor.setExceptionBreakpoints(this.exceptionBreakpoints);
-				threadActor.resume();
 
-				this.sendEvent(new ThreadEvent('started', threadId));
+
+				threadAdapter.init(this.exceptionBreakpoints).then(() => {
+					this.sendEvent(new ThreadEvent('started', threadId));
+				});
+
 			},
 			(err) => {
 				log.error(`Failed attaching to tab/thread: ${err}`);
@@ -271,7 +267,7 @@ export class FirefoxDebugSession extends DebugSession {
 		
 		let responseThreads: Thread[] = [];
 		this.threadsById.forEach((threadAdapter) => {
-			responseThreads.push(new Thread(threadAdapter.id, threadAdapter.actor.name));
+			responseThreads.push(new Thread(threadAdapter.id, threadAdapter.actorName));
 		});
 		response.body = { threads: responseThreads };
 		
@@ -298,10 +294,9 @@ export class FirefoxDebugSession extends DebugSession {
 			let sourceAdapter = threadAdapter.findSourceAdapterForUrl(firefoxSourceUrl);
 			if (sourceAdapter !== null) {
 
-				log.debug(`Found source ${args.source.path} on tab ${threadAdapter.actor.name}`);
+				log.debug(`Found source ${args.source.path} on tab ${threadAdapter.actorName}`);
 				
-				let setBreakpointsPromise = BreakpointsAdapter.setBreakpointsOnSourceActor(
-					breakpointInfos, sourceAdapter, threadAdapter.actor);
+				let setBreakpointsPromise = threadAdapter.setBreakpoints(breakpointInfos, sourceAdapter);
 				
 				if (this.verifiedBreakpointSources.indexOf(firefoxSourceUrl) < 0) {
 
@@ -363,84 +358,63 @@ export class FirefoxDebugSession extends DebugSession {
 		}
 		
 		this.threadsById.forEach((threadAdapter) => 
-			threadAdapter.actor.setExceptionBreakpoints(this.exceptionBreakpoints));
+			threadAdapter.setExceptionBreakpoints(this.exceptionBreakpoints));
 
 		this.sendResponse(response);			
 	}
 
 	protected pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments): void {
 		log.debug('Received pauseRequest');
-		this.threadsById.get(args.threadId).actor.interrupt();
-		this.sendResponse(response);
+		let threadAdapter = this.threadsById.get(args.threadId);
+		threadAdapter.interrupt().then(() => this.sendResponse(response));
 	}
 	
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
 		log.debug('Received continueRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
-		threadAdapter.disposePauseLifetimeAdapters();
-		threadAdapter.actor.resume();
-		this.sendResponse(response);
+		threadAdapter.resume().then(() => this.sendResponse(response));
 	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
 		log.debug('Received nextRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
-		threadAdapter.disposePauseLifetimeAdapters();
-		threadAdapter.actor.stepOver();
-		this.sendResponse(response);
+		threadAdapter.stepOver().then(() => this.sendResponse(response));
 	}
 
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
 		log.debug('Received stepInRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
-		threadAdapter.disposePauseLifetimeAdapters();
-		threadAdapter.actor.stepInto();
-		this.sendResponse(response);
+		threadAdapter.stepIn().then(() => this.sendResponse(response));
 	}
 
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
 		log.debug('Received stepOutRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
-		threadAdapter.disposePauseLifetimeAdapters();
-		threadAdapter.actor.stepOut();
-		this.sendResponse(response);
+		threadAdapter.stepOut().then(() => this.sendResponse(response));
 	}
 	
 	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
-
 		let threadAdapter = this.threadsById.get(args.threadId);
+		log.debug(`Received stackTraceRequest for ${threadAdapter.actorName}`);
 
-		log.debug(`Received stackTraceRequest for ${threadAdapter.actor.name}`);
+		threadAdapter.fetchStackFrames(args.levels).then(
+			(frameAdapters) => {
 
-		threadAdapter.actor.runOnPausedThread((finished) => {
-			threadAdapter.fetchStackFrames(args.levels).then(
-				(frameAdapters) => {
+				response.body = { 
+					stackFrames: frameAdapters.map((frameAdapter) => frameAdapter.getStackframe())
+				};
+				this.sendResponse(response);
 
-					response.body = { stackFrames: frameAdapters.map(
-						(frameAdapter) => frameAdapter.getStackframe()) };
-					this.sendResponse(response);
-
-					let objectGripAdapters = concatArrays(frameAdapters.map(
-						(frameAdapter) => frameAdapter.getObjectGripAdapters()));
-					
-					let extendLifetimePromises = objectGripAdapters.map(
-						(objectGripAdapter) => objectGripAdapter.actor.extendLifetime());
-					
-					Promise.all(extendLifetimePromises).then(() => finished());
-					
-				},
-				(err) => {
-					log.error(`Failed fetching stackframes: ${err}`);
-					response.success = false;
-					response.message = String(err);
-					this.sendResponse(response);
-					finished();
-				});
-		});
+			},
+			(err) => {
+				log.error(`Failed fetching stackframes: ${err}`);
+				response.success = false;
+				response.message = String(err);
+				this.sendResponse(response);
+			});
 	}
 	
 	protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): void {
-
 		log.debug('Received scopesRequest');
 		
 		let frameAdapter = this.framesById.get(args.frameId);
@@ -459,7 +433,6 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 	
 	protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): void {
-
 		log.debug('Received variablesRequest');
 		
 		let variablesProvider = this.variablesProvidersById.get(args.variablesReference);
@@ -472,84 +445,46 @@ export class FirefoxDebugSession extends DebugSession {
 			return;
 		}
 		
-		variablesProvider.threadAdapter.actor.runOnPausedThread((finished) => {
-			variablesProvider.getVariables().then(
-				(variableAdapters) => {
-					
-					response.body = { variables: variableAdapters.map(
-						(variableAdapter) => variableAdapter.getVariable()) };
-					this.sendResponse(response);
-					
-					let objectGripAdapters = variableAdapters
-						.map((variableAdapter) => variableAdapter.getObjectGripAdapter())
-						.filter((objectGripAdapter) => (objectGripAdapter != null));
-					
-					let extendLifetimePromises = objectGripAdapters.map(
-						(objectGripAdapter) => objectGripAdapter.actor.extendLifetime());
-					
-					Promise.all(extendLifetimePromises).then(() => finished());
-					
-				},
-				(err) => {
-					response.success = false;
-					response.message = String(err);
-					this.sendResponse(response);
-					finished();
-				});
-		});
+		variablesProvider.threadAdapter.fetchVariables(variablesProvider).then(
+			(variables) => {
+
+				response.body = { variables };
+				this.sendResponse(response);
+
+			},
+			(err) => {
+				response.success = false;
+				response.message = String(err);
+				this.sendResponse(response);
+			}
+		);
 	}
 	
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
-		
 		log.debug('Received evaluateRequest');
 		
 		if (args.frameId !== undefined) {
 			
 			let frameAdapter = this.framesById.get(args.frameId);
-
-			frameAdapter.threadAdapter.actor.runOnPausedThread((finished) => {
-				frameAdapter.evaluate(args.expression).then(
-					(grip) => {
-
-						if (grip !== undefined) {
-							
-							let variableAdapter = VariableAdapter.fromGrip(
-								'', grip, (args.context !== 'watch'), frameAdapter.threadAdapter);
-							
-							let variable = variableAdapter.getVariable();
-							response.body = { 
-								result: variable.value, 
-								variablesReference: variable.variablesReference
-							};
-							this.sendResponse(response);
-
-							let objectGripAdapter = variableAdapter.getObjectGripAdapter();
-							if (objectGripAdapter != null) {
-								objectGripAdapter.actor.extendLifetime().then(() => finished());
-							} else {
-								finished();
-							}
-							
-						} else {
-
-							response.body = { 
-								result: 'undefined',
-								variablesReference: undefined
-							};
-							this.sendResponse(response);
-							finished();
-							
-						}
-					},
-					(err) => {
-						log.error(`Failed evaluating "${args.expression}": ${err}`);
-						response.success = false;
-						response.message = String(err);
-						this.sendResponse(response);
-						finished();
-					});
-			});
+			frameAdapter.threadAdapter.evaluate(
+				args.expression, frameAdapter.frame.actor, (args.context !== 'watch')).then(
 			
+				(variable) => {
+
+					response.body = { 
+						result: variable.value, 
+						variablesReference: variable.variablesReference
+					};
+					this.sendResponse(response);
+
+				},
+				(err) => {
+					log.error(`Failed evaluating "${args.expression}": ${err}`);
+					response.success = false;
+					response.message = String(err);
+					this.sendResponse(response);
+				});
+
 		} else {
 			log.error(`Failed evaluating "${args.expression}": Can't find requested evaluation frame`);
 			response.success = false;
@@ -605,7 +540,7 @@ export class FirefoxDebugSession extends DebugSession {
 		
 		let detachPromises: Promise<void>[] = [];
 		this.threadsById.forEach((threadAdapter) => {
-			detachPromises.push(threadAdapter.actor.detach());
+			detachPromises.push(threadAdapter.detach());
 		});
 
 		Promise.all(detachPromises).then(

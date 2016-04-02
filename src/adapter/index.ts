@@ -1,4 +1,5 @@
 export { SourceAdapter, BreakpointAdapter } from './misc';
+export { ThreadCoordinator } from './threadCoordinator';
 export { ThreadAdapter } from './thread';
 export { BreakpointInfo, BreakpointsAdapter } from './breakpoints';
 export { FrameAdapter } from './frame';

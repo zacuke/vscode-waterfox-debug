@@ -52,11 +52,13 @@ declare namespace FirefoxDebugProtocol {
 	interface ThreadPausedResponse extends TypedResponse {
 		actor: string;
 		poppedFrames: Frame[];
-		why: {
-			type: string; // 'attached' | 'interrupted' | 'resumeLimit' | 'debuggerStatement' | 'breakpoint' | 'watchpoint' | 'clientEvaluated' | 'pauseOnDOMEvents'
-			frameFinished?: CompletionValue; // if type is 'resumeLimit' or 'clientEvaluated'
-			actors?: string[]; // if type is 'breakpoint' or 'watchpoint'
-		};
+		why: ThreadPausedReason;
+	}
+
+	interface ThreadPausedReason {
+		type: string; // 'attached' | 'interrupted' | 'resumeLimit' | 'debuggerStatement' | 'breakpoint' | 'watchpoint' | 'clientEvaluated' | 'pauseOnDOMEvents'
+		frameFinished?: CompletionValue; // if type is 'resumeLimit' or 'clientEvaluated'
+		actors?: string[]; // if type is 'breakpoint' or 'watchpoint'
 	}
 	
 	interface SetBreakpointResponse extends Response {

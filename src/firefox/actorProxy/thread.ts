@@ -7,501 +7,313 @@ import { SourceActorProxy } from './source';
 
 let log = Log.create('ThreadActorProxy');
 
-class QueuedRequest<T> {
-	send: () => void;
-	resolve: (t: T) => void;
-	reject: (err: any) => void;
+export enum ExceptionBreakpoints {
+	All, Uncaught, None
 }
 
 /**
  * A ThreadActorProxy is a proxy for a "thread-like actor" (a Tab or a WebWorker) in Firefox. 
- * The ThreadActor is attached immediately and there is no support to detach and re-attach it, 
- * so unless the thread is exited, the ThreadActor will be either in the running or paused state.
  */
 export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
-	/**
-	 * desiredState determines the state that the thread should "gravitate towards". 
-	 * It may be put in a different state temporarily to set and remove breakpoints or execute 
-	 * a clientEvaluate request, but once these operations have finished, it will be interrupted 
-	 * if desiredState is 'paused' or resumed (with a corresponding resumeLimit if desiredState
-	 * is not 'running') otherwise.
-	 */
-	private desiredState: string = 'paused'; // 'paused' | 'running' | 'stepOver' | stepInto' | 'stepOut'
-
-	private exceptionBreakpoints: ExceptionBreakpoints;
-
-	/**
-	 * The paused flag states if the thread is assumed to be in the paused or the 
-	 * running state.
-	 */
-	private paused: boolean = true;
-	
-	private completionValue: FirefoxDebugProtocol.CompletionValue = undefined;
-	
-	/**
-	 * The number of operations that are currently running which require the thread to be 
-	 * paused (even if desiredState is not 'paused'). These operations are started using 
-	 * runOnPausedThread() and if the thread is running it will automatically be paused 
-	 * temporarily.
-	 */
-	private operationsRunningOnPausedThread = 0;
-
-	/**
-	 * frame requests can only be run on a paused thread and they can only be sent
-	 * when pauseWanted is set to true because they make no sense otherwise. 
-	 */
-	private pendingFrameRequests = 
-		new PendingRequests<[FirefoxDebugProtocol.Frame[], FirefoxDebugProtocol.CompletionValue]>();
-
-	/**
-	 * evaluate requests can only be run on a paused thread and they can only be sent when
-	 * pauseWanted is set to true because they make no sense otherwise.
-	 */
-	private queuedEvaluateRequests: QueuedRequest<FirefoxDebugProtocol.Grip>[] = [];
-	private pendingEvaluateRequest: PendingRequest<FirefoxDebugProtocol.Grip> = null;
-	
-	private pendingDetachRequest: PendingRequest<void> = null;
-	
-	/**
-	 * Use this constructor to create a ThreadActorProxy. It will be attached immediately.
-	 */
 	constructor(private _name: string, private connection: DebugConnection) {
 		super();
 		this.connection.register(this);
-		this.connection.sendRequest({ to: this.name, type: 'attach', options: { useSourceMaps: true } });
-		this.connection.sendRequest({ to: this.name, type: 'sources' });
-		log.debug(`Created and attached thread ${this.name}`);
+		log.debug(`Created thread ${this.name}`);
 	}
 
 	public get name() {
 		return this._name;
 	}
 
-	private sendPauseRequest(): void {
-
-		log.debug(`Sending pause request to thread ${this.name}`);
-
-		this.connection.sendRequest({ to: this.name, type: 'interrupt' });
-		this.paused = true;
-	}
+	private pendingAttachRequest: PendingRequest<void>;
+	private attachPromise: Promise<void>;
+	private pendingResumeRequest: PendingRequest<void>;
+	private resumePromise: Promise<void>;
+	private pendingInterruptRequest: PendingRequest<void>;
+	private interruptPromise: Promise<void>;
+	private pendingDetachRequest: PendingRequest<void>;
+	private detachPromise: Promise<void>;
 	
-	private sendResumeRequest(resumeLimit? : string) {
-
-		let resumeRequest: any = {
-			to: this.name,
-			type: 'resume'
-		};
-
-		if (resumeLimit !== undefined) {
-			resumeRequest.resumeLimit = { type: resumeLimit };
-		}
-		
-		switch (this.exceptionBreakpoints) {
-			case ExceptionBreakpoints.All:
-				resumeRequest.pauseOnExceptions = true;
-				break;
-				
-			case ExceptionBreakpoints.Uncaught:
-				resumeRequest.pauseOnExceptions = true;
-				resumeRequest.ignoreCaughtExceptions = true;
-				break;
-		}
-		
-		this.connection.sendRequest(resumeRequest);
-		
-		this.completionValue = undefined;
-	}
-	
-	public setExceptionBreakpoints(exceptionBreakpoints: ExceptionBreakpoints) {
-
-		if (this.exceptionBreakpoints !== exceptionBreakpoints) {
-
-			this.exceptionBreakpoints = exceptionBreakpoints;
-
-			// issue a dummy operation using runOnPausedThread to ensure that the thread is paused
-			// and resumed and hence the new exceptionBreakpoints setting is sent to Firefox
-			this.runOnPausedThread<void>((finished) => finished());
-		}
-	}
+	private pendingSourcesRequests = new PendingRequests<FirefoxDebugProtocol.Source[]>();
+	private pendingStackFramesRequests = new PendingRequests<FirefoxDebugProtocol.Frame[]>();
+	private pendingEvaluateRequests = new PendingRequests<FirefoxDebugProtocol.Grip>();
+	private pendingReleaseRequests = new PendingRequests<void>();
 	
 	/**
-	 * Run a (possibly asynchronous) operation on the paused thread.
-	 * If the thread is not already paused, it will be paused temporarily and automatically 
-	 * resumed when the operation is finished (if there are no other reasons to pause the 
-	 * thread). The operation is passed a callback that must be called when it is finished.
+	 * Attach the thread if it is detached
 	 */
-	public runOnPausedThread<T>(operation: (finished: () => void) => T | Promise<T>): Promise<T> {
-
-		log.debug('Starting operation on paused thread');
-		this.operationsRunningOnPausedThread++;
+	public attach(): Promise<void> {
+		log.debug(`Attaching thread ${this.name}`);
 		
-		return new Promise<T>((resolve) => {
-			
-			if (!this.paused) {
-				this.sendPauseRequest();
-			}
+		if (!this.attachPromise) {
 
-			var result = operation(() => this.operationFinishedOnPausedThread());
-			resolve(result);
-		});
-	}
-	
-	/**
-	 * This method is called when an operation started with runOnPausedThread finishes.
-	 */
-	private operationFinishedOnPausedThread() {
-
-		log.debug('Operation finished on paused thread');
-		this.operationsRunningOnPausedThread--;
-		
-		this.doNext();
-	}
-
-	/**
-	 * Figure out what to do next after an operation started with runOnPausedThread has
-	 * finished, an evaluateRequest has been enqueued or has finished or the desiredState
-	 * has changed.
-	 */
-	private doNext() {
-
-		if (this.operationsRunningOnPausedThread > 0) {
-			
-			if (!this.paused) {
-				log.error('The thread isn\'t paused but an operation that requires the thread to be paused is still running!');
-			}
+			this.attachPromise = new Promise<void>((resolve, reject) => {
+				this.pendingAttachRequest = { resolve, reject };
+				this.connection.sendRequest({ 
+					to: this.name, type: 'attach', 
+					options: { useSourceMaps: true }
+				});
+			});
+			this.detachPromise = null;
 			
 		} else {
-
-			if (this.pendingEvaluateRequest != null) {
-				
-				if (this.paused) {
-					this.sendResumeRequest();
-					this.paused = false;
-				}
-			
-			} else if (this.queuedEvaluateRequests.length > 0) {
-
-				if (this.paused) {
-
-					let queuedEvaluateRequest = this.queuedEvaluateRequests.shift();
-					this.pendingEvaluateRequest = { resolve: queuedEvaluateRequest.resolve, reject: queuedEvaluateRequest.reject };
-					queuedEvaluateRequest.send();
-					this.paused = false;
-					
-				} else {
-					
-					log.warn('The thread is running but an evaluate request is still queued - rejecting');
-					
-					this.queuedEvaluateRequests.forEach((queuedEvaluateRequest) => {
-						queuedEvaluateRequest.reject('Thread is running');
-					});
-				}
-
-			} else {
-
-				switch (this.desiredState) {
-					
-					case 'paused':
-						if (!this.paused) {
-							this.sendPauseRequest();
-						}
-						break;
-						
-					case 'running':
-						if (this.paused) {
-							this.sendResumeRequest();
-							this.paused = false;
-						}
-						break;
-						
-					case 'stepOver':
-						if (this.paused) {
-							this.sendResumeRequest('next');
-							this.paused = false;
-						}
-						break;
-						
-					case 'stepInto':
-						if (this.paused) {
-							this.sendResumeRequest('step');
-							this.paused = false;
-						}
-						break;
-						
-					case 'stepOut':
-						if (this.paused) {
-							this.sendResumeRequest('finish');
-							this.paused = false;
-						}
-						break;
-				}
-			}
+			log.warn('Attaching this thread has already been requested!');
 		}
+		
+		return this.attachPromise;
 	}
 	
 	/**
-	 * Interrupt the thread if it isn't paused already and set desiredState to 'paused'.
-	 */	
-	public interrupt(): void {
-
-		log.debug(`Want thread ${this.name} to be paused`);
-
-		this.desiredState = 'paused';
+	 * Resume the thread if it is paused
+	 */
+	public resume(exceptionBreakpoints: ExceptionBreakpoints, resumeLimitType?: 'next' | 'step' | 'finish'): Promise<void> {
+		log.debug(`Resuming thread ${this.name}`);
 		
-		if (!this.paused) {
-			this.sendPauseRequest();
+		if (!this.resumePromise) {
+
+			let resumeLimit = resumeLimitType ? { type: resumeLimitType } : undefined;
+			let pauseOnExceptions = undefined;
+			let ignoreCaughtExceptions = undefined;
+			switch (exceptionBreakpoints) {
+				case ExceptionBreakpoints.All:
+					pauseOnExceptions = true;
+					break;
+					
+				case ExceptionBreakpoints.Uncaught:
+					pauseOnExceptions = true;
+					ignoreCaughtExceptions = true;
+					break;
+			}
+			
+			this.resumePromise = new Promise<void>((resolve, reject) => {
+				this.pendingResumeRequest = { resolve, reject };
+				this.connection.sendRequest({ 
+					to: this.name, type: 'resume', 
+					resumeLimit, pauseOnExceptions, ignoreCaughtExceptions
+				});
+			});
+			this.interruptPromise = null;
+			
 		}
+		
+		return this.resumePromise;
+	}
+	
+	/**
+	 * Interrupt the thread if it is running
+	 */
+	public interrupt(): Promise<void> {
+		log.debug(`Interrupting thread ${this.name}`);
+		
+		if (!this.interruptPromise) {
+
+			this.interruptPromise = new Promise<void>((resolve, reject) => {
+				this.pendingInterruptRequest = { resolve, reject };
+				this.connection.sendRequest({ to: this.name, type: 'interrupt' });
+			});
+			this.resumePromise = null;
+			
+		}
+		
+		return this.interruptPromise;
+	}
+	
+	/**
+	 * Detach the thread if it is attached
+	 */
+	public detach(): Promise<void> {
+		log.debug(`Detaching thread ${this.name}`);
+		
+		if (!this.detachPromise) {
+
+			this.detachPromise = new Promise<void>((resolve, reject) => {
+				this.pendingDetachRequest = { resolve, reject };
+				this.connection.sendRequest({ to: this.name, type: 'detach' });
+			});
+			this.attachPromise = null;
+			
+		} else {
+			log.warn('Detaching this thread has already been requested!');
+		}
+		
+		return this.detachPromise;
 	}
 
-	public fetchStackFrames(levels: number): Promise<[FirefoxDebugProtocol.Frame[], FirefoxDebugProtocol.CompletionValue]> {
+	/**
+	 * Fetch the list of source files. This will also cause newSource events to be emitted for
+	 * every source file (including those that are loaded later and strings passed to eval())
+	 */
+	public fetchSources(): Promise<FirefoxDebugProtocol.Source[]> {
+		log.debug(`Fetching sources from thread ${this.name}`);
 
-		if (this.desiredState != 'paused') {
-			log.warn(`fetchStackFrames() called but desiredState is ${this.desiredState}`)
-			return Promise.reject('not paused');
-		}
-		
+		return new Promise<FirefoxDebugProtocol.Source[]>((resolve, reject) => {
+			this.pendingSourcesRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'sources' });
+		});
+	}
+
+	/**
+	 * Fetch StackFrames. This can only be called while the thread is paused.
+	 */
+	public fetchStackFrames(levels: number): Promise<FirefoxDebugProtocol.Frame[]> {
 		log.debug(`Fetching stackframes from thread ${this.name}`);
 
-		return new Promise<[FirefoxDebugProtocol.Frame[], FirefoxDebugProtocol.CompletionValue]>(
-			(resolve, reject) => {
-
-				if (this.paused) {
-
-					this.pendingFrameRequests.enqueue({ resolve, reject });
-					this.connection.sendRequest({ to: this.name, type: 'frames', start: 0, count: levels });
-
-				} else {
-					log.warn('fetchStackFrames() called but thread is running')
-					reject('not paused');
-				}
-			}
-		);
+		return new Promise<FirefoxDebugProtocol.Frame[]>((resolve, reject) => {
+			this.pendingStackFramesRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ 
+				to: this.name, type: 'frames', 
+				start: 0, count: levels
+			});
+		});
 	}
 	
-	public resume(): void {
-
-		if (this.desiredState != 'paused') {
-			log.warn(`resume() called but desiredState is already ${this.desiredState}`);
-			return;
-		}
-		
-		log.debug(`Resuming thread ${this.name}`);
-
-		this.desiredState = 'running';
-		this.doNext();
-		
-	}
-	
-	public stepOver(): void {
-
-		if (this.desiredState != 'paused') {
-			log.warn(`stepOver() called but desiredState is already ${this.desiredState}`);
-			return;
-		}
-		
-		log.debug(`Resuming thread ${this.name}`);
-
-		this.desiredState = 'stepOver';
-		this.doNext();
-		
-	}
-	
-	public stepInto(): void {
-
-		if (this.desiredState != 'paused') {
-			log.warn(`stepInto() called but desiredState is already ${this.desiredState}`);
-			return;
-		}
-		
-		log.debug(`Resuming thread ${this.name}`);
-
-		this.desiredState = 'stepInto';
-		this.doNext();
-		
-	}
-	
-	public stepOut(): void {
-
-		if (this.desiredState != 'paused') {
-			log.warn(`stepOut() called but desiredState is already ${this.desiredState}`);
-			return;
-		}
-		
-		log.debug(`Resuming thread ${this.name}`);
-
-		this.desiredState = 'stepOut';
-		this.doNext();
-		
-	}
-	
+	/**
+	 * Evaluate the given expression on the specified StackFrame. This can only be called while
+	 * the thread is paused and will resume it temporarily.
+	 */
 	public evaluate(expr: string, frameActorName: string): Promise<FirefoxDebugProtocol.Grip> {
-
-		if (this.desiredState != 'paused') {
-			log.warn(`evaluate() called but desiredState is ${this.desiredState}`);
-			return Promise.reject('not paused');
-		}
+		log.debug(`Evaluating '${expr}' on thread ${this.name}`);
 		
 		return new Promise<FirefoxDebugProtocol.Grip>((resolve, reject) => {
-
+			this.pendingEvaluateRequests.enqueue({ resolve, reject });
 			let escapedExpression = expr.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 			let tryExpression = `eval("try{${escapedExpression}}catch(e){e.name+':'+e.message}")`;
-			let send = () => {
-				this.connection.sendRequest({ 
-					to: this.name, 
-					type: 'clientEvaluate', 
-					expression: tryExpression, 
-					frame: frameActorName
-				});
-			};
-
-			this.queuedEvaluateRequests.push({ send, resolve, reject });
-			this.doNext();
+			this.connection.sendRequest({ 
+				to: this.name, type: 'clientEvaluate', 
+				expression: tryExpression, frame: frameActorName 
+			});
 		});
 	}
 
-	public releaseMany(objectGripActorNames: string[]): void {
-		
-		if (this.desiredState !== 'paused') {
-			log.warn(`releaseMany() called but desiredState is ${this.desiredState}`);
-			return;
-		}
-		
-		this.connection.sendRequest({ to: this.name, type: 'releaseMany', actors: objectGripActorNames });
-	}
-	
-	public detach(): Promise<void> {
-
-		if (this.pendingDetachRequest !== null) {
-			log.error(`Thread ${this.name} received multiple detach requests`);
-		}
+	/**
+	 * Release object grips that were promoted to thread-lifetime grips using 
+	 * ObjectGripActorProxy.extendLifetime(). This can only be called while the thread is paused.
+	 */
+	public releaseMany(objectGripActorNames: string[]): Promise<void> {
+		log.debug(`Releasing grips on thread ${this.name}`);
 		
 		return new Promise<void>((resolve, reject) => {
-			this.pendingDetachRequest = { resolve, reject };
-			this.connection.sendRequest({ to: this.name, type: 'detach' });
+			this.pendingReleaseRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ 
+				to: this.name, type: 'releaseMany',
+				actors: objectGripActorNames 
+			});
 		});
 	}
-	
+
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 		
 		if (response['type'] === 'paused') {
 
-			log.debug(`Thread ${this.name} paused`);
-
 			let pausedResponse = <FirefoxDebugProtocol.ThreadPausedResponse>response;
-			this.completionValue = pausedResponse.why.frameFinished;
+			log.debug(`Received paused message of type ${pausedResponse.why.type}`);
 			
 			switch (pausedResponse.why.type) {
 				case 'attached':
-					log.debug('Received attached event');
+					if (this.pendingAttachRequest) {
+						this.pendingAttachRequest.resolve(undefined);
+						this.pendingAttachRequest = null;
+						this.interruptPromise = Promise.resolve(undefined);
+					} else {
+						log.warn('Received attached message without pending request');
+					}
 					break;
 
 				case 'interrupted':
-					log.debug('Received paused event of type interrupted');
-					this.paused = true;
-					// if the desiredState is not 'paused' then the thread has only been 
-					// interrupted temporarily, so we don't send a 'paused' event.
-					if (this.desiredState === 'paused') {
-						this.emit('paused', pausedResponse.why.type);
+					if (this.pendingInterruptRequest) {
+						this.pendingInterruptRequest.resolve(undefined);
+						this.pendingInterruptRequest = null;
+					} else {
+						log.warn('Received interrupted message without pending request');
 					}
 					break;
 					
 				case 'resumeLimit':
 				case 'breakpoint':
 				case 'exception':
-					log.debug(`Received paused event of type ${pausedResponse.why.type}`);
-					this.paused = true;
-					this.desiredState = 'paused';
-					this.doNext();
-					this.emit('paused', pausedResponse.why.type);
+					this.interruptPromise = Promise.resolve(undefined);
+					this.resumePromise = null;
+					this.pendingInterruptRequest = null;
+					this.pendingResumeRequest = null;
+					this.emit('paused', pausedResponse.why);
 					break;
 					
 				case 'clientEvaluated':
-					log.debug('Received paused event of type clientEvaluated');
-					this.paused = true;
-					this.pendingEvaluateRequest.resolve(pausedResponse.why.frameFinished.return);
-					this.pendingEvaluateRequest = null;
-					this.doNext();
+					this.interruptPromise = Promise.resolve(undefined);
+					this.resumePromise = null;
+					this.pendingEvaluateRequests.resolveOne(pausedResponse.why.frameFinished.return);
 					break;
 
 				default:
 					log.warn(`Paused event with reason ${pausedResponse.why.type} not handled yet`);
-					this.paused = true;
-					this.desiredState = 'paused';
-					this.doNext();
-					this.emit('paused', pausedResponse.why.type);
+					this.emit('paused', pausedResponse.why);
 					break;
 			}
 
 		} else if (response['type'] === 'resumed') {
 
-			log.debug(`Received resumed event from ${this.name} (ignoring)`);
-			this.paused = false;
-			
-		} else if (response['type'] === 'newSource') {
-			
-			let source = <FirefoxDebugProtocol.Source>(response['source']);
-
-			log.debug(`New source ${source.url} on thread ${this.name}`);
-
-			let sourceActor = this.connection.getOrCreate(source.actor, 
-				() => new SourceActorProxy(source, this.connection));
-			this.emit('newSource', sourceActor);
-			
-		} else if (response['sources']) {
-
-			let sources = <FirefoxDebugProtocol.Source[]>(response['sources']);
-
-			log.debug(`Received ${sources.length} sources from thread ${this.name}`);
-
-		} else if (response['frames']) {
-
-			let frames = <FirefoxDebugProtocol.Frame[]>(response['frames']);
-
-			log.debug(`Received ${frames.length} frames from thread ${this.name}`);
-
-			this.pendingFrameRequests.resolveOne([frames, this.completionValue]);
+			log.debug(`Received resumed event from ${this.name}`);
+			if (this.pendingResumeRequest) {
+				this.pendingResumeRequest.resolve(undefined);
+				this.pendingResumeRequest = null;
+			} else {
+				log.warn('Received resumed reply without pending request');
+			}
 			
 		} else if (response['type'] === 'detached') {
 			
-			if (this.pendingDetachRequest !== null) {
-
-				log.debug(`Thread ${this.name} detached`);
+			log.debug(`Thread ${this.name} detached`);
+			if (this.pendingDetachRequest) {
 				this.pendingDetachRequest.resolve(undefined);
 				this.pendingDetachRequest = null;
-				
 			} else {
 				log.warn(`Thread ${this.name} detached without a corresponding request`);
 			}
 
-			this.pendingFrameRequests.rejectAll('Exited');
-			if (this.pendingEvaluateRequest !== null) {
-				this.pendingEvaluateRequest.reject('Detached');
-			}
-			this.queuedEvaluateRequests.forEach((queuedRequest) => {
-				queuedRequest.reject('Detached');
-			})
+			this.pendingStackFramesRequests.rejectAll('Detached');
+			this.pendingEvaluateRequests.rejectAll('Detached');
+			
+		} else if (response['sources']) {
+
+			let sources = <FirefoxDebugProtocol.Source[]>(response['sources']);
+			log.debug(`Received ${sources.length} sources from thread ${this.name}`);
+			this.pendingSourcesRequests.resolveOne(sources);
+
+		} else if (response['type'] === 'newSource') {
+			
+			let source = <FirefoxDebugProtocol.Source>(response['source']);
+			log.debug(`New source ${source.url} on thread ${this.name}`);
+			let sourceActor = this.connection.getOrCreate(source.actor, 
+				() => new SourceActorProxy(source, this.connection));
+			this.emit('newSource', sourceActor);
+			
+		} else if (response['frames']) {
+
+			let frames = <FirefoxDebugProtocol.Frame[]>(response['frames']);
+			log.debug(`Received ${frames.length} frames from thread ${this.name}`);
+			this.pendingStackFramesRequests.resolveOne(frames);
 			
 		} else if (response['type'] === 'exited') {
 			
 			log.debug(`Thread ${this.name} exited`);
-
 			this.emit('exited');
 			//TODO send release packet(?)
 			
 		} else if (response['error'] === 'wrongState') {
 
 			log.warn(`Thread ${this.name} was in the wrong state for the last request`);
-
 			//TODO reject last request!
-			
 			this.emit('wrongState');
 			
+		} else if (Object.keys(response).length === 1) {
+
+			log.debug('Received response to releaseMany request');
+			this.pendingReleaseRequests.resolveOne(undefined);
+
 		} else {
 
-			if (Object.keys(response).length === 1) {
-				log.debug('Received response to releaseMany request');
-			} else if (response['type'] === 'newGlobal') {
+			if (response['type'] === 'newGlobal') {
 				log.debug(`Received newGlobal event from ${this.name} (ignoring)`);
 			} else {
 				log.warn("Unknown message from ThreadActor: " + JSON.stringify(response));
@@ -510,8 +322,13 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		}
 			
 	}
-	
-	public onPaused(cb: (why: string) => void) {
+
+	/**
+	 * The paused event is sent when the thread is paused because it hit a breakpoint or a
+	 * resumeLimit, but not if it was paused due to an interrupt request or because an evaluate
+	 * request is finished
+	 */	
+	public onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void) {
 		this.on('paused', cb);
 	}
 
@@ -526,8 +343,4 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	public onNewSource(cb: (newSource: SourceActorProxy) => void) {
 		this.on('newSource', cb);
 	}
-}
-
-export enum ExceptionBreakpoints {
-	All, Uncaught, None
 }
