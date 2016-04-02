@@ -267,7 +267,7 @@ export class FirefoxDebugSession extends DebugSession {
 		
 		let responseThreads: Thread[] = [];
 		this.threadsById.forEach((threadAdapter) => {
-			responseThreads.push(new Thread(threadAdapter.id, threadAdapter.actorName));
+			responseThreads.push(new Thread(threadAdapter.id, `Tab #${threadAdapter.id}`));
 		});
 		response.body = { threads: responseThreads };
 		
