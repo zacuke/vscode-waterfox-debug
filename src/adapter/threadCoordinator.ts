@@ -96,6 +96,8 @@ export class ThreadCoordinator {
 
 	public setExceptionBreakpoints(exceptionBreakpoints: ExceptionBreakpoints) {
 		this.exceptionBreakpoints = exceptionBreakpoints;
+		// the exceptionBreakpoints setting can only be sent to firefox when the thread is resumed,
+		// so we start a dummy task that will pause the thread temporarily
 		this.runOnPausedThread((finished) => finished());
 	}
 	

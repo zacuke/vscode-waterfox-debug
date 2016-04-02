@@ -366,31 +366,66 @@ export class FirefoxDebugSession extends DebugSession {
 	protected pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments): void {
 		log.debug('Received pauseRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
-		threadAdapter.interrupt().then(() => this.sendResponse(response));
+		threadAdapter.interrupt().then(
+			() => this.sendResponse(response),
+			(err) => {
+				log.error('Error: ' + err);
+				response.success = false;
+				response.message = String(err);
+				this.sendResponse(response);
+			});
 	}
 	
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
 		log.debug('Received continueRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
-		threadAdapter.resume().then(() => this.sendResponse(response));
+		threadAdapter.resume().then(
+			() => this.sendResponse(response),
+			(err) => {
+				log.error('Error: ' + err);
+				response.success = false;
+				response.message = String(err);
+				this.sendResponse(response);
+			});
 	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
 		log.debug('Received nextRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
-		threadAdapter.stepOver().then(() => this.sendResponse(response));
+		threadAdapter.stepOver().then(
+			() => this.sendResponse(response),
+			(err) => {
+				log.error('Error: ' + err);
+				response.success = false;
+				response.message = String(err);
+				this.sendResponse(response);
+			});
 	}
 
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
 		log.debug('Received stepInRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
-		threadAdapter.stepIn().then(() => this.sendResponse(response));
+		threadAdapter.stepIn().then(
+			() => this.sendResponse(response),
+			(err) => {
+				log.error('Error: ' + err);
+				response.success = false;
+				response.message = String(err);
+				this.sendResponse(response);
+			});
 	}
 
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
 		log.debug('Received stepOutRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
-		threadAdapter.stepOut().then(() => this.sendResponse(response));
+		threadAdapter.stepOut().then(
+			() => this.sendResponse(response),
+			(err) => {
+				log.error('Error: ' + err);
+				response.success = false;
+				response.message = String(err);
+				this.sendResponse(response);
+			});
 	}
 	
 	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {

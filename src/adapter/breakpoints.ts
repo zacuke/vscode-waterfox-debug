@@ -44,41 +44,50 @@ export class BreakpointsAdapter {
 							newBreakpoints[breakpointIndex] = breakpointAdapter;
 							breakpointsToSet[breakpointIndex] = undefined;
 						} else {
-							breakpointsBeingRemoved.push(breakpointAdapter.actor.delete());
+							breakpointsBeingRemoved.push(
+								breakpointAdapter.actor.delete().catch(
+									(err) => {
+										log.error(`Failed removing breakpoint: ${err}`);
+									}
+								));
 						}
 					});
 
 					breakpointsToSet.map((requestedBreakpoint, index) => {
 						if (requestedBreakpoint !== undefined) {
 
-							breakpointsBeingSet.push(
-								sourceAdapter.actor
-								.setBreakpoint({ line: requestedBreakpoint.requestedLine }, requestedBreakpoint.condition)
-								.then((setBreakpointResult) => {
+							breakpointsBeingSet.push(sourceAdapter.actor.setBreakpoint(
+								{ line: requestedBreakpoint.requestedLine }, 
+								requestedBreakpoint.condition).then(
+									
+									(setBreakpointResult) => {
 
-									requestedBreakpoint.actualLine = 
-										(setBreakpointResult.actualLocation === undefined) ? 
-										requestedBreakpoint.requestedLine : 
-										setBreakpointResult.actualLocation.line;
-										
-									newBreakpoints[index] = new BreakpointAdapter(requestedBreakpoint, setBreakpointResult.breakpointActor);
-								}));
+										requestedBreakpoint.actualLine = 
+											(setBreakpointResult.actualLocation === undefined) ? 
+											requestedBreakpoint.requestedLine : 
+											setBreakpointResult.actualLocation.line;
+											
+										newBreakpoints[index] = new BreakpointAdapter(
+											requestedBreakpoint, setBreakpointResult.breakpointActor);
+									},
+									(err) => {
+										log.error(`Failed setting breakpoint: ${err}`);
+									}));
 						}
 					});
 					
 					log.debug(`Adding ${breakpointsBeingSet.length} and removing ${breakpointsBeingRemoved.length} breakpoints`);
 
 					Promise.all(breakpointsBeingRemoved).then(() => 
-					Promise.all(breakpointsBeingSet)).then(
-						() => {
-							resolve(newBreakpoints);
-							finished();
-						},
-						(err) => {
-							log.error(`Failed setting breakpoints: ${err}`);
-							reject(err);
-							finished();
-						});
+					Promise.all(breakpointsBeingSet)).then(() => {
+						resolve(newBreakpoints);
+						finished();
+					});
+
+				},
+				(err) => {
+					finished();
+					throw err;
 				});
 		});
 		

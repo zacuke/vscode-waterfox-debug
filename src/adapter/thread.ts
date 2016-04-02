@@ -153,15 +153,10 @@ export class ThreadAdapter {
 					let objectGripAdapters = concatArrays(frameAdapters.map(
 						(frameAdapter) => frameAdapter.getObjectGripAdapters()));
 					
-					let extendLifetimePromises = objectGripAdapters.map(
-						(objectGripAdapter) => objectGripAdapter.actor.extendLifetime());
+					let extendLifetimePromises = objectGripAdapters.map((objectGripAdapter) => 
+						objectGripAdapter.actor.extendLifetime().catch((err) => undefined));
 					
-					Promise.all(extendLifetimePromises).then(
-						() => finished(),
-						(err) => { 
-							finished(); 
-							throw err;
-						});
+					Promise.all(extendLifetimePromises).then(() => finished());
 
 					return frameAdapters;
 				},
@@ -181,8 +176,8 @@ export class ThreadAdapter {
 						.map((variableAdapter) => variableAdapter.getObjectGripAdapter())
 						.filter((objectGripAdapter) => (objectGripAdapter != null));
 					
-					let extendLifetimePromises = objectGripAdapters.map(
-						(objectGripAdapter) => objectGripAdapter.actor.extendLifetime());
+					let extendLifetimePromises = objectGripAdapters.map((objectGripAdapter) => 
+						objectGripAdapter.actor.extendLifetime().catch((err) => undefined));
 					
 					Promise.all(extendLifetimePromises).then(() => finished());
 
@@ -210,7 +205,12 @@ export class ThreadAdapter {
 
 			let objectGripAdapter = variableAdapter.getObjectGripAdapter();
 			if (objectGripAdapter) {
-				objectGripAdapter.actor.extendLifetime().then(() => finished());
+				objectGripAdapter.actor.extendLifetime().then(
+					() => finished(),
+					(err) => {
+						finished();
+						throw err;
+					});
 			} else {
 				finished();
 			}
