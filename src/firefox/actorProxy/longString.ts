@@ -38,9 +38,13 @@ export class LongStringGripActorProxy extends EventEmitter implements ActorProxy
 		if (response['substring'] !== undefined) {
 		
 			log.debug(`Content fetched from ${this.name}`);
-			
 			this.pendingSubstringRequests.resolveOne(response['substring']);
 			
+		} else if (response['error'] === 'noSuchActor') {
+			
+			log.error(`No such actor ${JSON.stringify(this.grip)}`);
+			this.pendingSubstringRequests.rejectAll('No such actor');
+
 		} else if (Object.keys(response).length === 1) {
 			
 			log.debug('Received response to threadGrip or release request');

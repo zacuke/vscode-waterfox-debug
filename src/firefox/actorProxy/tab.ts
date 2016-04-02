@@ -54,7 +54,6 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 		if (response['type'] === 'tabAttached') {
 
 			log.debug(`Attached to tab ${this.name}`);
-
 			let tabAttachedResponse = <FirefoxDebugProtocol.TabAttachedResponse>response;
 			let threadActor = this.connection.getOrCreate(tabAttachedResponse.threadActor, 
 				() => new ThreadActorProxy(tabAttachedResponse.threadActor, this.connection));
@@ -64,26 +63,22 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 		} else if (response['type'] === 'exited') {
 
 			log.debug(`Tab ${this.name} exited`);
-
 			this.pendingAttachRequests.rejectOne("exited");
 
 		} else if (response['type'] === 'detached') {
 
 			log.debug(`Detached from tab ${this.name} as requested`);
-
 			this.pendingDetachRequests.resolveOne(null);
 			this.emit('detached');
 
 		} else if (response['error'] === 'wrongState') {
 
 			log.warn(`Tab ${this.name} was in the wrong state for the last request`);
-
 			this.pendingDetachRequests.rejectOne("exited");
 
 		} else if (response['type'] === 'tabDetached') {
 
 			log.debug(`Detached from tab ${this.name} because it was closed`);
-
 			// TODO handle pendingRequests
 			this.emit('tabDetached');
 
@@ -104,6 +99,12 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 				this.emit('didNavigate');
 
 			}
+
+		} else if (response['error'] === 'noSuchActor') {
+			
+			log.error(`No such actor ${JSON.stringify(this.name)}`);
+			this.pendingAttachRequests.rejectAll('No such actor');
+			this.pendingDetachRequests.rejectAll('No such actor');
 
 		} else {
 			

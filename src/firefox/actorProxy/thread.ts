@@ -306,6 +306,26 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			//TODO reject last request!
 			this.emit('wrongState');
 			
+		} else if (response['error'] === 'noSuchActor') {
+			
+			log.error(`No such actor ${JSON.stringify(this.name)}`);
+			if (this.pendingAttachRequest) {
+				this.pendingAttachRequest.reject('No such actor');
+			}
+			if (this.pendingDetachRequest) {
+				this.pendingDetachRequest.reject('No such actor');
+			}
+			if (this.pendingInterruptRequest) {
+				this.pendingInterruptRequest.reject('No such actor');
+			}
+			if (this.pendingResumeRequest) {
+				this.pendingResumeRequest.reject('No such actor');
+			}
+			this.pendingSourcesRequests.rejectAll('No such actor');
+			this.pendingStackFramesRequests.rejectAll('No such actor');
+			this.pendingEvaluateRequests.rejectAll('No such actor');
+			this.pendingReleaseRequests.rejectAll('No such actor');
+
 		} else if (Object.keys(response).length === 1) {
 
 			log.debug('Received response to releaseMany request');

@@ -63,6 +63,12 @@ export class SourceActorProxy extends EventEmitter implements ActorProxy {
 			let grip = <FirefoxDebugProtocol.Grip>response['source'];
 			this.pendingFetchSourceRequests.resolveOne(grip);
 			
+		} else if (response['error'] === 'noSuchActor') {
+			
+			log.error(`No such actor ${JSON.stringify(this.name)}`);
+			this.pendingFetchSourceRequests.rejectAll('No such actor');
+			this.pendingSetBreakpointRequests.rejectAll('No such actor');
+
 		} else {
 			
 			log.warn("Unknown message from SourceActor: " + JSON.stringify(response));
