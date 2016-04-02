@@ -198,9 +198,9 @@ export class ThreadAdapter {
 				
 			let variableAdapter: VariableAdapter;
 			if (grip) {
-				variableAdapter = new VariableAdapter('', 'undefined');
-			} else {
 				variableAdapter = VariableAdapter.fromGrip('', grip, threadLifetime, this);
+			} else {
+				variableAdapter = new VariableAdapter('', 'undefined');
 			}
 
 			let objectGripAdapter = variableAdapter.getObjectGripAdapter();

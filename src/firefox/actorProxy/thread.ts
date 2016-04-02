@@ -258,7 +258,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 				this.pendingResumeRequest.resolve(undefined);
 				this.pendingResumeRequest = null;
 			} else {
-				log.warn('Received resumed reply without pending request');
+				log.debug('Received resumed reply without pending request (probably due to an evaluateRequest)');
 			}
 			
 		} else if (response['type'] === 'detached') {
