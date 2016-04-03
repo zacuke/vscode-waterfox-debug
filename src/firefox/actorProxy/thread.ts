@@ -322,6 +322,11 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			this.pendingEvaluateRequests.rejectAll('No such actor');
 			this.pendingReleaseRequests.rejectAll('No such actor');
 
+		} else if (response['error'] === 'notReleasable') {
+			
+			log.error('Error releasing threadGrips');
+			this.pendingReleaseRequests.rejectOne('Not releasable');
+			
 		} else if (Object.keys(response).length === 1) {
 
 			log.debug('Received response to releaseMany request');

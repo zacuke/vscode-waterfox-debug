@@ -242,6 +242,6 @@ export class ThreadAdapter {
 		});
 		this.frames = [];
 		
-		return this.actor.releaseMany(objectGripActorsToRelease);
+		return this.actor.releaseMany(objectGripActorsToRelease).catch((err) => undefined);
 	}
 }
