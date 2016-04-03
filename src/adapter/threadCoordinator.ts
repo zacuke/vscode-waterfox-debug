@@ -76,8 +76,8 @@ export class ThreadCoordinator {
 	 * thread). The task is passed a callback that must be invoked when the task is finished.
 	 */
 	public runOnPausedThread<T>(task: (finished: () => void) => T | Promise<T>): Promise<T> {
-		log.debug('Starting task on paused thread');
 		this.tasksRunningOnPausedThread++;
+		log.debug(`Starting task on paused thread (now running: ${this.tasksRunningOnPausedThread})`);
 		
 		return new Promise<T>((resolve, reject) => {
 			if (!this.resumeRequestIsRunning) {
@@ -177,8 +177,8 @@ export class ThreadCoordinator {
 	 * This method is called when a task started with runOnPausedThread() is finished.
 	 */
 	private taskFinished() {
-		log.debug('Task finished on paused thread');
 		this.tasksRunningOnPausedThread--;
+		log.debug(`Task finished on paused thread (remaining: ${this.tasksRunningOnPausedThread})`);
 		this.doNext();
 	}
 	
@@ -186,7 +186,7 @@ export class ThreadCoordinator {
 	 * This method is called when an evaluateRequest is finished.
 	 */
 	private evaluateFinished() {
-		log.debug('Task finished on paused thread');
+		log.debug('Evaluate finished');
 		this.evaluateRequestIsRunning = false;
 		this.doNext();
 	}

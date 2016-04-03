@@ -290,7 +290,6 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 
 	protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
-
 		log.debug(`Received threadsRequest - replying with ${this.threadsById.size} threads`);
 		
 		let responseThreads: Thread[] = [];
@@ -303,7 +302,6 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 	
     protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
-
 		log.debug(`Received setBreakpointsRequest with ${args.breakpoints.length} breakpoints for ${args.source.path}`);
 
 		let firefoxSourceUrl = this.convertPathToFirefoxUrl(args.source.path);
@@ -342,12 +340,11 @@ export class FirefoxDebugSession extends DebugSession {
 							};
 
 							log.debug('Replying to setBreakpointsRequest with actual breakpoints from the first thread with this source');
-
 							this.sendResponse(response);
 							
 						},
 						(err) => {
-							log.error(`Failed setting breakpoints: ${err}`);
+							log.error(`Failed setBreakpointsRequest: ${err}`);
 							response.success = false;
 							response.message = String(err);
 							this.sendResponse(response);
@@ -359,8 +356,7 @@ export class FirefoxDebugSession extends DebugSession {
 		});
 		
 		if (this.verifiedBreakpointSources.indexOf(firefoxSourceUrl) < 0) {
-
-			log.debug (`Source ${args.source.path} not seen yet`);
+			log.debug (`Replying to setBreakpointsRequest (Source ${args.source.path} not seen yet)`);
 
 			response.body = { 
 				breakpoints: breakpointInfos.map((breakpointInfo) => {
@@ -376,6 +372,7 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 	
 	protected setExceptionBreakPointsRequest(response: DebugProtocol.SetExceptionBreakpointsResponse, args: DebugProtocol.SetExceptionBreakpointsArguments): void {
+		log.debug(`Received setExceptionBreakPointsRequest with filters: ${JSON.stringify(args.filters)}`);
 		
 		this.exceptionBreakpoints = ExceptionBreakpoints.None;
 		
@@ -395,9 +392,12 @@ export class FirefoxDebugSession extends DebugSession {
 		log.debug('Received pauseRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
 		threadAdapter.interrupt().then(
-			() => this.sendResponse(response),
+			() => {
+				log.debug('Replying to pauseRequest');
+				this.sendResponse(response);
+			},
 			(err) => {
-				log.error('Error: ' + err);
+				log.error('Failed pauseRequest: ' + err);
 				response.success = false;
 				response.message = String(err);
 				this.sendResponse(response);
@@ -408,9 +408,12 @@ export class FirefoxDebugSession extends DebugSession {
 		log.debug('Received continueRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
 		threadAdapter.resume().then(
-			() => this.sendResponse(response),
+			() => {
+				log.debug('Replying to continueRequest');
+				this.sendResponse(response);
+			},
 			(err) => {
-				log.error('Error: ' + err);
+				log.error('Failed continueRequest: ' + err);
 				response.success = false;
 				response.message = String(err);
 				this.sendResponse(response);
@@ -421,9 +424,12 @@ export class FirefoxDebugSession extends DebugSession {
 		log.debug('Received nextRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
 		threadAdapter.stepOver().then(
-			() => this.sendResponse(response),
+			() => {
+				log.debug('Replying to nextRequest');
+				this.sendResponse(response);
+			},
 			(err) => {
-				log.error('Error: ' + err);
+				log.error('Failed nextRequest: ' + err);
 				response.success = false;
 				response.message = String(err);
 				this.sendResponse(response);
@@ -434,9 +440,12 @@ export class FirefoxDebugSession extends DebugSession {
 		log.debug('Received stepInRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
 		threadAdapter.stepIn().then(
-			() => this.sendResponse(response),
+			() => {
+				log.debug('Replying to stepInRequest');
+				this.sendResponse(response);
+			},
 			(err) => {
-				log.error('Error: ' + err);
+				log.error('Failed stepInRequest: ' + err);
 				response.success = false;
 				response.message = String(err);
 				this.sendResponse(response);
@@ -447,9 +456,12 @@ export class FirefoxDebugSession extends DebugSession {
 		log.debug('Received stepOutRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
 		threadAdapter.stepOut().then(
-			() => this.sendResponse(response),
+			() => {
+				log.debug('Replying to stepOutRequest');
+				this.sendResponse(response);
+			},
 			(err) => {
-				log.error('Error: ' + err);
+				log.error('Failed stepOutRequest: ' + err);
 				response.success = false;
 				response.message = String(err);
 				this.sendResponse(response);
@@ -463,6 +475,7 @@ export class FirefoxDebugSession extends DebugSession {
 		threadAdapter.fetchStackFrames(args.levels).then(
 			(frameAdapters) => {
 
+				log.debug('Replying to stackTraceRequest');
 				response.body = { 
 					stackFrames: frameAdapters.map((frameAdapter) => frameAdapter.getStackframe())
 				};
@@ -470,7 +483,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 			},
 			(err) => {
-				log.error(`Failed fetching stackframes: ${err}`);
+				log.error(`Failed stackTraceRequest: ${err}`);
 				response.success = false;
 				response.message = String(err);
 				this.sendResponse(response);
@@ -482,16 +495,16 @@ export class FirefoxDebugSession extends DebugSession {
 		
 		let frameAdapter = this.framesById.get(args.frameId);
 		if (frameAdapter === undefined) {
-			let err = 'scopesRequest failed because the requested frame can\'t be found';
+			let err = 'Failed scopesRequest: the requested frame can\'t be found';
 			log.error(err);
 			response.success = false;
 			response.message = err;
 			this.sendResponse(response);
 			return;
 		}
-		
+
+		log.debug('Replying to scopesRequest');
 		response.body = { scopes: frameAdapter.scopeAdapters.map((scopeAdapter) => scopeAdapter.getScope()) };
-		
 		this.sendResponse(response);
 	}
 	
@@ -500,7 +513,7 @@ export class FirefoxDebugSession extends DebugSession {
 		
 		let variablesProvider = this.variablesProvidersById.get(args.variablesReference);
 		if (variablesProvider === undefined) {
-			let err = 'variablesRequest failed because the requested object reference can\'t be found';
+			let err = 'Failed variablesRequest: the requested object reference can\'t be found';
 			log.error(err);
 			response.success = false;
 			response.message = err;
@@ -511,11 +524,13 @@ export class FirefoxDebugSession extends DebugSession {
 		variablesProvider.threadAdapter.fetchVariables(variablesProvider).then(
 			(variables) => {
 
+				log.debug('Replying to variablesRequest');
 				response.body = { variables };
 				this.sendResponse(response);
 
 			},
 			(err) => {
+				log.error(`Failed variablesRequest: ${err}`);
 				response.success = false;
 				response.message = String(err);
 				this.sendResponse(response);
@@ -534,6 +549,7 @@ export class FirefoxDebugSession extends DebugSession {
 			
 				(variable) => {
 
+					log.debug('Replying to evaluateRequest');
 					response.body = { 
 						result: variable.value, 
 						variablesReference: variable.variablesReference
@@ -542,14 +558,14 @@ export class FirefoxDebugSession extends DebugSession {
 
 				},
 				(err) => {
-					log.error(`Failed evaluating "${args.expression}": ${err}`);
+					log.error(`Failed evaluateRequest for "${args.expression}": ${err}`);
 					response.success = false;
 					response.message = String(err);
 					this.sendResponse(response);
 				});
 
 		} else {
-			log.error(`Failed evaluating "${args.expression}": Can't find requested evaluation frame`);
+			log.error(`Failed evaluateRequest for "${args.expression}": Can't find requested evaluation frame`);
 			response.success = false;
 			response.message = 'Can\'t find requested evaluation frame';
 			this.sendResponse(response);
@@ -557,11 +573,9 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 	
 	protected sourceRequest(response: DebugProtocol.SourceResponse, args: DebugProtocol.SourceArguments): void {
-		
 		log.debug('Received sourceRequest');
 		
 		let sourceAdapter = this.sourcesById.get(args.sourceReference);
-
 		sourceAdapter.actor.fetchSource().then(
 			(sourceGrip) => {
 				
@@ -577,12 +591,13 @@ export class FirefoxDebugSession extends DebugSession {
 					longStringActor.fetchContent().then(
 						(content) => {
 							
+							log.debug('Replying to sourceRequest');
 							response.body = { content };
 							this.sendResponse(response);
 							
 						},
 						(err) => {
-							log.error(`Failed fetching source: ${err}`);
+							log.error(`Failed sourceRequest: ${err}`);
 							response.success = false;
 							response.message = String(err);
 							this.sendResponse(response);
@@ -590,7 +605,7 @@ export class FirefoxDebugSession extends DebugSession {
 				}
 			},
 			(err) => {
-				log.error(`Failed fetching source: ${err}`);
+				log.error(`Failed sourceRequest: ${err}`);
 				response.success = false;
 				response.message = String(err);
 				this.sendResponse(response);
@@ -598,7 +613,6 @@ export class FirefoxDebugSession extends DebugSession {
 	}	
 
 	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
-		
 		log.debug('Received disconnectRequest');
 		
 		let detachPromises: Promise<void>[] = [];
@@ -608,12 +622,12 @@ export class FirefoxDebugSession extends DebugSession {
 
 		Promise.all(detachPromises).then(
 			() => {
-				log.debug('All threads detached');
+				log.debug('Replying to disconnectRequest');
 				this.disconnect();
 				this.sendResponse(response);
 			},
 			(err) => {
-				log.warn(`Error while detaching: ${err}`);
+				log.warn(`Failed disconnectRequest: ${err}`);
 				this.disconnect();
 				this.sendResponse(response);
 			});

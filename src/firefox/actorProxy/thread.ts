@@ -44,9 +44,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	 * Attach the thread if it is detached
 	 */
 	public attach(): Promise<void> {
-		log.debug(`Attaching thread ${this.name}`);
-		
 		if (!this.attachPromise) {
+			log.debug(`Attaching thread ${this.name}`);
 
 			this.attachPromise = new Promise<void>((resolve, reject) => {
 				this.pendingAttachRequest = { resolve, reject };
@@ -68,9 +67,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	 * Resume the thread if it is paused
 	 */
 	public resume(exceptionBreakpoints: ExceptionBreakpoints, resumeLimitType?: 'next' | 'step' | 'finish'): Promise<void> {
-		log.debug(`Resuming thread ${this.name}`);
-		
 		if (!this.resumePromise) {
+			log.debug(`Resuming thread ${this.name}`);
 
 			let resumeLimit = resumeLimitType ? { type: resumeLimitType } : undefined;
 			let pauseOnExceptions = undefined;
@@ -104,9 +102,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	 * Interrupt the thread if it is running
 	 */
 	public interrupt(): Promise<void> {
-		log.debug(`Interrupting thread ${this.name}`);
-		
 		if (!this.interruptPromise) {
+			log.debug(`Interrupting thread ${this.name}`);
 
 			this.interruptPromise = new Promise<void>((resolve, reject) => {
 				this.pendingInterruptRequest = { resolve, reject };
@@ -123,9 +120,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	 * Detach the thread if it is attached
 	 */
 	public detach(): Promise<void> {
-		log.debug(`Detaching thread ${this.name}`);
-		
 		if (!this.detachPromise) {
+			log.debug(`Detaching thread ${this.name}`);
 
 			this.detachPromise = new Promise<void>((resolve, reject) => {
 				this.pendingDetachRequest = { resolve, reject };
