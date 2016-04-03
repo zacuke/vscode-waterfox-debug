@@ -50,6 +50,13 @@
             "file": "${workspaceRoot}/index.html"
           },
           {
+            "name": "Launch localhost",
+            "type": "firefox",
+            "request": "launch",
+            "url": "http://localhost/index.html",
+			"webRoot": "${workspaceRoot}"
+          },
+          {
             "name": "Attach",
             "type": "firefox",
             "request": "attach"
