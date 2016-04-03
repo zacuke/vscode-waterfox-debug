@@ -41,11 +41,9 @@ export class ThreadAdapter {
 		});
 		this.coordinator = new ThreadCoordinator(this.actor);
 		return this.actor.attach().then(() => {
-//			this.coordinator = new ThreadCoordinator(this.actor);
 			this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
 			return this.actor.fetchSources().then(
 				() => this.coordinator.resume(() => Promise.resolve(undefined)));
-//			return this.coordinator.resume(() => Promise.resolve(undefined));
 		});
 	}
 

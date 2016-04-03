@@ -24,16 +24,12 @@
 			"name": "debug server",
 			"type": "node",
 			"request": "launch",
-			"runtimeArgs": [
-				"--harmony"
-			],
 			"program": "${workspaceRoot}/out/firefoxDebugSession.js",
 			"stopOnEntry": false,
 			"args": [
 				"--server=4711"
 			],
 			"sourceMaps": true,
-			"externalConsole": true,
 			"outDir": "${workspaceRoot}/out"
 		}
 	]
