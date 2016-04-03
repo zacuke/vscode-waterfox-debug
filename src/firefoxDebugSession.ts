@@ -1,4 +1,5 @@
-import { platform } from 'os';
+import * as os from 'os';
+import * as path from 'path';
 import { connect, Socket } from 'net';
 import { ChildProcess } from 'child_process';
 import { Log } from './util/log';
@@ -42,7 +43,7 @@ export class FirefoxDebugSession extends DebugSession {
 	public constructor(debuggerLinesStartAt1: boolean, isServer: boolean = false) {
 		super(debuggerLinesStartAt1, isServer);
 
-		this.isWindowsPlatform = (platform() === 'win32');
+		this.isWindowsPlatform = (os.platform() === 'win32');
 		
 		if (!isServer) {
 			Log.consoleLog = (msg: string) => {
@@ -124,9 +125,23 @@ export class FirefoxDebugSession extends DebugSession {
 	
     protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchConfiguration): void {
 
-		this.readWebRootConfiguration(args);
+		let configError = this.readWebRootConfiguration(args);
+		if (configError) {
+			response.success = false;
+			response.message = configError;
+			this.sendResponse(response);
+			return;
+		}
 		
-		this.firefoxProc = launchFirefox(args, (path) => this.convertPathToFirefoxUrl(path));
+		let launchResult = launchFirefox(args, (path) => this.convertPathToFirefoxUrl(path));
+		if (typeof launchResult === 'string') {
+			response.success = false;
+			response.message = launchResult;
+			this.sendResponse(response);
+			return;
+		} else {
+			this.firefoxProc = launchResult;
+		}
 
 		waitForSocket(args).then(
 			(socket) => {
@@ -144,7 +159,13 @@ export class FirefoxDebugSession extends DebugSession {
 
     protected attachRequest(response: DebugProtocol.AttachResponse, args: AttachConfiguration): void {
 
-		this.readWebRootConfiguration(args);
+		let configError = this.readWebRootConfiguration(args);
+		if (configError) {
+			response.success = false;
+			response.message = configError;
+			this.sendResponse(response);
+			return;
+		}
 		
 		let socket = connect(args.port || 6000, args.host || 'localhost');
 		this.startSession(socket);
@@ -160,8 +181,13 @@ export class FirefoxDebugSession extends DebugSession {
 		});
 	}
 	
-	private readWebRootConfiguration(args: WebRootConfiguration) {
+	private readWebRootConfiguration(args: WebRootConfiguration): string {
 		if (args.url) {
+			if (!args.webRoot) {
+				return `If you set "url" you also have to set "webRoot" in the ${args.request} configuration`;
+			} else if (!path.isAbsolute(args.webRoot)) {
+				return `The "webRoot" property in the ${args.request} configuration has to be an absolute path`;
+			}
 			this.webRootUrl = args.url;
 			if (this.webRootUrl.indexOf('/') >= 0) {
 				this.webRootUrl = this.webRootUrl.substr(0, this.webRootUrl.lastIndexOf('/'));
@@ -170,6 +196,8 @@ export class FirefoxDebugSession extends DebugSession {
 			if (this.isWindowsPlatform) {
 				this.webRoot = this.webRoot.replace(/\\/g, '/');
 			}
+		} else if (args.webRoot) {
+			return `If you set "webRoot" you also have to set "url" in the ${args.request} configuration`;
 		}
 	}
 	

@@ -1,6 +1,7 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
 
 export interface WebRootConfiguration {
+	request: string;
 	url?: string;
 	webRoot?: string;
 }

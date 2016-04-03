@@ -1,11 +1,12 @@
-import { platform } from 'os';
+import * as os from 'os';
+import * as path from 'path';
 import { accessSync, X_OK } from 'fs';
 import { connect, Socket } from 'net';
 import { spawn, ChildProcess } from 'child_process';
 import { LaunchConfiguration } from '../adapter/launchConfiguration';
 
-export function launchFirefox(
-	config: LaunchConfiguration, convertPathToFirefoxUrl: (path: string) => string): ChildProcess {
+export function launchFirefox(config: LaunchConfiguration, 
+	convertPathToFirefoxUrl: (path: string) => string): ChildProcess | string {
 
 	let firefoxPath = getFirefoxExecutablePath(config);	
 	
@@ -18,9 +19,14 @@ export function launchFirefox(
 		firefoxArgs = firefoxArgs.concat(config.firefoxArgs);
 	}
 	if (config.file) {
+		if (!path.isAbsolute(config.file)) {
+			return 'The "file" property in the launch configuration has to be an absolute path';
+		}
 		firefoxArgs.push(convertPathToFirefoxUrl(config.file));
 	} else if (config.url) {
 		firefoxArgs.push(config.url);
+	} else {
+		return 'You need to set either "file" or "url" in the launch configuration';
 	}
 	
 	let childProc = spawn(firefoxPath, firefoxArgs, { detached: true, stdio: 'ignore' });
@@ -42,7 +48,7 @@ function getFirefoxExecutablePath(config: LaunchConfiguration): string {
 	}
 	
 	let candidates: string[] = [];
-	switch (platform()) {
+	switch (os.platform()) {
 		
 		case 'linux':
 		case 'freebsd':
