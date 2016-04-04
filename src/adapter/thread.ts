@@ -205,10 +205,7 @@ export class ThreadAdapter {
 			if (objectGripAdapter) {
 				objectGripAdapter.actor.extendLifetime().then(
 					() => finished(),
-					(err) => {
-						finished();
-						throw err;
-					});
+					(err) => finished());
 			} else {
 				finished();
 			}
