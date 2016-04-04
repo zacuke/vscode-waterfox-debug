@@ -211,11 +211,17 @@ export class ThreadCoordinator {
 			
 			this.evaluateRequestIsRunning = true;
 			let queuedEvaluateRequest = this.queuedEvaluateRequests.shift();
-			queuedEvaluateRequest.send().then((grip) => {
-				this.evaluateRequestIsRunning = false;
-				queuedEvaluateRequest.resolve(grip);
-				this.doNext();
-			});
+			queuedEvaluateRequest.send().then(
+				([grip, finished]) => {
+					this.evaluateRequestIsRunning = false;
+					queuedEvaluateRequest.resolve([grip, finished]);
+					this.doNext();
+				},
+				(err) => {
+					this.evaluateRequestIsRunning = false;
+					queuedEvaluateRequest.reject(err);
+					this.doNext();
+				});
 
 		} else {
 
