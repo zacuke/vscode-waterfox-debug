@@ -27,6 +27,10 @@ export class ThreadCoordinator {
 		actor.onPaused((reason) => {
 			this.desiredThreadState = ThreadState.Paused;
 		});
+		// The thread resumed unexpectedly, so we interrupt it again 
+		actor.onResumed(() => {
+			actor.interrupt();
+		})
 	}
 
 	/**

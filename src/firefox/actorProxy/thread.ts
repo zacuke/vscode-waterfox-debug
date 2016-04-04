@@ -272,12 +272,15 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
 		} else if (response['type'] === 'resumed') {
 
-			log.debug(`Received resumed event from ${this.name}`);
 			if (this.pendingResumeRequest) {
+				log.debug(`Received resumed event from ${this.name}`);
 				this.pendingResumeRequest.resolve(undefined);
 				this.pendingResumeRequest = null;
 			} else {
-				log.debug('Received resumed reply without pending request (probably due to an evaluateRequest)');
+				log.debug(`Received unexpected resumed event from ${this.name}`);
+				this.interruptPromise = null;
+				this.resumePromise = Promise.resolve(undefined);
+				this.emit('resumed');
 			}
 			
 		} else if (response['type'] === 'detached') {
@@ -372,7 +375,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	}
 
 	/**
-	 * The paused event is sent when the thread is paused because it hit a breakpoint or a
+	 * The paused event is only sent when the thread is paused because it hit a breakpoint or a
 	 * resumeLimit, but not if it was paused due to an interrupt request or because an evaluate
 	 * request is finished
 	 */	
@@ -380,6 +383,15 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		this.on('paused', cb);
 	}
 
+	/**
+	 * The resumed event is only sent when the thread is resumed without a corresponding request
+	 * (this happens when a tab in Firefox is navigated to a different url while the corresponding
+	 * thread is paused)
+	 */
+	public onResumed(cb: () => void) {
+		this.on('resumed', cb);
+	}
+	
 	public onExited(cb: () => void) {
 		this.on('exited', cb);
 	}
