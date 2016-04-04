@@ -213,7 +213,6 @@ export class ThreadCoordinator {
 			let queuedEvaluateRequest = this.queuedEvaluateRequests.shift();
 			queuedEvaluateRequest.send().then(
 				([grip, finished]) => {
-					this.evaluateRequestIsRunning = false;
 					queuedEvaluateRequest.resolve([grip, finished]);
 					this.doNext();
 				},
