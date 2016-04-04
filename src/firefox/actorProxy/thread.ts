@@ -37,7 +37,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	
 	private pendingSourcesRequests = new PendingRequests<FirefoxDebugProtocol.Source[]>();
 	private pendingStackFramesRequests = new PendingRequests<FirefoxDebugProtocol.Frame[]>();
-	private pendingEvaluateRequests = new PendingRequests<FirefoxDebugProtocol.Grip>();
+	private pendingEvaluateRequest: PendingRequest<FirefoxDebugProtocol.Grip>;
 	private pendingReleaseRequests = new PendingRequests<void>();
 	
 	/**
@@ -172,7 +172,25 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		log.debug(`Evaluating '${expr}' on thread ${this.name}`);
 		
 		return new Promise<FirefoxDebugProtocol.Grip>((resolve, reject) => {
-			this.pendingEvaluateRequests.enqueue({ resolve, reject });
+			if (this.pendingEvaluateRequest) {
+				let err = 'Another evaluateRequest is already running'; 
+				log.error(err);
+				reject(err);
+				return;
+			}
+			if (!this.interruptPromise) {
+				let err = 'Can\'t evaluate because the thread isn\'t paused';
+				log.error(err);
+				reject(err);
+				return;
+			}
+			
+			this.pendingEvaluateRequest = { resolve, reject };
+			this.resumePromise = new Promise<void>((resolve, reject) => {
+				this.pendingResumeRequest = { resolve, reject };
+			});
+			this.interruptPromise = null;
+			
 			let escapedExpression = expr.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 			let tryExpression = `eval("try{${escapedExpression}}catch(e){e.name+':'+e.message}")`;
 			this.connection.sendRequest({ 
@@ -238,7 +256,12 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 				case 'clientEvaluated':
 					this.interruptPromise = Promise.resolve(undefined);
 					this.resumePromise = null;
-					this.pendingEvaluateRequests.resolveOne(pausedResponse.why.frameFinished.return);
+					if (this.pendingEvaluateRequest) {
+						this.pendingEvaluateRequest.resolve(pausedResponse.why.frameFinished.return);
+						this.pendingEvaluateRequest = null;
+					} else {
+						log.warn('Received clientEvaluated message without pending request');
+					}
 					break;
 
 				default:
@@ -268,7 +291,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			}
 
 			this.pendingStackFramesRequests.rejectAll('Detached');
-			this.pendingEvaluateRequests.rejectAll('Detached');
+			if (this.pendingEvaluateRequest) {
+				this.pendingEvaluateRequest.reject('Detached');
+			}
 			
 		} else if (response['sources']) {
 
@@ -319,7 +344,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			}
 			this.pendingSourcesRequests.rejectAll('No such actor');
 			this.pendingStackFramesRequests.rejectAll('No such actor');
-			this.pendingEvaluateRequests.rejectAll('No such actor');
+			if (this.pendingEvaluateRequest) {
+				this.pendingEvaluateRequest.reject('No such actor');
+			}
 			this.pendingReleaseRequests.rejectAll('No such actor');
 
 		} else if (response['error'] === 'notReleasable') {
