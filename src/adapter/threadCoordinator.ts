@@ -134,7 +134,9 @@ export class ThreadCoordinator {
 	}
 	
 	public interrupt(): Promise<void> {
-		return this.actor.interrupt();
+		return this.actor.interrupt(false).then(() => {
+			this.desiredThreadState = ThreadState.Paused;
+		});
 	}
 	
 	/**

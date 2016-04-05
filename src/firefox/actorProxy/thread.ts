@@ -101,13 +101,16 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	/**
 	 * Interrupt the thread if it is running
 	 */
-	public interrupt(): Promise<void> {
+	public interrupt(immediately = true): Promise<void> {
 		if (!this.interruptPromise) {
 			log.debug(`Interrupting thread ${this.name}`);
 
 			this.interruptPromise = new Promise<void>((resolve, reject) => {
 				this.pendingInterruptRequest = { resolve, reject };
-				this.connection.sendRequest({ to: this.name, type: 'interrupt' });
+				this.connection.sendRequest({
+					to: this.name, type: 'interrupt',
+					when: immediately ? undefined : 'onNext'
+				});
 			});
 			this.resumePromise = null;
 			
@@ -366,6 +369,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
 			if (response['type'] === 'newGlobal') {
 				log.debug(`Received newGlobal event from ${this.name} (ignoring)`);
+			} else if (response['type'] === 'willInterrupt') {
+				log.debug(`Received willInterrupt event from ${this.name} (ignoring)`);
 			} else {
 				log.warn("Unknown message from ThreadActor: " + JSON.stringify(response));
 			}			

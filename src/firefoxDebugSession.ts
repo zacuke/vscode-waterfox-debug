@@ -395,11 +395,13 @@ export class FirefoxDebugSession extends DebugSession {
 
 	protected pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments): void {
 		log.debug('Received pauseRequest');
-		let threadAdapter = this.threadsById.get(args.threadId);
+		let threadId = args.threadId ? args.threadId : 1;
+		let threadAdapter = this.threadsById.get(threadId);
 		threadAdapter.interrupt().then(
 			() => {
 				log.debug('Replying to pauseRequest');
 				this.sendResponse(response);
+				this.sendEvent(new StoppedEvent('interrupt', threadId));
 			},
 			(err) => {
 				log.error('Failed pauseRequest: ' + err);
