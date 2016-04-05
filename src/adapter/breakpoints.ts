@@ -9,7 +9,7 @@ export class BreakpointsAdapter {
 	public static setBreakpointsOnSourceActor(breakpointsToSet: BreakpointInfo[], 
 	sourceAdapter: SourceAdapter, threadCoordinator: ThreadCoordinator): Promise<BreakpointAdapter[]> {
 		return threadCoordinator.runOnPausedThread((finished) => 
-			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter, finished));
+			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter, finished), false);
 	}
 
 	private static setBreakpointsOnPausedSourceActor(breakpointsToSet: BreakpointInfo[], 

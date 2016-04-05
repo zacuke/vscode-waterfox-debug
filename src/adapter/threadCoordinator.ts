@@ -17,7 +17,8 @@ class QueuedRequest<T> {
  * Requests that are sent to Firefox should be coordinated through this class:
  * - setting breakpoints and fetching stackframes and object properties must be run on a paused thread
  * - before the thread is resumed, the object grips that were fetched during the pause are released;
- *   no other requests should be sent to that thread between releasing and resuming
+ *   no other requests should be sent to that thread between releasing and resuming, so they are
+ *   queued to be sent later or rejected
  * - evaluate requests can only be sent when the thread is paused and resume the thread temporarily,
  *   so they must be sent sequentially
  */
@@ -34,9 +35,9 @@ export class ThreadCoordinator {
 	}
 
 	/**
-	 * The user-visible state of the thread. It may be put in a different state temporarily by
-	 * evaluate requests or in order to set breakpoints but will be put in the desired state
-	 * when these requests are finished.
+	 * The user-visible state of the thread. It may be put in a different state temporarily
+	 * in order to set breakpoints but will be put in the desired state when these requests 
+	 * are finished.
 	 */
 	private desiredThreadState = ThreadState.Paused;
 	
@@ -44,7 +45,13 @@ export class ThreadCoordinator {
 	 * Specifies if the thread should be interrupted when an exception occurs
 	 */
 	private exceptionBreakpoints: ExceptionBreakpoints;
-		
+
+	/**
+	 * Queued tasks requiring the thread to be paused. These tasks are started using
+	 * runOnPausedThread() and if the thread is currently resuming, they are put in this queue.
+	 */
+	private queuedtasksRunningOnPausedThread: QueuedRequest<any>[] = [];
+			
 	/**
 	 * The number of tasks that are currently running requiring the thread to be paused. 
 	 * These tasks are started using runOnPausedThread() and if the thread is running it will 
@@ -78,24 +85,45 @@ export class ThreadCoordinator {
 	 * If the thread is not already paused, it will be paused temporarily and automatically 
 	 * resumed when the task is finished (if there are no other reasons to pause the 
 	 * thread). The task is passed a callback that must be invoked when the task is finished.
+	 * If the thread is currently being resumed the task is either queued to be executed
+	 * later or rejected, depending on the rejectOnResume flag.
 	 */
-	public runOnPausedThread<T>(task: (finished: () => void) => T | Promise<T>): Promise<T> {
-		this.tasksRunningOnPausedThread++;
-		log.debug(`Starting task on paused thread (now running: ${this.tasksRunningOnPausedThread})`);
+	public runOnPausedThread<T>(task: (finished: () => void) => T | Promise<T>, rejectOnResume = true): Promise<T> {
 		
-		return new Promise<T>((resolve, reject) => {
-			if (!this.resumeRequestIsRunning) {
-				
+		if (!this.resumeRequestIsRunning) {
+			
+			log.debug(`Starting task on paused thread (now running: ${this.tasksRunningOnPausedThread})`);
+			this.tasksRunningOnPausedThread++;
+			
+			return new Promise<T>((resolve, reject) => {
 				let result = this.actor.interrupt().then(
 					() => task(() => this.taskFinished()));
 				resolve(result);
+			});
+		
+		} else if (!rejectOnResume) {
+
+			log.debug('Queueing task to be run on paused thread');
+			let resultPromise = new Promise<T>((resolve, reject) => {
+				
+				let send = () => {
+					log.debug(`Starting task on paused thread (now running: ${this.tasksRunningOnPausedThread})`);
+					this.tasksRunningOnPausedThread++;
+
+					let result = this.actor.interrupt().then(
+						() => task(() => this.taskFinished()));
+					resolve(result);
+					return result;
+				};
+				
+				this.queuedtasksRunningOnPausedThread.push({ send, resolve, reject});
+			});
 			
-			} else {
-				log.warn('Can\'t run a task on paused thread while the thread is resuming');
-				reject('Resuming');
-				this.taskFinished();
-			}
-		});
+			return resultPromise;
+			
+		} else {
+			return Promise.reject('Resuming');
+		}
 	}
 
 	public setExceptionBreakpoints(exceptionBreakpoints: ExceptionBreakpoints) {
@@ -204,7 +232,12 @@ export class ThreadCoordinator {
 			return;
 		}
 		
-		if (this.queuedResumeRequest) {
+		if (this.queuedtasksRunningOnPausedThread.length > 0) {
+			
+			this.queuedtasksRunningOnPausedThread.forEach((queuedTask) => queuedTask.send());
+			this.queuedtasksRunningOnPausedThread = [];
+			
+		} else if (this.queuedResumeRequest) {
 
 			this.resumeRequestIsRunning = true;
 			let resumeRequest = this.queuedResumeRequest;
