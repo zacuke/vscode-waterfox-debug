@@ -210,6 +210,11 @@ export class FirefoxDebugSession extends DebugSession {
 			
 			log.info(`Tab opened with url ${tabActor.url}`);
 			
+			// only attach to the first tab
+			if (this.nextThreadId > 1) {
+				return;
+			}
+			
 			tabActor.attach().then((threadActor) => {
 
 				log.debug(`Attached to tab ${tabActor.name}`);
@@ -278,9 +283,9 @@ export class FirefoxDebugSession extends DebugSession {
 		});
 
 		let rootActor = this.firefoxDebugConnection.rootActor;
-		rootActor.onTabListChanged(() => {
-			rootActor.fetchTabs();
-		});
+//		rootActor.onTabListChanged(() => {
+//			rootActor.fetchTabs();
+//		});
 		rootActor.onInit(() => {
 			rootActor.fetchTabs();
 		});
