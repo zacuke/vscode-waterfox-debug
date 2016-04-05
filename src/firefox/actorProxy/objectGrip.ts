@@ -6,14 +6,13 @@ import { ActorProxy } from './interface';
 
 let log = Log.create('ObjectGripActorProxy');
 
-export class ObjectGripActorProxy extends EventEmitter implements ActorProxy {
+export class ObjectGripActorProxy implements ActorProxy {
 
 	private pendingThreadGripRequest: PendingRequest<void> = null;
 	private threadGripPromise: Promise<void> = null;
  	private pendingPrototypeAndPropertiesRequests = new PendingRequests<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>();
 
 	constructor(private grip: FirefoxDebugProtocol.ObjectGrip, private connection: DebugConnection) {
-		super();
 		this.connection.register(this);
 	}
 

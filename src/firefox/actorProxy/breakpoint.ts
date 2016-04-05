@@ -6,12 +6,11 @@ import { ActorProxy } from './interface';
 
 let log = Log.create('BreakpointActorProxy');
 
-export class BreakpointActorProxy extends EventEmitter implements ActorProxy {
+export class BreakpointActorProxy implements ActorProxy {
 
 	private pendingDeleteRequests = new PendingRequests<void>();
 
 	constructor(private _name: string, private connection: DebugConnection) {
-		super();
 		this.connection.register(this);
 	}
 

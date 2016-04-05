@@ -7,13 +7,12 @@ import { BreakpointActorProxy } from './breakpoint';
 
 let log = Log.create('SourceActorProxy');
 
-export class SourceActorProxy extends EventEmitter implements ActorProxy {
+export class SourceActorProxy implements ActorProxy {
 
 	private pendingSetBreakpointRequests = new PendingRequests<SetBreakpointResult>();
 	private pendingFetchSourceRequests = new PendingRequests<FirefoxDebugProtocol.Grip>();
 	
 	constructor(private _source: FirefoxDebugProtocol.Source, private connection: DebugConnection) {
-		super();
 		this.connection.register(this);
 	}
 

@@ -6,12 +6,11 @@ import { ActorProxy } from './interface';
 
 let log = Log.create('LongStringGripActorProxy');
 
-export class LongStringGripActorProxy extends EventEmitter implements ActorProxy {
+export class LongStringGripActorProxy implements ActorProxy {
 	
 	private pendingSubstringRequests = new PendingRequests<string>();
 
 	constructor(private grip: FirefoxDebugProtocol.LongStringGrip, private connection: DebugConnection) {
-		super();
 		this.connection.register(this);
 	}
 
