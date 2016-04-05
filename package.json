@@ -1,10 +1,11 @@
 {
   "name": "vscode-firefox-debug",
-  "displayName": "Visual Studio Code debug adapter for Firefox",
+  "displayName": "Debugger for Firefox",
   "version": "0.1.0",
   "author": "Holger Benl <hbenl@evandor.de>",
   "publisher": "hbenl",
   "description": "A Visual Studio Code extension to debug your web application in Firefox",
+  "icon": "icon.svg",
   "engines": {
     "vscode": "^0.10.10"
   },
