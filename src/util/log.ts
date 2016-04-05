@@ -49,7 +49,7 @@ export class Log {
 
 	private configure() {
 		this.fileLevel = undefined;
-		if (Log._config.fileName) {
+		if (Log._config.fileName && Log._config.fileLevel) {
 			this.fileLevel = Log._config.fileLevel[this.name];
 			if (this.fileLevel === undefined) {
 				this.fileLevel = Log._config.fileLevel['default'];
@@ -58,9 +58,11 @@ export class Log {
 				this.fileLevel = LogLevel.Info;
 			}
 		}
-		this.consoleLevel = Log._config.consoleLevel[this.name];
-		if (this.consoleLevel === undefined) {
-			this.consoleLevel = Log._config.consoleLevel['default'];
+		if (Log._config.consoleLevel) {
+			this.consoleLevel = Log._config.consoleLevel[this.name];
+			if (this.consoleLevel === undefined) {
+				this.consoleLevel = Log._config.consoleLevel['default'];
+			}
 		}
 
 		this.minLevel = this.fileLevel;
@@ -110,8 +112,8 @@ Log.config = {
 //	fileLevel: {
 //		'default': LogLevel.Debug
 //	},
-	consoleLevel: {
-		'default': LogLevel.Info,
+//	consoleLevel: {
+//		'default': LogLevel.Info,
 //		'DebugConnection': LogLevel.Debug,
-	}
+//	}
 };
