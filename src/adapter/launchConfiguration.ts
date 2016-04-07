@@ -9,6 +9,7 @@ export interface WebRootConfiguration {
 export interface LaunchConfiguration extends WebRootConfiguration, DebugProtocol.LaunchRequestArguments {
 	file?: string;
 	firefoxExecutable?: string;
+	profileDir?: string;
 	profile?: string;
 	port?: number;
 	firefoxArgs?: string[];

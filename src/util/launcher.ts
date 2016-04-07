@@ -1,10 +1,14 @@
 import * as os from 'os';
 import * as path from 'path';
-import { accessSync, X_OK } from 'fs';
-import { connect, Socket } from 'net';
+import * as fs from 'fs';
+import * as net from 'net';
 import { spawn, ChildProcess } from 'child_process';
 import { LaunchConfiguration } from '../adapter/launchConfiguration';
 
+/**
+ * Tries to launch Firefox with the given launch configuration. Returns either the spawned
+ * child process or an error message.
+ */
 export function launchFirefox(config: LaunchConfiguration, 
 	convertPathToFirefoxUrl: (path: string) => string): ChildProcess | string {
 
@@ -21,12 +25,22 @@ export function launchFirefox(config: LaunchConfiguration,
 	
 	let port = config.port || 6000;
 	let firefoxArgs: string[] = [ '-start-debugger-server', String(port), '-no-remote' ];
+
 	if (config.profile) {
 		firefoxArgs.push('-P', config.profile);
+	} else {
+		let [success, profileDirOrErrorMsg] = getProfileDir(config);
+		if (success) {
+			firefoxArgs.push('-profile', profileDirOrErrorMsg);
+		} else {
+			return profileDirOrErrorMsg;
+		}
 	}
+
 	if (Array.isArray(config.firefoxArgs)) {
 		firefoxArgs = firefoxArgs.concat(config.firefoxArgs);
 	}
+
 	if (config.file) {
 		if (!path.isAbsolute(config.file)) {
 			return 'The "file" property in the launch configuration has to be an absolute path';
@@ -43,9 +57,9 @@ export function launchFirefox(config: LaunchConfiguration,
 	return childProc;
 }
 
-export function waitForSocket(config: LaunchConfiguration): Promise<Socket> {
+export function waitForSocket(config: LaunchConfiguration): Promise<net.Socket> {
 	let port = config.port || 6000;
-	return new Promise<Socket>((resolve, reject) => {
+	return new Promise<net.Socket>((resolve, reject) => {
 		tryConnect(port, 200, 25, resolve, reject);
 	});
 }
@@ -94,9 +108,52 @@ function getFirefoxExecutablePath(config: LaunchConfiguration): string {
 	return null;
 }
 
+/**
+ * Returns either true and the path of the profile directory or false and an error message
+ */
+function getProfileDir(config: LaunchConfiguration): [boolean, string] {
+	let profileDir: string;
+	if (config.profileDir) {
+		profileDir = config.profileDir;
+	} else {
+		profileDir = path.join(os.tmpdir(), 'vscode-firefox-debug-profile');
+	}
+
+	try {
+		let stat = fs.statSync(profileDir);
+		if (stat.isDirectory) {
+			// directory exists - check permissions
+			try {
+				fs.accessSync(profileDir, fs.R_OK | fs.W_OK);
+				return [true, profileDir];
+			} catch (e) {
+				return [false, `The profile directory ${profileDir} exists but can't be accessed`];
+			}
+		} else {
+			return [false, `${profileDir} is not a directory`];
+		}
+	} catch (e) {
+		// directory doesn't exist - create it and set the necessary user preferences
+		try {
+			fs.mkdirSync(profileDir);
+			fs.writeFileSync(path.join(profileDir, 'prefs.js'), firefoxUserPrefs);
+			return [true, profileDir];
+		} catch (e) {
+			return [false, `Error trying to create profile directory ${profileDir}: ${e}`];
+		}
+	}	
+}
+
+let firefoxUserPrefs = `
+user_pref("browser.shell.checkDefaultBrowser", false);
+user_pref("devtools.chrome.enabled", true);
+user_pref("devtools.debugger.prompt-connection", false);
+user_pref("devtools.debugger.remote-enabled", true);
+`;
+
 function isExecutable(path: string): boolean {
 	try {
-		accessSync(path, X_OK);
+		fs.accessSync(path, fs.X_OK);
 		return true;
 	} catch (e) {
 		return false;
@@ -104,9 +161,9 @@ function isExecutable(path: string): boolean {
 }
 
 function tryConnect(port: number, retryAfter: number, tries: number, 
-	resolve: (sock: Socket) => void, reject: (err: any) => void) {
+	resolve: (sock: net.Socket) => void, reject: (err: any) => void) {
 	
-	let socket = connect(port);
+	let socket = net.connect(port);
 	socket.on('connect', () => resolve(socket));
 	socket.on('error', (err) => {
 		if (tries > 0) {

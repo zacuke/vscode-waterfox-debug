@@ -90,6 +90,11 @@
                 "description": "Absolute path to the Firefox executable",
                 "default": null
               },
+              "profileDir": {
+                "type": ["string", "null"],
+                "description": "The path of the Firefox profile directory to use",
+                "default": null
+              },
               "profile": {
                 "type": ["string", "null"],
                 "description": "The name of the Firefox profile to use",
