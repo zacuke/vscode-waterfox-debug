@@ -9,6 +9,15 @@ export function launchFirefox(config: LaunchConfiguration,
 	convertPathToFirefoxUrl: (path: string) => string): ChildProcess | string {
 
 	let firefoxPath = getFirefoxExecutablePath(config);	
+	if (!firefoxPath) {
+		let errorMsg = 'Couldn\'t find the Firefox executable. ';
+		if (config.firefoxExecutable) {
+			errorMsg += 'Please correct the path given in your launch configuration.'
+		} else {
+			errorMsg += 'Please specify the path in your launch configuration.'
+		}
+		return errorMsg;
+	}
 	
 	let port = config.port || 6000;
 	let firefoxArgs: string[] = [ '-start-debugger-server', String(port), '-no-remote' ];
@@ -44,7 +53,11 @@ export function waitForSocket(config: LaunchConfiguration): Promise<Socket> {
 function getFirefoxExecutablePath(config: LaunchConfiguration): string {
 
 	if (config.firefoxExecutable) {
-		return config.firefoxExecutable;
+		if (isExecutable(config.firefoxExecutable)) {
+			return config.firefoxExecutable;
+		} else {
+			return null;
+		}
 	}
 	
 	let candidates: string[] = [];
