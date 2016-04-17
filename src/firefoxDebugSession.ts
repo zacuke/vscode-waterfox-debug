@@ -286,6 +286,21 @@ export class FirefoxDebugSession extends DebugSession {
 			(err) => {
 				log.error(`Failed attaching to tab/thread: ${err}`);
 			});
+
+			consoleActor.onConsoleAPICall((msg) => {
+				let category = (msg.level === 'error') ? 'stderr' :
+					(msg.level === 'warn') ? 'console' : 'stdout';
+				let displayMsg = msg.arguments.join(',') + '\n';
+				this.sendEvent(new OutputEvent(displayMsg, category));
+			});
+
+			consoleActor.onPageErrorCall((err) => {
+				let category = err.exception ? 'stderr' : 'stdout';
+				this.sendEvent(new OutputEvent(err.errorMessage + '\n', category));
+			});
+
+			consoleActor.startListeners();
+
 		});
 
 		let rootActor = this.firefoxDebugConnection.rootActor;
