@@ -30,6 +30,10 @@ export class ThreadCoordinator {
 		});
 		actor.onResumed(() => {
 			this.desiredThreadState = ThreadState.Running;
+			if (this.tasksRunningOnPausedThread > 0) {
+				log.warn('Thread resumed unexpectedly while tasks that need the thread to be paused were running - interrupting again');
+				actor.interrupt();
+			}
 		});
 	}
 
