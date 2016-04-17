@@ -91,8 +91,8 @@ export class ThreadCoordinator {
 		
 		if (!this.resumeRequestIsRunning) {
 			
-			log.debug(`Starting task on paused thread (now running: ${this.tasksRunningOnPausedThread})`);
 			this.tasksRunningOnPausedThread++;
+			log.debug(`Starting task on paused thread (now running: ${this.tasksRunningOnPausedThread})`);
 			
 			return new Promise<T>((resolve, reject) => {
 				let result = this.actor.interrupt().then(
@@ -106,8 +106,8 @@ export class ThreadCoordinator {
 			let resultPromise = new Promise<T>((resolve, reject) => {
 				
 				let send = () => {
-					log.debug(`Starting task on paused thread (now running: ${this.tasksRunningOnPausedThread})`);
 					this.tasksRunningOnPausedThread++;
+					log.debug(`Starting task on paused thread (now running: ${this.tasksRunningOnPausedThread})`);
 
 					let result = this.actor.interrupt().then(
 						() => task(() => this.taskFinished()));
