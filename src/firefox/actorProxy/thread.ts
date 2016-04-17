@@ -390,8 +390,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
 	/**
 	 * The resumed event is only sent when the thread is resumed without a corresponding request
-	 * (this happens when a tab in Firefox is navigated to a different url while the corresponding
-	 * thread is paused)
+	 * (this happens when a tab in Firefox is reloaded or navigated to a different url while 
+	 * the corresponding thread is paused)
 	 */
 	public onResumed(cb: () => void) {
 		this.on('resumed', cb);

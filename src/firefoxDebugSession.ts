@@ -263,7 +263,13 @@ export class FirefoxDebugSession extends DebugSession {
 					log.info(`Thread ${threadActor.name} paused , reason: ${reason.type}`);
 					this.sendEvent(new StoppedEvent(reason.type, threadId));
 				});
-				
+
+
+				threadActor.onResumed(() => {
+					log.info(`Thread ${threadActor.name} resumed unexpectedly`);
+					this.sendEvent(new ContinuedEvent(threadId));
+				});
+
 
 				threadActor.onExited(() => {
 					log.info(`Thread ${threadActor.name} exited`);
@@ -649,6 +655,24 @@ export class FirefoxDebugSession extends DebugSession {
 				}
 			});
 		}
+	}
+}
+
+class ContinuedEvent implements DebugProtocol.Event {
+	seq: number;
+	type: string;
+	event: string;
+	body: {
+		threadId: number;
+	};
+
+	public constructor(threadId: number) {
+		this.seq = 0;
+		this.type = 'event';
+		this.event = 'continued';
+		this.body = {
+			threadId: threadId
+		};
 	}
 }
 
