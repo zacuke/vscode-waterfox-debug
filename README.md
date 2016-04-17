@@ -61,9 +61,9 @@ urls to local files:
 ```
 
 ### Attach
-You have to launch Firefox manually from a terminal with remote debugging enabled. Note that you must
-first configure Firefox to allow remote debugging. To do this, open the configuration page by 
-entering `about:config` in the address bar. Then set the following preferences:
+To use attach mode, you have to launch Firefox manually from a terminal with remote debugging enabled.
+Note that you must first configure Firefox to allow remote debugging. To do this, open the Firefox 
+configuration page by entering `about:config` in the address bar. Then set the following preferences:
 
 Preference Name                       | Value   | Comment
 --------------------------------------|---------|---------
@@ -72,7 +72,7 @@ Preference Name                       | Value   | Comment
 `devtools.debugger.prompt-connection` | `false` | Recommended
 `devtools.debugger.force-local`       | `false` | Set this only if you want to attach VS Code to Firefox running on a different machine (using the `host` property in the `attach` configuration)
 
-Then start Firefox from a terminal:
+Then close Firefox and start it from a terminal like this:
 
 __Windows__
 
@@ -119,11 +119,18 @@ to the configuration (as in the second launch configuration example above).
 
 ## Troubleshooting
 * Sometimes when using a `launch` configuration you may get a message saying that Firefox was
-  closed unexpectedly. If this happens, click "Start in Safe Mode" and then close Firefox manually.
+  closed unexpectedly. If this happens, click "Start in Safe Mode" and then close Firefox manually
+  and stop the VS Code debugger by clicking the stop button twice.
   Afterwards, you should be able to launch it again.
   This is due to [Firefox bug #336193](https://bugzilla.mozilla.org/show_bug.cgi?id=336193).
+* If you think you've found a bug in this adapter please [file a bug report](https://github.com/hbenl/vscode-firefox-debug/issues).
 
 ## Changelog
+
+### Version 0.3.0
+* Print messages from the Firefox console in the VS Code debug console
+* bugfix: resume the VS Code debugger when Firefox resumes, e.g. if the user reloads the page in 
+  Firefox while the debugger is paused
 
 ### Version 0.2.0
 * Automatically create a Firefox profile for debugging
