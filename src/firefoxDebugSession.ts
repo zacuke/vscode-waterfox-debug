@@ -206,7 +206,7 @@ export class FirefoxDebugSession extends DebugSession {
 		this.firefoxDebugConnection = new DebugConnection(socket);
 
 		// attach to all tabs, register the corresponding threads and inform VSCode about them
-		this.firefoxDebugConnection.rootActor.onTabOpened((tabActor) => {
+		this.firefoxDebugConnection.rootActor.onTabOpened(([tabActor, consoleActor]) => {
 			
 			log.info(`Tab opened with url ${tabActor.url}`);
 			

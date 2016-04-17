@@ -32,6 +32,7 @@ declare namespace FirefoxDebugProtocol {
 		actor: string;
 		title: string;
 		url: string;
+		consoleActor: string;
 	}
 
 	interface TabAttachedResponse extends TypedResponse {
@@ -47,6 +48,53 @@ declare namespace FirefoxDebugProtocol {
 		state: string;
 		url: string;
 		title: string;
+	}
+
+	interface PageErrorResponse extends TypedResponse {
+		pageError: PageErrorResponseBody;
+	}
+
+	interface PageErrorResponseBody {
+		errorMessage: string;
+		sourceName: string;
+		lineText: string;
+		lineNumber: number;
+		columnNumber: number;
+		category: string;
+		timeStamp: number;
+		info: boolean;
+		warning: boolean;
+		error: boolean;
+		exception: boolean;
+		strict: boolean;
+		private: boolean;
+		stacktrace: {
+			filename: string;
+			functionname: string;
+			line: number;
+			column: number;
+		}[];
+	}
+
+	interface ConsoleAPICallResponse extends TypedResponse {
+		message: ConsoleAPICallResponseBody;
+	}
+
+	interface ConsoleAPICallResponseBody {
+			arguments: any[];
+			filename: string;
+			functionName: string;
+			groupName: string;
+			lineNumber: number;
+			columnNumber: number;
+			category: string;
+			timeStamp: number;
+			level: string;
+			workerType: string;
+			private: boolean;
+			styles: any[]; //?
+			counter: any; //?
+			timer: any; //?
 	}
 
 	interface ThreadPausedResponse extends TypedResponse {
