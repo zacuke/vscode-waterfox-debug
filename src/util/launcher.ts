@@ -2,6 +2,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as net from 'net';
+import * as rimraf from 'rimraf';
 import { spawn, ChildProcess } from 'child_process';
 import { LaunchConfiguration } from '../adapter/launchConfiguration';
 
@@ -117,6 +118,7 @@ function getProfileDir(config: LaunchConfiguration): [boolean, string] {
 		profileDir = config.profileDir;
 	} else {
 		profileDir = path.join(os.tmpdir(), 'vscode-firefox-debug-profile');
+		rimraf.sync(profileDir);
 	}
 
 	try {

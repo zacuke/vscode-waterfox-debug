@@ -13,6 +13,7 @@
     "Debuggers"
   ],
   "dependencies": {
+    "rimraf": "^2.5.2",
     "vscode-debugadapter": "^1.7.0"
   },
   "devDependencies": {
