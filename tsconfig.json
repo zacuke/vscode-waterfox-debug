@@ -5,5 +5,10 @@
 		"sourceMap": true,
 		"rootDir": "src",
 		"outDir": "out"
-	}
+	},
+	"files": [
+		"src/firefoxDebugSession.ts",
+		"src/firefox/protocol.d.ts",
+		"typings/main.d.ts"
+	]
 }

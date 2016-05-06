@@ -1,0 +1,9 @@
+{
+  "name": "vscode-firefox-debug",
+  "version": false,
+  "ambientDependencies": {
+    "node": "github:DefinitelyTyped/DefinitelyTyped/node/node.d.ts#1a5b2a729d35b1d41e2d15818db013a3644c6ba4",
+    "es6-collections": "github:DefinitelyTyped/DefinitelyTyped/es6-collections/es6-collections.d.ts#1a5b2a729d35b1d41e2d15818db013a3644c6ba4",
+    "es6-promise": "github:DefinitelyTyped/DefinitelyTyped/es6-promise/es6-promise.d.ts#1a5b2a729d35b1d41e2d15818db013a3644c6ba4"
+  }
+}
