@@ -118,7 +118,19 @@ export class FirefoxDebugSession extends DebugSession {
 			supportsConfigurationDoneRequest: false,
 			supportsEvaluateForHovers: false,
 			supportsFunctionBreakpoints: false,
-			supportsConditionalBreakpoints: true
+			supportsConditionalBreakpoints: true,
+			exceptionBreakpointFilters: [
+				{
+					filter: 'all',
+					label: 'All Exceptions',
+					default: false
+				},
+				{
+					filter: 'uncaught',
+					label: 'Uncaught Exceptions',
+					default: true
+				}
+			]
 		};
 		this.sendResponse(response);
 	}
