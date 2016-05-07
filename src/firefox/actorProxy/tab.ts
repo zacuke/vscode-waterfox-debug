@@ -1,9 +1,7 @@
 import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
-import { DebugConnection } from '../connection';
+import { DebugConnection, ActorProxy, WorkerActorProxy, ThreadActorProxy } from '../index';
 import { PendingRequests } from './pendingRequests';
-import { ActorProxy } from './interface';
-import { ThreadActorProxy } from './thread';
 
 let log = Log.create('TabActorProxy');
 
@@ -11,6 +9,8 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 
 	private pendingAttachRequests = new PendingRequests<ThreadActorProxy>();
 	private pendingDetachRequests = new PendingRequests<void>();
+	private pendingWorkersRequests = new PendingRequests<Map<string, WorkerActorProxy>>();
+	private workers = new Map<string, WorkerActorProxy>();
 
 	constructor(private _name: string, private _title: string, private _url: string, private connection: DebugConnection) {
 		super();
@@ -47,6 +47,16 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 			this.pendingDetachRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'detach' });
 		});
+	}
+
+	public fetchWorkers(): Promise<Map<string, WorkerActorProxy>> {
+		
+		log.debug('Fetching workers');
+		
+		return new Promise<Map<string, WorkerActorProxy>>((resolve, reject) => {
+			this.pendingWorkersRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'listWorkers' });
+		})
 	}
 
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
@@ -99,6 +109,49 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 
 			}
 
+		} else if (response['type'] === 'workerListChanged') {
+			
+			log.debug('Received workerListChanged event');
+			this.emit('workerListChanged');
+			
+		} else if (response['workers']) {
+
+			let workersResponse = <FirefoxDebugProtocol.WorkersResponse>response;
+			let currentWorkers = new Map<string, WorkerActorProxy>();
+			log.debug(`Received ${workersResponse.workers.length} workers`);
+
+			// convert the Worker array into a map of WorkerActorProxies, re-using already 
+			// existing proxies and emitting workerStarted events for new ones
+			workersResponse.workers.forEach((worker) => {
+
+				let workerActor: WorkerActorProxy;
+				
+				if (this.workers.has(worker.actor)) {
+
+					workerActor = this.workers.get(worker.actor);
+
+				} else {
+
+					log.debug(`Worker ${worker.actor} started`);
+
+					workerActor = new WorkerActorProxy(worker.actor, worker.url, this.connection);
+					this.emit('workerStarted', workerActor);
+
+				}
+				currentWorkers.set(worker.actor, workerActor);
+			});
+
+			// emit workerStopped events for workers that have disappeared
+			this.workers.forEach((workerActor) => {
+				if (!currentWorkers.has(workerActor.name)) {
+					log.debug(`Worker ${workerActor.name} stopped`);
+					this.emit('workerStopped', workerActor);
+				}
+			});					
+
+			this.workers = currentWorkers;
+			this.pendingWorkersRequests.resolveOne(currentWorkers);
+			
 		} else if (response['error'] === 'noSuchActor') {
 			
 			log.error(`No such actor ${JSON.stringify(this.name)}`);
@@ -130,5 +183,17 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 
 	public onDidNavigate(cb: () => void) {
 		this.on('didNavigate', cb);
+	}
+
+	public onWorkerListChanged(cb: () => void) {
+		this.on('workerListChanged', cb);
+	}
+
+	public onWorkerStarted(cb: (workerActor: WorkerActorProxy) => void) {
+		this.on('workerStarted', cb);
+	}
+
+	public onWorkerStopped(cb: (workerActor: WorkerActorProxy) => void) {
+		this.on('workerStopped', cb);
 	}
 }

@@ -50,6 +50,25 @@ declare namespace FirefoxDebugProtocol {
 		title: string;
 	}
 
+	interface WorkersResponse extends Response {
+		workers: Worker[];
+	}
+	
+	interface Worker {
+		actor: string;
+		url: string;
+		type: number;
+	}
+
+	interface WorkerAttachedResponse extends TypedResponse {
+		url: string;
+	}
+
+	interface WorkerConnectedResponse extends TypedResponse {
+		threadActor: string;
+		consoleActor: string;
+	}
+
 	interface PageErrorResponse extends TypedResponse {
 		pageError: PageErrorResponseBody;
 	}
