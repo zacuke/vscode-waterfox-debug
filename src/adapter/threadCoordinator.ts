@@ -180,7 +180,7 @@ export class ThreadCoordinator {
 					},
 					(err) => {
 						this.resumeRequestIsRunning = false;
-						reject();
+						reject(err);
 						this.doNext();
 					});
 			};

@@ -333,6 +333,11 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			//TODO reject last request!
 			this.emit('wrongState');
 			
+		} else if (response['error'] === 'wrongOrder') {
+
+			log.warn(`got wrongOrder error: ${response['message']}`);
+			this.pendingResumeRequest.reject(`You need to resume ${response['lastPausedUrl']} first`);
+			
 		} else if (response['error'] === 'noSuchActor') {
 			
 			log.error(`No such actor ${JSON.stringify(this.name)}`);

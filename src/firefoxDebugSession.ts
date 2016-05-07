@@ -216,24 +216,19 @@ export class FirefoxDebugSession extends DebugSession {
 	private startSession(socket: Socket) {
 		
 		this.firefoxDebugConnection = new DebugConnection(socket);
+		let rootActor = this.firefoxDebugConnection.rootActor;
 
 		// attach to all tabs, register the corresponding threads and inform VSCode about them
-		this.firefoxDebugConnection.rootActor.onTabOpened(([tabActor, consoleActor]) => {
+		rootActor.onTabOpened(([tabActor, consoleActor]) => {
 			
 			log.info(`Tab opened with url ${tabActor.url}`);
-			
-			// only attach to the first tab
-			if (this.nextThreadId > 1) {
-				return;
-			}
-			
+
 			tabActor.attach().then((threadActor) => {
 
 				log.debug(`Attached to tab ${tabActor.name}`);
 
 				let threadId = this.nextThreadId++;
 				let threadAdapter = new ThreadAdapter(threadId, threadActor, this);
-				this.threadsById.set(threadId, threadAdapter);
 
 
 				threadActor.onNewSource((sourceActor) => {
@@ -290,9 +285,26 @@ export class FirefoxDebugSession extends DebugSession {
 				});
 
 
-				threadAdapter.init(this.exceptionBreakpoints).then(() => {
-					this.sendEvent(new ThreadEvent('started', threadId));
-				});
+				threadAdapter.init(this.exceptionBreakpoints).then(
+					() => {
+						this.threadsById.set(threadId, threadAdapter);
+						this.sendEvent(new ThreadEvent('started', threadId));
+
+						tabActor.onDetached(() => {
+							this.threadsById.delete(threadId);
+							this.sendEvent(new ThreadEvent('exited', threadId));
+						});
+					},
+					(err) => {
+						// When the user closes a tab, Firefox creates an invisible tab and 
+						// immediately closes it again (while we're still trying to attach to it),
+						// so the initialization for this invisible tab fails and we end up here.
+						// Since we never sent the current threadId to VSCode, we can re-use it
+						if (this.nextThreadId == (threadId + 1)) {
+							this.nextThreadId--;
+						}
+					}
+				);
 
 			},
 			(err) => {
@@ -312,13 +324,11 @@ export class FirefoxDebugSession extends DebugSession {
 			});
 
 			consoleActor.startListeners();
-
 		});
 
-		let rootActor = this.firefoxDebugConnection.rootActor;
-//		rootActor.onTabListChanged(() => {
-//			rootActor.fetchTabs();
-//		});
+		rootActor.onTabListChanged(() => {
+			rootActor.fetchTabs();
+		});
 		rootActor.onInit(() => {
 			rootActor.fetchTabs();
 		});
@@ -332,7 +342,7 @@ export class FirefoxDebugSession extends DebugSession {
 		
 		let responseThreads: Thread[] = [];
 		this.threadsById.forEach((threadAdapter) => {
-			responseThreads.push(new Thread(threadAdapter.id, `Tab #${threadAdapter.id}`));
+			responseThreads.push(new Thread(threadAdapter.id, `Tab ${threadAdapter.id}`));
 		});
 		response.body = { threads: responseThreads };
 		

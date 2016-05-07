@@ -69,7 +69,6 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 
 			log.debug(`Detached from tab ${this.name} as requested`);
 			this.pendingDetachRequests.resolveOne(null);
-			this.emit('detached');
 
 		} else if (response['error'] === 'wrongState') {
 
@@ -80,7 +79,7 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 
 			log.debug(`Detached from tab ${this.name} because it was closed`);
 			// TODO handle pendingRequests
-			this.emit('tabDetached');
+			this.emit('detached');
 
 		} else if (response['type'] === 'tabNavigated') {
 
