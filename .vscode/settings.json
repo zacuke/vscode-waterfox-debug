@@ -2,7 +2,8 @@
 	"editor.insertSpaces": false,
 	"files.exclude": {
 		".git": true,
-		"out": true
+		"out": true,
+		"node_modules": true
 	},
 	"editor.rulers": [100]
 }
