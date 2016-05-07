@@ -7,7 +7,7 @@ import { concatArrays } from './util/misc';
 import { launchFirefox, waitForSocket } from './util/launcher';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, Thread, StackFrame, Scope, Variable, Source, Breakpoint } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
+import { DebugConnection, ActorProxy, TabActorProxy, WorkerActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, VariableAdapter, ObjectGripAdapter } from './adapter/index';
 import { WebRootConfiguration, LaunchConfiguration, AttachConfiguration } from './adapter/launchConfiguration';
 
@@ -218,10 +218,13 @@ export class FirefoxDebugSession extends DebugSession {
 		this.firefoxDebugConnection = new DebugConnection(socket);
 		let rootActor = this.firefoxDebugConnection.rootActor;
 
+		let nextTabId = 1;
+		
 		// attach to all tabs, register the corresponding threads and inform VSCode about them
 		rootActor.onTabOpened(([tabActor, consoleActor]) => {
 			log.info(`Tab opened with url ${tabActor.url}`);
-			this.attachTab(tabActor);
+			let tabId = nextTabId++;
+			this.attachTab(tabActor, tabId);
 			this.attachConsole(consoleActor);
 		});
 
@@ -236,13 +239,13 @@ export class FirefoxDebugSession extends DebugSession {
 		this.sendEvent(new InitializedEvent());
 	}
 
-	private attachTab(tabActor: TabActorProxy): void {
+	private attachTab(tabActor: TabActorProxy, tabId: number): void {
 		tabActor.attach().then(
 			(threadActor) => {
 				log.debug(`Attached to tab ${tabActor.name}`);
 
 				let threadId = this.nextThreadId++;
-				let threadAdapter = new ThreadAdapter(threadId, threadActor, this);
+				let threadAdapter = new ThreadAdapter(threadId, threadActor, `Tab ${tabId}`, this);
 
 				this.attachThread(threadActor, threadAdapter);
 
@@ -266,10 +269,51 @@ export class FirefoxDebugSession extends DebugSession {
 						}
 					}
 				);
+
+				let nextWorkerId = 1;
+				tabActor.onWorkerStarted((workerActor) => {
+					log.info(`Worker started with url ${tabActor.url}`);
+					let workerId = nextWorkerId++;
+					this.attachWorker(workerActor, tabId, workerId);
+				});
+				tabActor.onWorkerListChanged(() => tabActor.fetchWorkers());
+				tabActor.fetchWorkers();
 			},
 
 			(err) => {
 				log.error(`Failed attaching to tab: ${err}`);
+			});
+	}
+
+	private attachWorker(workerActor: WorkerActorProxy, tabId: number, workerId: number): void {
+		workerActor.attach().then((url) => workerActor.connect()).then(
+			(threadActor) => {
+				log.debug(`Attached to worker ${workerActor.name}`);
+
+				let threadId = this.nextThreadId++;
+				let threadAdapter = new ThreadAdapter(threadId, threadActor, 
+					`Worker ${tabId}/${workerId}`, this);
+
+				this.attachThread(threadActor, threadAdapter);
+
+				threadAdapter.init(this.exceptionBreakpoints).then(
+					() => {
+						this.threadsById.set(threadId, threadAdapter);
+						this.sendEvent(new ThreadEvent('started', threadId));
+
+						workerActor.onClose(() => {
+							this.threadsById.delete(threadId);
+							this.sendEvent(new ThreadEvent('exited', threadId));
+						});
+					},
+					(err) => {
+						log.error('Failed initializing worker thread');
+					}
+				);
+			},
+
+			(err) => {
+				log.error(`Failed attaching to worker: ${err}`);
 			});
 	}
 
@@ -350,7 +394,7 @@ export class FirefoxDebugSession extends DebugSession {
 		
 		let responseThreads: Thread[] = [];
 		this.threadsById.forEach((threadAdapter) => {
-			responseThreads.push(new Thread(threadAdapter.id, `Tab ${threadAdapter.id}`));
+			responseThreads.push(new Thread(threadAdapter.id, threadAdapter.name));
 		});
 		response.body = { threads: responseThreads };
 		

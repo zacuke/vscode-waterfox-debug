@@ -73,9 +73,9 @@ export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 			} else {
 				log.warn(`Worker ${this.name} attached without a corresponding request`);
 			}
-			
+
 		} else if (response['type'] === 'connected') {
-			
+
 			log.debug(`Worker ${this.name} attached`);
 
 			let connectedResponse = <FirefoxDebugProtocol.WorkerConnectedResponse>response;
@@ -89,11 +89,20 @@ export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 			} else {
 				log.warn(`Worker ${this.name} connected without a corresponding request`);
 			}
-			
+
+		} else if (response['type'] === 'close') {
+
+			log.debug(`Worker ${this.name} closed`);
+			this.emit('close');
+
 		} else {
 
 			log.warn("Unknown message from WorkerActor: " + JSON.stringify(response));
 
 		}
+	}
+
+	public onClose(cb: () => void) {
+		this.on('close', cb);
 	}
 }

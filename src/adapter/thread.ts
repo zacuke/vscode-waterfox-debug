@@ -11,6 +11,9 @@ export class ThreadAdapter {
 	public get debugSession() {
 		return this._debugSession;
 	}
+	public get name() {
+		return this._name;
+	}
 	public get actorName() {
 		return this.actor.name;
 	}
@@ -18,6 +21,7 @@ export class ThreadAdapter {
 	private _debugSession: FirefoxDebugSession;
 	private actor: ThreadActorProxy;
 	private coordinator: ThreadCoordinator;
+	private _name: string;
 	
 	private sources: SourceAdapter[] = [];
 	private frames: FrameAdapter[] = [];
@@ -29,9 +33,10 @@ export class ThreadAdapter {
 	
 	private completionValue: FirefoxDebugProtocol.CompletionValue;
 	
-	public constructor(id: number, actor: ThreadActorProxy, debugSession: FirefoxDebugSession) {
+	public constructor(id: number, actor: ThreadActorProxy, name: string, debugSession: FirefoxDebugSession) {
 		this.id = id;
 		this.actor = actor;
+		this._name = name;
 		this._debugSession = debugSession;
 	}
 	
