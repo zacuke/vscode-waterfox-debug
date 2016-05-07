@@ -7,7 +7,7 @@ import { concatArrays } from './util/misc';
 import { launchFirefox, waitForSocket } from './util/launcher';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, Thread, StackFrame, Scope, Variable, Source, Breakpoint } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, ExceptionBreakpoints, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
+import { DebugConnection, ActorProxy, TabActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, VariableAdapter, ObjectGripAdapter } from './adapter/index';
 import { WebRootConfiguration, LaunchConfiguration, AttachConfiguration } from './adapter/launchConfiguration';
 
@@ -220,70 +220,31 @@ export class FirefoxDebugSession extends DebugSession {
 
 		// attach to all tabs, register the corresponding threads and inform VSCode about them
 		rootActor.onTabOpened(([tabActor, consoleActor]) => {
-			
 			log.info(`Tab opened with url ${tabActor.url}`);
+			this.attachTab(tabActor);
+			this.attachConsole(consoleActor);
+		});
 
-			tabActor.attach().then((threadActor) => {
+		rootActor.onTabListChanged(() => {
+			rootActor.fetchTabs();
+		});
+		rootActor.onInit(() => {
+			rootActor.fetchTabs();
+		});
+		
+		// now we are ready to accept breakpoints -> fire the initialized event to give UI a chance to set breakpoints
+		this.sendEvent(new InitializedEvent());
+	}
 
+	private attachTab(tabActor: TabActorProxy): void {
+		tabActor.attach().then(
+			(threadActor) => {
 				log.debug(`Attached to tab ${tabActor.name}`);
 
 				let threadId = this.nextThreadId++;
 				let threadAdapter = new ThreadAdapter(threadId, threadActor, this);
 
-
-				threadActor.onNewSource((sourceActor) => {
-
-					log.debug(`New source ${sourceActor.url} in tab ${tabActor.name}`);
-
-					let sourceId = this.nextSourceId++;
-					let sourceAdapter = threadAdapter.createSourceAdapter(sourceId, sourceActor);
-					this.sourcesById.set(sourceId, sourceAdapter);
-
-					if (this.breakpointsBySourceUrl.has(sourceActor.url)) {
-						
-						let breakpointInfos = this.breakpointsBySourceUrl.get(sourceActor.url);
-						let setBreakpointsPromise = threadAdapter.setBreakpoints(
-							breakpointInfos, sourceAdapter);
-						
-						if (this.verifiedBreakpointSources.indexOf(sourceActor.url) < 0) {
-						
-							setBreakpointsPromise.then((breakpointAdapters) => {
-
-								log.debug('Updating breakpoints');
-
-								breakpointAdapters.forEach((breakpointAdapter) => {
-									let breakpoint: DebugProtocol.Breakpoint = 
-										new Breakpoint(true, breakpointAdapter.breakpointInfo.actualLine);
-									breakpoint.id = breakpointAdapter.breakpointInfo.id;
-									this.sendEvent(new BreakpointEvent('update', breakpoint));
-								})
-
-								this.verifiedBreakpointSources.push(sourceActor.url);
-							})
-						}
-						
-					}
-				});
-				
-
-				threadActor.onPaused((reason) => {
-					log.info(`Thread ${threadActor.name} paused , reason: ${reason.type}`);
-					this.sendEvent(new StoppedEvent(reason.type, threadId));
-				});
-
-
-				threadActor.onResumed(() => {
-					log.info(`Thread ${threadActor.name} resumed unexpectedly`);
-					this.sendEvent(new ContinuedEvent(threadId));
-				});
-
-
-				threadActor.onExited(() => {
-					log.info(`Thread ${threadActor.name} exited`);
-					this.threadsById.delete(threadId);
-					this.sendEvent(new ThreadEvent('exited', threadId));
-				});
-
+				this.attachThread(threadActor, threadAdapter);
 
 				threadAdapter.init(this.exceptionBreakpoints).then(
 					() => {
@@ -305,36 +266,83 @@ export class FirefoxDebugSession extends DebugSession {
 						}
 					}
 				);
-
 			},
+
 			(err) => {
-				log.error(`Failed attaching to tab/thread: ${err}`);
+				log.error(`Failed attaching to tab: ${err}`);
 			});
+	}
 
-			consoleActor.onConsoleAPICall((msg) => {
-				let category = (msg.level === 'error') ? 'stderr' :
-					(msg.level === 'warn') ? 'console' : 'stdout';
-				let displayMsg = msg.arguments.join(',') + '\n';
-				this.sendEvent(new OutputEvent(displayMsg, category));
-			});
+	private attachThread(threadActor: ThreadActorProxy, threadAdapter: ThreadAdapter): void {
 
-			consoleActor.onPageErrorCall((err) => {
-				let category = err.exception ? 'stderr' : 'stdout';
-				this.sendEvent(new OutputEvent(err.errorMessage + '\n', category));
-			});
-
-			consoleActor.startListeners();
+		threadActor.onNewSource((sourceActor) => {
+			log.debug(`New source ${sourceActor.url} in thread ${threadActor.name}`);
+			this.attachSource(sourceActor, threadAdapter);
 		});
 
-		rootActor.onTabListChanged(() => {
-			rootActor.fetchTabs();
+		threadActor.onPaused((reason) => {
+			log.info(`Thread ${threadActor.name} paused , reason: ${reason.type}`);
+			this.sendEvent(new StoppedEvent(reason.type, threadAdapter.id));
 		});
-		rootActor.onInit(() => {
-			rootActor.fetchTabs();
+
+		threadActor.onResumed(() => {
+			log.info(`Thread ${threadActor.name} resumed unexpectedly`);
+			this.sendEvent(new ContinuedEvent(threadAdapter.id));
 		});
-		
-		// now we are ready to accept breakpoints -> fire the initialized event to give UI a chance to set breakpoints
-		this.sendEvent(new InitializedEvent());
+
+		threadActor.onExited(() => {
+			log.info(`Thread ${threadActor.name} exited`);
+			this.threadsById.delete(threadAdapter.id);
+			this.sendEvent(new ThreadEvent('exited', threadAdapter.id));
+		});
+	}
+
+	private attachSource(sourceActor: SourceActorProxy, threadAdapter: ThreadAdapter): void {
+
+		let sourceId = this.nextSourceId++;
+		let sourceAdapter = threadAdapter.createSourceAdapter(sourceId, sourceActor);
+		this.sourcesById.set(sourceId, sourceAdapter);
+
+		if (this.breakpointsBySourceUrl.has(sourceActor.url)) {
+			
+			let breakpointInfos = this.breakpointsBySourceUrl.get(sourceActor.url);
+			let setBreakpointsPromise = threadAdapter.setBreakpoints(
+				breakpointInfos, sourceAdapter);
+			
+			if (this.verifiedBreakpointSources.indexOf(sourceActor.url) < 0) {
+
+				setBreakpointsPromise.then((breakpointAdapters) => {
+
+					log.debug('Updating breakpoints');
+
+					breakpointAdapters.forEach((breakpointAdapter) => {
+						let breakpoint: DebugProtocol.Breakpoint = 
+							new Breakpoint(true, breakpointAdapter.breakpointInfo.actualLine);
+						breakpoint.id = breakpointAdapter.breakpointInfo.id;
+						this.sendEvent(new BreakpointEvent('update', breakpoint));
+					})
+
+					this.verifiedBreakpointSources.push(sourceActor.url);
+				})
+			}
+		}
+	}
+
+	private attachConsole(consoleActor: ConsoleActorProxy): void {
+
+		consoleActor.onConsoleAPICall((msg) => {
+			let category = (msg.level === 'error') ? 'stderr' :
+				(msg.level === 'warn') ? 'console' : 'stdout';
+			let displayMsg = msg.arguments.join(',') + '\n';
+			this.sendEvent(new OutputEvent(displayMsg, category));
+		});
+
+		consoleActor.onPageErrorCall((err) => {
+			let category = err.exception ? 'stderr' : 'stdout';
+			this.sendEvent(new OutputEvent(err.errorMessage + '\n', category));
+		});
+
+		consoleActor.startListeners();
 	}
 
 	protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
