@@ -13,6 +13,8 @@ A Visual Studio Code extension to debug your web application in Firefox.
 * Evaluating javascript expressions in the debug console of VS Code
 * Sourcemaps - these are handled by Firefox, so if they work in the built-in Firefox debugger,
   they should also work in VS Code
+* Debugging WebWorkers
+* Debugging multiple browser tabs
 
 ## Starting
 You can use this extension in launch or attach mode. 
@@ -69,6 +71,7 @@ Preference Name                       | Value   | Comment
 --------------------------------------|---------|---------
 `devtools.debugger.remote-enabled`    | `true`  | Required
 `devtools.chrome.enabled`             | `true`  | Required
+`devtools.debugger.workers`           | `true`  | Required if you want to debug WebWorkers
 `devtools.debugger.prompt-connection` | `false` | Recommended
 `devtools.debugger.force-local`       | `false` | Set this only if you want to attach VS Code to Firefox running on a different machine (using the `host` property in the `attach` configuration)
 
@@ -126,6 +129,12 @@ to the configuration (as in the second launch configuration example above).
 * If you think you've found a bug in this adapter please [file a bug report](https://github.com/hbenl/vscode-firefox-debug/issues).
 
 ## Changelog
+
+### Version 0.4.0
+* Add support for debugging WebWorkers
+* Add support for debugging multiple browser tabs
+* Fix exception breakpoints in VSCode 1.1.0
+* Re-create the Firefox profile on every launch, unless a profile name or directory is configured
 
 ### Version 0.3.0
 * Print messages from the Firefox console in the VS Code debug console
