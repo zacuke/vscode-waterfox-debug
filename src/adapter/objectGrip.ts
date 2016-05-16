@@ -45,7 +45,7 @@ export class ObjectGripAdapter implements VariablesProvider {
 			VariableAdapter.sortVariables(variables);
 			
 			if (prototypeAndProperties.prototype !== null) {
-				variables.push(VariableAdapter.fromGrip('_proto_', 
+				variables.push(VariableAdapter.fromGrip('__proto__', 
 					prototypeAndProperties.prototype, this.isThreadLifetime, this.threadAdapter));
 			}
 	

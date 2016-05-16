@@ -68,7 +68,7 @@ export class VariableAdapter {
 		if ((<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value !== undefined) {
 			return VariableAdapter.fromGrip(varname, (<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value, threadLifetime, threadAdapter);
 		} else {
-			return new VariableAdapter(varname, 'unknown');
+			return new VariableAdapter(varname, 'undefined');
 		}
 	}
 
