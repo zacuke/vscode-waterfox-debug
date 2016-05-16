@@ -130,6 +130,9 @@ to the configuration (as in the second launch configuration example above).
 
 ## Changelog
 
+### Version 0.5.0
+* Add support for call stack paging
+
 ### Version 0.4.0
 * Add support for debugging WebWorkers
 * Add support for debugging multiple browser tabs
