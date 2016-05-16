@@ -155,18 +155,18 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	/**
 	 * Fetch StackFrames. This can only be called while the thread is paused.
 	 */
-	public fetchStackFrames(levels: number): Promise<FirefoxDebugProtocol.Frame[]> {
+	public fetchStackFrames(start?: number, count?: number): Promise<FirefoxDebugProtocol.Frame[]> {
 		log.debug(`Fetching stackframes from thread ${this.name}`);
 
 		return new Promise<FirefoxDebugProtocol.Frame[]>((resolve, reject) => {
 			this.pendingStackFramesRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ 
 				to: this.name, type: 'frames', 
-				start: 0, count: levels
+				start, count
 			});
 		});
 	}
-	
+
 	/**
 	 * Evaluate the given expression on the specified StackFrame. This can only be called while
 	 * the thread is paused and will resume it temporarily.

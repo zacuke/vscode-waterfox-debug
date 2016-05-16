@@ -137,10 +137,10 @@ export class ThreadAdapter {
 		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
 	}
 	
-	public fetchStackFrames(levels: number): Promise<FrameAdapter[]> {
+	private fetchAllStackFrames(): Promise<FrameAdapter[]> {
 		return this.coordinator.runOnPausedThread((finished) => 
 
-			this.actor.fetchStackFrames(levels).then(
+			this.actor.fetchStackFrames().then(
 				(frames) => {
 					let frameAdapters = frames.map((frame) => {
 						let frameAdapter = new FrameAdapter(frame, this);
@@ -148,17 +148,17 @@ export class ThreadAdapter {
 						this.frames.push(frameAdapter);
 						return frameAdapter;
 					});
-					
+
 					if (frameAdapters.length > 0) {
 						frameAdapters[0].scopeAdapters[0].addCompletionValue(this.completionValue);
 					}
-					
+
 					let objectGripAdapters = concatArrays(frameAdapters.map(
 						(frameAdapter) => frameAdapter.getObjectGripAdapters()));
 					
 					let extendLifetimePromises = objectGripAdapters.map((objectGripAdapter) => 
 						objectGripAdapter.actor.extendLifetime().catch((err) => undefined));
-					
+
 					Promise.all(extendLifetimePromises).then(() => finished());
 
 					return frameAdapters;
@@ -168,6 +168,22 @@ export class ThreadAdapter {
 					throw err;
 				})
 		);
+	}
+
+	public fetchStackFrames(start: number, count: number): Promise<[FrameAdapter[], number]> {
+		let stackFramesPromise = (this.frames.length > 0) ? 
+			Promise.resolve(this.frames) :
+			this.fetchAllStackFrames();
+
+		return stackFramesPromise.then((frameAdapters) => {
+			let requestedFrames: FrameAdapter[];
+			if (count > 0) {
+				requestedFrames = frameAdapters.slice(start, start + count);
+			} else {
+				requestedFrames = frameAdapters.slice(start);
+			}
+			return [requestedFrames, frameAdapters.length];
+		})
 	}
 
 	public fetchVariables(variablesProvider: VariablesProvider): Promise<Variable[]> {
