@@ -3,6 +3,6 @@ typings/**
 **/*.map
 out/test/**
 tsconfig.json
-tsd.json
+typings.json
 .vscode/**
 .gitignore
