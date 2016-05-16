@@ -238,14 +238,15 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 					break;
 
 				case 'interrupted':
+				case 'alreadyPaused':
 					if (this.pendingInterruptRequest) {
 						this.pendingInterruptRequest.resolve(undefined);
 						this.pendingInterruptRequest = null;
 					} else {
-						log.warn('Received interrupted message without pending request');
+						log.warn(`Received ${pausedResponse.why.type} message without pending request`);
 					}
 					break;
-					
+
 				case 'resumeLimit':
 				case 'breakpoint':
 				case 'exception':
@@ -255,7 +256,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 					this.pendingResumeRequest = null;
 					this.emit('paused', pausedResponse.why);
 					break;
-					
+
 				case 'clientEvaluated':
 					this.interruptPromise = Promise.resolve(undefined);
 					this.resumePromise = null;
@@ -299,6 +300,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			this.pendingStackFramesRequests.rejectAll('Detached');
 			if (this.pendingEvaluateRequest) {
 				this.pendingEvaluateRequest.reject('Detached');
+				this.pendingEvaluateRequest = null;
 			}
 			
 		} else if (response['sources']) {
@@ -357,14 +359,22 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			this.pendingStackFramesRequests.rejectAll('No such actor');
 			if (this.pendingEvaluateRequest) {
 				this.pendingEvaluateRequest.reject('No such actor');
+				this.pendingEvaluateRequest = null;
 			}
 			this.pendingReleaseRequests.rejectAll('No such actor');
 
 		} else if (response['error'] === 'notReleasable') {
-			
+
 			log.error('Error releasing threadGrips');
 			this.pendingReleaseRequests.rejectOne('Not releasable');
-			
+
+		} else if (response['error'] === 'unknownFrame') {
+
+			let errorMsg = response['message']
+			log.error(`Error evaluating expression: ${errorMsg}`);
+			this.pendingEvaluateRequest.reject(errorMsg);
+			this.pendingEvaluateRequest = null;
+
 		} else if (Object.keys(response).length === 1) {
 
 			log.debug('Received response to releaseMany request');
