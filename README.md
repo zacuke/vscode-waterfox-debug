@@ -6,6 +6,7 @@ A Visual Studio Code extension to debug your web application in Firefox.
 * Line breakpoints
 * Conditional breakpoints
 * Exception breakpoints (caught and uncaught)
+* Breaking on `debugger` statements
 * Step over, step in, step out
 * Stepping into scripts passed to eval()
 * Inspecting stackframes, object properties (including prototypes) and return values
@@ -129,6 +130,10 @@ to the configuration (as in the second launch configuration example above).
 * If you think you've found a bug in this adapter please [file a bug report](https://github.com/hbenl/vscode-firefox-debug/issues).
 
 ## Changelog
+
+### Version 0.6.0
+* Add support for evaluating javascript expressions in the debug console even if Firefox isn't paused
+* Add support for debugger statements
 
 ### Version 0.5.0
 * Add support for call stack paging
