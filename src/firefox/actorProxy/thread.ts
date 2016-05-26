@@ -250,6 +250,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 				case 'resumeLimit':
 				case 'breakpoint':
 				case 'exception':
+				case 'debuggerStatement':
 					this.interruptPromise = Promise.resolve(undefined);
 					this.resumePromise = null;
 					this.pendingInterruptRequest = null;
