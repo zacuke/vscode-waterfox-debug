@@ -1,10 +1,10 @@
 import { Log } from '../util/log';
-import { ExceptionBreakpoints, ThreadActorProxy } from '../firefox/index';
+import { ExceptionBreakpoints, ThreadActorProxy, ConsoleActorProxy } from '../firefox/index';
 
 let log = Log.create('ThreadCoordinator');
 
 enum ThreadState {
-	Paused, Running, StepOver, StepIn, StepOut 
+	Paused, Running, StepOver, StepIn, StepOut
 }
 
 class QueuedRequest<T> {
@@ -23,8 +23,8 @@ class QueuedRequest<T> {
  *   so they must be sent sequentially
  */
 export class ThreadCoordinator {
-	
-	constructor(private actor: ThreadActorProxy) {
+
+	constructor(private actor: ThreadActorProxy, private consoleActor: ConsoleActorProxy) {
 		actor.onPaused((reason) => {
 			this.desiredThreadState = ThreadState.Paused;
 		});
@@ -39,11 +39,11 @@ export class ThreadCoordinator {
 
 	/**
 	 * The user-visible state of the thread. It may be put in a different state temporarily
-	 * in order to set breakpoints but will be put in the desired state when these requests 
+	 * in order to set breakpoints but will be put in the desired state when these requests
 	 * are finished.
 	 */
 	private desiredThreadState = ThreadState.Paused;
-	
+
 	/**
 	 * Specifies if the thread should be interrupted when an exception occurs
 	 */
@@ -54,10 +54,10 @@ export class ThreadCoordinator {
 	 * runOnPausedThread() and if the thread is currently resuming, they are put in this queue.
 	 */
 	private queuedtasksRunningOnPausedThread: QueuedRequest<any>[] = [];
-			
+
 	/**
-	 * The number of tasks that are currently running requiring the thread to be paused. 
-	 * These tasks are started using runOnPausedThread() and if the thread is running it will 
+	 * The number of tasks that are currently running requiring the thread to be paused.
+	 * These tasks are started using runOnPausedThread() and if the thread is running it will
 	 * automatically be paused temporarily.
 	 */
 	private tasksRunningOnPausedThread = 0;
@@ -67,7 +67,7 @@ export class ThreadCoordinator {
 	 * tasks that require the thread to be paused are finished
 	 */
 	private queuedResumeRequest: () => void;
-	
+
 	/**
 	 * This flag specifies if the thread is currently being resumed
 	 */
@@ -75,40 +75,40 @@ export class ThreadCoordinator {
 
 	/**
 	 * Evaluate requests queued to be run later
-	 */	
+	 */
 	private queuedEvaluateRequests: QueuedRequest<[FirefoxDebugProtocol.Grip, Function]>[] = [];
-	
+
 	/**
 	 * This flag specifies if an evaluate request is currently running
 	 */
 	private evaluateRequestIsRunning = false;
-	
+
 	/**
 	 * Run a (possibly asynchronous) task on the paused thread.
-	 * If the thread is not already paused, it will be paused temporarily and automatically 
-	 * resumed when the task is finished (if there are no other reasons to pause the 
+	 * If the thread is not already paused, it will be paused temporarily and automatically
+	 * resumed when the task is finished (if there are no other reasons to pause the
 	 * thread). The task is passed a callback that must be invoked when the task is finished.
 	 * If the thread is currently being resumed the task is either queued to be executed
 	 * later or rejected, depending on the rejectOnResume flag.
 	 */
 	public runOnPausedThread<T>(task: (finished: () => void) => T | Promise<T>, rejectOnResume = true): Promise<T> {
-		
+
 		if (!this.resumeRequestIsRunning) {
-			
+
 			this.tasksRunningOnPausedThread++;
 			log.debug(`Starting task on paused thread (now running: ${this.tasksRunningOnPausedThread})`);
-			
+
 			return new Promise<T>((resolve, reject) => {
 				let result = this.actor.interrupt().then(
 					() => task(() => this.taskFinished()));
 				resolve(result);
 			});
-		
+
 		} else if (!rejectOnResume) {
 
 			log.debug('Queueing task to be run on paused thread');
 			let resultPromise = new Promise<T>((resolve, reject) => {
-				
+
 				let send = () => {
 					this.tasksRunningOnPausedThread++;
 					log.debug(`Starting task on paused thread (now running: ${this.tasksRunningOnPausedThread})`);
@@ -118,12 +118,12 @@ export class ThreadCoordinator {
 					resolve(result);
 					return result;
 				};
-				
+
 				this.queuedtasksRunningOnPausedThread.push({ send, resolve, reject});
 			});
-			
+
 			return resultPromise;
-			
+
 		} else {
 			return Promise.reject('Resuming');
 		}
@@ -135,24 +135,24 @@ export class ThreadCoordinator {
 		// so we start a dummy task that will pause the thread temporarily
 		this.runOnPausedThread((finished) => finished());
 	}
-	
+
 	public interrupt(): Promise<void> {
 		return this.actor.interrupt(false).then(() => {
 			this.desiredThreadState = ThreadState.Paused;
 		});
 	}
-	
+
 	/**
 	 * Resume the thread (once all tasks that require the thread to be paused are finished).
 	 * This will call the releaseResources function and wait until the returned Promise is
 	 * resolved before sending the resume request to the thread.
 	 */
 	public resume(
-		releaseResources: () => Promise<void>, 
+		releaseResources: () => Promise<void>,
 		resumeLimit?: 'next' | 'step' | 'finish'): Promise<void> {
-		
+
 		return new Promise<void>((resolve, reject) => {
-			
+
 			this.queuedResumeRequest = () => {
 
 				switch (resumeLimit) {
@@ -195,18 +195,36 @@ export class ThreadCoordinator {
 	public evaluate(expr: string, frameActorName: string): Promise<[FirefoxDebugProtocol.Grip, Function]> {
 		return new Promise<[FirefoxDebugProtocol.Grip, Function]>((resolve, reject) => {
 
-			let send = () => 
-			this.actor.interrupt().then(() => 
+			let send = () =>
+			this.actor.interrupt().then(() =>
 			this.actor.evaluate(expr, frameActorName)).then(
 				(grip) => <[FirefoxDebugProtocol.Grip, Function]>[grip, () => this.evaluateFinished()],
-				(err) => { 
-					this.evaluateFinished(); 
+				(err) => {
+					this.evaluateFinished();
 					throw err;
 				});
-			
+
 			this.queuedEvaluateRequests.push({ send, resolve, reject });
 			this.doNext();
+		});
+	}
 
+	/**
+	 * Evaluate the given expression using the consoleActor.
+	 */
+	public consoleEvaluate(expr: string): Promise<[FirefoxDebugProtocol.Grip, Function]> {
+		return new Promise<[FirefoxDebugProtocol.Grip, Function]>((resolve, reject) => {
+
+			let send = () =>
+			this.consoleActor.evaluate(expr).then(
+				(grip) => <[FirefoxDebugProtocol.Grip, Function]>[grip, () => this.evaluateFinished()],
+				(err) => {
+					this.evaluateFinished();
+					throw err;
+				});
+
+			this.queuedEvaluateRequests.push({ send, resolve, reject });
+			this.doNext();
 		});
 	}
 
@@ -218,7 +236,7 @@ export class ThreadCoordinator {
 		log.debug(`Task finished on paused thread (remaining: ${this.tasksRunningOnPausedThread})`);
 		this.doNext();
 	}
-	
+
 	/**
 	 * This method is called when an evaluateRequest is finished.
 	 */
@@ -230,18 +248,18 @@ export class ThreadCoordinator {
 
 	/**
 	 * Figure out what to do next after some task is finished or has been enqueued.
-	 */	
+	 */
 	private doNext() {
-		
+
 		if ((this.tasksRunningOnPausedThread > 0) || this.resumeRequestIsRunning) {
 			return;
 		}
-		
+
 		if (this.queuedtasksRunningOnPausedThread.length > 0) {
-			
+
 			this.queuedtasksRunningOnPausedThread.forEach((queuedTask) => queuedTask.send());
 			this.queuedtasksRunningOnPausedThread = [];
-			
+
 		} else if (this.queuedResumeRequest) {
 
 			this.resumeRequestIsRunning = true;
@@ -250,7 +268,7 @@ export class ThreadCoordinator {
 			resumeRequest();
 
 		} else if ((this.queuedEvaluateRequests.length > 0) && !this.evaluateRequestIsRunning) {
-			
+
 			this.evaluateRequestIsRunning = true;
 			let queuedEvaluateRequest = this.queuedEvaluateRequests.shift();
 			queuedEvaluateRequest.send().then(
