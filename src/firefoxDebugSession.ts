@@ -326,7 +326,9 @@ export class FirefoxDebugSession extends DebugSession {
 
 		threadActor.onPaused((reason) => {
 			log.info(`Thread ${threadActor.name} paused , reason: ${reason.type}`);
-			this.sendEvent(new StoppedEvent(reason.type, threadAdapter.id));
+			let stoppedEvent = new StoppedEvent(reason.type, threadAdapter.id);
+			(<DebugProtocol.StoppedEvent>stoppedEvent).body.allThreadsStopped = false;
+			this.sendEvent(stoppedEvent);
 		});
 
 		threadActor.onResumed(() => {
@@ -496,7 +498,9 @@ export class FirefoxDebugSession extends DebugSession {
 			() => {
 				log.debug('Replying to pauseRequest');
 				this.sendResponse(response);
-				this.sendEvent(new StoppedEvent('interrupt', threadId));
+				let stoppedEvent = new StoppedEvent('interrupt', threadId);
+				(<DebugProtocol.StoppedEvent>stoppedEvent).body.allThreadsStopped = false;
+				this.sendEvent(stoppedEvent);
 			},
 			(err) => {
 				log.error('Failed pauseRequest: ' + err);
@@ -512,6 +516,7 @@ export class FirefoxDebugSession extends DebugSession {
 		threadAdapter.resume().then(
 			() => {
 				log.debug('Replying to continueRequest');
+				response.body = { allThreadsContinued: false };
 				this.sendResponse(response);
 			},
 			(err) => {
