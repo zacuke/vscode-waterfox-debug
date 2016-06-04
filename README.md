@@ -131,6 +131,9 @@ to the configuration (as in the second launch configuration example above).
 
 ## Changelog
 
+### Version 0.6.1
+* Fix debugging WebWorkers and multiple browser tabs in VSCode 1.2.0
+
 ### Version 0.6.0
 * Add support for evaluating javascript expressions in the debug console even if Firefox isn't paused
 * Add support for debugger statements
