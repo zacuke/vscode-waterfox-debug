@@ -251,10 +251,17 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 				case 'breakpoint':
 				case 'exception':
 				case 'debuggerStatement':
-					this.interruptPromise = Promise.resolve(undefined);
+					if (this.pendingInterruptRequest) {
+						this.pendingInterruptRequest.resolve(undefined);
+						this.pendingInterruptRequest = null;
+					} else {
+						this.interruptPromise = Promise.resolve(undefined);
+					}
+					if (this.pendingResumeRequest) {
+						this.pendingResumeRequest.reject(`Hit ${pausedResponse.why.type}`);
+						this.pendingResumeRequest = null;
+					}
 					this.resumePromise = null;
-					this.pendingInterruptRequest = null;
-					this.pendingResumeRequest = null;
 					this.emit('paused', pausedResponse.why);
 					break;
 

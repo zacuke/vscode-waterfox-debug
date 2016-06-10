@@ -131,6 +131,9 @@ to the configuration (as in the second launch configuration example above).
 
 ## Changelog
 
+### Version 0.6.2
+* bugfix: stepping and resuming stopped working if a breakpoint was hit immediately after loading the page
+
 ### Version 0.6.1
 * Fix debugging WebWorkers and multiple browser tabs in VSCode 1.2.0
 
