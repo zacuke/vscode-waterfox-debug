@@ -114,12 +114,11 @@ to the configuration (as in the second launch configuration example above).
   debugging. If you specify a profile directory which doesn't exist yet, it will also be created
   and configured automatically.
 * `port`: Firefox uses port 6000 for the debugger protocol by default. If you want to use a different
-  port, you can set it with this property
-* `firefoxExecutable`: The absolute path to the Firefox executable (`launch` configuration only). If 
-  not specified, this extension will use the default installation path
+  port, you can set it with this property.
+* `firefoxExecutable`: The absolute path to the Firefox executable (`launch` configuration only). For instance, for the Firefox Developer Edition you might want to set this to something like `"firefoxExecutable": "C:/Program Files/Firefox Developer Edition/firefox.exe"`. If not specified, this extension will use the Firefox' default installation path.
 * `firefoxArgs`: An array of additional arguments used when launching Firefox (`launch` configuration only)
 * `host`: If you want to debug with Firefox running on different machine, you can specify the 
-  device's address using this property (`attach` configuration only)
+  device's address using this property (`attach` configuration only).
 
 ## Troubleshooting
 * Sometimes when using a `launch` configuration you may get a message saying that Firefox was
