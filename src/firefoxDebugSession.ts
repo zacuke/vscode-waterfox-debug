@@ -5,7 +5,7 @@ import { ChildProcess } from 'child_process';
 import { Log } from './util/log';
 import { concatArrays } from './util/misc';
 import { launchFirefox, waitForSocket } from './util/launcher';
-import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, Thread, StackFrame, Scope, Variable, Source, Breakpoint } from 'vscode-debugadapter';
+import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, ContinuedEvent, Thread, StackFrame, Scope, Variable, Source, Breakpoint } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugConnection, ActorProxy, TabActorProxy, WorkerActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, VariableAdapter, ObjectGripAdapter } from './adapter/index';
@@ -755,24 +755,6 @@ export class FirefoxDebugSession extends DebugSession {
 				}
 			});
 		}
-	}
-}
-
-class ContinuedEvent implements DebugProtocol.Event {
-	seq: number;
-	type: string;
-	event: string;
-	body: {
-		threadId: number;
-	};
-
-	public constructor(threadId: number) {
-		this.seq = 0;
-		this.type = 'event';
-		this.event = 'continued';
-		this.body = {
-			threadId: threadId
-		};
 	}
 }
 
