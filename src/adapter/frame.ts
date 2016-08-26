@@ -5,6 +5,8 @@ import { Source, StackFrame } from 'vscode-debugadapter';
 
 let log = Log.create('FrameAdapter');
 
+let actorIdRegex = /[0-9]+$/;
+
 export class FrameAdapter {
 	
 	public id: number;
@@ -29,11 +31,20 @@ export class FrameAdapter {
 			sourcePath = this.threadAdapter.debugSession.convertFirefoxUrlToPath(
 				(<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.url);
 		}
-		
+
+		let sourceName = '';
+		if (this.frame.type === 'eval') {
+			let actorName = (<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.actor;
+			let match = actorIdRegex.exec(actorName);
+			if (match) {
+				sourceName = `eval ${match[0]}`;
+			}
+		}
+
 		let sourceActorName = (<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.actor;
 		let sourceAdapter = this.threadAdapter.findSourceAdapterForActorName(sourceActorName);
 
-		let source = new Source('', sourcePath, sourceAdapter.id);
+		let source = new Source(sourceName, sourcePath, sourceAdapter.id);
 
 		let name: string;
 		switch (this.frame.type) {
