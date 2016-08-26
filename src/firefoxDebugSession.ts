@@ -9,7 +9,7 @@ import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEv
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugConnection, ActorProxy, TabActorProxy, WorkerActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, VariableAdapter, ObjectGripAdapter } from './adapter/index';
-import { WebRootConfiguration, LaunchConfiguration, AttachConfiguration } from './adapter/launchConfiguration';
+import { CommonConfiguration, LaunchConfiguration, AttachConfiguration } from './adapter/launchConfiguration';
 
 let log = Log.create('FirefoxDebugSession');
 
@@ -137,7 +137,7 @@ export class FirefoxDebugSession extends DebugSession {
 
     protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchConfiguration): void {
 
-		let configError = this.readWebRootConfiguration(args);
+		let configError = this.readCommonConfiguration(args);
 		if (configError) {
 			response.success = false;
 			response.message = configError;
@@ -171,7 +171,7 @@ export class FirefoxDebugSession extends DebugSession {
 
     protected attachRequest(response: DebugProtocol.AttachResponse, args: AttachConfiguration): void {
 
-		let configError = this.readWebRootConfiguration(args);
+		let configError = this.readCommonConfiguration(args);
 		if (configError) {
 			response.success = false;
 			response.message = configError;
@@ -193,7 +193,8 @@ export class FirefoxDebugSession extends DebugSession {
 		});
 	}
 
-	private readWebRootConfiguration(args: WebRootConfiguration): string {
+	private readCommonConfiguration(args: CommonConfiguration): string {
+
 		if (args.url) {
 			if (!args.webRoot) {
 				return `If you set "url" you also have to set "webRoot" in the ${args.request} configuration`;
@@ -210,6 +211,10 @@ export class FirefoxDebugSession extends DebugSession {
 			}
 		} else if (args.webRoot) {
 			return `If you set "webRoot" you also have to set "url" in the ${args.request} configuration`;
+		}
+
+		if (args.log) {
+			Log.config = args.log;
 		}
 	}
 
