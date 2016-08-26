@@ -13,13 +13,13 @@
     "Debuggers"
   ],
   "dependencies": {
-    "rimraf": "^2.5.2",
-    "vscode-debugadapter": "^1.9.0"
+    "rimraf": "^2.5.4",
+    "vscode-debugadapter": "^1.11.0"
   },
   "devDependencies": {
-    "typescript": "^1.8.9",
+    "typescript": "^1.8.10",
     "typings": "^0.8.1",
-    "vsce": "^1.3.0"
+    "vsce": "^1.8.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -123,13 +123,23 @@
                     "properties": {
                       "default": {
                         "type": "string",
-                        "enum": [ "Debug", "Info", "Warn", "Error" ],
+                        "enum": [
+                          "Debug",
+                          "Info",
+                          "Warn",
+                          "Error"
+                        ],
                         "description": "The default loglevel"
                       }
                     },
                     "additionalProperties": {
                       "type": "string",
-                      "enum": [ "Debug", "Info", "Warn", "Error" ]
+                      "enum": [
+                        "Debug",
+                        "Info",
+                        "Warn",
+                        "Error"
+                      ]
                     },
                     "default": {
                       "default": "Debug"
@@ -141,13 +151,23 @@
                     "properties": {
                       "default": {
                         "type": "string",
-                        "enum": [ "Debug", "Info", "Warn", "Error" ],
+                        "enum": [
+                          "Debug",
+                          "Info",
+                          "Warn",
+                          "Error"
+                        ],
                         "description": "The default loglevel"
                       }
                     },
                     "additionalProperties": {
                       "type": "string",
-                      "enum": [ "Debug", "Info", "Warn", "Error" ]
+                      "enum": [
+                        "Debug",
+                        "Info",
+                        "Warn",
+                        "Error"
+                      ]
                     },
                     "default": {
                       "default": "Debug"
@@ -203,13 +223,23 @@
                     "properties": {
                       "default": {
                         "type": "string",
-                        "enum": [ "Debug", "Info", "Warn", "Error" ],
+                        "enum": [
+                          "Debug",
+                          "Info",
+                          "Warn",
+                          "Error"
+                        ],
                         "description": "The default loglevel"
                       }
                     },
                     "additionalProperties": {
                       "type": "string",
-                      "enum": [ "Debug", "Info", "Warn", "Error" ]
+                      "enum": [
+                        "Debug",
+                        "Info",
+                        "Warn",
+                        "Error"
+                      ]
                     },
                     "default": {
                       "default": "Debug"
@@ -221,13 +251,23 @@
                     "properties": {
                       "default": {
                         "type": "string",
-                        "enum": [ "Debug", "Info", "Warn", "Error" ],
+                        "enum": [
+                          "Debug",
+                          "Info",
+                          "Warn",
+                          "Error"
+                        ],
                         "description": "The default loglevel"
                       }
                     },
                     "additionalProperties": {
                       "type": "string",
-                      "enum": [ "Debug", "Info", "Warn", "Error" ]
+                      "enum": [
+                        "Debug",
+                        "Info",
+                        "Warn",
+                        "Error"
+                      ]
                     },
                     "default": {
                       "default": "Debug"
