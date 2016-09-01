@@ -73,9 +73,6 @@ export class Log {
 			if (this.fileLevel === undefined) {
 				this.fileLevel = this.convertLogLevel(Log._config.fileLevel['default']);
 			}
-			if (this.fileLevel === undefined) {
-				this.fileLevel = NumericLogLevel.Info;
-			}
 		}
 		if (Log._config.consoleLevel) {
 			this.consoleLevel = this.convertLogLevel(Log._config.consoleLevel[this.name]);
