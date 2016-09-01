@@ -135,7 +135,7 @@ export class FirefoxDebugSession extends DebugSession {
 		this.sendResponse(response);
 	}
 
-    protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchConfiguration): void {
+	protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchConfiguration): void {
 
 		let configError = this.readCommonConfiguration(args);
 		if (configError) {
@@ -169,7 +169,7 @@ export class FirefoxDebugSession extends DebugSession {
 		);
 	}
 
-    protected attachRequest(response: DebugProtocol.AttachResponse, args: AttachConfiguration): void {
+	protected attachRequest(response: DebugProtocol.AttachResponse, args: AttachConfiguration): void {
 
 		let configError = this.readCommonConfiguration(args);
 		if (configError) {
@@ -205,9 +205,12 @@ export class FirefoxDebugSession extends DebugSession {
 			if (this.webRootUrl.indexOf('/') >= 0) {
 				this.webRootUrl = this.webRootUrl.substr(0, this.webRootUrl.lastIndexOf('/'));
 			}
-			this.webRoot = args.webRoot;
+			this.webRoot = path.normalize(args.webRoot);
 			if (this.isWindowsPlatform) {
 				this.webRoot = this.webRoot.replace(/\\/g, '/');
+			}
+			if (this.webRoot[this.webRoot.length - 1] === '/') {
+				this.webRoot = this.webRoot.substr(0, this.webRoot.length - 1);
 			}
 		} else if (args.webRoot) {
 			return `If you set "webRoot" you also have to set "url" in the ${args.request} configuration`;
