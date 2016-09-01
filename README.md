@@ -173,6 +173,10 @@ to the VSCode console:
 
 ## Changelog
 
+### Version 0.6.3
+* Add configuration option for diagnostic logging
+* Make conversion between paths and urls more robust
+
 ### Version 0.6.2
 * bugfix: stepping and resuming stopped working if a breakpoint was hit immediately after loading the page
 
