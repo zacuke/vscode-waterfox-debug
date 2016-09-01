@@ -46,7 +46,7 @@ in the root directory of your project:
 
 You may want (or need) to debug your application running on a Webserver (especially if it interacts
 with server-side components like Webservices). In this case replace the `file` property in your
-launch configuration with a `url` and a `webRoot` property. These properties are used to map
+`launch` configuration with a `url` and a `webRoot` property. These properties are used to map
 urls to local files:
 ```
 {
@@ -62,6 +62,8 @@ urls to local files:
     ]
 }
 ```
+The `url` property may point to a file or a directory, if it points to a directory it must end with
+a trailing `/` (e.g. `http://localhost/my-app/`).
 
 ### Attach
 To use attach mode, you have to launch Firefox manually from a terminal with remote debugging enabled.
@@ -105,28 +107,69 @@ Navigate to your web application and use this `launch.json` configuration to att
 ```
 
 If your application is running on a Webserver, you need to add the `url` and `webRoot` properties
-to the configuration (as in the second launch configuration example above).
+to the configuration (as in the second `launch` configuration example above).
 
 ### Optional configuration properties
 * `profileDir`, `profile`: You can specify a Firefox profile directory or the name of a profile
   created with the Firefox profile manager. Otherwise, a profile directory will be created
   in the system's temporary folder and it will be automatically configured to allow remote
   debugging. If you specify a profile directory which doesn't exist yet, it will also be created
-  and configured automatically.
+  and configured automatically. If you use a profile that wasn't created by this extension then
+  you have to configure it yourself as described above in the "Attach" section. You have to do this
+  even if you use a `launch` configuration.
 * `port`: Firefox uses port 6000 for the debugger protocol by default. If you want to use a different
   port, you can set it with this property.
 * `firefoxExecutable`: The absolute path to the Firefox executable (`launch` configuration only). For instance, for the Firefox Developer Edition you might want to set this to something like `"firefoxExecutable": "C:/Program Files/Firefox Developer Edition/firefox.exe"`. If not specified, this extension will use the Firefox' default installation path.
 * `firefoxArgs`: An array of additional arguments used when launching Firefox (`launch` configuration only)
 * `host`: If you want to debug with Firefox running on different machine, you can specify the 
   device's address using this property (`attach` configuration only).
+* `log`: Configures diagnostic logging for this extension. This may be useful for troubleshooting
+  (see below for examples).
 
+### Diagnostic logging
+The following example for the `log` property will write all log messages to the file `log.txt` in
+your workspace:
+```
+...
+    "log": {
+        "fileName": "${workspaceRoot}/log.txt",
+        "fileLevel": {
+            "default": "Debug"
+        }
+    }
+...
+```
+
+This example will write all messages about conversions between paths and urls and all error messages
+to the VSCode console:
+```
+...
+    "log": {
+        "consoleLevel": {
+            "PathConversion": "Debug",
+            "default": "Error"
+        }
+    }
+...
+```
+ 
 ## Troubleshooting
+* Breakpoints that should get hit immediately after the javascript file is loaded may not work the
+  first time: You will have to click "Reload" in Firefox for the debugger to stop at such a
+  breakpoint. This is a weakness of the Firefox debug protocol: VSCode can't tell Firefox about
+  breakpoints in a file before the execution of that file starts.
+* If your breakpoints remain unverified after launching the debugger (i.e. they appear gray instead
+  of red), the conversion between file paths and urls may not work. The messages from the 
+  `PathConversion` logger may contain clues how to fix your configuration. Have a look at the 
+  "Diagnostic Logging" section for an example how to enable this logger.
 * Sometimes when using a `launch` configuration you may get a message saying that Firefox was
   closed unexpectedly. If this happens, click "Start in Safe Mode" and then close Firefox manually
   and stop the VS Code debugger by clicking the stop button twice.
   Afterwards, you should be able to launch it again.
   This is due to [Firefox bug #336193](https://bugzilla.mozilla.org/show_bug.cgi?id=336193).
 * If you think you've found a bug in this adapter please [file a bug report](https://github.com/hbenl/vscode-firefox-debug/issues).
+  It may be helpful if you create a log file (as described in the "Diagnostic Logging" section) and
+  attach it to the bug report.
 
 ## Changelog
 
