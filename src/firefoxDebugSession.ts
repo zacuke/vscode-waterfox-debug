@@ -12,6 +12,7 @@ import { ThreadAdapter, BreakpointInfo, BreakpointsAdapter, SourceAdapter, Break
 import { CommonConfiguration, LaunchConfiguration, AttachConfiguration } from './adapter/launchConfiguration';
 
 let log = Log.create('FirefoxDebugSession');
+let pathConversionLog = Log.create('PathConversion');
 
 export class FirefoxDebugSession extends DebugSession {
 
@@ -83,34 +84,39 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 
 	public convertPathToFirefoxUrl(path: string): string {
+		let url = path;
 		if (this.isWindowsPlatform) {
-			path = path.replace(/\\/g, '/');
+			url = url.replace(/\\/g, '/');
 		}
 		if (this.webRoot) {
-			if (path.substr(0, this.webRoot.length) === this.webRoot) {
-				return this.webRootUrl + path.substr(this.webRoot.length);
+			if (url.substr(0, this.webRoot.length) === this.webRoot) {
+				url = this.webRootUrl + url.substr(this.webRoot.length);
 			} else {
-				log.warn(`Can't convert path ${path} to url`);
+				pathConversionLog.warn(`Can't convert path ${path} to url`);
 				return null;
 			}
 		} else {
-			return (this.isWindowsPlatform ? 'file:///' : 'file://') + path;
+			url = (this.isWindowsPlatform ? 'file:///' : 'file://') + url;
 		}
+		pathConversionLog.debug(`Converted path ${path} to url ${url}`);
+		return url;
 	}
 
 	public convertFirefoxUrlToPath(url: string): string {
-		if (this.webRootUrl && (url.substr(0, this.webRootUrl.length) === this.webRootUrl)) {
-			url = this.webRoot + url.substr(this.webRootUrl.length);
-		} else if (url.substr(0, 7) === 'file://') {
-			url = url.substr(this.isWindowsPlatform ? 8 : 7);
+		let path = url;
+		if (this.webRootUrl && (path.substr(0, this.webRootUrl.length) === this.webRootUrl)) {
+			path = this.webRoot + path.substr(this.webRootUrl.length);
+		} else if (path.substr(0, 7) === 'file://') {
+			path = path.substr(this.isWindowsPlatform ? 8 : 7);
 		} else {
-			log.warn(`Can't convert url ${url} to local path`);
+			pathConversionLog.warn(`Can't convert url ${url} to path`);
 			return null;
 		}
 		if (this.isWindowsPlatform) {
-			url = url.replace(/\//g, '\\');
+			path = path.replace(/\//g, '\\');
 		}
-		return url;
+		pathConversionLog.debug(`Converted url ${url} to path ${path}`);
+		return path;
 	}
 
 	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
