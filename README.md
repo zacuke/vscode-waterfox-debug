@@ -173,6 +173,10 @@ to the VSCode console:
 
 ## Changelog
 
+### Version 0.6.4
+* fix breakpoint handling when a Firefox tab is reloaded
+* only send javascript-related warnings and errors from Firefox to the debug console
+
 ### Version 0.6.3
 * Add configuration option for diagnostic logging
 * Make conversion between paths and urls more robust
