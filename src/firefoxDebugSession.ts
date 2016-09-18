@@ -13,6 +13,7 @@ import { CommonConfiguration, LaunchConfiguration, AttachConfiguration } from '.
 
 let log = Log.create('FirefoxDebugSession');
 let pathConversionLog = Log.create('PathConversion');
+let consoleActorLog = Log.create('ConsoleActor');
 
 export class FirefoxDebugSession extends DebugSession {
 
@@ -396,6 +397,8 @@ export class FirefoxDebugSession extends DebugSession {
 	private attachConsole(consoleActor: ConsoleActorProxy): void {
 
 		consoleActor.onConsoleAPICall((msg) => {
+			consoleActorLog.debug(`Console API: ${JSON.stringify(msg)}`);
+
 			let category = (msg.level === 'error') ? 'stderr' :
 				(msg.level === 'warn') ? 'console' : 'stdout';
 			let displayMsg = msg.arguments.join(',') + '\n';
@@ -403,8 +406,12 @@ export class FirefoxDebugSession extends DebugSession {
 		});
 
 		consoleActor.onPageErrorCall((err) => {
-			let category = err.exception ? 'stderr' : 'stdout';
-			this.sendEvent(new OutputEvent(err.errorMessage + '\n', category));
+			consoleActorLog.debug(`Page Error: ${JSON.stringify(err)}`);
+
+			if (err.category === 'content javascript') {
+				let category = err.exception ? 'stderr' : 'stdout';
+				this.sendEvent(new OutputEvent(err.errorMessage + '\n', category));
+			}
 		});
 
 		consoleActor.startListeners();
