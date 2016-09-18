@@ -12,15 +12,18 @@ export class BreakpointsAdapter {
 			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter, finished), false);
 	}
 
-	private static setBreakpointsOnPausedSourceActor(breakpointsToSet: BreakpointInfo[], 
+	private static setBreakpointsOnPausedSourceActor(origBreakpointsToSet: BreakpointInfo[], 
 	sourceAdapter: SourceAdapter, finished: () => void): Promise<BreakpointAdapter[]> {
 
+		// we will modify this array, so we make a (shallow) copy and work with that
+		let breakpointsToSet = origBreakpointsToSet.slice();
+
 		log.debug(`Setting ${breakpointsToSet.length} breakpoints for ${sourceAdapter.actor.url}`);
-		
+
 		let result = new Promise<BreakpointAdapter[]>((resolve, reject) => {
 
 			sourceAdapter.currentBreakpoints.then(
-				
+
 				(oldBreakpoints) => {
 
 					log.debug(`${oldBreakpoints.length} breakpoints were previously set for ${sourceAdapter.actor.url}`);
@@ -28,9 +31,9 @@ export class BreakpointsAdapter {
 					let newBreakpoints: BreakpointAdapter[] = [];
 					let breakpointsBeingRemoved: Promise<void>[] = [];
 					let breakpointsBeingSet: Promise<void>[] = [];
-					
+
 					oldBreakpoints.forEach((breakpointAdapter) => {
-						
+
 						let breakpointIndex = -1;
 						for (let i = 0; i < breakpointsToSet.length; i++) {
 							if ((breakpointsToSet[i] !== undefined) && 
@@ -39,7 +42,7 @@ export class BreakpointsAdapter {
 								break;
 							}
 						}
-						
+
 						if (breakpointIndex >= 0) {
 							newBreakpoints[breakpointIndex] = breakpointAdapter;
 							breakpointsToSet[breakpointIndex] = undefined;
@@ -75,7 +78,7 @@ export class BreakpointsAdapter {
 									}));
 						}
 					});
-					
+
 					log.debug(`Adding ${breakpointsBeingSet.length} and removing ${breakpointsBeingRemoved.length} breakpoints`);
 
 					Promise.all(breakpointsBeingRemoved).then(() => 

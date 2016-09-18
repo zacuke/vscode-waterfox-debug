@@ -96,6 +96,7 @@ export class ThreadAdapter {
 	}
 
 	public findSourceAdapterForUrl(url: string): SourceAdapter {
+		if (!url) return null;
 		for (let i = 0; i < this.sources.length; i++) {
 			if (this.sources[i].actor.url === url) {
 				return this.sources[i];

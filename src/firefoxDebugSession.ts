@@ -359,9 +359,14 @@ export class FirefoxDebugSession extends DebugSession {
 
 	private attachSource(sourceActor: SourceActorProxy, threadAdapter: ThreadAdapter): void {
 
-		let sourceId = this.nextSourceId++;
-		let sourceAdapter = threadAdapter.createSourceAdapter(sourceId, sourceActor);
-		this.sourcesById.set(sourceId, sourceAdapter);
+		let sourceAdapter = threadAdapter.findSourceAdapterForUrl(sourceActor.url);
+		if (sourceAdapter) {
+			sourceAdapter.actor = sourceActor;
+		} else {
+			let sourceId = this.nextSourceId++;
+			sourceAdapter = threadAdapter.createSourceAdapter(sourceId, sourceActor);
+			this.sourcesById.set(sourceId, sourceAdapter);
+		}
 
 		if (this.breakpointsBySourceUrl.has(sourceActor.url)) {
 
