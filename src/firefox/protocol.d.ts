@@ -35,6 +35,24 @@ declare namespace FirefoxDebugProtocol {
 		consoleActor: string;
 	}
 
+	interface AddonsResponse extends Response {
+		addons: Addon[];
+	}
+
+	interface Addon {
+		actor: string;
+		id: string;
+		name: string;
+		url?: string;
+		consoleActor: string;
+		iconUrl?: string;
+		debuggable?: boolean;
+		traits: {
+			highlightable: boolean;
+			networkMonitor: boolean;
+		}
+	}
+
 	interface TabAttachedResponse extends TypedResponse {
 		threadActor: string;
 	}

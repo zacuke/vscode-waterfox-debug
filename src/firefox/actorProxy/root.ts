@@ -11,7 +11,8 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 	private tabs = new Map<string, [TabActorProxy, ConsoleActorProxy]>();
 	private pendingTabsRequests = new PendingRequests<Map<string, [TabActorProxy, ConsoleActorProxy]>>();
-	
+	private pendingAddonsRequests = new PendingRequests<FirefoxDebugProtocol.Addon[]>();
+
 	constructor(private connection: any) {
 		super();
 		this.connection.register(this);
@@ -22,12 +23,22 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 	}
 
 	public fetchTabs(): Promise<Map<string, [TabActorProxy, ConsoleActorProxy]>> {
-		
+
 		log.debug('Fetching tabs');
-		
+
 		return new Promise<Map<string, [TabActorProxy, ConsoleActorProxy]>>((resolve, reject) => {
 			this.pendingTabsRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'listTabs' });
+		})
+	}
+
+	public fetchAddons(): Promise<FirefoxDebugProtocol.Addon[]> {
+
+		log.debug('Fetching addons');
+
+		return new Promise<FirefoxDebugProtocol.Addon[]>((resolve, reject) => {
+			this.pendingAddonsRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'listAddons' });
 		})
 	}
 
@@ -53,7 +64,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 				return;
 			}
-			
+
 			log.debug(`Received ${tabsResponse.tabs.length} tabs`);
 
 			// convert the Tab array into a map of TabActorProxies, re-using already 
@@ -89,17 +100,23 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 			this.tabs = currentTabs;
 			this.pendingTabsRequests.resolveOne(currentTabs);
-			
+
 		} else if (response['type'] === 'tabListChanged') {
 
 			log.debug('Received tabListChanged event');
 			
 			this.emit('tabListChanged');
 
+		} else if (response['addons']) {
+
+			let addonsResponse = <FirefoxDebugProtocol.AddonsResponse>response;
+			log.debug(`Received ${addonsResponse.addons.length} addons`);
+			this.pendingAddonsRequests.resolveOne(addonsResponse.addons);
+
 		} else {
-			
+
 			log.warn("Unknown message from RootActor: " + JSON.stringify(response));
-			
+
 		}
 	}
 
