@@ -5,7 +5,9 @@ export interface CommonConfiguration {
 	request: string;
 	url?: string;
 	webRoot?: string;
-	log?: LogConfiguration
+	log?: LogConfiguration;
+	addonType?: 'legacy' | 'addonSdk' | 'webExtension';
+	addonPath?: string;
 }
 
 export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.LaunchRequestArguments {

@@ -63,6 +63,12 @@
             "name": "Attach",
             "type": "firefox",
             "request": "attach"
+          },
+          {
+            "name": "Launch addon",
+            "type": "firefox",
+            "request": "launch",
+            "addonType": "addonSdk"
           }
         ],
         "configurationAttributes": {
@@ -107,6 +113,21 @@
                   "type": "string"
                 },
                 "default": []
+              },
+              "addonType": {
+                "type": "string",
+                "enum": [
+                  "legacy",
+                  "addonSdk",
+                  "webExtension"
+                ],
+                "description": "The type of this Firefox addon (legacy, addonSdk or webExtension)",
+                "default": "addonSdk"
+              },
+              "addonPath": {
+                "type": "string",
+                "description": "The path of the directory containing the addon",
+                "default": "${workspaceRoot}"
               },
               "log": {
                 "type": "object",
@@ -207,6 +228,21 @@
                 "type": "string",
                 "description": "The remote debugging host to use",
                 "default": "localhost"
+              },
+              "addonType": {
+                "type": "string",
+                "enum": [
+                  "legacy",
+                  "addonSdk",
+                  "webExtension"
+                ],
+                "description": "The type of this Firefox addon (legacy, addonSdk or webExtension)",
+                "default": "addonSdk"
+              },
+              "addonPath": {
+                "type": "string",
+                "description": "The path of the directory containing the addon",
+                "default": "${workspaceRoot}"
               },
               "log": {
                 "type": "object",
