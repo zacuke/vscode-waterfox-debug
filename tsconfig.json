@@ -9,6 +9,8 @@
 	"files": [
 		"src/firefoxDebugSession.ts",
 		"src/firefox/protocol.d.ts",
+		"src/util/jetpack-id.d.ts",
+		"src/util/firefox-profile.d.ts",
 		"typings/main.d.ts"
 	]
 }

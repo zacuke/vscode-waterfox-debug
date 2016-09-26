@@ -1,12 +1,14 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { LogConfiguration } from '../util/log';
 
+export type AddonType = 'legacy' | 'addonSdk' | 'webExtension';
+
 export interface CommonConfiguration {
 	request: string;
 	url?: string;
 	webRoot?: string;
 	log?: LogConfiguration;
-	addonType?: 'legacy' | 'addonSdk' | 'webExtension';
+	addonType?: AddonType;
 	addonPath?: string;
 }
 

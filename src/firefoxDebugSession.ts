@@ -4,6 +4,7 @@ import { connect, Socket } from 'net';
 import { ChildProcess } from 'child_process';
 import { Log } from './util/log';
 import { concatArrays } from './util/misc';
+import { findAddonId } from './util/addon';
 import { launchFirefox, waitForSocket } from './util/launcher';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, ContinuedEvent, Thread, StackFrame, Scope, Variable, Source, Breakpoint } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
@@ -22,6 +23,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 	private webRootUrl: string;
 	private webRoot: string;
+	private addonId: string;
 	private isWindowsPlatform: boolean;
 
 	private nextThreadId = 1;
@@ -202,12 +204,35 @@ export class FirefoxDebugSession extends DebugSession {
 
 	private readCommonConfiguration(args: CommonConfiguration): string {
 
-		if (args.url) {
+		if (args.addonType) {
+
+			if (!args.addonPath) {
+				return `If you set "addonType" you also have to set "addonPath" in the ${args.request} configuration`;
+			}
+
+			let success: boolean;
+			let addonIdOrErrorMsg: string;
+			[success, addonIdOrErrorMsg] = findAddonId(args.addonType, args.addonPath);
+			if (success) {
+				this.addonId = addonIdOrErrorMsg;
+			} else {
+				return addonIdOrErrorMsg;
+			}
+
+			this.webRoot = path.normalize(args.addonPath);
+
+		} else if (args.addonPath) {
+
+			return `If you set "addonPath" you also have to set "addonType" in the ${args.request} configuration`;
+
+		} else if (args.url) {
+
 			if (!args.webRoot) {
 				return `If you set "url" you also have to set "webRoot" in the ${args.request} configuration`;
 			} else if (!path.isAbsolute(args.webRoot)) {
 				return `The "webRoot" property in the ${args.request} configuration has to be an absolute path`;
 			}
+
 			this.webRootUrl = args.url;
 			if (this.webRootUrl.indexOf('/') >= 0) {
 				this.webRootUrl = this.webRootUrl.substr(0, this.webRootUrl.lastIndexOf('/'));
@@ -219,8 +244,11 @@ export class FirefoxDebugSession extends DebugSession {
 			if (this.webRoot[this.webRoot.length - 1] === '/') {
 				this.webRoot = this.webRoot.substr(0, this.webRoot.length - 1);
 			}
+
 		} else if (args.webRoot) {
+
 			return `If you set "webRoot" you also have to set "url" in the ${args.request} configuration`;
+
 		}
 
 		if (args.log) {
@@ -234,6 +262,20 @@ export class FirefoxDebugSession extends DebugSession {
 		let rootActor = this.firefoxDebugConnection.rootActor;
 
 		let nextTabId = 1;
+
+		if (this.addonId) {
+			// attach to Firefox addon
+			rootActor.onInit(() => rootActor.fetchAddons().then((addons) => {
+				addons.forEach((addon) => {
+					if (addon.id === this.addonId) {
+						this.attachTab(
+							new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection),
+							new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection),
+							nextTabId++);
+					}
+				});
+			}));
+		}
 
 		// attach to all tabs, register the corresponding threads and inform VSCode about them
 		rootActor.onTabOpened(([tabActor, consoleActor]) => {

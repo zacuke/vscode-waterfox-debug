@@ -49,6 +49,8 @@ export function launchFirefox(config: LaunchConfiguration,
 		firefoxArgs.push(convertPathToFirefoxUrl(config.file));
 	} else if (config.url) {
 		firefoxArgs.push(config.url);
+	} else if (config.addonType) {
+		firefoxArgs.push('about:blank');
 	} else {
 		return 'You need to set either "file" or "url" in the launch configuration';
 	}
