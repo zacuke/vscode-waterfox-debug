@@ -70,7 +70,8 @@
             "name": "Launch addon",
             "type": "firefox",
             "request": "launch",
-            "addonType": "addonSdk"
+            "addonType": "addonSdk",
+            "addonPath": "${workspaceRoot}"
           }
         ],
         "configurationAttributes": {
