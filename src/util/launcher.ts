@@ -84,18 +84,22 @@ function getFirefoxExecutablePath(config: LaunchConfiguration): string {
 		case 'freebsd':
 		case 'sunos':
 			candidates = [
+				'/usr/bin/firefox-developer',
 				'/usr/bin/firefox'
 			]
 			break;
 
 		case 'darwin':
 			candidates = [
+				'/Applications/FirefoxDeveloperEdition.app/Contents/MacOS/firefox',
 				'/Applications/Firefox.app/Contents/MacOS/firefox'
 			]
 			break;
 
 		case 'win32':
 			candidates = [
+				'C:\\Program Files (x86)\\Firefox Developer Edition\\firefox.exe',
+				'C:\\Program Files\\Firefox Developer Edition\\firefox.exe',
 				'C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe',
 				'C:\\Program Files\\Mozilla Firefox\\firefox.exe'
 			]
