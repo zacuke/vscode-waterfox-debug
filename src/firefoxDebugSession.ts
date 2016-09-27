@@ -377,7 +377,7 @@ export class FirefoxDebugSession extends DebugSession {
 	private attachThread(threadActor: ThreadActorProxy, threadAdapter: ThreadAdapter): void {
 
 		threadActor.onNewSource((sourceActor) => {
-			log.debug(`New source ${sourceActor.url} in thread ${threadActor.name}`);
+			pathConversionLog.debug(`New source ${sourceActor.url} in thread ${threadActor.name}`);
 			this.attachSource(sourceActor, threadAdapter);
 		});
 
