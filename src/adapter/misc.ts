@@ -6,11 +6,13 @@ export class SourceAdapter {
 	
 	public id: number;
 	public actor: SourceActorProxy;
+	public sourcePath: string;
 	public currentBreakpoints: Promise<BreakpointAdapter[]>;
-	
-	public constructor(id: number, actor: SourceActorProxy) {
+
+	public constructor(id: number, actor: SourceActorProxy, sourcePath: string) {
 		this.id = id;
 		this.actor = actor;
+		this.sourcePath = sourcePath;
 		this.currentBreakpoints = Promise.resolve([]);
 	}
 }

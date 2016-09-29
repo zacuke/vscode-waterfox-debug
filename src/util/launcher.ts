@@ -10,8 +10,7 @@ import { LaunchConfiguration } from '../adapter/launchConfiguration';
  * Tries to launch Firefox with the given launch configuration. Returns either the spawned
  * child process or an error message.
  */
-export function launchFirefox(config: LaunchConfiguration, 
-	convertPathToFirefoxUrl: (path: string) => string): ChildProcess | string {
+export function launchFirefox(config: LaunchConfiguration): ChildProcess | string {
 
 	let firefoxPath = getFirefoxExecutablePath(config);	
 	if (!firefoxPath) {
@@ -43,10 +42,19 @@ export function launchFirefox(config: LaunchConfiguration,
 	}
 
 	if (config.file) {
+
 		if (!path.isAbsolute(config.file)) {
 			return 'The "file" property in the launch configuration has to be an absolute path';
 		}
-		firefoxArgs.push(convertPathToFirefoxUrl(config.file));
+
+		let fileUrl = config.file;
+		if (os.platform() === 'win32') {
+			fileUrl = 'file:///' + fileUrl.replace(/\\/g, '/');
+		} else {
+			fileUrl = 'file://' + fileUrl;
+		}
+		firefoxArgs.push(fileUrl);
+
 	} else if (config.url) {
 		firefoxArgs.push(config.url);
 	} else if (config.addonType) {
