@@ -20,15 +20,14 @@ export class FirefoxDebugSession extends DebugSession {
 	private firefoxProc: ChildProcess = null;
 	private firefoxDebugConnection: DebugConnection;
 
-	private webRootUrl: string;
-	private webRoot: string;
+	private pathMappings: [string, string][] = [];
 	private isWindowsPlatform: boolean;
 
 	private nextThreadId = 1;
 	private threadsById = new Map<number, ThreadAdapter>();
 
 	private nextBreakpointId = 1;
-	private breakpointsBySourceUrl = new Map<string, BreakpointInfo[]>();
+	private breakpointsBySourcePath = new Map<string, BreakpointInfo[]>();
 	private verifiedBreakpointSources: string[] = [];
 
 	private nextFrameId = 1;
@@ -84,40 +83,27 @@ export class FirefoxDebugSession extends DebugSession {
 			new LongStringGripActorProxy(longStringGrip, this.firefoxDebugConnection));
 	}
 
-	public convertPathToFirefoxUrl(path: string): string {
-		let url = path;
-		if (this.isWindowsPlatform) {
-			url = url.replace(/\\/g, '/');
-		}
-		if (this.webRoot) {
-			if (url.substr(0, this.webRoot.length) === this.webRoot) {
-				url = this.webRootUrl + url.substr(this.webRoot.length);
-			} else {
-				pathConversionLog.warn(`Can't convert path ${path} to url`);
-				return null;
-			}
-		} else {
-			url = (this.isWindowsPlatform ? 'file:///' : 'file://') + url;
-		}
-		pathConversionLog.debug(`Converted path ${path} to url ${url}`);
-		return url;
-	}
-
 	public convertFirefoxUrlToPath(url: string): string {
-		let path = url;
-		if (this.webRootUrl && (path.substr(0, this.webRootUrl.length) === this.webRootUrl)) {
-			path = this.webRoot + path.substr(this.webRootUrl.length);
-		} else if (path.substr(0, 7) === 'file://') {
-			path = path.substr(this.isWindowsPlatform ? 8 : 7);
-		} else {
-			pathConversionLog.warn(`Can't convert url ${url} to path`);
-			return null;
+		if (!url) return null;
+
+		for (var i = 0; i < this.pathMappings.length; i++) {
+
+			let [from, to] = this.pathMappings[i];
+
+			if (url.substr(0, from.length) === from) {
+
+				let path = to + url.substr(from.length);
+				if (this.isWindowsPlatform) {
+					path = path.replace(/\//g, '\\');
+				}
+
+				pathConversionLog.debug(`Converted url ${url} to path ${path}`);
+				return path;
+			}
 		}
-		if (this.isWindowsPlatform) {
-			path = path.replace(/\//g, '\\');
-		}
-		pathConversionLog.debug(`Converted url ${url} to path ${path}`);
-		return path;
+
+		pathConversionLog.warn(`Can't convert url ${url} to path`);
+		return null;
 	}
 
 	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
@@ -152,7 +138,7 @@ export class FirefoxDebugSession extends DebugSession {
 			return;
 		}
 
-		let launchResult = launchFirefox(args, (path) => this.convertPathToFirefoxUrl(path));
+		let launchResult = launchFirefox(args);
 		if (typeof launchResult === 'string') {
 			response.success = false;
 			response.message = launchResult;
@@ -202,30 +188,41 @@ export class FirefoxDebugSession extends DebugSession {
 
 	private readCommonConfiguration(args: CommonConfiguration): string {
 
+		if (args.log) {
+			Log.config = args.log;
+		}
+
 		if (args.url) {
+
 			if (!args.webRoot) {
 				return `If you set "url" you also have to set "webRoot" in the ${args.request} configuration`;
 			} else if (!path.isAbsolute(args.webRoot)) {
 				return `The "webRoot" property in the ${args.request} configuration has to be an absolute path`;
 			}
-			this.webRootUrl = args.url;
-			if (this.webRootUrl.indexOf('/') >= 0) {
-				this.webRootUrl = this.webRootUrl.substr(0, this.webRootUrl.lastIndexOf('/'));
+
+			let webRootUrl = args.url;
+			if (webRootUrl.indexOf('/') >= 0) {
+				webRootUrl = webRootUrl.substr(0, webRootUrl.lastIndexOf('/'));
 			}
-			this.webRoot = path.normalize(args.webRoot);
+
+			let webRoot = path.normalize(args.webRoot);
 			if (this.isWindowsPlatform) {
-				this.webRoot = this.webRoot.replace(/\\/g, '/');
+				webRoot = webRoot.replace(/\\/g, '/');
 			}
-			if (this.webRoot[this.webRoot.length - 1] === '/') {
-				this.webRoot = this.webRoot.substr(0, this.webRoot.length - 1);
+			if (webRoot[webRoot.length - 1] === '/') {
+				webRoot = webRoot.substr(0, webRoot.length - 1);
 			}
+
+			this.pathMappings.push([webRootUrl, webRoot]);
+
 		} else if (args.webRoot) {
 			return `If you set "webRoot" you also have to set "url" in the ${args.request} configuration`;
 		}
 
-		if (args.log) {
-			Log.config = args.log;
-		}
+		this.pathMappings.push([(this.isWindowsPlatform ? 'file:///' : 'file://'), '']);
+
+		pathConversionLog.debug('Path mappings:');
+		this.pathMappings.forEach(([from, to]) => pathConversionLog.debug(`'${from}' => '${to}'`));
 	}
 
 	private startSession(socket: Socket) {
@@ -360,37 +357,48 @@ export class FirefoxDebugSession extends DebugSession {
 
 	private attachSource(sourceActor: SourceActorProxy, threadAdapter: ThreadAdapter): void {
 
-		let sourceAdapter = threadAdapter.findSourceAdapterForUrl(sourceActor.url);
-		if (sourceAdapter) {
-			sourceAdapter.actor = sourceActor;
+		let sourcePath = this.convertFirefoxUrlToPath(sourceActor.url);
+		let sourceAdapters = threadAdapter.findSourceAdaptersForPath(sourcePath);
+
+		if (sourceAdapters.length > 0) {
+
+			sourceAdapters.forEach((sourceAdapter) => sourceAdapter.actor = sourceActor);
+
 		} else {
+
 			let sourceId = this.nextSourceId++;
-			sourceAdapter = threadAdapter.createSourceAdapter(sourceId, sourceActor);
+			let sourceAdapter = threadAdapter.createSourceAdapter(sourceId, sourceActor, sourcePath);
 			this.sourcesById.set(sourceId, sourceAdapter);
+			sourceAdapters.push(sourceAdapter);
+
 		}
 
-		if (this.breakpointsBySourceUrl.has(sourceActor.url)) {
+		if (this.breakpointsBySourcePath.has(sourcePath)) {
 
-			let breakpointInfos = this.breakpointsBySourceUrl.get(sourceActor.url);
-			let setBreakpointsPromise = threadAdapter.setBreakpoints(
-				breakpointInfos, sourceAdapter);
+			let breakpointInfos = this.breakpointsBySourcePath.get(sourcePath);
 
-			if (this.verifiedBreakpointSources.indexOf(sourceActor.url) < 0) {
+			sourceAdapters.forEach((sourceAdapter) => {
 
-				setBreakpointsPromise.then((breakpointAdapters) => {
+				let setBreakpointsPromise = threadAdapter.setBreakpoints(
+					breakpointInfos, sourceAdapter);
 
-					log.debug('Updating breakpoints');
+				if (this.verifiedBreakpointSources.indexOf(sourceActor.url) < 0) {
 
-					breakpointAdapters.forEach((breakpointAdapter) => {
-						let breakpoint: DebugProtocol.Breakpoint =
-							new Breakpoint(true, breakpointAdapter.breakpointInfo.actualLine);
-						breakpoint.id = breakpointAdapter.breakpointInfo.id;
-						this.sendEvent(new BreakpointEvent('update', breakpoint));
+					setBreakpointsPromise.then((breakpointAdapters) => {
+
+						log.debug('Updating breakpoints');
+
+						breakpointAdapters.forEach((breakpointAdapter) => {
+							let breakpoint: DebugProtocol.Breakpoint =
+								new Breakpoint(true, breakpointAdapter.breakpointInfo.actualLine);
+							breakpoint.id = breakpointAdapter.breakpointInfo.id;
+							this.sendEvent(new BreakpointEvent('update', breakpoint));
+						})
+
+						this.verifiedBreakpointSources.push(sourceActor.url);
 					})
-
-					this.verifiedBreakpointSources.push(sourceActor.url);
-				})
-			}
+				}
+			});
 		}
 	}
 
@@ -432,27 +440,27 @@ export class FirefoxDebugSession extends DebugSession {
     protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 		log.debug(`Received setBreakpointsRequest with ${args.breakpoints.length} breakpoints for ${args.source.path}`);
 
-		let firefoxSourceUrl = this.convertPathToFirefoxUrl(args.source.path);
+		let sourcePath = args.source.path;
 		let breakpointInfos = args.breakpoints.map((breakpoint) => <BreakpointInfo>{
 			id: this.nextBreakpointId++,
 			requestedLine: breakpoint.line,
 			condition: breakpoint.condition
 		});
 
-		this.breakpointsBySourceUrl.set(firefoxSourceUrl, breakpointInfos);
-		this.verifiedBreakpointSources =
-			this.verifiedBreakpointSources.filter((sourceUrl) => (sourceUrl !== firefoxSourceUrl));
+		this.breakpointsBySourcePath.set(sourcePath, breakpointInfos);
+		this.verifiedBreakpointSources = this.verifiedBreakpointSources.filter(
+			(verifiedSourcePath) => (verifiedSourcePath !== sourcePath));
 
 		this.threadsById.forEach((threadAdapter) => {
 
-			let sourceAdapter = threadAdapter.findSourceAdapterForUrl(firefoxSourceUrl);
-			if (sourceAdapter !== null) {
+			let sourceAdapters = threadAdapter.findSourceAdaptersForPath(sourcePath);
+			sourceAdapters.forEach((sourceAdapter) => {
 
 				log.debug(`Found source ${args.source.path} on tab ${threadAdapter.actorName}`);
 
 				let setBreakpointsPromise = threadAdapter.setBreakpoints(breakpointInfos, sourceAdapter);
 
-				if (this.verifiedBreakpointSources.indexOf(firefoxSourceUrl) < 0) {
+				if (this.verifiedBreakpointSources.indexOf(sourcePath) < 0) {
 
 					setBreakpointsPromise.then(
 						(breakpointAdapters) => {
@@ -478,12 +486,12 @@ export class FirefoxDebugSession extends DebugSession {
 							this.sendResponse(response);
 						});
 
-					this.verifiedBreakpointSources.push(firefoxSourceUrl);
+					this.verifiedBreakpointSources.push(sourcePath);
 				}
-			}
+			});
 		});
 
-		if (this.verifiedBreakpointSources.indexOf(firefoxSourceUrl) < 0) {
+		if (this.verifiedBreakpointSources.indexOf(sourcePath) < 0) {
 			log.debug (`Replying to setBreakpointsRequest (Source ${args.source.path} not seen yet)`);
 
 			response.body = {

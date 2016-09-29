@@ -56,8 +56,8 @@ export class ThreadAdapter {
 		});
 	}
 
-	public createSourceAdapter(id: number, actor: SourceActorProxy): SourceAdapter {
-		let adapter = new SourceAdapter(id, actor);
+	public createSourceAdapter(id: number, actor: SourceActorProxy, path: string): SourceAdapter {
+		let adapter = new SourceAdapter(id, actor, path);
 		this.sources.push(adapter);
 		return adapter;
 	}
@@ -95,14 +95,9 @@ export class ThreadAdapter {
 		this.scopes.push(scopeAdapter);
 	}
 
-	public findSourceAdapterForUrl(url: string): SourceAdapter {
-		if (!url) return null;
-		for (let i = 0; i < this.sources.length; i++) {
-			if (this.sources[i].actor.url === url) {
-				return this.sources[i];
-			}
-		}
-		return null;
+	public findSourceAdaptersForPath(path: string): SourceAdapter[] {
+		if (!path) return [];
+		return this.sources.filter((sourceAdapter) => (sourceAdapter.sourcePath === path));
 	}
 
 	public findSourceAdapterForActorName(actorName: string): SourceAdapter {
