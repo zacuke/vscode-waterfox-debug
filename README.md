@@ -173,6 +173,9 @@ to the VSCode console:
 
 ## Changelog
 
+### Version 0.6.5
+* bugfix for sourcemaps with embedded source files
+
 ### Version 0.6.4
 * fix breakpoint handling when a Firefox tab is reloaded
 * only send javascript-related warnings and errors from Firefox to the debug console
