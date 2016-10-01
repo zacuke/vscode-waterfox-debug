@@ -20,6 +20,10 @@ export class SourceActorProxy implements ActorProxy {
 		return this._source.actor;
 	}
 
+	public get source() {
+		return this._source;
+	}
+
 	public get url() {
 		return this._source.url;
 	}

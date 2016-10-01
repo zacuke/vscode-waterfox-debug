@@ -83,7 +83,27 @@ export class FirefoxDebugSession extends DebugSession {
 			new LongStringGripActorProxy(longStringGrip, this.firefoxDebugConnection));
 	}
 
-	public convertFirefoxUrlToPath(url: string): string {
+	public convertFirefoxSourceToPath(source: FirefoxDebugProtocol.Source): string {
+
+		if (source.isSourceMapped && source.generatedUrl && !this.urlDetector.test(source.url)) {
+
+			let generatedPath = this.convertFirefoxUrlToPath(source.generatedUrl);
+			if (!generatedPath) return null;
+
+			let relativePath = source.url;
+
+			let sourcePath = path.resolve(path.dirname(generatedPath), relativePath);
+			pathConversionLog.debug(`Sourcemapped path: ${sourcePath}`);
+			return sourcePath;
+
+		} else {
+			return this.convertFirefoxUrlToPath(source.url);
+		}
+	}
+
+	private urlDetector = /^[a-zA-Z][a-zA-Z0-9\+\-\.]*\:\/\//;
+
+	private convertFirefoxUrlToPath(url: string): string {
 		if (!url) return null;
 
 		for (var i = 0; i < this.pathMappings.length; i++) {
@@ -357,7 +377,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 	private attachSource(sourceActor: SourceActorProxy, threadAdapter: ThreadAdapter): void {
 
-		let sourcePath = this.convertFirefoxUrlToPath(sourceActor.url);
+		let sourcePath = this.convertFirefoxSourceToPath(sourceActor.source);
 		let sourceAdapters = threadAdapter.findSourceAdaptersForPath(sourcePath);
 
 		if (sourceAdapters.length > 0) {
