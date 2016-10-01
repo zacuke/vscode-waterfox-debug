@@ -153,15 +153,17 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 			this.pendingWorkersRequests.resolveOne(currentWorkers);
 			
 		} else if (response['error'] === 'noSuchActor') {
-			
+
 			log.error(`No such actor ${JSON.stringify(this.name)}`);
 			this.pendingAttachRequests.rejectAll('No such actor');
 			this.pendingDetachRequests.rejectAll('No such actor');
 
 		} else {
-			
+
 			if (response['type'] === 'frameUpdate') {
 				log.debug(`Ignored frameUpdate event from tab ${this.name}`);
+			} else if (response['type'] === 'newSource') {
+				log.debug(`Ignored newSource event from tab ${this.name}`);
 			} else {
 				log.warn("Unknown message from TabActor: " + JSON.stringify(response));
 			}

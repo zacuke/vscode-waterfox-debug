@@ -28,8 +28,8 @@ export class FrameAdapter {
 
 		let sourcePath: string = null;
 		if ((<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.url != null) {
-			sourcePath = this.threadAdapter.debugSession.convertFirefoxUrlToPath(
-				(<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.url);
+			sourcePath = this.threadAdapter.debugSession.convertFirefoxSourceToPath(
+				(<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source);
 		}
 
 		let sourceName = '';

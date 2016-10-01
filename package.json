@@ -1,7 +1,7 @@
 {
   "name": "vscode-firefox-debug",
   "displayName": "Debugger for Firefox",
-  "version": "0.6.4",
+  "version": "0.6.6",
   "author": "Holger Benl <hbenl@evandor.de>",
   "publisher": "hbenl",
   "description": "Debug your web application in Firefox",
@@ -21,7 +21,7 @@
   "devDependencies": {
     "typescript": "^1.8.10",
     "typings": "^0.8.1",
-    "vsce": "^1.8.1"
+    "vsce": "^1.15.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
