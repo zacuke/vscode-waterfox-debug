@@ -2,6 +2,7 @@ import { Log } from '../util/log';
 import { concatArrays } from '../util/misc';
 import { ThreadAdapter, EnvironmentAdapter, ScopeAdapter, ObjectGripAdapter } from '../adapter/index';
 import { Source, StackFrame } from 'vscode-debugadapter';
+import { urlBasename } from '../util/misc';
 
 let log = Log.create('FrameAdapter');
 
@@ -26,22 +27,24 @@ export class FrameAdapter {
 
 	public getStackframe(): StackFrame {
 
+		let firefoxSource = (<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source;
+		let sourceActorName = firefoxSource.actor;
+
 		let sourcePath: string = null;
-		if ((<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.url != null) {
-			sourcePath = this.threadAdapter.debugSession.convertFirefoxSourceToPath(
-				(<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source);
+		let sourceName = '';
+
+		if (firefoxSource.url != null) {
+			sourcePath = this.threadAdapter.debugSession.convertFirefoxSourceToPath(firefoxSource);
+			sourceName = urlBasename(firefoxSource.url);
 		}
 
-		let sourceName = '';
 		if (this.frame.type === 'eval') {
-			let actorName = (<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.actor;
-			let match = actorIdRegex.exec(actorName);
+			let match = actorIdRegex.exec(sourceActorName);
 			if (match) {
 				sourceName = `eval ${match[0]}`;
 			}
 		}
 
-		let sourceActorName = (<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source.actor;
 		let sourceAdapter = this.threadAdapter.findSourceAdapterForActorName(sourceActorName);
 
 		let source = new Source(sourceName, sourcePath, sourceAdapter.id);
