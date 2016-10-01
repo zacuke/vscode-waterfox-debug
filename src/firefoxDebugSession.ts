@@ -23,6 +23,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 	private pathMappings: [string, string][] = [];
 	private addonId: string;
+	private addonPath: string;
 	private isWindowsPlatform: boolean;
 
 	private nextThreadId = 1;
@@ -87,7 +88,13 @@ export class FirefoxDebugSession extends DebugSession {
 
 	public convertFirefoxSourceToPath(source: FirefoxDebugProtocol.Source): string {
 
-		if (source.isSourceMapped && source.generatedUrl && !this.urlDetector.test(source.url)) {
+		if (source.addonID && (source.addonID === this.addonId)) {
+
+			let sourcePath = path.join(this.addonPath, source.addonPath);
+			pathConversionLog.debug(`Addon script path: ${sourcePath}`);
+			return sourcePath;
+
+		} else if (source.isSourceMapped && source.generatedUrl && !this.urlDetector.test(source.url)) {
 
 			let generatedPath = this.convertFirefoxUrlToPath(source.generatedUrl);
 			if (!generatedPath) return null;
@@ -225,6 +232,7 @@ export class FirefoxDebugSession extends DebugSession {
 			[success, addonIdOrErrorMsg] = findAddonId(args.addonType, args.addonPath);
 			if (success) {
 				this.addonId = addonIdOrErrorMsg;
+				this.addonPath = args.addonPath;
 			} else {
 				return addonIdOrErrorMsg;
 			}
