@@ -291,7 +291,7 @@ export class FirefoxDebugSession extends DebugSession {
 						this.attachTab(
 							new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection),
 							new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection),
-							nextTabId++);
+							nextTabId++, 'Addon');
 					}
 				});
 			}));
@@ -316,13 +316,16 @@ export class FirefoxDebugSession extends DebugSession {
 		this.sendEvent(new InitializedEvent());
 	}
 
-	private attachTab(tabActor: TabActorProxy, consoleActor: ConsoleActorProxy, tabId: number): void {
+	private attachTab(tabActor: TabActorProxy, consoleActor: ConsoleActorProxy, tabId: number, threadName?: string): void {
 		tabActor.attach().then(
 			(threadActor) => {
 				log.debug(`Attached to tab ${tabActor.name}`);
 
 				let threadId = this.nextThreadId++;
-				let threadAdapter = new ThreadAdapter(threadId, threadActor, consoleActor, `Tab ${tabId}`, this);
+				if (!threadName) {
+					threadName = `Tab ${tabId}`;
+				}
+				let threadAdapter = new ThreadAdapter(threadId, threadActor, consoleActor, threadName, this);
 
 				this.attachThread(threadActor, threadAdapter);
 
