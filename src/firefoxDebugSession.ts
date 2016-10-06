@@ -10,7 +10,7 @@ import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEv
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugConnection, ActorProxy, TabActorProxy, WorkerActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, VariableAdapter, ObjectGripAdapter } from './adapter/index';
-import { CommonConfiguration, LaunchConfiguration, AttachConfiguration } from './adapter/launchConfiguration';
+import { CommonConfiguration, LaunchConfiguration, AttachConfiguration, AddonType } from './adapter/launchConfiguration';
 
 let log = Log.create('FirefoxDebugSession');
 let pathConversionLog = Log.create('PathConversion');
@@ -22,6 +22,7 @@ export class FirefoxDebugSession extends DebugSession {
 	private firefoxDebugConnection: DebugConnection;
 
 	private pathMappings: [string, string][] = [];
+	private addonType: AddonType;
 	private addonId: string;
 	private addonPath: string;
 	private isWindowsPlatform: boolean;
@@ -103,6 +104,12 @@ export class FirefoxDebugSession extends DebugSession {
 
 			let sourcePath = path.resolve(path.dirname(generatedPath), relativePath);
 			pathConversionLog.debug(`Sourcemapped path: ${sourcePath}`);
+			return sourcePath;
+
+		} else if ((this.addonType === 'webExtension') && (source.url.substr(0, 16) === 'moz-extension://')) {
+
+			let sourcePath = this.addonPath + source.url.substr(source.url.indexOf('/', 16));
+			pathConversionLog.debug(`WebExtension script path: ${sourcePath}`);
 			return sourcePath;
 
 		} else {
@@ -228,6 +235,8 @@ export class FirefoxDebugSession extends DebugSession {
 			if (!args.addonPath) {
 				return `If you set "addonType" you also have to set "addonPath" in the ${args.request} configuration`;
 			}
+
+			this.addonType = args.addonType;
 
 			let success: boolean;
 			let addonIdOrErrorMsg: string;
