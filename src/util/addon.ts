@@ -3,6 +3,8 @@ import * as fs from 'fs';
 import { AddonType } from '../adapter/launchConfiguration';
 import * as FirefoxProfile from 'firefox-profile';
 import * as getJetpackAddonId from 'jetpack-id';
+import * as createJetpackXpi from 'jpm/lib/xpi';
+import * as zipdir from 'zip-dir';
 
 /**
  * Returns either true and the addonId or false and an error message
@@ -44,6 +46,38 @@ export function findAddonId(addonType: AddonType, addonPath: string): [boolean, 
 				return [false, `Please define your addonId (as applications.gecko.id) in ${manifestPath}`];
 			}
 			return [true, addonId];
+	}
+}
+
+export function installAddon(addonType: AddonType, addonId: string, addonDir: string, destDir: string): Promise<void> {
+
+	let destFile = path.join(destDir, `${addonId}.xpi`);
+
+	switch (addonType) {
+
+		case 'legacy':
+		case 'webExtension':
+			return new Promise<void>((resolve, reject) => {
+				zipdir(addonDir, { saveTo: destFile }, (err, buffer) => {
+					if (err) {
+						reject(err);
+					} else {
+						resolve(undefined);
+					}
+				});
+			});
+
+		case 'addonSdk':
+			let manifestPath = path.join(addonDir, 'package.json');
+			try {
+				fs.accessSync(manifestPath, fs.R_OK);
+			} catch (err) {
+				return Promise.reject(`Couldn't read ${manifestPath}`);
+			}
+			let manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+			return createJetpackXpi(manifest, { addonDir, destDir }).then((xpiPath) => {
+				fs.renameSync(xpiPath, destFile);
+			});
 	}
 }
 

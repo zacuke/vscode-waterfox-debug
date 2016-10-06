@@ -15,8 +15,10 @@
   "dependencies": {
     "firefox-profile": "^0.4.2",
     "jetpack-id": "^1.0.0",
+    "jpm": "^1.2.0",
     "rimraf": "^2.5.4",
-    "vscode-debugadapter": "^1.11.0"
+    "vscode-debugadapter": "^1.11.0",
+    "zip-dir": "^1.0.2"
   },
   "devDependencies": {
     "typescript": "^1.8.10",

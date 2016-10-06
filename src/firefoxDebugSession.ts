@@ -167,28 +167,30 @@ export class FirefoxDebugSession extends DebugSession {
 			return;
 		}
 
-		let launchResult = launchFirefox(args);
-		if (typeof launchResult === 'string') {
-			response.success = false;
-			response.message = launchResult;
-			this.sendResponse(response);
-			return;
-		} else {
-			this.firefoxProc = launchResult;
-		}
+		launchFirefox(args, this.addonId, this.addonPath).then((launchResult) => {
 
-		waitForSocket(args).then(
-			(socket) => {
-				this.startSession(socket);
-				this.sendResponse(response);
-			},
-			(err) => {
-				log.error('Error: ' + err);
+			if (typeof launchResult === 'string') {
 				response.success = false;
-				response.message = String(err);
+				response.message = launchResult;
 				this.sendResponse(response);
+				return;
+			} else {
+				this.firefoxProc = launchResult;
 			}
-		);
+
+			waitForSocket(args).then(
+				(socket) => {
+					this.startSession(socket);
+					this.sendResponse(response);
+				},
+				(err) => {
+					log.error('Error: ' + err);
+					response.success = false;
+					response.message = String(err);
+					this.sendResponse(response);
+				}
+			);
+		});
 	}
 
 	protected attachRequest(response: DebugProtocol.AttachResponse, args: AttachConfiguration): void {

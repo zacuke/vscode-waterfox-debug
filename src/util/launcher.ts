@@ -5,12 +5,14 @@ import * as net from 'net';
 import * as rimraf from 'rimraf';
 import { spawn, ChildProcess } from 'child_process';
 import { LaunchConfiguration } from '../adapter/launchConfiguration';
+import { installAddon } from './addon';
 
 /**
  * Tries to launch Firefox with the given launch configuration. Returns either the spawned
  * child process or an error message.
  */
-export function launchFirefox(config: LaunchConfiguration): ChildProcess | string {
+export function launchFirefox(config: LaunchConfiguration, addonId: string, addonPath: string): 
+	Promise<ChildProcess | string> {
 
 	let firefoxPath = getFirefoxExecutablePath(config);	
 	if (!firefoxPath) {
@@ -20,20 +22,43 @@ export function launchFirefox(config: LaunchConfiguration): ChildProcess | strin
 		} else {
 			errorMsg += 'Please specify the path in your launch configuration.'
 		}
-		return errorMsg;
+		return Promise.resolve(errorMsg);
 	}
 	
 	let port = config.port || 6000;
 	let firefoxArgs: string[] = [ '-start-debugger-server', String(port), '-no-remote' ];
 
+	let prepareProfilePromise: Promise<void>;
 	if (config.profile) {
+
 		firefoxArgs.push('-P', config.profile);
+		prepareProfilePromise = Promise.resolve(undefined);
+
 	} else {
+
 		let [success, profileDirOrErrorMsg] = getProfileDir(config);
 		if (success) {
+
 			firefoxArgs.push('-profile', profileDirOrErrorMsg);
+
+			if (addonId) {
+
+				let extensionsDir = path.join(profileDirOrErrorMsg, 'extensions');
+				try {
+					let stat = fs.statSync(extensionsDir);
+					//TODO
+				} catch (e) {
+					fs.mkdirSync(extensionsDir);
+				}
+				prepareProfilePromise = installAddon(config.addonType, addonId, addonPath, extensionsDir)
+					.then(() => {});
+
+			} else {
+				prepareProfilePromise = Promise.resolve(undefined);
+			}
+
 		} else {
-			return profileDirOrErrorMsg;
+			return Promise.resolve(profileDirOrErrorMsg);
 		}
 	}
 
@@ -44,7 +69,7 @@ export function launchFirefox(config: LaunchConfiguration): ChildProcess | strin
 	if (config.file) {
 
 		if (!path.isAbsolute(config.file)) {
-			return 'The "file" property in the launch configuration has to be an absolute path';
+			return Promise.resolve('The "file" property in the launch configuration has to be an absolute path');
 		}
 
 		let fileUrl = config.file;
@@ -60,12 +85,14 @@ export function launchFirefox(config: LaunchConfiguration): ChildProcess | strin
 	} else if (config.addonType) {
 		firefoxArgs.push('about:blank');
 	} else {
-		return 'You need to set either "file" or "url" in the launch configuration';
+		return Promise.resolve('You need to set either "file" or "url" in the launch configuration');
 	}
-	
-	let childProc = spawn(firefoxPath, firefoxArgs, { detached: true, stdio: 'ignore' });
-	childProc.unref();
-	return childProc;
+
+	return prepareProfilePromise.then(() => {
+		let childProc = spawn(firefoxPath, firefoxArgs, { detached: true, stdio: 'ignore' });
+		childProc.unref();
+		return childProc;
+	});
 }
 
 export function waitForSocket(config: LaunchConfiguration): Promise<net.Socket> {
@@ -166,6 +193,8 @@ user_pref("devtools.chrome.enabled", true);
 user_pref("devtools.debugger.prompt-connection", false);
 user_pref("devtools.debugger.remote-enabled", true);
 user_pref("devtools.debugger.workers", true);
+user_pref("extensions.autoDisableScopes", 10);
+user_pref("xpinstall.signatures.required", false);
 `;
 
 function isExecutable(path: string): boolean {
