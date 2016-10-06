@@ -4,3 +4,11 @@ declare module "firefox-profile" {
 	namespace FirefoxProfile{}
 	export = FirefoxProfile;
 }
+
+declare module "firefox-profile/lib/profile_finder" {
+	class ProfileFinder {
+		getPath(name: string, cb: (err: any, profilePath: string) => void);
+	}
+	namespace ProfileFinder{}
+	export = ProfileFinder;
+}

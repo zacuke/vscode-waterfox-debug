@@ -5,6 +5,7 @@ import * as net from 'net';
 import * as rimraf from 'rimraf';
 import { spawn, ChildProcess } from 'child_process';
 import { LaunchConfiguration } from '../adapter/launchConfiguration';
+import * as ProfileFinder from 'firefox-profile/lib/profile_finder';
 import { installAddon } from './addon';
 
 /**
@@ -32,7 +33,24 @@ export function launchFirefox(config: LaunchConfiguration, addonId: string, addo
 	if (config.profile) {
 
 		firefoxArgs.push('-P', config.profile);
-		prepareProfilePromise = Promise.resolve(undefined);
+		if (addonId) {
+
+			prepareProfilePromise = new Promise<void>((resolve, reject) => {
+				var finder = new ProfileFinder();
+				finder.getPath(config.profile, (err, profileDir) => {
+					if (err) {
+						reject(err);
+					} else {
+						let extensionsDir = path.join(profileDir, 'extensions');
+						installAddon(config.addonType, addonId, addonPath, extensionsDir)
+							.then(() => resolve(undefined));
+					}
+				});
+			});
+
+		} else {
+			prepareProfilePromise = Promise.resolve(undefined);
+		}
 
 	} else {
 
