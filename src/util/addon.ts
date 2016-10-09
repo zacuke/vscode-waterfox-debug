@@ -49,9 +49,13 @@ export function findAddonId(addonType: AddonType, addonPath: string): [boolean, 
 	}
 }
 
-export function installAddon(addonType: AddonType, addonId: string, addonDir: string, destDir: string): Promise<void> {
+export function installAddon(addonType: AddonType, addonId: string, addonDir: string, profileDir: string): Promise<void> {
 
+	let destDir = path.join(profileDir, 'extensions');
 	let destFile = path.join(destDir, `${addonId}.xpi`);
+	try {
+		fs.mkdirSync(destDir);
+	} catch(e) {}
 
 	switch (addonType) {
 

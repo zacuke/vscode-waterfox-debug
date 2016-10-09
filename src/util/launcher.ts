@@ -1,19 +1,19 @@
 import * as os from 'os';
 import * as path from 'path';
-import * as fs from 'fs';
+import * as fs from 'fs-extra';
 import * as net from 'net';
-import * as rimraf from 'rimraf';
 import { spawn, ChildProcess } from 'child_process';
+import * as uuid from 'node-uuid';
 import { LaunchConfiguration } from '../adapter/launchConfiguration';
 import * as ProfileFinder from 'firefox-profile/lib/profile_finder';
 import { installAddon } from './addon';
 
 /**
- * Tries to launch Firefox with the given launch configuration. Returns either the spawned
- * child process or an error message.
+ * Tries to launch Firefox with the given launch configuration.
+ * The returned promise resolves to the spawned child process.
  */
-export function launchFirefox(config: LaunchConfiguration, addonId: string, addonPath: string): 
-	Promise<ChildProcess | string> {
+export function launchFirefox(config: LaunchConfiguration, addonId: string): 
+	Promise<ChildProcess> {
 
 	let firefoxPath = getFirefoxExecutablePath(config);	
 	if (!firefoxPath) {
@@ -23,62 +23,11 @@ export function launchFirefox(config: LaunchConfiguration, addonId: string, addo
 		} else {
 			errorMsg += 'Please specify the path in your launch configuration.'
 		}
-		return Promise.resolve(errorMsg);
+		return Promise.reject(errorMsg);
 	}
 	
 	let port = config.port || 6000;
 	let firefoxArgs: string[] = [ '-start-debugger-server', String(port), '-no-remote' ];
-
-	let prepareProfilePromise: Promise<void>;
-	if (config.profile) {
-
-		firefoxArgs.push('-P', config.profile);
-		if (addonId) {
-
-			prepareProfilePromise = new Promise<void>((resolve, reject) => {
-				var finder = new ProfileFinder();
-				finder.getPath(config.profile, (err, profileDir) => {
-					if (err) {
-						reject(err);
-					} else {
-						let extensionsDir = path.join(profileDir, 'extensions');
-						installAddon(config.addonType, addonId, addonPath, extensionsDir)
-							.then(() => resolve(undefined));
-					}
-				});
-			});
-
-		} else {
-			prepareProfilePromise = Promise.resolve(undefined);
-		}
-
-	} else {
-
-		let [success, profileDirOrErrorMsg] = getProfileDir(config);
-		if (success) {
-
-			firefoxArgs.push('-profile', profileDirOrErrorMsg);
-
-			if (addonId) {
-
-				let extensionsDir = path.join(profileDirOrErrorMsg, 'extensions');
-				try {
-					let stat = fs.statSync(extensionsDir);
-					//TODO
-				} catch (e) {
-					fs.mkdirSync(extensionsDir);
-				}
-				prepareProfilePromise = installAddon(config.addonType, addonId, addonPath, extensionsDir)
-					.then(() => {});
-
-			} else {
-				prepareProfilePromise = Promise.resolve(undefined);
-			}
-
-		} else {
-			return Promise.resolve(profileDirOrErrorMsg);
-		}
-	}
 
 	if (Array.isArray(config.firefoxArgs)) {
 		firefoxArgs = firefoxArgs.concat(config.firefoxArgs);
@@ -87,7 +36,7 @@ export function launchFirefox(config: LaunchConfiguration, addonId: string, addo
 	if (config.file) {
 
 		if (!path.isAbsolute(config.file)) {
-			return Promise.resolve('The "file" property in the launch configuration has to be an absolute path');
+			return Promise.reject('The "file" property in the launch configuration has to be an absolute path');
 		}
 
 		let fileUrl = config.file;
@@ -103,13 +52,20 @@ export function launchFirefox(config: LaunchConfiguration, addonId: string, addo
 	} else if (config.addonType) {
 		firefoxArgs.push('about:blank');
 	} else {
-		return Promise.resolve('You need to set either "file" or "url" in the launch configuration');
+		return Promise.reject('You need to set either "file" or "url" in the launch configuration');
 	}
 
-	return prepareProfilePromise.then(() => {
+	return createDebugProfile(config, addonId).then((debugProfileDir) => {
+
+		firefoxArgs.push('-profile', debugProfileDir);
+
 		let childProc = spawn(firefoxPath, firefoxArgs, { detached: true, stdio: 'ignore' });
+		childProc.on('exit', () => {
+			fs.removeSync(debugProfileDir);
+		});
 		childProc.unref();
 		return childProc;
+
 	});
 }
 
@@ -168,41 +124,71 @@ function getFirefoxExecutablePath(config: LaunchConfiguration): string {
 	return null;
 }
 
-/**
- * Returns either true and the path of the profile directory or false and an error message
- */
-function getProfileDir(config: LaunchConfiguration): [boolean, string] {
-	let profileDir: string;
+function createDebugProfile(config: LaunchConfiguration, addonId: string): Promise<string> {
+
+	let debugProfileDir = path.join(os.tmpdir(), `vscode-firefox-debug-profile-${uuid.v4()}`);
+
+	let createProfilePromise: Promise<void>;
 	if (config.profileDir) {
-		profileDir = config.profileDir;
+
+		if (!isReadableDirectory(config.profileDir)) {
+			return Promise.reject(`Couldn't access profile directory ${config.profileDir}`);
+		}
+
+		fs.copySync(config.profileDir, debugProfileDir, {
+			clobber: true,
+			filter: isNotLockFile
+		});
+		createProfilePromise = Promise.resolve(undefined);
+
+	} else if (config.profile) {
+
+		createProfilePromise = new Promise<void>((resolve, reject) => {
+
+			var finder = new ProfileFinder();
+			finder.getPath(config.profile, (err, profileDir) => {
+			
+				if (err) {
+					reject(`Couldn't find profile '${config.profile}'`);
+				} else if (!isReadableDirectory(profileDir)) {
+					reject(`Couldn't access profile '${config.profile}'`);
+				} else {
+
+					fs.copySync(profileDir, debugProfileDir, {
+						clobber: true,
+						filter: isNotLockFile
+					});
+					resolve(undefined);
+
+				}
+			});
+		});
+
 	} else {
-		profileDir = path.join(os.tmpdir(), 'vscode-firefox-debug-profile');
-		rimraf.sync(profileDir);
+
+		fs.mkdirSync(debugProfileDir);
+		createProfilePromise = Promise.resolve(undefined);
+
 	}
 
-	try {
-		let stat = fs.statSync(profileDir);
-		if (stat.isDirectory) {
-			// directory exists - check permissions
-			try {
-				fs.accessSync(profileDir, fs.R_OK | fs.W_OK);
-				return [true, profileDir];
-			} catch (e) {
-				return [false, `The profile directory ${profileDir} exists but can't be accessed`];
-			}
+	return createProfilePromise.then(() => {
+
+		fs.writeFileSync(path.join(debugProfileDir, 'user.js'), firefoxUserPrefs);
+
+		if (addonId) {
+
+			return installAddon(config.addonType, addonId, config.addonPath, debugProfileDir)
+				.then(() => debugProfileDir);
+
 		} else {
-			return [false, `${profileDir} is not a directory`];
+			return debugProfileDir;
 		}
-	} catch (e) {
-		// directory doesn't exist - create it and set the necessary user preferences
-		try {
-			fs.mkdirSync(profileDir);
-			fs.writeFileSync(path.join(profileDir, 'prefs.js'), firefoxUserPrefs);
-			return [true, profileDir];
-		} catch (e) {
-			return [false, `Error trying to create profile directory ${profileDir}: ${e}`];
-		}
-	}	
+	});
+}
+
+function isNotLockFile(filePath) {
+	var file = path.basename(filePath);
+	return !/^(parent\.lock|lock|\.parentlock)$/.test(file);
 }
 
 let firefoxUserPrefs = `
@@ -217,6 +203,19 @@ user_pref("xpinstall.signatures.required", false);
 
 function isExecutable(path: string): boolean {
 	try {
+		fs.accessSync(path, fs.X_OK);
+		return true;
+	} catch (e) {
+		return false;
+	}
+}
+
+function isReadableDirectory(path: string): boolean {
+	try {
+		let stat = fs.statSync(path);
+		if (!stat.isDirectory) {
+			return false;
+		}
 		fs.accessSync(path, fs.X_OK);
 		return true;
 	} catch (e) {

@@ -174,16 +174,9 @@ export class FirefoxDebugSession extends DebugSession {
 			return;
 		}
 
-		launchFirefox(args, this.addonId, this.addonPath).then((launchResult) => {
+		launchFirefox(args, this.addonId).then((launchResult) => {
 
-			if (typeof launchResult === 'string') {
-				response.success = false;
-				response.message = launchResult;
-				this.sendResponse(response);
-				return;
-			} else {
-				this.firefoxProc = launchResult;
-			}
+			this.firefoxProc = launchResult;
 
 			waitForSocket(args).then(
 				(socket) => {
@@ -197,6 +190,11 @@ export class FirefoxDebugSession extends DebugSession {
 					this.sendResponse(response);
 				}
 			);
+		},
+		(err) => {
+			response.success = false;
+			response.message = String(err);
+			this.sendResponse(response);
 		});
 	}
 
