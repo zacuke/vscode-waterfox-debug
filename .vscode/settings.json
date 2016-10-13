@@ -6,4 +6,6 @@
 		"node_modules": true
 	},
 	"editor.rulers": [100]
+,
+"typescript.tsdk": "./node_modules/typescript/lib"
 }
