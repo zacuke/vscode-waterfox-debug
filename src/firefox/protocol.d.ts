@@ -53,6 +53,14 @@ declare namespace FirefoxDebugProtocol {
 		}
 	}
 
+	interface ProcessResponse extends Response {
+		form: {
+			actor: string;
+			url: string;
+			consoleActor: string;
+		}
+	}
+
 	interface TabAttachedResponse extends TypedResponse {
 		threadActor: string;
 	}

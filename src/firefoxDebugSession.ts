@@ -294,16 +294,25 @@ export class FirefoxDebugSession extends DebugSession {
 
 		if (this.addonId) {
 			// attach to Firefox addon
-			rootActor.onInit(() => rootActor.fetchAddons().then((addons) => {
-				addons.forEach((addon) => {
-					if (addon.id === this.addonId) {
-						this.attachTab(
-							new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection),
-							new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection),
-							nextTabId++, 'Addon');
-					}
+			rootActor.onInit(() => {
+
+				rootActor.fetchAddons().then((addons) => {
+					addons.forEach((addon) => {
+						if (addon.id === this.addonId) {
+							this.attachTab(
+								new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection),
+								new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection),
+								nextTabId++, 'Addon');
+						}
+					});
 				});
-			}));
+
+				if (this.addonType === 'legacy') {
+					rootActor.fetchProcess().then(([tabActor, consoleActor]) => {
+						this.attachTab(tabActor, consoleActor, nextTabId++, 'Browser');
+					});
+				}
+			});
 		}
 
 		// attach to all tabs, register the corresponding threads and inform VSCode about them

@@ -10,6 +10,7 @@ let log = Log.create('RootActorProxy');
 export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 	private tabs = new Map<string, [TabActorProxy, ConsoleActorProxy]>();
+	private pendingProcessRequests = new PendingRequests<[TabActorProxy, ConsoleActorProxy]>();
 	private pendingTabsRequests = new PendingRequests<Map<string, [TabActorProxy, ConsoleActorProxy]>>();
 	private pendingAddonsRequests = new PendingRequests<FirefoxDebugProtocol.Addon[]>();
 
@@ -20,6 +21,16 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 	public get name() {
 		return 'root';
+	}
+
+	public fetchProcess(): Promise<[TabActorProxy, ConsoleActorProxy]> {
+
+		log.debug('Fetching process');
+
+		return new Promise<[TabActorProxy, ConsoleActorProxy]>((resolve, reject) => {
+			this.pendingProcessRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'getProcess' });
+		})
 	}
 
 	public fetchTabs(): Promise<Map<string, [TabActorProxy, ConsoleActorProxy]>> {
@@ -112,6 +123,15 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 			let addonsResponse = <FirefoxDebugProtocol.AddonsResponse>response;
 			log.debug(`Received ${addonsResponse.addons.length} addons`);
 			this.pendingAddonsRequests.resolveOne(addonsResponse.addons);
+
+		} else if (response['form']) {
+
+			let processResponse = <FirefoxDebugProtocol.ProcessResponse>response;
+			log.debug('Received getProcess response');
+			this.pendingProcessRequests.resolveOne([
+				new TabActorProxy(processResponse.form.actor, 'Browser', processResponse.form.url, this.connection),
+				new ConsoleActorProxy(processResponse.form.consoleActor, this.connection)
+			]);
 
 		} else {
 
