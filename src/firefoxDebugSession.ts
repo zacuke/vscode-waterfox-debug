@@ -138,7 +138,13 @@ export class FirefoxDebugSession extends DebugSession {
 			}
 		}
 
-		pathConversionLog.warn(`Can't convert url ${url} to path`);
+		if ((url.substr(0, 11) === 'resource://') || (url.substr(0, 9) === 'chrome://') ||
+			(url === 'XStringBundle') || (url.substr(0, 4) === 'jar:')) {
+			pathConversionLog.info(`Can't convert url ${url} to path`);
+		} else {
+			pathConversionLog.warn(`Can't convert url ${url} to path`);
+		}
+
 		return null;
 	}
 
