@@ -308,14 +308,14 @@ export class FirefoxDebugSession extends DebugSession {
 							this.attachTab(
 								new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection),
 								new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection),
-								nextTabId++, 'Addon');
+								nextTabId++, false, 'Addon');
 						}
 					});
 				});
 
 				if (this.addonType === 'legacy') {
 					rootActor.fetchProcess().then(([tabActor, consoleActor]) => {
-						this.attachTab(tabActor, consoleActor, nextTabId++, 'Browser');
+						this.attachTab(tabActor, consoleActor, nextTabId++, true, 'Browser');
 					});
 				}
 			});
@@ -340,8 +340,11 @@ export class FirefoxDebugSession extends DebugSession {
 		this.sendEvent(new InitializedEvent());
 	}
 
-	private attachTab(tabActor: TabActorProxy, consoleActor: ConsoleActorProxy, tabId: number, threadName?: string): void {
+	private attachTab(tabActor: TabActorProxy, consoleActor: ConsoleActorProxy, tabId: number, 
+		hasWorkers: boolean = true, threadName?: string): void {
+
 		tabActor.attach().then(
+
 			(threadActor) => {
 				log.debug(`Attached to tab ${tabActor.name}`);
 
@@ -374,14 +377,16 @@ export class FirefoxDebugSession extends DebugSession {
 					}
 				);
 
-				let nextWorkerId = 1;
-				tabActor.onWorkerStarted((workerActor) => {
-					log.info(`Worker started with url ${tabActor.url}`);
-					let workerId = nextWorkerId++;
-					this.attachWorker(workerActor, tabId, workerId);
-				});
-				tabActor.onWorkerListChanged(() => tabActor.fetchWorkers());
-				tabActor.fetchWorkers();
+				if (hasWorkers) {
+					let nextWorkerId = 1;
+					tabActor.onWorkerStarted((workerActor) => {
+						log.info(`Worker started with url ${tabActor.url}`);
+						let workerId = nextWorkerId++;
+						this.attachWorker(workerActor, tabId, workerId);
+					});
+					tabActor.onWorkerListChanged(() => tabActor.fetchWorkers());
+					tabActor.fetchWorkers();
+				}
 			},
 
 			(err) => {
