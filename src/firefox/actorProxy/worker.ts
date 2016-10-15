@@ -97,7 +97,11 @@ export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 
 		} else {
 
-			log.warn("Unknown message from WorkerActor: " + JSON.stringify(response));
+			if (response['type'] === 'newSource') {
+				log.debug(`Ignored newSource event from worker ${this.name}`);
+			} else {
+				log.warn("Unknown message from WorkerActor: " + JSON.stringify(response));
+			}
 
 		}
 	}
