@@ -77,13 +77,13 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 				case ExceptionBreakpoints.All:
 					pauseOnExceptions = true;
 					break;
-					
+
 				case ExceptionBreakpoints.Uncaught:
 					pauseOnExceptions = true;
 					ignoreCaughtExceptions = true;
 					break;
 			}
-			
+
 			this.resumePromise = new Promise<void>((resolve, reject) => {
 				this.pendingResumeRequest = { resolve, reject };
 				this.connection.sendRequest({ 
@@ -92,9 +92,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 				});
 			});
 			this.interruptPromise = null;
-			
+
 		}
-		
+
 		return this.resumePromise;
 	}
 	
@@ -346,8 +346,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		} else if (response['error'] === 'wrongOrder') {
 
 			log.warn(`got wrongOrder error: ${response['message']}`);
+			this.resumePromise = null;
 			this.pendingResumeRequest.reject(`You need to resume ${response['lastPausedUrl']} first`);
-			
+
 		} else if (response['error'] === 'noSuchActor') {
 			
 			log.error(`No such actor ${JSON.stringify(this.name)}`);
