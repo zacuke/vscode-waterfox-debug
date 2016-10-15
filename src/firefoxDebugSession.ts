@@ -102,13 +102,13 @@ export class FirefoxDebugSession extends DebugSession {
 
 			let relativePath = source.url;
 
-			let sourcePath = path.resolve(path.dirname(generatedPath), relativePath);
+			let sourcePath = path.join(path.dirname(generatedPath), relativePath);
 			pathConversionLog.debug(`Sourcemapped path: ${sourcePath}`);
 			return sourcePath;
 
 		} else if ((this.addonType === 'webExtension') && (source.url.substr(0, 16) === 'moz-extension://')) {
 
-			let sourcePath = this.addonPath + source.url.substr(source.url.indexOf('/', 16));
+			let sourcePath = path.join(this.addonPath, source.url.substr(source.url.indexOf('/', 16)));
 			pathConversionLog.debug(`WebExtension script path: ${sourcePath}`);
 			return sourcePath;
 
