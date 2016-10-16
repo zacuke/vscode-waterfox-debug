@@ -9,6 +9,7 @@
     "rimraf": "registry:dt/rimraf#0.0.0+20160317120654"
   },
   "dependencies": {
-    "node-uuid": "registry:npm/node-uuid#1.4.7+20160723033700"
+    "node-uuid": "registry:npm/node-uuid#1.4.7+20160723033700",
+    "semver": "registry:npm/semver#5.0.0+20160723033700"
   }
 }

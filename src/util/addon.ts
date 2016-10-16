@@ -1,9 +1,12 @@
+import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
+import { execSync } from 'child_process';
+import * as uuid from 'node-uuid';
+import * as semver from 'semver';
 import { AddonType } from '../adapter/launchConfiguration';
 import * as FirefoxProfile from 'firefox-profile';
 import * as getJetpackAddonId from 'jetpack-id';
-import * as createJetpackXpi from 'jpm/lib/xpi';
 import * as zipdir from 'zip-dir';
 
 /**
@@ -72,17 +75,33 @@ export function installAddon(addonType: AddonType, addonId: string, addonDir: st
 			});
 
 		case 'addonSdk':
-			let manifestPath = path.join(addonDir, 'package.json');
-			try {
-				fs.accessSync(manifestPath, fs.R_OK);
-			} catch (err) {
-				return Promise.reject(`Couldn't read ${manifestPath}`);
-			}
-			let manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-			return createJetpackXpi(manifest, { addonDir, destDir }).then((xpiPath) => {
-				fs.renameSync(xpiPath, destFile);
-			});
+			return createJetpackXpi(addonDir, destFile);
 	}
+}
+
+export function createJetpackXpi(addonDir: string, destFile: string): Promise<void> {
+	return new Promise<void>((resolve, reject) => {
+		try {
+
+			let tempXpiDir = path.join(os.tmpdir(), `jpm-${uuid.v4()}`);
+			fs.mkdirSync(tempXpiDir);
+
+			let jpmVersion = execSync('jpm -V', { encoding: 'utf8' });
+			jpmVersion = (<string>jpmVersion).trim();
+			if (semver.lt(jpmVersion as string, '1.2.0')) {
+				reject(`Please install a newer version of jpm (You have ${jpmVersion}, but 1.2.0 or newer is required)`);
+			}
+
+			execSync(`jpm xpi --dest-dir "${tempXpiDir}"`, { cwd: addonDir });
+			var tempXpiFile = path.join(tempXpiDir, fs.readdirSync(tempXpiDir)[0]);
+			fs.renameSync(tempXpiFile, destFile);
+			fs.rmdirSync(tempXpiDir);
+			resolve();
+
+		} catch (err) {
+			reject(`Couldn't run jpm: ${err.stderr}`);
+		}
+	});
 }
 
 // we perform some Voodoo tricks to extract the private _addonDetails method

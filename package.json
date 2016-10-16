@@ -16,8 +16,8 @@
     "firefox-profile": "^0.4.2",
     "fs-extra": "^0.30.0",
     "jetpack-id": "^1.0.0",
-    "jpm": "^1.2.0",
     "node-uuid": "^1.4.7",
+    "semver": "^5.3.0",
     "vscode-debugadapter": "^1.11.0",
     "zip-dir": "^1.0.2"
   },

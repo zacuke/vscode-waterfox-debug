@@ -12,7 +12,6 @@
 		"src/util/zip-dir.d.ts",
 		"src/util/jetpack-id.d.ts",
 		"src/util/firefox-profile.d.ts",
-		"src/util/jpm-xpi.d.ts",
 		"typings/main.d.ts"
 	]
 }
