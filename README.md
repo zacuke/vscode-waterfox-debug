@@ -16,6 +16,7 @@ A Visual Studio Code extension to debug your web application in Firefox.
   they should also work in VS Code
 * Debugging WebWorkers
 * Debugging multiple browser tabs
+* Debugging Firefox add-ons
 
 ## Starting
 You can use this extension in launch or attach mode. 
@@ -109,17 +110,44 @@ Navigate to your web application and use this `launch.json` configuration to att
 If your application is running on a Webserver, you need to add the `url` and `webRoot` properties
 to the configuration (as in the second `launch` configuration example above).
 
+### Debugging Firefox add-ons
+If you want to debug a Firefox add-on, you have to install the developer edition of Firefox. In
+launch mode, it will automatically be used if it is installed in the default location.
+If your add-on is developed with the add-on SDK, you also have to ensure that the `jpm` command
+is in the system path.
+
+Here's an example configuration for add-on debugging:
+```
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch addon",
+            "type": "firefox",
+            "request": "launch",
+            "addonType": "addonSdk",
+            "addonPath": "${workspaceRoot}"
+        }
+    ]
+}
+```
+The `addonType` property must be set to `addonSdk`, `webExtension` or `legacy`, depending on the
+type of your add-on. The `addonPath` must be the absolute path to the directory containing the
+add-on manifest (`package.json` for `addonSdk` add-ons, `manifest.json` for `webExtension` add-ons
+or `install.rdf` for `legacy` add-ons).
+
 ### Optional configuration properties
 * `profileDir`, `profile`: You can specify a Firefox profile directory or the name of a profile
-  created with the Firefox profile manager. Otherwise, a profile directory will be created
-  in the system's temporary folder and it will be automatically configured to allow remote
-  debugging. If you specify a profile directory which doesn't exist yet, it will also be created
-  and configured automatically. If you use a profile that wasn't created by this extension then
-  you have to configure it yourself as described above in the "Attach" section. You have to do this
-  even if you use a `launch` configuration.
+  created with the Firefox profile manager. The extension will create a copy of this profile in the
+  system's temporary directory and modify the settings in this copy to allow remote debugging.
+  If you specify a profile directory which doesn't exist yet, it will be created and
+  configured for remote debugging automatically.
 * `port`: Firefox uses port 6000 for the debugger protocol by default. If you want to use a different
   port, you can set it with this property.
-* `firefoxExecutable`: The absolute path to the Firefox executable (`launch` configuration only). For instance, for the Firefox Developer Edition you might want to set this to something like `"firefoxExecutable": "C:/Program Files/Firefox Developer Edition/firefox.exe"`. If not specified, this extension will use the Firefox' default installation path.
+* `firefoxExecutable`: The absolute path to the Firefox executable (`launch` configuration only).
+  If not specified, this extension will use the default Firefox installation path. It will look for
+  both regular and developer editions of Firefox; if both are available, it will use the developer
+  edition.
 * `firefoxArgs`: An array of additional arguments used when launching Firefox (`launch` configuration only)
 * `host`: If you want to debug with Firefox running on different machine, you can specify the 
   device's address using this property (`attach` configuration only).
@@ -162,23 +190,24 @@ to the VSCode console:
   of red), the conversion between file paths and urls may not work. The messages from the 
   `PathConversion` logger may contain clues how to fix your configuration. Have a look at the 
   "Diagnostic Logging" section for an example how to enable this logger.
-* Sometimes when using a `launch` configuration you may get a message saying that Firefox was
-  closed unexpectedly. If this happens, click "Start in Safe Mode" and then close Firefox manually
-  and stop the VS Code debugger by clicking the stop button twice.
-  Afterwards, you should be able to launch it again.
-  This is due to [Firefox bug #336193](https://bugzilla.mozilla.org/show_bug.cgi?id=336193).
 * If you think you've found a bug in this adapter please [file a bug report](https://github.com/hbenl/vscode-firefox-debug/issues).
   It may be helpful if you create a log file (as described in the "Diagnostic Logging" section) and
   attach it to the bug report.
 
 ## Changelog
 
+### Version 0.7.0
+* Debugging Firefox add-ons
+* Launch mode now always creates a temporary profile: if a profile is specified in the launch
+  configuration, it will be copied and modified to allow remote debugging
+* Launch mode now uses the developer edition of Firefox if it is found
+
 ### Version 0.6.5
 * bugfix for sourcemaps with embedded source files
 
 ### Version 0.6.4
-* fix breakpoint handling when a Firefox tab is reloaded
-* only send javascript-related warnings and errors from Firefox to the debug console
+* Fix breakpoint handling when a Firefox tab is reloaded
+* Only send javascript-related warnings and errors from Firefox to the debug console
 
 ### Version 0.6.3
 * Add configuration option for diagnostic logging
