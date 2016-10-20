@@ -336,6 +336,10 @@ export class FirefoxDebugSession extends DebugSession {
 			rootActor.fetchTabs();
 		});
 
+		socket.on('close', () => {
+			this.sendEvent(new TerminatedEvent());
+		});
+
 		// now we are ready to accept breakpoints -> fire the initialized event to give UI a chance to set breakpoints
 		this.sendEvent(new InitializedEvent());
 	}
