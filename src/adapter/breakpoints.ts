@@ -16,7 +16,7 @@ export class BreakpointsAdapter {
 	sourceAdapter: SourceAdapter, finished: () => void): Promise<BreakpointAdapter[]> {
 
 		// we will modify this array, so we make a (shallow) copy and work with that
-		let breakpointsToSet = origBreakpointsToSet.slice();
+		let breakpointsToSet = <(BreakpointInfo | undefined)[]>origBreakpointsToSet.slice();
 
 		log.debug(`Setting ${breakpointsToSet.length} breakpoints for ${sourceAdapter.actor.url}`);
 
@@ -36,8 +36,9 @@ export class BreakpointsAdapter {
 
 						let breakpointIndex = -1;
 						for (let i = 0; i < breakpointsToSet.length; i++) {
-							if ((breakpointsToSet[i] !== undefined) && 
-								(breakpointsToSet[i].requestedLine === breakpointAdapter.breakpointInfo.requestedLine)) {
+							let breakpointToSet = breakpointsToSet[i];
+							if (breakpointToSet && 
+								(breakpointToSet.requestedLine === breakpointAdapter.breakpointInfo.requestedLine)) {
 								breakpointIndex = i;
 								break;
 							}
@@ -103,6 +104,6 @@ export class BreakpointsAdapter {
 export class BreakpointInfo {
 	id: number;
 	requestedLine: number;
-	actualLine: number;
+	actualLine: number | undefined;
 	condition: string;
 }

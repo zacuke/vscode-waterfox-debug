@@ -26,18 +26,18 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		return this._name;
 	}
 
-	private pendingAttachRequest: PendingRequest<void>;
-	private attachPromise: Promise<void>;
-	private pendingResumeRequest: PendingRequest<void>;
-	private resumePromise: Promise<void>;
-	private pendingInterruptRequest: PendingRequest<void>;
-	private interruptPromise: Promise<void>;
-	private pendingDetachRequest: PendingRequest<void>;
-	private detachPromise: Promise<void>;
+	private pendingAttachRequest?: PendingRequest<void>;
+	private attachPromise?: Promise<void>;
+	private pendingResumeRequest?: PendingRequest<void>;
+	private resumePromise?: Promise<void>;
+	private pendingInterruptRequest?: PendingRequest<void>;
+	private interruptPromise?: Promise<void>;
+	private pendingDetachRequest?: PendingRequest<void>;
+	private detachPromise?: Promise<void>;
 	
 	private pendingSourcesRequests = new PendingRequests<FirefoxDebugProtocol.Source[]>();
 	private pendingStackFramesRequests = new PendingRequests<FirefoxDebugProtocol.Frame[]>();
-	private pendingEvaluateRequest: PendingRequest<FirefoxDebugProtocol.Grip>;
+	private pendingEvaluateRequest?: PendingRequest<FirefoxDebugProtocol.Grip>;
 	private pendingReleaseRequests = new PendingRequests<void>();
 	
 	/**
@@ -54,7 +54,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 					options: { useSourceMaps: true }
 				});
 			});
-			this.detachPromise = null;
+			this.detachPromise = undefined;
 			
 		} else {
 			log.warn('Attaching this thread has already been requested!');
@@ -71,8 +71,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			log.debug(`Resuming thread ${this.name}`);
 
 			let resumeLimit = resumeLimitType ? { type: resumeLimitType } : undefined;
-			let pauseOnExceptions: boolean = undefined;
-			let ignoreCaughtExceptions: boolean = undefined;
+			let pauseOnExceptions: boolean | undefined = undefined;
+			let ignoreCaughtExceptions: boolean | undefined = undefined;
 			switch (exceptionBreakpoints) {
 				case ExceptionBreakpoints.All:
 					pauseOnExceptions = true;
@@ -91,7 +91,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 					resumeLimit, pauseOnExceptions, ignoreCaughtExceptions
 				});
 			});
-			this.interruptPromise = null;
+			this.interruptPromise = undefined;
 
 		}
 
@@ -112,7 +112,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 					when: immediately ? undefined : 'onNext'
 				});
 			});
-			this.resumePromise = null;
+			this.resumePromise = undefined;
 			
 		}
 		
@@ -130,7 +130,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 				this.pendingDetachRequest = { resolve, reject };
 				this.connection.sendRequest({ to: this.name, type: 'detach' });
 			});
-			this.attachPromise = null;
+			this.attachPromise = undefined;
 			
 		} else {
 			log.warn('Detaching this thread has already been requested!');
@@ -192,7 +192,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			this.resumePromise = new Promise<void>((resolve, reject) => {
 				this.pendingResumeRequest = { resolve, reject };
 			});
-			this.interruptPromise = null;
+			this.interruptPromise = undefined;
 			
 			let escapedExpression = expr.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 			let tryExpression = `eval("try{${escapedExpression}}catch(e){e.name+':'+e.message}")`;
@@ -230,7 +230,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 				case 'attached':
 					if (this.pendingAttachRequest) {
 						this.pendingAttachRequest.resolve(undefined);
-						this.pendingAttachRequest = null;
+						this.pendingAttachRequest = undefined;
 						this.interruptPromise = Promise.resolve(undefined);
 					} else {
 						log.warn('Received attached message without pending request');
@@ -241,7 +241,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 				case 'alreadyPaused':
 					if (this.pendingInterruptRequest) {
 						this.pendingInterruptRequest.resolve(undefined);
-						this.pendingInterruptRequest = null;
+						this.pendingInterruptRequest = undefined;
 					} else {
 						log.warn(`Received ${pausedResponse.why.type} message without pending request`);
 					}
@@ -253,24 +253,25 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 				case 'debuggerStatement':
 					if (this.pendingInterruptRequest) {
 						this.pendingInterruptRequest.resolve(undefined);
-						this.pendingInterruptRequest = null;
+						this.pendingInterruptRequest = undefined;
 					} else {
 						this.interruptPromise = Promise.resolve(undefined);
 					}
 					if (this.pendingResumeRequest) {
 						this.pendingResumeRequest.reject(`Hit ${pausedResponse.why.type}`);
-						this.pendingResumeRequest = null;
+						this.pendingResumeRequest = undefined;
 					}
-					this.resumePromise = null;
+					this.resumePromise = undefined;
 					this.emit('paused', pausedResponse.why);
 					break;
 
 				case 'clientEvaluated':
 					this.interruptPromise = Promise.resolve(undefined);
-					this.resumePromise = null;
+					this.resumePromise = undefined;
 					if (this.pendingEvaluateRequest) {
-						this.pendingEvaluateRequest.resolve(pausedResponse.why.frameFinished.return);
-						this.pendingEvaluateRequest = null;
+						//TODO handle undefined frameFinished and return!
+						this.pendingEvaluateRequest.resolve(pausedResponse.why.frameFinished!.return!);
+						this.pendingEvaluateRequest = undefined;
 					} else {
 						log.warn('Received clientEvaluated message without pending request');
 					}
@@ -287,10 +288,10 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			if (this.pendingResumeRequest) {
 				log.debug(`Received resumed event from ${this.name}`);
 				this.pendingResumeRequest.resolve(undefined);
-				this.pendingResumeRequest = null;
+				this.pendingResumeRequest = undefined;
 			} else {
 				log.debug(`Received unexpected resumed event from ${this.name}`);
-				this.interruptPromise = null;
+				this.interruptPromise = undefined;
 				this.resumePromise = Promise.resolve(undefined);
 				this.emit('resumed');
 			}
@@ -300,7 +301,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			log.debug(`Thread ${this.name} detached`);
 			if (this.pendingDetachRequest) {
 				this.pendingDetachRequest.resolve(undefined);
-				this.pendingDetachRequest = null;
+				this.pendingDetachRequest = undefined;
 			} else {
 				log.warn(`Thread ${this.name} detached without a corresponding request`);
 			}
@@ -308,7 +309,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			this.pendingStackFramesRequests.rejectAll('Detached');
 			if (this.pendingEvaluateRequest) {
 				this.pendingEvaluateRequest.reject('Detached');
-				this.pendingEvaluateRequest = null;
+				this.pendingEvaluateRequest = undefined;
 			}
 			
 		} else if (response['sources']) {
@@ -346,8 +347,10 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		} else if (response['error'] === 'wrongOrder') {
 
 			log.warn(`got wrongOrder error: ${response['message']}`);
-			this.resumePromise = null;
-			this.pendingResumeRequest.reject(`You need to resume ${response['lastPausedUrl']} first`);
+			this.resumePromise = undefined;
+			if (this.pendingResumeRequest) {
+				this.pendingResumeRequest.reject(`You need to resume ${response['lastPausedUrl']} first`);
+			}
 
 		} else if (response['error'] === 'noSuchActor') {
 			
@@ -368,7 +371,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			this.pendingStackFramesRequests.rejectAll('No such actor');
 			if (this.pendingEvaluateRequest) {
 				this.pendingEvaluateRequest.reject('No such actor');
-				this.pendingEvaluateRequest = null;
+				this.pendingEvaluateRequest = undefined;
 			}
 			this.pendingReleaseRequests.rejectAll('No such actor');
 
@@ -381,8 +384,10 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
 			let errorMsg = response['message']
 			log.error(`Error evaluating expression: ${errorMsg}`);
-			this.pendingEvaluateRequest.reject(errorMsg);
-			this.pendingEvaluateRequest = null;
+			if (this.pendingEvaluateRequest) {
+				this.pendingEvaluateRequest.reject(errorMsg);
+				this.pendingEvaluateRequest = undefined;
+			}
 
 		} else if (Object.keys(response).length === 1) {
 

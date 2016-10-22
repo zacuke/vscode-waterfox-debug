@@ -17,7 +17,7 @@ export class PendingRequests<T> {
 	
 	public resolveOne(t: T) {
 		if (this.pendingRequests.length > 0) {
-			let request = this.pendingRequests.shift();
+			let request = this.pendingRequests.shift()!;
 			request.resolve(t);
 		} else {
 			log.error("Received response without corresponding request!?");
@@ -26,7 +26,7 @@ export class PendingRequests<T> {
 	
 	public rejectOne(err: any) {
 		if (this.pendingRequests.length > 0) {
-			let request = this.pendingRequests.shift();
+			let request = this.pendingRequests.shift()!;
 			request.reject(err);
 		} else {
 			log.error("Received error response without corresponding request!?");

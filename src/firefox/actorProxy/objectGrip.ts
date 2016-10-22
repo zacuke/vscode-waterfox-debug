@@ -8,8 +8,8 @@ let log = Log.create('ObjectGripActorProxy');
 
 export class ObjectGripActorProxy implements ActorProxy {
 
-	private pendingThreadGripRequest: PendingRequest<void> = null;
-	private threadGripPromise: Promise<void> = null;
+	private pendingThreadGripRequest: PendingRequest<void> | undefined = undefined;
+	private threadGripPromise: Promise<void> | undefined = undefined;
  	private pendingPrototypeAndPropertiesRequests = new PendingRequests<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>();
 
 	constructor(private grip: FirefoxDebugProtocol.ObjectGrip, private connection: DebugConnection) {
@@ -21,7 +21,7 @@ export class ObjectGripActorProxy implements ActorProxy {
 	}
 
 	public extendLifetime(): Promise<void> {
-		if (this.threadGripPromise != null) {
+		if (this.threadGripPromise) {
 			return this.threadGripPromise;
 		}
 		
@@ -59,9 +59,9 @@ export class ObjectGripActorProxy implements ActorProxy {
 			
 			log.debug('Received response to threadGrip request');
 
-			if (this.pendingThreadGripRequest != null) {
+			if (this.pendingThreadGripRequest) {
 				this.pendingThreadGripRequest.resolve(undefined);
-				this.pendingThreadGripRequest = null;
+				this.pendingThreadGripRequest = undefined;
 			} else {
 				log.warn('Received threadGrip response without pending request');
 			}
@@ -70,9 +70,9 @@ export class ObjectGripActorProxy implements ActorProxy {
 			
 			log.error(`No such actor ${JSON.stringify(this.grip)}`);
 			this.pendingPrototypeAndPropertiesRequests.rejectAll('No such actor');
-			if (this.pendingThreadGripRequest != null) {
+			if (this.pendingThreadGripRequest) {
 				this.pendingThreadGripRequest.resolve(undefined);
-				this.pendingThreadGripRequest = null;
+				this.pendingThreadGripRequest = undefined;
 			}
 
 		} else {

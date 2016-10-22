@@ -25,7 +25,7 @@ export function launchFirefox(config: LaunchConfiguration, addonId: string):
 		}
 		return Promise.reject(errorMsg);
 	}
-	
+
 	let port = config.port || 6000;
 	let firefoxArgs: string[] = [ '-start-debugger-server', String(port), '-no-remote' ];
 
@@ -59,7 +59,7 @@ export function launchFirefox(config: LaunchConfiguration, addonId: string):
 
 		firefoxArgs.push('-profile', debugProfileDir);
 
-		let childProc = spawn(firefoxPath, firefoxArgs, { detached: true, stdio: 'ignore' });
+		let childProc = spawn(firefoxPath!, firefoxArgs, { detached: true, stdio: 'ignore' });
 		childProc.on('exit', () => {
 			fs.removeSync(debugProfileDir);
 		});
@@ -76,13 +76,13 @@ export function waitForSocket(config: LaunchConfiguration): Promise<net.Socket> 
 	});
 }
 
-function getFirefoxExecutablePath(config: LaunchConfiguration): string {
+function getFirefoxExecutablePath(config: LaunchConfiguration): string | undefined {
 
 	if (config.firefoxExecutable) {
 		if (isExecutable(config.firefoxExecutable)) {
 			return config.firefoxExecutable;
 		} else {
-			return null;
+			return undefined;
 		}
 	}
 	
@@ -121,7 +121,7 @@ function getFirefoxExecutablePath(config: LaunchConfiguration): string {
 		}
 	}
 	
-	return null;
+	return undefined;
 }
 
 function createDebugProfile(config: LaunchConfiguration, addonId: string): Promise<string> {
@@ -146,8 +146,8 @@ function createDebugProfile(config: LaunchConfiguration, addonId: string): Promi
 		createProfilePromise = new Promise<void>((resolve, reject) => {
 
 			var finder = new ProfileFinder();
-			finder.getPath(config.profile, (err, profileDir) => {
-			
+			finder.getPath(config.profile!, (err, profileDir) => {
+
 				if (err) {
 					reject(`Couldn't find profile '${config.profile}'`);
 				} else if (!isReadableDirectory(profileDir)) {
@@ -177,7 +177,7 @@ function createDebugProfile(config: LaunchConfiguration, addonId: string): Promi
 
 		if (addonId) {
 
-			return installAddon(config.addonType, addonId, config.addonPath, debugProfileDir)
+			return installAddon(config.addonType!, addonId, config.addonPath!, debugProfileDir)
 				.then(() => debugProfileDir);
 
 		} else {

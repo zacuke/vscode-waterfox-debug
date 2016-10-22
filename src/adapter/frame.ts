@@ -30,11 +30,11 @@ export class FrameAdapter {
 		let firefoxSource = (<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source;
 		let sourceActorName = firefoxSource.actor;
 
-		let sourcePath: string = null;
+		let sourcePath = '';
 		let sourceName = '';
 
 		if (firefoxSource.url != null) {
-			sourcePath = this.threadAdapter.debugSession.convertFirefoxSourceToPath(firefoxSource);
+			sourcePath = this.threadAdapter.debugSession.convertFirefoxSourceToPath(firefoxSource) || ''; //TODO
 			sourceName = urlBasename(firefoxSource.url);
 		}
 
@@ -46,6 +46,9 @@ export class FrameAdapter {
 		}
 
 		let sourceAdapter = this.threadAdapter.findSourceAdapterForActorName(sourceActorName);
+		if (!sourceAdapter) {
+			throw new Error(`Couldn't find source adapter for ${sourceActorName}`);
+		}
 
 		let source = new Source(sourceName, sourcePath, sourceAdapter.id);
 

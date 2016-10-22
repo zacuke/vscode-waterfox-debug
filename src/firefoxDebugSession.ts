@@ -18,7 +18,7 @@ let consoleActorLog = Log.create('ConsoleActor');
 
 export class FirefoxDebugSession extends DebugSession {
 
-	private firefoxProc: ChildProcess = null;
+	private firefoxProc?: ChildProcess;
 	private firefoxDebugConnection: DebugConnection;
 
 	private pathMappings: [string, string][] = [];
@@ -87,7 +87,7 @@ export class FirefoxDebugSession extends DebugSession {
 			new LongStringGripActorProxy(longStringGrip, this.firefoxDebugConnection));
 	}
 
-	public convertFirefoxSourceToPath(source: FirefoxDebugProtocol.Source): string {
+	public convertFirefoxSourceToPath(source: FirefoxDebugProtocol.Source): string | undefined {
 
 		if (source.addonID && (source.addonID === this.addonId)) {
 
@@ -98,7 +98,7 @@ export class FirefoxDebugSession extends DebugSession {
 		} else if (source.isSourceMapped && source.generatedUrl && !this.urlDetector.test(source.url)) {
 
 			let generatedPath = this.convertFirefoxUrlToPath(source.generatedUrl);
-			if (!generatedPath) return null;
+			if (!generatedPath) return undefined;
 
 			let relativePath = source.url;
 
@@ -119,8 +119,8 @@ export class FirefoxDebugSession extends DebugSession {
 
 	private urlDetector = /^[a-zA-Z][a-zA-Z0-9\+\-\.]*\:\/\//;
 
-	private convertFirefoxUrlToPath(url: string): string {
-		if (!url) return null;
+	private convertFirefoxUrlToPath(url: string): string | undefined {
+		if (!url) return undefined;
 
 		for (var i = 0; i < this.pathMappings.length; i++) {
 
@@ -145,7 +145,7 @@ export class FirefoxDebugSession extends DebugSession {
 			pathConversionLog.warn(`Can't convert url ${url} to path`);
 		}
 
-		return null;
+		return undefined;
 	}
 
 	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
@@ -228,7 +228,7 @@ export class FirefoxDebugSession extends DebugSession {
 		});
 	}
 
-	private readCommonConfiguration(args: CommonConfiguration): string {
+	private readCommonConfiguration(args: CommonConfiguration): string | undefined {
 
 		if (args.log) {
 			Log.config = args.log;
@@ -406,7 +406,7 @@ export class FirefoxDebugSession extends DebugSession {
 				log.debug(`Attached to worker ${workerActor.name}`);
 
 				let threadId = this.nextThreadId++;
-				let threadAdapter = new ThreadAdapter(threadId, threadActor, null,
+				let threadAdapter = new ThreadAdapter(threadId, threadActor, undefined,
 					`Worker ${tabId}/${workerId}`, this);
 
 				this.attachThread(threadActor, threadAdapter);
@@ -421,7 +421,7 @@ export class FirefoxDebugSession extends DebugSession {
 							this.sendEvent(new ThreadEvent('exited', threadId));
 						});
 					},
-					(err) => {
+					(err: any) => {
 						log.error('Failed initializing worker thread');
 					}
 				);
@@ -476,9 +476,9 @@ export class FirefoxDebugSession extends DebugSession {
 
 		}
 
-		if (this.breakpointsBySourcePath.has(sourcePath)) {
+		if (sourcePath && this.breakpointsBySourcePath.has(sourcePath)) {
 
-			let breakpointInfos = this.breakpointsBySourcePath.get(sourcePath);
+			let breakpointInfos = this.breakpointsBySourcePath.get(sourcePath) || [];
 
 			sourceAdapters.forEach((sourceAdapter) => {
 
@@ -540,17 +540,19 @@ export class FirefoxDebugSession extends DebugSession {
 		this.sendResponse(response);
 	}
 
-    protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
-		log.debug(`Received setBreakpointsRequest with ${args.breakpoints.length} breakpoints for ${args.source.path}`);
+	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
+		let breakpoints = args.breakpoints || [];
+		log.debug(`Received setBreakpointsRequest with ${breakpoints.length} breakpoints for ${args.source.path}`);
 
 		let sourcePath = args.source.path;
-		let breakpointInfos = args.breakpoints.map((breakpoint) => <BreakpointInfo>{
+		let breakpointInfos = breakpoints.map((breakpoint) => <BreakpointInfo>{
 			id: this.nextBreakpointId++,
 			requestedLine: breakpoint.line,
 			condition: breakpoint.condition
 		});
 
-		this.breakpointsBySourcePath.set(sourcePath, breakpointInfos);
+		//TODO handle undefined sourcePath
+		this.breakpointsBySourcePath.set(sourcePath!, breakpointInfos);
 		this.verifiedBreakpointSources = this.verifiedBreakpointSources.filter(
 			(verifiedSourcePath) => (verifiedSourcePath !== sourcePath));
 
@@ -563,7 +565,8 @@ export class FirefoxDebugSession extends DebugSession {
 
 				let setBreakpointsPromise = threadAdapter.setBreakpoints(breakpointInfos, sourceAdapter);
 
-				if (this.verifiedBreakpointSources.indexOf(sourcePath) < 0) {
+				//TODO handle undefined sourcePath
+				if (this.verifiedBreakpointSources.indexOf(sourcePath!) < 0) {
 
 					setBreakpointsPromise.then(
 						(breakpointAdapters) => {
@@ -589,12 +592,14 @@ export class FirefoxDebugSession extends DebugSession {
 							this.sendResponse(response);
 						});
 
-					this.verifiedBreakpointSources.push(sourcePath);
+					//TODO handle undefined sourcePath
+					this.verifiedBreakpointSources.push(sourcePath!);
 				}
 			});
 		});
 
-		if (this.verifiedBreakpointSources.indexOf(sourcePath) < 0) {
+		//TODO handle undefined sourcePath
+		if (this.verifiedBreakpointSources.indexOf(sourcePath!) < 0) {
 			log.debug (`Replying to setBreakpointsRequest (Source ${args.source.path} not seen yet)`);
 
 			response.body = {
@@ -631,6 +636,16 @@ export class FirefoxDebugSession extends DebugSession {
 		log.debug('Received pauseRequest');
 		let threadId = args.threadId ? args.threadId : 1;
 		let threadAdapter = this.threadsById.get(threadId);
+
+		if (!threadAdapter) {
+			let msg = `Unknown threadId ${threadId}`;
+			log.error(msg);
+			response.success = false;
+			response.message = msg;
+			this.sendResponse(response);
+			return;
+		}
+
 		threadAdapter.interrupt().then(
 			() => {
 				log.debug('Replying to pauseRequest');
@@ -650,6 +665,16 @@ export class FirefoxDebugSession extends DebugSession {
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
 		log.debug('Received continueRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
+
+		if (!threadAdapter) {
+			let msg = `Unknown threadId ${args.threadId}`;
+			log.error(msg);
+			response.success = false;
+			response.message = msg;
+			this.sendResponse(response);
+			return;
+		}
+
 		threadAdapter.resume().then(
 			() => {
 				log.debug('Replying to continueRequest');
@@ -667,6 +692,16 @@ export class FirefoxDebugSession extends DebugSession {
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
 		log.debug('Received nextRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
+
+		if (!threadAdapter) {
+			let msg = `Unknown threadId ${args.threadId}`;
+			log.error(msg);
+			response.success = false;
+			response.message = msg;
+			this.sendResponse(response);
+			return;
+		}
+
 		threadAdapter.stepOver().then(
 			() => {
 				log.debug('Replying to nextRequest');
@@ -683,6 +718,16 @@ export class FirefoxDebugSession extends DebugSession {
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
 		log.debug('Received stepInRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
+
+		if (!threadAdapter) {
+			let msg = `Unknown threadId ${args.threadId}`;
+			log.error(msg);
+			response.success = false;
+			response.message = msg;
+			this.sendResponse(response);
+			return;
+		}
+
 		threadAdapter.stepIn().then(
 			() => {
 				log.debug('Replying to stepInRequest');
@@ -699,6 +744,16 @@ export class FirefoxDebugSession extends DebugSession {
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
 		log.debug('Received stepOutRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
+
+		if (!threadAdapter) {
+			let msg = `Unknown threadId ${args.threadId}`;
+			log.error(msg);
+			response.success = false;
+			response.message = msg;
+			this.sendResponse(response);
+			return;
+		}
+
 		threadAdapter.stepOut().then(
 			() => {
 				log.debug('Replying to stepOutRequest');
@@ -713,8 +768,17 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 
 	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
+		log.debug('Received stackTraceRequest');
 		let threadAdapter = this.threadsById.get(args.threadId);
-		log.debug(`Received stackTraceRequest for ${threadAdapter.actorName}`);
+
+		if (!threadAdapter) {
+			let msg = `Unknown threadId ${args.threadId}`;
+			log.error(msg);
+			response.success = false;
+			response.message = msg;
+			this.sendResponse(response);
+			return;
+		}
 
 		threadAdapter.fetchStackFrames(args.startFrame || 0, args.levels || 0).then(
 			([frameAdapters, totalFrameCount]) => {
@@ -739,7 +803,7 @@ export class FirefoxDebugSession extends DebugSession {
 		log.debug('Received scopesRequest');
 
 		let frameAdapter = this.framesById.get(args.frameId);
-		if (frameAdapter === undefined) {
+		if (!frameAdapter) {
 			let err = 'Failed scopesRequest: the requested frame can\'t be found';
 			log.error(err);
 			response.success = false;
@@ -757,7 +821,7 @@ export class FirefoxDebugSession extends DebugSession {
 		log.debug('Received variablesRequest');
 
 		let variablesProvider = this.variablesProvidersById.get(args.variablesReference);
-		if (variablesProvider === undefined) {
+		if (!variablesProvider) {
 			let err = 'Failed variablesRequest: the requested object reference can\'t be found';
 			log.error(err);
 			response.success = false;
@@ -786,14 +850,26 @@ export class FirefoxDebugSession extends DebugSession {
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
 		log.debug('Received evaluateRequest');
 
-		let threadAdapter: ThreadAdapter;
-		let frameActorName: string;
+		let threadAdapter: ThreadAdapter | undefined;
+		let frameActorName: string | undefined; 
 		if (args.frameId) {
+
 			let frameAdapter = this.framesById.get(args.frameId);
+			if (!frameAdapter) {
+				let err = 'Failed evaluateRequest: the requested frame can\'t be found';
+				log.error(err);
+				response.success = false;
+				response.message = err;
+				this.sendResponse(response);
+				return;
+			}
+
 			threadAdapter = frameAdapter.threadAdapter;
 			frameActorName = frameAdapter.frame.actor;
+
 		} else {
-			threadAdapter = this.threadsById.get(1);
+			//TODO need a reliable way to find some thread!
+			threadAdapter = this.threadsById.get(1)!;
 		}
 		
 		threadAdapter.evaluate(
@@ -821,6 +897,15 @@ export class FirefoxDebugSession extends DebugSession {
 		log.debug('Received sourceRequest');
 
 		let sourceAdapter = this.sourcesById.get(args.sourceReference);
+		if (!sourceAdapter) {
+			let err = 'Failed sourceRequest: the requested source reference can\'t be found';
+			log.error(err);
+			response.success = false;
+			response.message = err;
+			this.sendResponse(response);
+			return;
+		}
+
 		sourceAdapter.actor.fetchSource().then(
 			(sourceGrip) => {
 
@@ -883,7 +968,7 @@ export class FirefoxDebugSession extends DebugSession {
 			this.firefoxDebugConnection.disconnect().then(() => {
 				if (this.firefoxProc) {
 					this.firefoxProc.kill('SIGTERM');
-					this.firefoxProc = null;
+					this.firefoxProc = undefined;
 				}
 			});
 		}

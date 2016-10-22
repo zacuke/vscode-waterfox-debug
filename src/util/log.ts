@@ -17,7 +17,7 @@ export class Log {
 	private static _config: LogConfiguration = {};
 	
 	private static logs = new Map<string, Log>();
-	private static fileDescriptor: number;
+	private static fileDescriptor?: number;
 
 	public static set config(newConfig: LogConfiguration) {
 		if (Log.fileDescriptor !== undefined) {
@@ -41,9 +41,9 @@ export class Log {
 		return new Log(name);
 	}
 
-	private fileLevel: NumericLogLevel;
-	private consoleLevel: NumericLogLevel;
-	private minLevel: NumericLogLevel;
+	private fileLevel?: NumericLogLevel;
+	private consoleLevel?: NumericLogLevel;
+	private minLevel?: NumericLogLevel;
 	
 	constructor(private name: string) {
 		this.configure();
@@ -87,7 +87,7 @@ export class Log {
 		}
 	}
 
-	private convertLogLevel(logLevel: LogLevel): NumericLogLevel {
+	private convertLogLevel(logLevel: LogLevel): NumericLogLevel | undefined {
 		if (!logLevel) {
 			return undefined;
 		}

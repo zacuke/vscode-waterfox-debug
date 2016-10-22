@@ -22,7 +22,7 @@ export class DebugConnection {
 		this.transport.on('message', (response: FirefoxDebugProtocol.Response) => {
 			if (this.actors.has(response.from)) {
 				log.debug(`Received response/event ${JSON.stringify(response)}`);
-				this.actors.get(response.from).receiveResponse(response);
+				this.actors.get(response.from)!.receiveResponse(response);
 			} else {
 				log.error('Unknown actor: ' + JSON.stringify(response));
 			}

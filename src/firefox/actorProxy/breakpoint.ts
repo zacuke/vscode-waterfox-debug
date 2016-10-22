@@ -32,7 +32,7 @@ export class BreakpointActorProxy implements ActorProxy {
 		
 		log.debug(`Breakpoint ${this.name} deleted`);
 		
-		this.pendingDeleteRequests.resolveAll(null);
+		this.pendingDeleteRequests.resolveAll(undefined);
 		this.connection.unregister(this);
 	}
 }

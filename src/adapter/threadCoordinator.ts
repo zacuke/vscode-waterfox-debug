@@ -24,7 +24,7 @@ class QueuedRequest<T> {
  */
 export class ThreadCoordinator {
 
-	constructor(private actor: ThreadActorProxy, private consoleActor: ConsoleActorProxy) {
+	constructor(private actor: ThreadActorProxy, private consoleActor?: ConsoleActorProxy) {
 		actor.onPaused((reason) => {
 			this.desiredThreadState = ThreadState.Paused;
 		});
@@ -66,7 +66,7 @@ export class ThreadCoordinator {
 	 * This function will resume the thread and is set by resume(). It will be called when all
 	 * tasks that require the thread to be paused are finished
 	 */
-	private queuedResumeRequest: () => void;
+	private queuedResumeRequest?: () => void;
 
 	/**
 	 * This flag specifies if the thread is currently being resumed
@@ -216,7 +216,8 @@ export class ThreadCoordinator {
 		return new Promise<[FirefoxDebugProtocol.Grip, Function]>((resolve, reject) => {
 
 			let send = () =>
-			this.consoleActor.evaluate(expr).then(
+			//TODO handle undefined consoleActor!
+			this.consoleActor!.evaluate(expr).then(
 				(grip) => <[FirefoxDebugProtocol.Grip, Function]>[grip, () => this.evaluateFinished()],
 				(err) => {
 					this.evaluateFinished();
@@ -264,13 +265,13 @@ export class ThreadCoordinator {
 
 			this.resumeRequestIsRunning = true;
 			let resumeRequest = this.queuedResumeRequest;
-			this.queuedResumeRequest = null;
+			this.queuedResumeRequest = undefined;
 			resumeRequest();
 
 		} else if ((this.queuedEvaluateRequests.length > 0) && !this.evaluateRequestIsRunning) {
 
 			this.evaluateRequestIsRunning = true;
-			let queuedEvaluateRequest = this.queuedEvaluateRequests.shift();
+			let queuedEvaluateRequest = this.queuedEvaluateRequests.shift()!;
 			queuedEvaluateRequest.send().then(
 				([grip, finished]) => {
 					queuedEvaluateRequest.resolve([grip, finished]);

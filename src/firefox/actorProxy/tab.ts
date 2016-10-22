@@ -78,7 +78,7 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 		} else if (response['type'] === 'detached') {
 
 			log.debug(`Detached from tab ${this.name} as requested`);
-			this.pendingDetachRequests.resolveOne(null);
+			this.pendingDetachRequests.resolveOne(undefined);
 
 		} else if (response['error'] === 'wrongState') {
 
@@ -128,7 +128,7 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 				
 				if (this.workers.has(worker.actor)) {
 
-					workerActor = this.workers.get(worker.actor);
+					workerActor = this.workers.get(worker.actor)!;
 
 				} else {
 

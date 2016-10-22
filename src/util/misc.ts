@@ -3,7 +3,6 @@ export function concatArrays<T>(arrays: T[][]): T[] {
 }
 
 export function urlBasename(url: string): string {
-	if (!url) return null;
 	let lastSepIndex = url.lastIndexOf('/');
 	if (lastSepIndex < 0) {
 		return url;

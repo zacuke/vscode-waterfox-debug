@@ -85,7 +85,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 				let actorsForTab: [TabActorProxy, ConsoleActorProxy];
 				if (this.tabs.has(tab.actor)) {
 
-					actorsForTab = this.tabs.get(tab.actor);
+					actorsForTab = this.tabs.get(tab.actor)!;
 
 				} else {
 

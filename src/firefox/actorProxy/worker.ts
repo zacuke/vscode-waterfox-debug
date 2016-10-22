@@ -20,10 +20,10 @@ export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 		return this._url;
 	}
 
-	private pendingAttachRequest: PendingRequest<string>;
-	private attachPromise: Promise<string>;
-	private pendingConnectRequest: PendingRequest<ThreadActorProxy>;
-	private connectPromise: Promise<ThreadActorProxy>;
+	private pendingAttachRequest?: PendingRequest<string>;
+	private attachPromise?: Promise<string>;
+	private pendingConnectRequest?: PendingRequest<ThreadActorProxy>;
+	private connectPromise?: Promise<ThreadActorProxy>;
 
 	public attach(): Promise<string> {
 		if (!this.attachPromise) {
@@ -69,7 +69,7 @@ export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 			let attachedResponse = <FirefoxDebugProtocol.WorkerAttachedResponse>response;
 			if (this.pendingAttachRequest) {
 				this.pendingAttachRequest.resolve(attachedResponse.url);
-				this.pendingAttachRequest = null;
+				this.pendingAttachRequest = undefined;
 			} else {
 				log.warn(`Worker ${this.name} attached without a corresponding request`);
 			}
@@ -84,7 +84,7 @@ export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 				let threadActor = this.connection.getOrCreate(connectedResponse.threadActor, 
 					() => new ThreadActorProxy(connectedResponse.threadActor, this.connection));
 				this.pendingConnectRequest.resolve(threadActor);
-				this.pendingConnectRequest = null;
+				this.pendingConnectRequest = undefined;
 
 			} else {
 				log.warn(`Worker ${this.name} connected without a corresponding request`);

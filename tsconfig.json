@@ -10,7 +10,8 @@
 		"suppressImplicitAnyIndexErrors": true,
 		"noImplicitReturns": true,
 		"noImplicitThis": true,
-		"removeComments": true
+		"removeComments": true,
+		"strictNullChecks": true
 	},
 	"files": [
 		"src/firefoxDebugSession.ts",

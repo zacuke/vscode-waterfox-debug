@@ -20,7 +20,7 @@ export class ThreadAdapter {
 
 	private _debugSession: FirefoxDebugSession;
 	private actor: ThreadActorProxy;
-	private consoleActor: ConsoleActorProxy;
+	private consoleActor?: ConsoleActorProxy;
 	private coordinator: ThreadCoordinator;
 	private _name: string;
 
@@ -32,9 +32,9 @@ export class ThreadAdapter {
 	private pauseLifetimeObjects: ObjectGripAdapter[] = [];
 	private threadLifetimeObjects: ObjectGripAdapter[] = [];
 
-	private completionValue: FirefoxDebugProtocol.CompletionValue;
+	private completionValue?: FirefoxDebugProtocol.CompletionValue;
 
-	public constructor(id: number, threadActor: ThreadActorProxy, consoleActor: ConsoleActorProxy,
+	public constructor(id: number, threadActor: ThreadActorProxy, consoleActor: ConsoleActorProxy | undefined,
 		name: string, debugSession: FirefoxDebugSession) {
 
 		this.id = id;
@@ -56,7 +56,7 @@ export class ThreadAdapter {
 		});
 	}
 
-	public createSourceAdapter(id: number, actor: SourceActorProxy, path: string): SourceAdapter {
+	public createSourceAdapter(id: number, actor: SourceActorProxy, path?: string): SourceAdapter {
 		let adapter = new SourceAdapter(id, actor, path);
 		this.sources.push(adapter);
 		return adapter;
@@ -95,18 +95,18 @@ export class ThreadAdapter {
 		this.scopes.push(scopeAdapter);
 	}
 
-	public findSourceAdaptersForPath(path: string): SourceAdapter[] {
+	public findSourceAdaptersForPath(path?: string): SourceAdapter[] {
 		if (!path) return [];
 		return this.sources.filter((sourceAdapter) => (sourceAdapter.sourcePath === path));
 	}
 
-	public findSourceAdapterForActorName(actorName: string): SourceAdapter {
+	public findSourceAdapterForActorName(actorName: string): SourceAdapter | undefined {
 		for (let i = 0; i < this.sources.length; i++) {
 			if (this.sources[i].actor.name === actorName) {
 				return this.sources[i];
 			}
 		}
-		return null;
+		return undefined;
 	}
 
 	public interrupt(): Promise<void> {
@@ -192,11 +192,11 @@ export class ThreadAdapter {
 				(variableAdapters) => {
 
 					let objectGripAdapters = variableAdapters
-						.map((variableAdapter) => variableAdapter.getObjectGripAdapter())
-						.filter((objectGripAdapter) => (objectGripAdapter != null));
+						.map((variableAdapter) => variableAdapter.objectGripAdapter)
+						.filter((objectGripAdapter) => (objectGripAdapter !== undefined));
 
 					let extendLifetimePromises = objectGripAdapters.map((objectGripAdapter) =>
-						objectGripAdapter.actor.extendLifetime().catch((err) => undefined));
+						objectGripAdapter!.actor.extendLifetime().catch((err) => undefined));
 
 					Promise.all(extendLifetimePromises).then(() => finished());
 
@@ -212,7 +212,7 @@ export class ThreadAdapter {
 		);
 	}
 
-	public evaluate(expression: string, frameActorName: string, threadLifetime: boolean): Promise<Variable> {
+	public evaluate(expression: string, frameActorName: string | undefined, threadLifetime: boolean): Promise<Variable> {
 
 		let evaluatePromise: Promise<[FirefoxDebugProtocol.Grip, Function]>;
 		if (frameActorName) {
@@ -224,13 +224,13 @@ export class ThreadAdapter {
 		return evaluatePromise.then(([grip, finished]) => {
 
 			let variableAdapter: VariableAdapter;
-			if (grip) {
+			if (grip) { //TODO can be undefined, but also false or 0 or ''...
 				variableAdapter = VariableAdapter.fromGrip('', grip, threadLifetime, this);
 			} else {
 				variableAdapter = new VariableAdapter('', 'undefined');
 			}
 
-			let objectGripAdapter = variableAdapter.getObjectGripAdapter();
+			let objectGripAdapter = variableAdapter.objectGripAdapter;
 			if (objectGripAdapter) {
 				objectGripAdapter.actor.extendLifetime().then(
 					() => finished(),

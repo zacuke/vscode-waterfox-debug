@@ -85,12 +85,12 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 		if (response['startedListeners']) {
 
 			log.debug('Listeners started');
-			this.pendingStartListenersRequests.resolveOne(null);
+			this.pendingStartListenersRequests.resolveOne(undefined);
 
 		} else if (response['stoppedListeners']) {
 
 			log.debug('Listeners stopped');
-			this.pendingStartListenersRequests.resolveOne(null);
+			this.pendingStartListenersRequests.resolveOne(undefined);
 
 		} else if (response['type'] === 'consoleAPICall') {
 
@@ -109,7 +109,7 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 			if (!this.pendingEvaluateRequests.has(resultResponse.resultID)) {
 				log.error('Received evaluationResult with unknown resultID');
 			} else {
-				this.pendingEvaluateRequests.get(resultResponse.resultID).resolve(resultResponse.result);
+				this.pendingEvaluateRequests.get(resultResponse.resultID)!.resolve(resultResponse.result);
 			}
 
 		} else if (response['resultID']) {

@@ -2,26 +2,26 @@ import { ThreadAdapter, ObjectGripAdapter } from './index';
 import { Variable } from 'vscode-debugadapter';
 
 export class VariableAdapter {
-	
+
 	private varname: string;
 	private value: string;
-	private objectGripAdapter: ObjectGripAdapter;
-	
+	private _objectGripAdapter?: ObjectGripAdapter;
+
 	public constructor(varname: string, value: string, objectGripAdapter?: ObjectGripAdapter) {
 		this.varname = varname;
 		this.value = value;
-		this.objectGripAdapter = objectGripAdapter;
+		this._objectGripAdapter = objectGripAdapter;
 	}
-	
+
 	public getVariable(): Variable {
 		return new Variable(this.varname, this.value, 
-			this.objectGripAdapter ? this.objectGripAdapter.variablesProviderId : undefined);
+			this._objectGripAdapter ? this._objectGripAdapter.variablesProviderId : undefined);
 	}
-	
-	public getObjectGripAdapter(): ObjectGripAdapter {
-		return this.objectGripAdapter;
+
+	public get objectGripAdapter(): ObjectGripAdapter | undefined {
+		return this._objectGripAdapter;
 	}
-	
+
 	public static fromGrip(varname: string, grip: FirefoxDebugProtocol.Grip, 
 		threadLifetime: boolean, threadAdapter: ThreadAdapter): VariableAdapter {
 
@@ -59,8 +59,8 @@ export class VariableAdapter {
 					return new VariableAdapter(varname, vartype, objectGripAdapter);
 
 				default:
-
-					throw `Unknown grip type ${grip.type}`;
+					//TODO why is this default case necessary?
+					throw new Error(`Unknown grip type ${grip.type}`);
 
 			}
 		}
