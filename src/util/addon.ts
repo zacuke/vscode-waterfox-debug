@@ -20,7 +20,7 @@ export function findAddonId(addonType: AddonType, addonPath: string): [boolean, 
 		case 'legacy':
 			manifestPath = path.join(addonPath, 'install.rdf');
 			try {
-				fs.accessSync(manifestPath, fs.R_OK);
+				fs.accessSync(manifestPath, fs.constants.R_OK);
 			} catch (err) {
 				return [false, `Couldn't read ${manifestPath}`];
 			}
@@ -29,7 +29,7 @@ export function findAddonId(addonType: AddonType, addonPath: string): [boolean, 
 		case 'addonSdk':
 			manifestPath = path.join(addonPath, 'package.json');
 			try {
-				fs.accessSync(manifestPath, fs.R_OK);
+				fs.accessSync(manifestPath, fs.constants.R_OK);
 			} catch (err) {
 				return [false, `Couldn't read ${manifestPath}`];
 			}
@@ -39,7 +39,7 @@ export function findAddonId(addonType: AddonType, addonPath: string): [boolean, 
 		case 'webExtension':
 			manifestPath = path.join(addonPath, 'manifest.json');
 			try {
-				fs.accessSync(manifestPath, fs.R_OK);
+				fs.accessSync(manifestPath, fs.constants.R_OK);
 			} catch (err) {
 				return [false, `Couldn't read ${manifestPath}`];
 			}

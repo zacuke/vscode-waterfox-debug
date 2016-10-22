@@ -1,5 +1,6 @@
 {
 	"compilerOptions": {
+		"lib": [ "es5", "es2015.promise", "es2015.collection" ],
 		"module": "commonjs",
 		"target": "es5",
 		"sourceMap": true,
@@ -11,7 +12,6 @@
 		"src/firefox/protocol.d.ts",
 		"src/util/zip-dir.d.ts",
 		"src/util/jetpack-id.d.ts",
-		"src/util/firefox-profile.d.ts",
-		"typings/main.d.ts"
+		"src/util/firefox-profile.d.ts"
 	]
 }

@@ -203,7 +203,7 @@ user_pref("xpinstall.signatures.required", false);
 
 function isExecutable(path: string): boolean {
 	try {
-		fs.accessSync(path, fs.X_OK);
+		fs.accessSync(path, fs.constants.X_OK);
 		return true;
 	} catch (e) {
 		return false;
@@ -216,7 +216,7 @@ function isReadableDirectory(path: string): boolean {
 		if (!stat.isDirectory) {
 			return false;
 		}
-		fs.accessSync(path, fs.X_OK);
+		fs.accessSync(path, fs.constants.X_OK);
 		return true;
 	} catch (e) {
 		return false;
