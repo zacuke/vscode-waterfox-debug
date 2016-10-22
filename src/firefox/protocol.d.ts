@@ -162,7 +162,8 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface ThreadPausedReason {
-		type: string; // 'attached' | 'interrupted' | 'resumeLimit' | 'debuggerStatement' | 'breakpoint' | 'watchpoint' | 'clientEvaluated' | 'pauseOnDOMEvents'
+		type: 'attached' | 'interrupted' | 'resumeLimit' | 'debuggerStatement' | 'breakpoint' | 
+			'watchpoint' | 'clientEvaluated' | 'pauseOnDOMEvents' | 'alreadyPaused' | 'exception';
 		frameFinished?: CompletionValue; // if type is 'resumeLimit' or 'clientEvaluated'
 		actors?: string[]; // if type is 'breakpoint' or 'watchpoint'
 	}
@@ -174,7 +175,7 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface PrototypeAndPropertiesResponse extends TypedResponse {
-		prototype: Grip; // ObjectGrip | { type: 'null' }
+		prototype: ObjectGrip | { type: 'null' };
 		ownProperties: PropertyDescriptors;
 		safeGetterValues?: SafeGetterValueDescriptors;
 	}
@@ -186,7 +187,7 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface Frame {
-		type: string; // 'global' | 'call' | 'eval' | 'clientEvaluate'
+		type: 'global' | 'call' | 'eval' | 'clientEvaluate';
 		actor: string;
 		depth: number;
 		this: Grip;
@@ -242,7 +243,7 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface Environment {
-		type: string; // 'object' | 'function' | 'with' | 'block'
+		type: 'object' | 'function' | 'with' | 'block';
 		actor: string;
 		parent?: Environment;
 	}
@@ -305,7 +306,7 @@ declare namespace FirefoxDebugProtocol {
 	type Grip = boolean | number | string | ComplexGrip;
 
 	interface ComplexGrip {
-		type: string;  // 'null' | 'undefined' | 'Infinity' | '-Infinity' | 'NaN' | '-0' | 'longString' | 'object'
+		type: 'null' | 'undefined' | 'Infinity' | '-Infinity' | 'NaN' | '-0' | 'longString' | 'object';
 	}
 
 	interface ObjectGrip extends ComplexGrip {

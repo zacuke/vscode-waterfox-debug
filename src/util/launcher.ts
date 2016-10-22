@@ -186,7 +186,7 @@ function createDebugProfile(config: LaunchConfiguration, addonId: string): Promi
 	});
 }
 
-function isNotLockFile(filePath) {
+function isNotLockFile(filePath: string) {
 	var file = path.basename(filePath);
 	return !/^(parent\.lock|lock|\.parentlock)$/.test(file);
 }

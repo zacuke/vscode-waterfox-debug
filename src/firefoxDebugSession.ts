@@ -289,6 +289,8 @@ export class FirefoxDebugSession extends DebugSession {
 
 		pathConversionLog.debug('Path mappings:');
 		this.pathMappings.forEach(([from, to]) => pathConversionLog.debug(`'${from}' => '${to}'`));
+
+		return undefined;
 	}
 
 	private startSession(socket: Socket) {

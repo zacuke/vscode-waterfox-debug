@@ -106,7 +106,10 @@ export function createJetpackXpi(addonDir: string, destFile: string): Promise<vo
 
 // we perform some Voodoo tricks to extract the private _addonDetails method
 // (which uses the _sanitizePref method) from FirefoxProfile
-function FirefoxProfileVoodoo() {}
+class FirefoxProfileVoodoo {
+	_addonDetails: Function;
+	_sanitizePref: Function;
+}
 FirefoxProfileVoodoo.prototype._addonDetails = FirefoxProfile.prototype._addonDetails;
 FirefoxProfileVoodoo.prototype._sanitizePref = FirefoxProfile.prototype._sanitizePref;
 // and now more Voodoo tricks to turn the (blocking) callback-based method
@@ -114,6 +117,6 @@ FirefoxProfileVoodoo.prototype._sanitizePref = FirefoxProfile.prototype._sanitiz
 function getLegacyAddonId(addonPath: string): string {
 	let addonDetails: any;
 	let voodoo = new FirefoxProfileVoodoo();
-	voodoo._addonDetails(addonPath, result => addonDetails = result);
+	voodoo._addonDetails(addonPath, (result: any) => addonDetails = result);
 	return addonDetails.id;
 }

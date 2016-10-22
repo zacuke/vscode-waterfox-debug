@@ -58,6 +58,10 @@ export class VariableAdapter {
 					let objectGripAdapter = threadAdapter.getOrCreateObjectGripAdapter(objectGrip, threadLifetime);
 					return new VariableAdapter(varname, vartype, objectGripAdapter);
 
+				default:
+
+					throw `Unknown grip type ${grip.type}`;
+
 			}
 		}
 	}

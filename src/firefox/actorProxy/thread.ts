@@ -71,8 +71,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 			log.debug(`Resuming thread ${this.name}`);
 
 			let resumeLimit = resumeLimitType ? { type: resumeLimitType } : undefined;
-			let pauseOnExceptions = undefined;
-			let ignoreCaughtExceptions = undefined;
+			let pauseOnExceptions: boolean = undefined;
+			let ignoreCaughtExceptions: boolean = undefined;
 			switch (exceptionBreakpoints) {
 				case ExceptionBreakpoints.All:
 					pauseOnExceptions = true;

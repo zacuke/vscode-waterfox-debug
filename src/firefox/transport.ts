@@ -77,8 +77,8 @@ export class DebugProtocolTransport extends EventEmitter {
 }
 
 export interface SocketLike {
-	on(event: string, listener: Function);
-	write(buffer: Buffer);
-	write(str: string, encoding: string);
-	end();
+	on(event: string, listener: Function): EventEmitter;
+	write(buffer: Buffer): boolean;
+	write(str: string, encoding: string): boolean;
+	end(): void;
 }
