@@ -1,8 +1,7 @@
 {
 	"compilerOptions": {
-		"lib": [ "es5", "es2015.promise", "es2015.collection" ],
 		"module": "commonjs",
-		"target": "es5",
+		"target": "es6",
 		"sourceMap": true,
 		"rootDir": "src",
 		"outDir": "out",
@@ -13,11 +12,9 @@
 		"removeComments": true,
 		"strictNullChecks": true
 	},
-	"files": [
+	"include": [
 		"src/firefoxDebugSession.ts",
-		"src/firefox/protocol.d.ts",
-		"src/util/zip-dir.d.ts",
-		"src/util/jetpack-id.d.ts",
-		"src/util/firefox-profile.d.ts"
+		"src/**/*.d.ts",
+		"src/test/test*.ts"
 	]
 }

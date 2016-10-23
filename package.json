@@ -23,12 +23,15 @@
   },
   "devDependencies": {
     "@types/fs-extra": "0.0.33",
+    "@types/mocha": "^2.2.32",
     "@types/node": "^6.0.45",
     "@types/node-uuid": "0.0.28",
     "@types/rimraf": "0.0.28",
     "@types/semver": "^5.3.30",
+    "mocha": "^3.1.2",
     "typescript": "^2.0.3",
-    "vsce": "^1.15.0"
+    "vsce": "^1.15.0",
+    "vscode-debugadapter-testsupport": "^1.13.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

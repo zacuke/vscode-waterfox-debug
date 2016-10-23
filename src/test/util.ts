@@ -1,0 +1,69 @@
+import { DebugClient } from 'vscode-debugadapter-testsupport';
+import { DebugProtocol } from 'vscode-debugprotocol';
+import * as path from 'path';
+
+export async function initDebugClient(testDataPath: string, waitForPageLoadedEvent: boolean): Promise<DebugClient> {
+
+	let dc = new DebugClient('node', './out/firefoxDebugSession.js', 'firefox');
+
+	await dc.start();
+	await Promise.all([
+		dc.launch({ file: path.join(testDataPath, 'web/index.html') }),
+		dc.configurationSequence()
+	]);
+
+	if (waitForPageLoadedEvent) {
+		await receivePageLoadedEvent(dc);
+	}
+
+	return dc;
+}
+
+export function receivePageLoadedEvent(dc: DebugClient): Promise<void> {
+	return dc.waitForEvent('output').then((ev: DebugProtocol.OutputEvent) => {
+		let outputMsg = ev.body.output.trim();
+		if (outputMsg !== 'Loaded') {
+			throw new Error(`Wrong output message '${outputMsg}'`);
+		}
+	});
+}
+
+export function setBreakpoints(dc: DebugClient, sourcePath: string, breakpointLines: number[]): Promise<DebugProtocol.SetBreakpointsResponse> {
+	return dc.setBreakpointsRequest({
+		source: { path: sourcePath },
+		breakpoints: breakpointLines.map((line) => { return { line }; })
+	});
+}
+
+export function receiveBreakpointEvent(dc: DebugClient): Promise<DebugProtocol.BreakpointEvent> {
+	return dc.waitForEvent('breakpoint');
+}
+
+export function receiveStoppedEvent(dc: DebugClient): Promise<DebugProtocol.StoppedEvent> {
+	return dc.waitForEvent('stopped');
+}
+
+export function evaluate(dc: DebugClient, js: string): Promise<DebugProtocol.EvaluateResponse> {
+	return dc.evaluateRequest({ context: 'repl', expression: js });
+}
+
+export function evaluateDelayed(dc: DebugClient, js: string, delay: number): Promise<DebugProtocol.EvaluateResponse> {
+	js = `setTimeout(function() { ${js} }, ${delay})`;
+	return evaluate(dc, js);
+}
+
+export function delay(timeout: number): Promise<void> {
+	return new Promise((resolve) => {
+		setTimeout(resolve, timeout);
+	});
+}
+
+export async function assertPromiseTimeout(promise: Promise<any>, timeout: number): Promise<void> {
+	let promiseResolved = await Promise.race([
+		promise.then(() => true),
+		delay(timeout).then(() => false)
+	]);
+	if (promiseResolved) {
+		throw new Error(`The Promise was resolved within ${timeout}ms`);
+	}
+}
