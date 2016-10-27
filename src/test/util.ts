@@ -67,3 +67,12 @@ export async function assertPromiseTimeout(promise: Promise<any>, timeout: numbe
 		throw new Error(`The Promise was resolved within ${timeout}ms`);
 	}
 }
+
+export function findVariable(variables: DebugProtocol.Variable[], varName: string): DebugProtocol.Variable {
+	for (var i = 0; i < variables.length; i++) {
+		if (variables[i].name === varName) {
+			return variables[i];
+		}
+	}
+	throw new Error(`Variable '${varName}' not found`);
+}

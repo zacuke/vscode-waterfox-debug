@@ -21,7 +21,7 @@ describe('Firefox debug adapter', function() {
 		let sourcePath = path.join(TESTDATA_PATH, 'web/test.js');
 		await util.setBreakpoints(dc, sourcePath, [ 3 ]);
 
-		util.evaluateDelayed(dc, 'test()', 0);
+		util.evaluateDelayed(dc, 'noop()', 0);
 
 		let stoppedEvent = await util.receiveStoppedEvent(dc);
 		assert.equal(stoppedEvent.body.allThreadsStopped, false);
@@ -33,7 +33,7 @@ describe('Firefox debug adapter', function() {
 		let sourcePath = path.join(TESTDATA_PATH, 'web/test.js');
 		await util.setBreakpoints(dc, sourcePath, [ 3 ]);
 
-		util.evaluate(dc, 'test()');
+		util.evaluate(dc, 'noop()');
 
 		let stoppedEvent = await util.receiveStoppedEvent(dc);
 		assert.equal(stoppedEvent.body.allThreadsStopped, false);

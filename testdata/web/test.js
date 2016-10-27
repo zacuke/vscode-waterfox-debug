@@ -1,7 +1,29 @@
-function test() {
+function noop() {
 
-	console.log("Test");
+	let dummy;
 
+}
+
+function vars(arg) {
+	let bool1 = false;
+	let bool2 = true;
+	let num1 = 0;
+	let num2 = 17;
+	let str1 = '';
+	{
+		let str2 = 'foo';
+		let undef = undefined;
+		let nul = null;
+		noop();
+	}
+}
+
+function factorial(n) {
+	if (n <= 1) {
+		return 1;
+	} else {
+		return n * factorial(n - 1);
+	}
 }
 
 function loadScript(url) {
@@ -13,11 +35,11 @@ function loadScript(url) {
 }
 
 function throwUncaughtException() {
-	throw new Error('Test exception');
+	throw new Error('TestException');
 }
 
 function throwAndCatchException() {
 	try {
-		throw new Error('Test exception');
+		throw new Error('TestException');
 	} catch(e) {}
 }
