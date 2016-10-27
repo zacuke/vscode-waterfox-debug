@@ -13,7 +13,8 @@
 			"taskName": "watch",
 			"args": [ "-w" ],
 			"suppressTaskName": true,
-			"problemMatcher": "$tsc"
+			"isWatching": true,
+			"problemMatcher": "$tsc-watch"
 		}
 	]
 }
