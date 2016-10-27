@@ -18,7 +18,7 @@ describe('Firefox debug adapter', function() {
 
 	it('should inspect variables of different types in different scopes', async function() {
 
-		let sourcePath = path.join(TESTDATA_PATH, 'web/test.js');
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await util.setBreakpoints(dc, sourcePath, [ 17 ]);
 
 		util.evaluate(dc, 'vars({ key: "value" })');
@@ -37,7 +37,7 @@ describe('Firefox debug adapter', function() {
 		assert.equal(util.findVariable(variables, 'bool1').value, 'false');
 		assert.equal(util.findVariable(variables, 'bool2').value, 'true');
 		assert.equal(util.findVariable(variables, 'num1').value, '0');
-		assert.equal(util.findVariable(variables, 'num2').value, '17');
+		assert.equal(util.findVariable(variables, 'num2').value, '120');
 		assert.equal(util.findVariable(variables, 'str1').value, '""');
 
 		variablesResponse = await dc.variablesRequest({ variablesReference: scopes.body.scopes[2].variablesReference });
@@ -49,10 +49,10 @@ describe('Firefox debug adapter', function() {
 
 	it('should inspect variables in different stackframes', async function() {
 
-		let sourcePath = path.join(TESTDATA_PATH, 'web/test.js');
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await util.setBreakpoints(dc, sourcePath, [ 23 ]);
 
-		util.evaluate(dc, 'factorial(4)');
+		util.evaluateDelayed(dc, 'factorial(4)', 0);
 		let stoppedEvent = await util.receiveStoppedEvent(dc);
 		let stackTrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId! });
 
@@ -65,7 +65,7 @@ describe('Firefox debug adapter', function() {
 
 	it('should inspect return values on stepping out', async function() {
 
-		let sourcePath = path.join(TESTDATA_PATH, 'web/test.js');
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await util.setBreakpoints(dc, sourcePath, [ 23 ]);
 
 		util.evaluate(dc, 'factorial(4)');

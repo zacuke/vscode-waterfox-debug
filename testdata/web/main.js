@@ -8,7 +8,7 @@ function vars(arg) {
 	let bool1 = false;
 	let bool2 = true;
 	let num1 = 0;
-	let num2 = 17;
+	let num2 = factorial(5);
 	let str1 = '';
 	{
 		let str2 = 'foo';
@@ -42,4 +42,18 @@ function throwAndCatchException() {
 	try {
 		throw new Error('TestException');
 	} catch(e) {}
+}
+
+var worker;
+
+function startWorker() {
+	worker = new Worker('worker.js');
+	worker.onmessage = function(e) {
+		let received = e.data;
+		noop();
+	}
+}
+
+function callWorker() {
+	worker.postMessage({ foo: 'bar' });
 }

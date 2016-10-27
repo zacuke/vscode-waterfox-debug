@@ -18,7 +18,7 @@ describe('Firefox debug adapter', function() {
 
 	it('should hit a breakpoint', async function() {
 
-		let sourcePath = path.join(TESTDATA_PATH, 'web/test.js');
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await util.setBreakpoints(dc, sourcePath, [ 3 ]);
 
 		util.evaluateDelayed(dc, 'noop()', 0);
@@ -30,7 +30,7 @@ describe('Firefox debug adapter', function() {
 
 	it('should hit a breakpoint in an evaluateRequest', async function() {
 
-		let sourcePath = path.join(TESTDATA_PATH, 'web/test.js');
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await util.setBreakpoints(dc, sourcePath, [ 3 ]);
 
 		util.evaluate(dc, 'noop()');

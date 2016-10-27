@@ -20,7 +20,7 @@ describe('Firefox debug adapter', function() {
 
 		await util.receivePageLoadedEvent(dc);
 
-		let sourcePath = path.join(TESTDATA_PATH, 'web/test.js');
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 3 ]);
 
 		assert.equal(setBreakpointsResponse.body.breakpoints.length, 1);
@@ -32,7 +32,7 @@ describe('Firefox debug adapter', function() {
 
 		await util.receivePageLoadedEvent(dc);
 
-		let sourcePath = path.join(TESTDATA_PATH, 'web/test.js');
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 2 ]);
 
 		assert.equal(setBreakpointsResponse.body.breakpoints.length, 1);
@@ -42,7 +42,7 @@ describe('Firefox debug adapter', function() {
 
 	it('should eventually verify a breakpoint set before the page is loaded', async function() {
 
-		let sourcePath = path.join(TESTDATA_PATH, 'web/test.js');
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 3 ]);
 
 		assert.equal(setBreakpointsResponse.body.breakpoints.length, 1);
@@ -59,7 +59,7 @@ describe('Firefox debug adapter', function() {
 
 	it('should eventually move and verify a breakpoint set before the page is loaded', async function() {
 
-		let sourcePath = path.join(TESTDATA_PATH, 'web/test.js');
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 2 ]);
 
 		assert.equal(setBreakpointsResponse.body.breakpoints.length, 1);
@@ -78,14 +78,14 @@ describe('Firefox debug adapter', function() {
 
 		await util.receivePageLoadedEvent(dc);
 
-		let sourcePath = path.join(TESTDATA_PATH, 'web/script.js');
+		let sourcePath = path.join(TESTDATA_PATH, 'web/dlscript.js');
 		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 3 ]);
 
 		assert.equal(setBreakpointsResponse.body.breakpoints.length, 1);
 		assert.equal(setBreakpointsResponse.body.breakpoints[0].verified, false);
 		let breakpointId = setBreakpointsResponse.body.breakpoints[0].id;
 
-		util.evaluate(dc, 'loadScript("script.js")');
+		util.evaluate(dc, 'loadScript("dlscript.js")');
 
 		await util.receiveBreakpointEvent(dc).then((ev) => {
 			assert.equal(ev.body.reason, 'update');
