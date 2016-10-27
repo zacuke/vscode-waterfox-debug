@@ -1,5 +1,6 @@
 import { DebugClient } from 'vscode-debugadapter-testsupport';
 import { DebugProtocol } from 'vscode-debugprotocol';
+import { AddonType } from '../adapter/launchConfiguration';
 import * as path from 'path';
 
 export async function initDebugClient(testDataPath: string, waitForPageLoadedEvent: boolean): Promise<DebugClient> {
@@ -9,6 +10,27 @@ export async function initDebugClient(testDataPath: string, waitForPageLoadedEve
 	await dc.start();
 	await Promise.all([
 		dc.launch({ file: path.join(testDataPath, 'web/index.html') }),
+		dc.configurationSequence()
+	]);
+
+	if (waitForPageLoadedEvent) {
+		await receivePageLoadedEvent(dc);
+	}
+
+	return dc;
+}
+
+export async function initDebugClientForAddon(testDataPath: string, addonType: AddonType, waitForPageLoadedEvent: boolean): Promise<DebugClient> {
+
+	let dc = new DebugClient('node', './out/firefoxDebugSession.js', 'firefox');
+
+	await dc.start();
+	await Promise.all([
+		dc.launch({
+			addonType,
+			addonPath: path.join(testDataPath, `${addonType}/addOn`),
+			file: path.join(testDataPath, `${addonType}/index.html`)
+		}),
 		dc.configurationSequence()
 	]);
 
