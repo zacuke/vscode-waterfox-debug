@@ -1,0 +1,11 @@
+{
+  "name": "test",
+  "title": "test",
+  "id": "vscode-firefox-debug-test@jetpack",
+  "version": "0.0.1",
+  "description": "A jetpack add-on used for testing vscode-firefox-debug",
+  "main": "index.js",
+  "engines": {
+    "firefox": ">=38.0a1"
+  }
+}

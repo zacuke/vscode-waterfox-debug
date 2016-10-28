@@ -35,7 +35,7 @@
     "vscode-debugadapter-testsupport": "^1.13.1"
   },
   "scripts": {
-    "test": "mocha --timeout 10000 --slow 6000 out/test/test*.js",
+    "test": "mocha --timeout 20000 --slow 6000 out/test/test*.js",
     "cover": "nyc npm test && nyc report --reporter=lcov && nyc report --reporter=html"
   },
   "nyc": {

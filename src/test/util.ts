@@ -31,8 +31,9 @@ export async function initDebugClientForAddon(testDataPath: string, addonType: A
 			addonPath: path.join(testDataPath, `${addonType}/addOn`),
 			file: path.join(testDataPath, `${addonType}/index.html`)
 		}),
-		dc.configurationSequence()
+		dc.waitForEvent('initialized', 20000)
 	]);
+	dc.setExceptionBreakpointsRequest({ filters: [] });
 
 	if (waitForPageLoadedEvent) {
 		await receivePageLoadedEvent(dc);
