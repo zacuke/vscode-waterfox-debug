@@ -88,6 +88,7 @@ export class FirefoxDebugSession extends DebugSession {
 	}
 
 	public convertFirefoxSourceToPath(source: FirefoxDebugProtocol.Source): string {
+		if (!source) return undefined;
 
 		if (source.addonID && (source.addonID === this.addonId)) {
 
@@ -252,6 +253,15 @@ export class FirefoxDebugSession extends DebugSession {
 				return addonIdOrErrorMsg;
 			}
 
+			if (this.addonType === 'addonSdk') {
+				let rewrittenAddonId = addonIdOrErrorMsg.replace("@", "-at-");
+				let sanitizedAddonPath = this.addonPath;
+				if (sanitizedAddonPath[sanitizedAddonPath.length - 1] === '/') {
+					sanitizedAddonPath = sanitizedAddonPath.substr(0, sanitizedAddonPath.length - 1);
+				}
+				this.pathMappings.push([ 'resource://' + rewrittenAddonId, sanitizedAddonPath ]);
+			}
+
 		} else if (args.addonPath) {
 
 			return `If you set "addonPath" you also have to set "addonType" in the ${args.request} configuration`;
@@ -277,7 +287,7 @@ export class FirefoxDebugSession extends DebugSession {
 				webRoot = webRoot.substr(0, webRoot.length - 1);
 			}
 
-			this.pathMappings.push([webRootUrl, webRoot]);
+			this.pathMappings.push([ webRootUrl, webRoot ]);
 
 		} else if (args.webRoot) {
 
