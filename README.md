@@ -196,8 +196,10 @@ to the VSCode console:
 
 ## Changelog
 
-### Version 0.7.1
+### Version 0.7.2
 * Terminate the debug session when Firefox is closed
+
+### Version 0.7.1
 * Show the full url of sources that do not correspond to local files
 * bugfix for setting breakpoints in content scripts of `addonSdk` browser extensions
 
