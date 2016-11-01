@@ -35,7 +35,7 @@ export class FrameAdapter {
 
 		if (firefoxSource.url != null) {
 			sourcePath = this.threadAdapter.debugSession.convertFirefoxSourceToPath(firefoxSource) || ''; //TODO
-			sourceName = urlBasename(firefoxSource.url);
+			sourceName = firefoxSource.url;
 		}
 
 		if (this.frame.type === 'eval') {

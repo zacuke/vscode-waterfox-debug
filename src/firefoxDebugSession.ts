@@ -20,6 +20,7 @@ export class FirefoxDebugSession extends DebugSession {
 
 	private firefoxProc?: ChildProcess;
 	private firefoxDebugConnection: DebugConnection;
+	private firefoxDebugSocketClosed: boolean;
 
 	private pathMappings: [string, string][] = [];
 	private addonType: AddonType;
@@ -306,6 +307,7 @@ export class FirefoxDebugSession extends DebugSession {
 	private startSession(socket: Socket) {
 
 		this.firefoxDebugConnection = new DebugConnection(socket);
+		this.firefoxDebugSocketClosed = false;
 		let rootActor = this.firefoxDebugConnection.rootActor;
 
 		let nextTabId = 1;
@@ -349,6 +351,8 @@ export class FirefoxDebugSession extends DebugSession {
 		});
 
 		socket.on('close', () => {
+			log.info('Connection to Firefox closed - terminating debug session');
+			this.firefoxDebugSocketClosed = true;
 			this.sendEvent(new TerminatedEvent());
 		});
 
@@ -956,9 +960,11 @@ export class FirefoxDebugSession extends DebugSession {
 		log.debug('Received disconnectRequest');
 
 		let detachPromises: Promise<void>[] = [];
-		this.threadsById.forEach((threadAdapter) => {
-			detachPromises.push(threadAdapter.detach());
-		});
+		if (!this.firefoxDebugSocketClosed) {
+			this.threadsById.forEach((threadAdapter) => {
+				detachPromises.push(threadAdapter.detach());
+			});
+		}
 
 		Promise.all(detachPromises).then(
 			() => {
