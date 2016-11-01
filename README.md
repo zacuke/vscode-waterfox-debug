@@ -1,6 +1,6 @@
 # VS Code Debug Adapter for Firefox
 
-A Visual Studio Code extension to debug your web application in Firefox.
+A Visual Studio Code extension to debug your web application or browser extension in Firefox.
 
 ## Features
 * Line breakpoints
@@ -195,6 +195,11 @@ to the VSCode console:
   attach it to the bug report.
 
 ## Changelog
+
+### Version 0.7.1
+* Terminate the debug session when Firefox is closed
+* Show the full url of sources that do not correspond to local files
+* bugfix for setting breakpoints in content scripts of `addonSdk` browser extensions
 
 ### Version 0.7.0
 * Debugging Firefox add-ons
