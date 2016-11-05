@@ -2,25 +2,75 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "debug server",
 			"type": "node",
 			"request": "launch",
+			"name": "debug server",
 			"program": "${workspaceRoot}/out/firefoxDebugAdapter.js",
-			"stopOnEntry": false,
 			"args": [ "--server=4711" ],
+			"cwd": "${workspaceRoot}",
+			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outDir": "${workspaceRoot}/out"
 		},
 		{
-			"name": "run tests",
 			"type": "node",
 			"request": "launch",
+			"name": "run tests",
 			"program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
-			"stopOnEntry": false,
 			"args": [ "--no-timeouts", "--colors", "out/test/test*.js" ],
 			"cwd": "${workspaceRoot}",
+			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outDir": "${workspaceRoot}/out"
+		},
+		{
+			"type": "firefox",
+			"request": "launch",
+			"name": "web test",
+			"file": "${workspaceRoot}/testdata/web/index.html"
+		},
+		{
+			"type": "firefox",
+			"request": "launch",
+			"name": "jetpack test",
+			"addonType": "addonSdk",
+			"addonPath": "${workspaceRoot}/testdata/addonSdk/addOn",
+			"file": "${workspaceRoot}/testdata/addonSdk/index.html"
+		},
+		{
+			"type": "firefox",
+			"request": "launch",
+			"name": "webextension test",
+			"addonType": "webExtension",
+			"addonPath": "${workspaceRoot}/testdata/webExtension/addOn",
+			"file": "${workspaceRoot}/testdata/webExtension/index.html"
+		},
+		{
+			"type": "composite",
+			"request": "launch",
+			"name": "debug server with web test",
+			"configurationNames": [
+				"debug server",
+				"web test"
+			]
+		},
+		{
+			"type": "composite",
+			"request": "launch",
+			"name": "debug server with jetpack test",
+			"configurationNames": [
+				"debug server",
+				"jetpack test"
+			]
+		},
+		{
+			"type": "composite",
+			"request": "launch",
+			"name": "debug server with webextension test",
+			"configurationNames": [
+				"debug server",
+				"webextension test"
+			]
 		}
 	]
 }
