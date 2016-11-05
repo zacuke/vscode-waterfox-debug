@@ -13,7 +13,7 @@
 		"strictNullChecks": true
 	},
 	"include": [
-		"src/firefoxDebugSession.ts",
+		"src/firefoxDebugAdapter.ts",
 		"src/**/*.d.ts",
 		"src/test/test*.ts"
 	]

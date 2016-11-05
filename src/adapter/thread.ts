@@ -2,14 +2,14 @@ import { Log } from '../util/log';
 import { concatArrays } from '../util/misc';
 import { ExceptionBreakpoints, ThreadActorProxy, ConsoleActorProxy, SourceActorProxy } from '../firefox/index';
 import { ThreadCoordinator, BreakpointInfo, BreakpointsAdapter, FrameAdapter, ScopeAdapter, SourceAdapter, BreakpointAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
-import { FirefoxDebugSession } from '../firefoxDebugSession';
+import { FirefoxDebugAdapter } from '../firefoxDebugAdapter';
 import { Variable } from 'vscode-debugadapter';
 
 export class ThreadAdapter {
 
 	public id: number;
 	public get debugSession() {
-		return this._debugSession;
+		return this._debugAdapter;
 	}
 	public get name() {
 		return this._name;
@@ -18,7 +18,7 @@ export class ThreadAdapter {
 		return this.actor.name;
 	}
 
-	private _debugSession: FirefoxDebugSession;
+	private _debugAdapter: FirefoxDebugAdapter;
 	private actor: ThreadActorProxy;
 	private consoleActor?: ConsoleActorProxy;
 	private coordinator: ThreadCoordinator;
@@ -35,13 +35,13 @@ export class ThreadAdapter {
 	private completionValue?: FirefoxDebugProtocol.CompletionValue;
 
 	public constructor(id: number, threadActor: ThreadActorProxy, consoleActor: ConsoleActorProxy | undefined,
-		name: string, debugSession: FirefoxDebugSession) {
+		name: string, debugAdapter: FirefoxDebugAdapter) {
 
 		this.id = id;
 		this.actor = threadActor;
 		this.consoleActor = consoleActor;
 		this._name = name;
-		this._debugSession = debugSession;
+		this._debugAdapter = debugAdapter;
 	}
 
 	public init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
@@ -144,7 +144,7 @@ export class ThreadAdapter {
 				(frames) => {
 					let frameAdapters = frames.map((frame) => {
 						let frameAdapter = new FrameAdapter(frame, this);
-						this._debugSession.registerFrameAdapter(frameAdapter);
+						this._debugAdapter.registerFrameAdapter(frameAdapter);
 						this.frames.push(frameAdapter);
 						return frameAdapter;
 					});

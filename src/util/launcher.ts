@@ -1,3 +1,4 @@
+import { delay } from '../util/misc';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs-extra';
@@ -69,11 +70,18 @@ export function launchFirefox(config: LaunchConfiguration, addonId: string):
 	});
 }
 
-export function waitForSocket(config: LaunchConfiguration): Promise<net.Socket> {
+export async function waitForSocket(config: LaunchConfiguration): Promise<net.Socket> {
 	let port = config.port || 6000;
-	return new Promise<net.Socket>((resolve, reject) => {
-		tryConnect(port, 200, 25, resolve, reject);
-	});
+	let lastError: any;
+	for (var i = 0; i < 25; i++) {
+		try {
+			return await connect(port);
+		} catch(err) {
+			lastError = err;
+			await delay(200);
+		}
+	}
+	throw lastError;
 }
 
 function getFirefoxExecutablePath(config: LaunchConfiguration): string | undefined {
@@ -223,16 +231,10 @@ function isReadableDirectory(path: string): boolean {
 	}
 }
 
-function tryConnect(port: number, retryAfter: number, tries: number, 
-	resolve: (sock: net.Socket) => void, reject: (err: any) => void) {
-	
-	let socket = net.connect(port);
-	socket.on('connect', () => resolve(socket));
-	socket.on('error', (err) => {
-		if (tries > 0) {
-			setTimeout(() => tryConnect(port, retryAfter, tries - 1, resolve, reject), retryAfter);
-		} else {
-			reject(err);
-		}
+export function connect(port: number, host?: string): Promise<net.Socket> {
+	return new Promise<net.Socket>((resolve, reject) => {
+		let socket = net.connect(port);
+		socket.on('connect', () => resolve(socket));
+		socket.on('error', reject);
 	});
 }

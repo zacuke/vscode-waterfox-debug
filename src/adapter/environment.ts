@@ -1,5 +1,5 @@
 import { Log } from '../util/log';
-import { FirefoxDebugSession } from '../firefoxDebugSession';
+import { FirefoxDebugAdapter } from '../firefoxDebugAdapter';
 import { ScopeAdapter, ObjectScopeAdapter, LocalVariablesScopeAdapter, FunctionScopeAdapter } from './scope';
 import { ThreadAdapter } from './thread';
 

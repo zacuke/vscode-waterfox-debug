@@ -1,3 +1,4 @@
+import { delay } from '../util/misc';
 import { DebugClient } from 'vscode-debugadapter-testsupport';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { AddonType } from '../adapter/launchConfiguration';
@@ -5,7 +6,7 @@ import * as path from 'path';
 
 export async function initDebugClient(testDataPath: string, waitForPageLoadedEvent: boolean): Promise<DebugClient> {
 
-	let dc = new DebugClient('node', './out/firefoxDebugSession.js', 'firefox');
+	let dc = new DebugClient('node', './out/firefoxDebugAdapter.js', 'firefox');
 
 	await dc.start();
 	await Promise.all([
@@ -22,7 +23,7 @@ export async function initDebugClient(testDataPath: string, waitForPageLoadedEve
 
 export async function initDebugClientForAddon(testDataPath: string, addonType: AddonType, waitForPageLoadedEvent: boolean): Promise<DebugClient> {
 
-	let dc = new DebugClient('node', './out/firefoxDebugSession.js', 'firefox');
+	let dc = new DebugClient('node', './out/firefoxDebugAdapter.js', 'firefox');
 
 	await dc.start();
 	await Promise.all([
@@ -73,12 +74,6 @@ export function evaluate(dc: DebugClient, js: string): Promise<DebugProtocol.Eva
 export function evaluateDelayed(dc: DebugClient, js: string, delay: number): Promise<DebugProtocol.EvaluateResponse> {
 	js = `setTimeout(function() { ${js} }, ${delay})`;
 	return evaluate(dc, js);
-}
-
-export function delay(timeout: number): Promise<void> {
-	return new Promise((resolve) => {
-		setTimeout(resolve, timeout);
-	});
 }
 
 export async function assertPromiseTimeout(promise: Promise<any>, timeout: number): Promise<void> {

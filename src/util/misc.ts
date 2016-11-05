@@ -10,3 +10,9 @@ export function urlBasename(url: string): string {
 		return url.substring(lastSepIndex + 1);
 	}
 }
+
+export function delay(timeout: number): Promise<void> {
+	return new Promise((resolve) => {
+		setTimeout(resolve, timeout);
+	});
+}
