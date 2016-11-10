@@ -6,14 +6,15 @@ import * as net from 'net';
 import { spawn, ChildProcess } from 'child_process';
 import * as uuid from 'node-uuid';
 import { LaunchConfiguration } from '../adapter/launchConfiguration';
-import * as ProfileFinder from 'firefox-profile/lib/profile_finder';
-import { installAddon } from './addon';
+import { createXpi } from './addon';
+import * as FirefoxProfile from 'firefox-profile';
 
 /**
  * Tries to launch Firefox with the given launch configuration.
- * The returned promise resolves to the spawned child process.
+ * The returned promise resolves to the spawned child process
+ * and the addonId if the launch configuration is for addon debugging.
  */
-export function launchFirefox(config: LaunchConfiguration, addonId: string): 
+export async function launchFirefox(config: LaunchConfiguration): 
 	Promise<ChildProcess> {
 
 	let firefoxPath = getFirefoxExecutablePath(config);	
@@ -56,18 +57,17 @@ export function launchFirefox(config: LaunchConfiguration, addonId: string):
 		return Promise.reject('You need to set either "file" or "url" in the launch configuration');
 	}
 
-	return createDebugProfile(config, addonId).then((debugProfileDir) => {
+	let debugProfileDir = path.join(os.tmpdir(), `vscode-firefox-debug-profile-${uuid.v4()}`);
+	firefoxArgs.push('-profile', debugProfileDir);
 
-		firefoxArgs.push('-profile', debugProfileDir);
+	await prepareDebugProfile(config, debugProfileDir);
 
-		let childProc = spawn(firefoxPath!, firefoxArgs, { detached: true, stdio: 'ignore' });
-		childProc.on('exit', () => {
-			fs.removeSync(debugProfileDir);
-		});
-		childProc.unref();
-		return childProc;
-
+	let childProc = spawn(firefoxPath, firefoxArgs, { detached: true, stdio: 'ignore' });
+	childProc.on('exit', () => {
+		fs.removeSync(debugProfileDir);
 	});
+	childProc.unref();
+	return childProc;
 }
 
 export async function waitForSocket(config: LaunchConfiguration): Promise<net.Socket> {
@@ -132,98 +132,91 @@ function getFirefoxExecutablePath(config: LaunchConfiguration): string | undefin
 	return undefined;
 }
 
-function createDebugProfile(config: LaunchConfiguration, addonId: string): Promise<string> {
+async function prepareDebugProfile(config: LaunchConfiguration, debugProfileDir: string): Promise<string | undefined> {
 
-	let debugProfileDir = path.join(os.tmpdir(), `vscode-firefox-debug-profile-${uuid.v4()}`);
+	var profile = await createDebugProfile(config, debugProfileDir);
 
-	let createProfilePromise: Promise<void>;
-	if (config.profileDir) {
+	profile.defaultPreferences = {};
+	profile.setPreference('browser.shell.checkDefaultBrowser', false);
+	profile.setPreference('devtools.chrome.enabled', true);
+	profile.setPreference('devtools.debugger.prompt-connection', false);
+	profile.setPreference('devtools.debugger.remote-enabled', true);
+	profile.setPreference('devtools.debugger.workers', true);
+	profile.setPreference('extensions.autoDisableScopes', 10);
+	profile.setPreference('xpinstall.signatures.required', false);
+	profile.updatePreferences();
 
-		if (!isReadableDirectory(config.profileDir)) {
-			return Promise.reject(`Couldn't access profile directory ${config.profileDir}`);
-		}
+	if (config.addonType && config.addonPath) {
 
-		fs.copySync(config.profileDir, debugProfileDir, {
-			clobber: true,
-			filter: isNotLockFile
-		});
-		createProfilePromise = Promise.resolve(undefined);
+		let tempXpiDir = path.join(os.tmpdir(), `vscode-firefox-debug-${uuid.v4()}`);
+		fs.mkdirSync(tempXpiDir);
+		var xpiPath = await createXpi(config.addonType, config.addonPath, tempXpiDir);
+		var addonId = await installXpi(profile, xpiPath);
+		fs.removeSync(tempXpiDir);
 
-	} else if (config.profile) {
-
-		createProfilePromise = new Promise<void>((resolve, reject) => {
-
-			var finder = new ProfileFinder();
-			finder.getPath(config.profile!, (err, profileDir) => {
-
-				if (err) {
-					reject(`Couldn't find profile '${config.profile}'`);
-				} else if (!isReadableDirectory(profileDir)) {
-					reject(`Couldn't access profile '${config.profile}'`);
-				} else {
-
-					fs.copySync(profileDir, debugProfileDir, {
-						clobber: true,
-						filter: isNotLockFile
-					});
-					resolve(undefined);
-
-				}
-			});
-		});
+		return addonId;
 
 	} else {
-
-		fs.mkdirSync(debugProfileDir);
-		createProfilePromise = Promise.resolve(undefined);
-
+		return undefined;
 	}
+}
 
-	return createProfilePromise.then(() => {
+function installXpi(profile: FirefoxProfile, xpiPath: string): Promise<string> {
+	return new Promise<string>((resolve, reject) => {
+		profile.addExtension(xpiPath, (err, addonDetails) => {
+			if (err) {
+				reject(err);
+			} else {
+				resolve(addonDetails!.id);
+			}
+		})
+	});
+}
 
-		fs.writeFileSync(path.join(debugProfileDir, 'user.js'), firefoxUserPrefs);
+function createDebugProfile(config: LaunchConfiguration, debugProfileDir: string): Promise<FirefoxProfile> {
+	return new Promise<FirefoxProfile>((resolve, reject) => {
 
-		if (addonId) {
+		if (config.profileDir) {
+			
+			FirefoxProfile.copy({
+				profileDirectory: config.profileDir,
+				destinationDirectory: debugProfileDir
+			}, 
+			(err, profile) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve(profile);
+				}
+			});
 
-			return installAddon(config.addonType!, addonId, config.addonPath!, debugProfileDir)
-				.then(() => debugProfileDir);
+		} else if (config.profile) {
+
+			FirefoxProfile.copyFromUserProfile({
+				name: config.profile,
+				destinationDirectory: debugProfileDir
+			}, 
+			(err, profile) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve(profile);
+				}
+			});
 
 		} else {
-			return debugProfileDir;
+
+			fs.mkdirSync(debugProfileDir);
+			resolve(new FirefoxProfile({
+				destinationDirectory: debugProfileDir
+			}));
+
 		}
 	});
 }
 
-function isNotLockFile(filePath: string) {
-	var file = path.basename(filePath);
-	return !/^(parent\.lock|lock|\.parentlock)$/.test(file);
-}
-
-let firefoxUserPrefs = `
-user_pref("browser.shell.checkDefaultBrowser", false);
-user_pref("devtools.chrome.enabled", true);
-user_pref("devtools.debugger.prompt-connection", false);
-user_pref("devtools.debugger.remote-enabled", true);
-user_pref("devtools.debugger.workers", true);
-user_pref("extensions.autoDisableScopes", 10);
-user_pref("xpinstall.signatures.required", false);
-`;
-
 function isExecutable(path: string): boolean {
 	try {
-		fs.accessSync(path, fs.constants.X_OK);
-		return true;
-	} catch (e) {
-		return false;
-	}
-}
-
-function isReadableDirectory(path: string): boolean {
-	try {
-		let stat = fs.statSync(path);
-		if (!stat.isDirectory) {
-			return false;
-		}
 		fs.accessSync(path, fs.constants.X_OK);
 		return true;
 	} catch (e) {

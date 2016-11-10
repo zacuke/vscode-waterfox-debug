@@ -24,9 +24,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	private firefoxDebugSocketClosed: boolean;
 
 	private pathMappings: [string, string][] = [];
-	private addonType: AddonType;
-	private addonId: string;
-	private addonPath: string;
+	private addonType: AddonType | undefined;
+	private addonId: string | undefined;
+	private addonPath: string | undefined;
 	private isWindowsPlatform: boolean;
 
 	private nextThreadId = 1;
@@ -82,12 +82,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected async launch(args: LaunchConfiguration): Promise<void> {
 
-		let configError = this.readCommonConfiguration(args);
-		if (configError) {
-			throw configError;
-		}
+		await this.readCommonConfiguration(args);
 
-		this.firefoxProc = await launchFirefox(args, this.addonId);
+		this.firefoxProc = await launchFirefox(args);
 
 		let socket = await waitForSocket(args);
 		this.startSession(socket);
@@ -95,10 +92,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected async attach(args: AttachConfiguration): Promise<void> {
 
-		let configError = this.readCommonConfiguration(args);
-		if (configError) {
-			throw configError;
-		}
+		await this.readCommonConfiguration(args);
 
 		let socket = await connect(args.port || 6000, args.host || 'localhost');
 		this.startSession(socket);
@@ -423,7 +417,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		return undefined;
 	}
 
-	private readCommonConfiguration(args: CommonConfiguration): string | undefined {
+	private async readCommonConfiguration(args: CommonConfiguration): Promise<void> {
 
 		if (args.log) {
 			Log.config = args.log;
@@ -432,23 +426,18 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		if (args.addonType) {
 
 			if (!args.addonPath) {
-				return `If you set "addonType" you also have to set "addonPath" in the ${args.request} configuration`;
+				throw `If you set "addonType" you also have to set "addonPath" in the ${args.request} configuration`;
 			}
 
 			this.addonType = args.addonType;
 
 			let success: boolean;
 			let addonIdOrErrorMsg: string;
-			[success, addonIdOrErrorMsg] = findAddonId(args.addonType, args.addonPath);
-			if (success) {
-				this.addonId = addonIdOrErrorMsg;
-				this.addonPath = args.addonPath;
-			} else {
-				return addonIdOrErrorMsg;
-			}
+			this.addonId = await findAddonId(args.addonPath);
+			this.addonPath = args.addonPath;
 
 			if (this.addonType === 'addonSdk') {
-				let rewrittenAddonId = addonIdOrErrorMsg.replace("@", "-at-");
+				let rewrittenAddonId = this.addonId.replace("@", "-at-");
 				let sanitizedAddonPath = this.addonPath;
 				if (sanitizedAddonPath[sanitizedAddonPath.length - 1] === '/') {
 					sanitizedAddonPath = sanitizedAddonPath.substr(0, sanitizedAddonPath.length - 1);
@@ -458,14 +447,14 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		} else if (args.addonPath) {
 
-			return `If you set "addonPath" you also have to set "addonType" in the ${args.request} configuration`;
+			throw `If you set "addonPath" you also have to set "addonType" in the ${args.request} configuration`;
 
 		} else if (args.url) {
 
 			if (!args.webRoot) {
-				return `If you set "url" you also have to set "webRoot" in the ${args.request} configuration`;
+				throw `If you set "url" you also have to set "webRoot" in the ${args.request} configuration`;
 			} else if (!path.isAbsolute(args.webRoot)) {
-				return `The "webRoot" property in the ${args.request} configuration has to be an absolute path`;
+				throw `The "webRoot" property in the ${args.request} configuration has to be an absolute path`;
 			}
 
 			let webRootUrl = args.url;
@@ -485,7 +474,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		} else if (args.webRoot) {
 
-			return `If you set "webRoot" you also have to set "url" in the ${args.request} configuration`;
+			throw `If you set "webRoot" you also have to set "url" in the ${args.request} configuration`;
 
 		}
 
