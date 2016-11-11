@@ -1,5 +1,8 @@
+import { Log } from '../util/log';
 import { ThreadAdapter, ObjectGripAdapter } from './index';
 import { Variable } from 'vscode-debugadapter';
+
+let log = Log.create('VariableAdapter');
 
 export class VariableAdapter {
 	
@@ -57,6 +60,11 @@ export class VariableAdapter {
 					let vartype = objectGrip.class;
 					let objectGripAdapter = threadAdapter.getOrCreateObjectGripAdapter(objectGrip, threadLifetime);
 					return new VariableAdapter(varname, vartype, objectGripAdapter);
+
+				default:
+
+					log.warn(`Unexpected object grip of type ${grip.type}: ${JSON.stringify(grip)}`);
+					return new VariableAdapter(varname, grip.type);
 
 			}
 		}
