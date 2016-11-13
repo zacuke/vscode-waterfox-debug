@@ -805,7 +805,12 @@ export class FirefoxDebugSession extends DebugSession {
 			threadAdapter = frameAdapter.threadAdapter;
 			frameActorName = frameAdapter.frame.actor;
 		} else {
-			threadAdapter = this.threadsById.get(1);
+			for (let i = 1; i < this.nextThreadId; i++) {
+				if (this.threadsById.has(i)) {
+					threadAdapter = this.threadsById.get(i);
+					break;
+				}
+			}
 		}
 		
 		threadAdapter.evaluate(
