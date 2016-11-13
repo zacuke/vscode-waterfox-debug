@@ -54,6 +54,11 @@ export class VariableAdapter {
 					return new VariableAdapter(varname, 
 						(<FirefoxDebugProtocol.LongStringGrip>grip).initial);
 
+				case 'symbol':
+
+					return new VariableAdapter(varname,
+						(<FirefoxDebugProtocol.SymbolGrip>grip).name);
+
 				case 'object':
 
 					let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;

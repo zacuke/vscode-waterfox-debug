@@ -305,7 +305,7 @@ declare namespace FirefoxDebugProtocol {
 	type Grip = boolean | number | string | ComplexGrip;
 
 	interface ComplexGrip {
-		type: string;  // 'null' | 'undefined' | 'Infinity' | '-Infinity' | 'NaN' | '-0' | 'longString' | 'object'
+		type: string;  // 'null' | 'undefined' | 'Infinity' | '-Infinity' | 'NaN' | '-0' | 'longString' | 'symbol' | 'object'
 	}
 
 	interface ObjectGrip extends ComplexGrip {
@@ -329,5 +329,9 @@ declare namespace FirefoxDebugProtocol {
 		initial: string;
 		length: number;
 		actor: string;
+	}
+
+	interface SymbolGrip extends ComplexGrip {
+		name: string;
 	}
 }
