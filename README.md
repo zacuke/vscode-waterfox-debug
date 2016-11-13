@@ -167,7 +167,7 @@ your workspace:
 ```
 
 This example will write all messages about conversions between paths and urls and all error messages
-to the VSCode console:
+to the VS Code console:
 ```
 ...
     "log": {
@@ -193,6 +193,10 @@ to the VSCode console:
   attach it to the bug report.
 
 ## Changelog
+
+### Version 0.7.5
+* bugfix: support javascript values of type Symbol
+* bugfix: evaluating expressions in the VS Code debug console sometimes stopped working
 
 ### Version 0.7.2
 * Terminate the debug session when Firefox is closed
