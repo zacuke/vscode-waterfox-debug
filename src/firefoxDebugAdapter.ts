@@ -278,7 +278,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected async evaluate(args: DebugProtocol.EvaluateArguments): Promise<{ result: string, type?: string, variablesReference: number, namedVariables?: number, indexedVariables?: number }> {
 
-		let threadAdapter: ThreadAdapter;
+		let threadAdapter: ThreadAdapter | undefined;
 		let frameActorName: string | undefined; 
 
 		if (args.frameId) {
@@ -292,10 +292,17 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			frameActorName = frameAdapter.frame.actor;
 
 		} else {
-			//TODO need a reliable way to find some thread!
-			threadAdapter = this.getThreadAdapter(1);
+			for (let i = 1; i < this.nextThreadId; i++) {
+				if (this.threadsById.has(i)) {
+					threadAdapter = this.threadsById.get(i)!;
+					break;
+				}
+			}
+			if (!threadAdapter) {
+				throw new Error(`Couldn't find a thread to use for evaluating ${args.expression}`);
+			}
 		}
-		
+
 		let variable = await threadAdapter.evaluate(args.expression, frameActorName, (args.context !== 'watch'));
 
 		return {

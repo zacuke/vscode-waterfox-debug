@@ -140,8 +140,6 @@ or `install.rdf` for `legacy` add-ons).
 * `profileDir`, `profile`: You can specify a Firefox profile directory or the name of a profile
   created with the Firefox profile manager. The extension will create a copy of this profile in the
   system's temporary directory and modify the settings in this copy to allow remote debugging.
-  If you specify a profile directory which doesn't exist yet, it will be created and
-  configured for remote debugging automatically.
 * `port`: Firefox uses port 6000 for the debugger protocol by default. If you want to use a different
   port, you can set it with this property.
 * `firefoxExecutable`: The absolute path to the Firefox executable (`launch` configuration only).
@@ -169,7 +167,7 @@ your workspace:
 ```
 
 This example will write all messages about conversions between paths and urls and all error messages
-to the VSCode console:
+to the VS Code console:
 ```
 ...
     "log": {
@@ -195,6 +193,10 @@ to the VSCode console:
   attach it to the bug report.
 
 ## Changelog
+
+### Version 0.7.5
+* bugfix: support javascript values of type Symbol
+* bugfix: evaluating expressions in the VS Code debug console sometimes stopped working
 
 ### Version 0.7.2
 * Terminate the debug session when Firefox is closed

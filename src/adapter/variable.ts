@@ -1,5 +1,8 @@
+import { Log } from '../util/log';
 import { ThreadAdapter, ObjectGripAdapter } from './index';
 import { Variable } from 'vscode-debugadapter';
+
+let log = Log.create('VariableAdapter');
 
 export class VariableAdapter {
 
@@ -51,6 +54,11 @@ export class VariableAdapter {
 					return new VariableAdapter(varname, 
 						(<FirefoxDebugProtocol.LongStringGrip>grip).initial);
 
+				case 'symbol':
+
+					return new VariableAdapter(varname,
+						(<FirefoxDebugProtocol.SymbolGrip>grip).name);
+
 				case 'object':
 
 					let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
@@ -59,8 +67,9 @@ export class VariableAdapter {
 					return new VariableAdapter(varname, vartype, objectGripAdapter);
 
 				default:
-					//TODO why is this default case necessary?
-					throw new Error(`Unknown grip type ${grip.type}`);
+
+					log.warn(`Unexpected object grip of type ${grip.type}: ${JSON.stringify(grip)}`);
+					return new VariableAdapter(varname, grip.type);
 
 			}
 		}

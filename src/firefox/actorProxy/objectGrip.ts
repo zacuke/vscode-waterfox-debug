@@ -68,7 +68,7 @@ export class ObjectGripActorProxy implements ActorProxy {
 			
 		} else if (response['error'] === 'noSuchActor') {
 			
-			log.error(`No such actor ${JSON.stringify(this.grip)}`);
+			log.warn(`No such actor ${this.grip.actor} - you will not be able to inspect this value; this is probably due to Firefox bug #1249962}`);
 			this.pendingPrototypeAndPropertiesRequests.rejectAll('No such actor');
 			if (this.pendingThreadGripRequest) {
 				this.pendingThreadGripRequest.resolve(undefined);

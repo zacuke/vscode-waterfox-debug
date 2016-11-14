@@ -135,7 +135,11 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 		} else {
 
-			log.warn("Unknown message from RootActor: " + JSON.stringify(response));
+			if (response['type'] === 'forwardingCancelled') {
+				log.debug(`Received forwardingCancelled event from ${this.name} (ignoring)`);
+			} else {
+				log.warn("Unknown message from RootActor: " + JSON.stringify(response));
+			}
 
 		}
 	}
