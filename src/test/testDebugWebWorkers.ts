@@ -19,7 +19,7 @@ describe('Firefox debug adapter', function() {
 	it('should debug a WebWorker', async function() {
 
 		let mainSourcePath = path.join(TESTDATA_PATH, 'web/main.js');
-		await util.setBreakpoints(dc, mainSourcePath, [ 53 ]);
+		await util.setBreakpoints(dc, mainSourcePath, [ 55 ]);
 
 		let workerSourcePath = path.join(TESTDATA_PATH, 'web/worker.js');
 		let workerBreakpointsResponse = await util.setBreakpoints(dc, workerSourcePath,  [ 2 ]);

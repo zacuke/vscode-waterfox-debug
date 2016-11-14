@@ -14,6 +14,8 @@ function vars(arg) {
 		let str2 = 'foo';
 		let undef = undefined;
 		let nul = null;
+		let sym1 = Symbol('Local Symbol');
+		let sym2 = Symbol.for('Global Symbol');
 		noop();
 	}
 }

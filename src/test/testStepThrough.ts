@@ -40,7 +40,7 @@ describe('Firefox debug adapter', function() {
 	it('should step in', async function() {
 
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
-		await util.setBreakpoints(dc, sourcePath, [ 25 ]);
+		await util.setBreakpoints(dc, sourcePath, [ 27 ]);
 
 		util.evaluate(dc, 'factorial(3)');
 		let stoppedEvent = await util.receiveStoppedEvent(dc);
@@ -48,14 +48,14 @@ describe('Firefox debug adapter', function() {
 
 		let stackTrace = await dc.stackTraceRequest({ threadId });
 		assert.equal(stackTrace.body.stackFrames[0].source!.path, sourcePath);
-		assert.equal(stackTrace.body.stackFrames[0].line, 25);
+		assert.equal(stackTrace.body.stackFrames[0].line, 27);
 
 		dc.stepInRequest({ threadId });
 		await util.receiveStoppedEvent(dc);
 
 		stackTrace = await dc.stackTraceRequest({ threadId });
 		assert.equal(stackTrace.body.stackFrames[0].source!.path, sourcePath);
-		assert.equal(stackTrace.body.stackFrames[0].line, 22);
+		assert.equal(stackTrace.body.stackFrames[0].line, 24);
 	});
 
 	it('should step out', async function() {
@@ -83,6 +83,6 @@ describe('Firefox debug adapter', function() {
 
 		stackTrace = await dc.stackTraceRequest({ threadId });
 		assert.equal(stackTrace.body.stackFrames[0].source!.path, sourcePath);
-		assert.equal(stackTrace.body.stackFrames[0].line, 19);
+		assert.equal(stackTrace.body.stackFrames[0].line, 21);
 	});
 });
