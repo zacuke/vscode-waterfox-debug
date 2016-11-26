@@ -1,3 +1,6 @@
+### Version 0.7.6
+* bugfix: breakpoints were sometimes not hit after a page reload
+
 ### Version 0.7.5
 * bugfix: support javascript values of type Symbol
 * bugfix: evaluating expressions in the VS Code debug console sometimes stopped working
