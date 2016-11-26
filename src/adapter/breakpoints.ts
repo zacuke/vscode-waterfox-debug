@@ -8,6 +8,14 @@ export class BreakpointsAdapter {
 
 	public static setBreakpointsOnSourceActor(breakpointsToSet: BreakpointInfo[], 
 	sourceAdapter: SourceAdapter, threadCoordinator: ThreadCoordinator): Promise<BreakpointAdapter[]> {
+
+		if (sourceAdapter.hasCurrentBreakpoints()) {
+			let currentBreakpoints = sourceAdapter.getCurrentBreakpoints();
+			if (this.breakpointsAreEqual(breakpointsToSet, currentBreakpoints)) {
+				return Promise.resolve(currentBreakpoints);
+			}
+		}
+
 		return threadCoordinator.runOnPausedThread((finished) => 
 			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter, finished), false);
 	}
@@ -22,7 +30,7 @@ export class BreakpointsAdapter {
 
 		let result = new Promise<BreakpointAdapter[]>((resolve, reject) => {
 
-			sourceAdapter.currentBreakpoints.then(
+			sourceAdapter.getBreakpointsPromise().then(
 
 				(oldBreakpoints) => {
 
@@ -94,10 +102,30 @@ export class BreakpointsAdapter {
 				});
 		});
 		
-		sourceAdapter.currentBreakpoints = result;
+		sourceAdapter.setBreakpointsPromise(result);
 		return result;
 	}
 
+	private static breakpointsAreEqual(breakpointsToSet: BreakpointInfo[], 
+		currentBreakpoints: BreakpointAdapter[]): boolean {
+
+		let breakpointsToSetLines = new Set(breakpointsToSet.map(
+			(breakpointInfo) => breakpointInfo.requestedLine));
+		let currentBreakpointsLines = new Set(currentBreakpoints.map(
+			(breakpointAdapter) => breakpointAdapter.breakpointInfo.requestedLine));
+
+		if (breakpointsToSetLines.size !== currentBreakpointsLines.size) {
+			return false;
+		}
+
+		breakpointsToSetLines.forEach((line) => {
+			if (!currentBreakpointsLines.has(line)) {
+				return false;
+			}
+		});
+
+		return true;
+	}
 }
 
 export class BreakpointInfo {
