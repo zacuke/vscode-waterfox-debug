@@ -118,7 +118,7 @@ export class Log {
 			let logMsg = displayLevel + '|' + elapsedTimeString + '|' + this.name + ': ' + msg;
 			
 			if ((Log.fileDescriptor !== undefined) && (level >= this.fileLevel)) {
-				fs.write(Log.fileDescriptor, logMsg + '\n');
+				fs.write(Log.fileDescriptor, logMsg + '\n', (err, written, str) => {});
 			}
 			if (level >= this.consoleLevel) {
 				Log.consoleLog(logMsg);
