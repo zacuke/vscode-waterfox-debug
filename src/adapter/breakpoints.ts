@@ -16,12 +16,12 @@ export class BreakpointsAdapter {
 			}
 		}
 
-		return threadCoordinator.runOnPausedThread((finished) => 
-			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter, finished), false);
+		return threadCoordinator.runOnPausedThread(() => 
+			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter), undefined, false);
 	}
 
 	private static setBreakpointsOnPausedSourceActor(origBreakpointsToSet: BreakpointInfo[], 
-	sourceAdapter: SourceAdapter, finished: () => void): Promise<BreakpointAdapter[]> {
+	sourceAdapter: SourceAdapter): Promise<BreakpointAdapter[]> {
 
 		// we will modify this array, so we make a (shallow) copy and work with that
 		let breakpointsToSet = <(BreakpointInfo | undefined)[]>origBreakpointsToSet.slice();
@@ -93,13 +93,8 @@ export class BreakpointsAdapter {
 					Promise.all(breakpointsBeingRemoved).then(() => 
 					Promise.all(breakpointsBeingSet)).then(() => {
 						resolve(newBreakpoints);
-						finished();
 					});
 
-				},
-				(err) => {
-					finished();
-					throw err;
 				});
 		});
 		

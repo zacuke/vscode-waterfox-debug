@@ -53,7 +53,7 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 	 * 2 answers: the first answer gives us a resultID for the evaluation result. The second answer
 	 * gives us the actual evaluation result.
 	 */
-	public evaluate(expr: string): Promise<FirefoxDebugProtocol.Grip> {
+	public evaluate(expr: string, frameActorName?: string): Promise<FirefoxDebugProtocol.Grip> {
 		log.debug(`Evaluating '${expr}' on console ${this.name}`);
 
 		return new Promise<FirefoxDebugProtocol.Grip>((resolveEvaluate, rejectEvaluate) => {
@@ -75,7 +75,7 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 			let tryExpression = `eval("try{${escapedExpression}}catch(e){e.name+':'+e.message}")`;
 			this.connection.sendRequest({
 				to: this.name, type: 'evaluateJSAsync',
-				text: tryExpression
+				text: tryExpression, frameActor: frameActorName
 			});
 		})
 	}

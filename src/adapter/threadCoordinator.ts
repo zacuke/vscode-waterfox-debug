@@ -1,304 +1,329 @@
 import { Log } from '../util/log';
-import { ExceptionBreakpoints, ThreadActorProxy, ConsoleActorProxy } from '../firefox/index';
+import { ExceptionBreakpoints, ThreadActorProxy } from '../firefox/index';
+import { VariableAdapter } from './variable';
+import { DelayedTask } from './delayedTask';
 
 let log = Log.create('ThreadCoordinator');
 
-enum ThreadState {
-	Paused, Running, StepOver, StepIn, StepOut
-}
+type ThreadState = 'paused' | 'resuming' | 'running' | 'interrupting' | 'evaluating';
 
-class QueuedRequest<T> {
-	send: () => Promise<T>;
-	resolve: (t: T) => void;
-	reject: (err: any) => void;
-}
-
-/**
- * Requests that are sent to Firefox should be coordinated through this class:
- * - setting breakpoints and fetching stackframes and object properties must be run on a paused thread
- * - before the thread is resumed, the object grips that were fetched during the pause are released;
- *   no other requests should be sent to that thread between releasing and resuming, so they are
- *   queued to be sent later or rejected
- * - evaluate requests can only be sent when the thread is paused and resume the thread temporarily,
- *   so they must be sent sequentially
- */
 export class ThreadCoordinator {
 
-	constructor(private actor: ThreadActorProxy, private consoleActor?: ConsoleActorProxy) {
-		actor.onPaused((reason) => {
-			this.desiredThreadState = ThreadState.Paused;
-		});
-		actor.onResumed(() => {
-			this.desiredThreadState = ThreadState.Running;
-			if (this.tasksRunningOnPausedThread > 0) {
-				log.warn('Thread resumed unexpectedly while tasks that need the thread to be paused were running - interrupting again');
-				actor.interrupt();
-			}
-		});
-	}
-
-	/**
-	 * The user-visible state of the thread. It may be put in a different state temporarily
-	 * in order to set breakpoints but will be put in the desired state when these requests
-	 * are finished.
-	 */
-	private desiredThreadState = ThreadState.Paused;
-
-	/**
-	 * Specifies if the thread should be interrupted when an exception occurs
-	 */
 	private exceptionBreakpoints: ExceptionBreakpoints;
 
-	/**
-	 * Queued tasks requiring the thread to be paused. These tasks are started using
-	 * runOnPausedThread() and if the thread is currently resuming, they are put in this queue.
-	 */
-	private queuedtasksRunningOnPausedThread: QueuedRequest<any>[] = [];
+	private threadState: ThreadState = 'paused';
 
-	/**
-	 * The number of tasks that are currently running requiring the thread to be paused.
-	 * These tasks are started using runOnPausedThread() and if the thread is running it will
-	 * automatically be paused temporarily.
-	 */
+	private queuedInterruptTask?: DelayedTask<void> = undefined;
+	private interruptPromise?: Promise<void> = undefined;
+	private get isInterruptRequested(): boolean {
+		return (this.interruptPromise !== undefined);
+	}
+	private get isInterrupting(): boolean {
+		return (this.interruptPromise !== undefined) && (this.queuedInterruptTask === undefined);
+	}
+
+	private queuedResumeTask?: DelayedTask<void> = undefined;
+	private resumePromise?: Promise<void> = undefined;
+	private get isResumeRequested(): boolean {
+		return (this.resumePromise !== undefined);
+	}
+	private get isResuming(): boolean {
+		return (this.resumePromise !== undefined) && (this.queuedResumeTask === undefined);
+	}
+
+	private queuedTasksToRunOnPausedThread: DelayedTask<any>[] = [];
 	private tasksRunningOnPausedThread = 0;
 
-	/**
-	 * This function will resume the thread and is set by resume(). It will be called when all
-	 * tasks that require the thread to be paused are finished
-	 */
-	private queuedResumeRequest?: () => void;
+	private queuedEvaluateTasks: DelayedTask<VariableAdapter>[] = [];
+	private evaluateTaskIsRunning = false;
 
-	/**
-	 * This flag specifies if the thread is currently being resumed
-	 */
-	private resumeRequestIsRunning = false;
+	constructor(private actor: ThreadActorProxy) {
 
-	/**
-	 * Evaluate requests queued to be run later
-	 */
-	private queuedEvaluateRequests: QueuedRequest<[FirefoxDebugProtocol.Grip, Function]>[] = [];
+		actor.onPaused((reason) => {
+			if (this.threadState === 'evaluating') {
+				actor.resume(this.exceptionBreakpoints);
+			} else {
+				this.threadState = 'paused';
+				this.queuedInterruptTask = undefined;
+				this.interruptPromise = undefined;
+				this.queuedResumeTask = undefined;
+				this.resumePromise = undefined;
+			}
+		});
 
-	/**
-	 * This flag specifies if an evaluate request is currently running
-	 */
-	private evaluateRequestIsRunning = false;
-
-	/**
-	 * Run a (possibly asynchronous) task on the paused thread.
-	 * If the thread is not already paused, it will be paused temporarily and automatically
-	 * resumed when the task is finished (if there are no other reasons to pause the
-	 * thread). The task is passed a callback that must be invoked when the task is finished.
-	 * If the thread is currently being resumed the task is either queued to be executed
-	 * later or rejected, depending on the rejectOnResume flag.
-	 */
-	public runOnPausedThread<T>(task: (finished: () => void) => T | Promise<T>, rejectOnResume = true): Promise<T> {
-
-		if (!this.resumeRequestIsRunning) {
-
-			this.tasksRunningOnPausedThread++;
-			log.debug(`Starting task on paused thread (now running: ${this.tasksRunningOnPausedThread})`);
-
-			return new Promise<T>((resolve, reject) => {
-				let result = this.actor.interrupt().then(
-					() => task(() => this.taskFinished()));
-				resolve(result);
-			});
-
-		} else if (!rejectOnResume) {
-
-			log.debug('Queueing task to be run on paused thread');
-			let resultPromise = new Promise<T>((resolve, reject) => {
-
-				let send = () => {
-					this.tasksRunningOnPausedThread++;
-					log.debug(`Starting task on paused thread (now running: ${this.tasksRunningOnPausedThread})`);
-
-					let result = this.actor.interrupt().then(
-						() => task(() => this.taskFinished()));
-					resolve(result);
-					return result;
-				};
-
-				this.queuedtasksRunningOnPausedThread.push({ send, resolve, reject});
-			});
-
-			return resultPromise;
-
-		} else {
-			return Promise.reject('Resuming');
-		}
+		actor.onResumed(() => {
+			this.threadState = 'running';
+			this.queuedInterruptTask = undefined;
+			this.interruptPromise = undefined;
+			this.queuedResumeTask = undefined;
+			this.resumePromise = undefined;
+			if (this.tasksRunningOnPausedThread > 0) {
+				log.warn('Thread resumed unexpectedly while tasks that need the thread to be paused were running');
+			}
+		});
 	}
 
 	public setExceptionBreakpoints(exceptionBreakpoints: ExceptionBreakpoints) {
 		this.exceptionBreakpoints = exceptionBreakpoints;
-		// the exceptionBreakpoints setting can only be sent to firefox when the thread is resumed,
-		// so we start a dummy task that will pause the thread temporarily
-		this.runOnPausedThread((finished) => finished());
+		if ((this.threadState === 'resuming') || (this.threadState === 'running')) {
+			this.runOnPausedThread(async () => undefined, undefined, false);
+		}
 	}
 
 	public interrupt(): Promise<void> {
-		return this.actor.interrupt(false).then(() => {
-			this.desiredThreadState = ThreadState.Paused;
-		});
-	}
 
-	/**
-	 * Resume the thread (once all tasks that require the thread to be paused are finished).
-	 * This will call the releaseResources function and wait until the returned Promise is
-	 * resolved before sending the resume request to the thread.
-	 */
-	public resume(
-		releaseResources: () => Promise<void>,
-		resumeLimit?: 'next' | 'step' | 'finish'): Promise<void> {
+		if (this.threadState === 'paused') {
 
-		return new Promise<void>((resolve, reject) => {
+			return Promise.resolve();
 
-			this.queuedResumeRequest = () => {
+		} else if (this.isInterruptRequested) {
 
-				switch (resumeLimit) {
-					case 'next':
-						this.desiredThreadState = ThreadState.StepOver;
-						break;
-					case 'step':
-						this.desiredThreadState = ThreadState.StepIn;
-						break;
-					case 'finish':
-						this.desiredThreadState = ThreadState.StepOut;
-						break;
-					default:
-						this.desiredThreadState = ThreadState.Running;
-						break;
-				}
-
-				releaseResources()
-				.then(() => this.actor.resume(this.exceptionBreakpoints, resumeLimit))
-				.then(
-					() => {
-						this.resumeRequestIsRunning = false;
-						resolve();
-						this.doNext();
-					},
-					(err) => {
-						this.resumeRequestIsRunning = false;
-						reject(err);
-						this.doNext();
-					});
-			};
-
-			this.doNext();
-		});
-	}
-
-	/**
-	 * Evaluate the given expression on the specified StackFrame.
-	 */
-	public evaluate(expr: string, frameActorName: string): Promise<[FirefoxDebugProtocol.Grip, Function]> {
-		return new Promise<[FirefoxDebugProtocol.Grip, Function]>((resolve, reject) => {
-
-			let send = () =>
-			this.actor.interrupt().then(() =>
-			this.actor.evaluate(expr, frameActorName)).then(
-				(grip) => <[FirefoxDebugProtocol.Grip, Function]>[grip, () => this.evaluateFinished()],
-				(err) => {
-					this.evaluateFinished();
-					throw err;
-				});
-
-			this.queuedEvaluateRequests.push({ send, resolve, reject });
-			this.doNext();
-		});
-	}
-
-	/**
-	 * Evaluate the given expression using the consoleActor.
-	 */
-	public consoleEvaluate(expr: string): Promise<[FirefoxDebugProtocol.Grip, Function]> {
-		return new Promise<[FirefoxDebugProtocol.Grip, Function]>((resolve, reject) => {
-
-			let send = () =>
-			//TODO handle undefined consoleActor!
-			this.consoleActor!.evaluate(expr).then(
-				(grip) => <[FirefoxDebugProtocol.Grip, Function]>[grip, () => this.evaluateFinished()],
-				(err) => {
-					this.evaluateFinished();
-					throw err;
-				});
-
-			this.queuedEvaluateRequests.push({ send, resolve, reject });
-			this.doNext();
-		});
-	}
-
-	/**
-	 * This method is called when a task started with runOnPausedThread() is finished.
-	 */
-	private taskFinished() {
-		this.tasksRunningOnPausedThread--;
-		log.debug(`Task finished on paused thread (remaining: ${this.tasksRunningOnPausedThread})`);
-		this.doNext();
-	}
-
-	/**
-	 * This method is called when an evaluateRequest is finished.
-	 */
-	private evaluateFinished() {
-		log.debug('Evaluate finished');
-		this.evaluateRequestIsRunning = false;
-		this.doNext();
-	}
-
-	/**
-	 * Figure out what to do next after some task is finished or has been enqueued.
-	 */
-	private doNext() {
-
-		if ((this.tasksRunningOnPausedThread > 0) || this.resumeRequestIsRunning) {
-			return;
-		}
-
-		if (this.queuedtasksRunningOnPausedThread.length > 0) {
-
-			this.queuedtasksRunningOnPausedThread.forEach((queuedTask) => queuedTask.send());
-			this.queuedtasksRunningOnPausedThread = [];
-
-		} else if (this.queuedResumeRequest) {
-
-			this.resumeRequestIsRunning = true;
-			let resumeRequest = this.queuedResumeRequest;
-			this.queuedResumeRequest = undefined;
-			resumeRequest();
-
-		} else if ((this.queuedEvaluateRequests.length > 0) && !this.evaluateRequestIsRunning) {
-
-			this.evaluateRequestIsRunning = true;
-			let queuedEvaluateRequest = this.queuedEvaluateRequests.shift()!;
-			queuedEvaluateRequest.send().then(
-				([grip, finished]) => {
-					queuedEvaluateRequest.resolve([grip, finished]);
-					this.doNext();
-				},
-				(err) => {
-					this.evaluateRequestIsRunning = false;
-					queuedEvaluateRequest.reject(err);
-					this.doNext();
-				});
+			return this.interruptPromise!;
 
 		} else {
 
-			switch (this.desiredThreadState) {
-				case ThreadState.Running:
-					this.actor.resume(this.exceptionBreakpoints);
-					break;
-				case ThreadState.StepOver:
-					this.actor.resume(this.exceptionBreakpoints, 'next');
-					break;
-				case ThreadState.StepIn:
-					this.actor.resume(this.exceptionBreakpoints, 'step');
-					break;
-				case ThreadState.StepOut:
-					this.actor.resume(this.exceptionBreakpoints, 'finish');
-					break;
-			}
+			this.queuedInterruptTask = new DelayedTask(() => this.actor.interrupt(false));
+			this.interruptPromise = this.queuedInterruptTask.promise;
+
+			this.doNext();
+
+			return this.interruptPromise;
+
 		}
+	}
+
+	public resume(
+		releaseResourcesTask?: () => Promise<void>, 
+		resumeLimit?: 'next' | 'step' | 'finish'): Promise<void> {
+
+		if (this.threadState === 'running') {
+
+			return Promise.resolve();
+
+		} else if (this.isResumeRequested) {
+
+			return this.resumePromise!;
+
+		} else {
+
+			this.queuedResumeTask = new DelayedTask(async () => {
+				if (releaseResourcesTask !== undefined) {
+					await releaseResourcesTask();
+				}
+				await this.actor.resume(this.exceptionBreakpoints, resumeLimit);
+			});
+			this.resumePromise = this.queuedResumeTask.promise;
+
+			this.doNext();
+
+			return this.resumePromise;
+
+		}
+	}
+
+	public runOnPausedThread<T>(
+		mainTask: () => Promise<T>,
+		postprocessingTask?: (result: T) => Promise<void>,
+		rejectIfResuming = true): Promise<T> {
+
+		if (this.isResuming && rejectIfResuming) {
+			return Promise.reject('Resuming');
+		}
+
+		let delayedTask = new DelayedTask(mainTask, postprocessingTask);
+		this.queuedTasksToRunOnPausedThread.push(delayedTask);
+		this.doNext();
+		return delayedTask.promise;
+	}
+
+	public evaluate(expr: string, frameActorName: string,
+		convert: (grip: FirefoxDebugProtocol.Grip) => VariableAdapter,
+		postprocess: (result: VariableAdapter) => Promise<void>): Promise<VariableAdapter> {
+
+		if ((this.threadState === 'resuming') || (this.threadState === 'running')) {
+			return Promise.reject(`The thread is ${this.threadState}`);
+		}
+
+		let evaluateTask = async () => {
+			let grip = await this.actor.evaluate(expr, frameActorName);
+			return convert(grip);
+		};
+
+		let delayedTask = new DelayedTask(evaluateTask, postprocess);
+		this.queuedEvaluateTasks.push(delayedTask);
+		this.doNext();
+
+		return delayedTask.promise;
+	}
+
+	private doNext(): void {
+
+		log.debug(`state: ${this.threadState}, interrupt: ${this.isSet(this.queuedInterruptTask)}/${this.isSet(this.interruptPromise)}, resume: ${this.isSet(this.queuedResumeTask)}/${this.isSet(this.resumePromise)}, tasks: ${this.tasksRunningOnPausedThread}/${this.queuedTasksToRunOnPausedThread.length}, eval: ${this.queuedEvaluateTasks}`)
+
+		if ((this.threadState === 'interrupting') ||
+			(this.threadState === 'resuming') ||
+			(this.threadState === 'evaluating')) {
+			return;
+		}
+
+		if (this.queuedInterruptTask !== undefined) { // => this.threadState === 'running'
+			this.executeInterruptTask();
+			return;
+		}
+
+		if (this.queuedTasksToRunOnPausedThread.length > 0) {
+
+			if (this.threadState === 'paused') {
+
+				for (let task of this.queuedTasksToRunOnPausedThread) {
+					this.executeOnPausedThread(task);
+				}
+				this.queuedTasksToRunOnPausedThread = [];
+
+			} else { // => this.threadState === 'running'
+
+				this.queuedInterruptTask = new DelayedTask(() => this.actor.interrupt(true));
+				this.interruptPromise = this.queuedInterruptTask.promise;
+				this.queuedResumeTask = new DelayedTask(() => this.actor.resume(this.exceptionBreakpoints));
+				this.resumePromise = this.queuedResumeTask.promise;
+				this.doNext();
+
+			}
+			return;
+		}
+
+		if (this.tasksRunningOnPausedThread > 0) {
+			return;
+		}
+
+		if (this.queuedEvaluateTasks.length > 0) {
+
+			if (this.threadState === 'paused') {
+
+				let task = this.queuedEvaluateTasks.shift()!;
+				this.executeEvaluateTask(task);
+
+			} else { // => threadState === 'running'
+
+				for (let task of this.queuedEvaluateTasks) {
+					task.cancel(`Thread is ${this.threadState}`);
+				}
+				this.queuedEvaluateTasks = [];
+				this.doNext();
+
+			}
+			return;
+		}
+
+		if (this.queuedResumeTask !== undefined) {
+			this.executeResumeTask();
+			return;
+		}
+	}
+
+	private async executeInterruptTask(): Promise<void> {
+
+		if (this.threadState !== 'running') {
+			log.error(`executeInterruptTask called but threadState is ${this.threadState}`);
+			return;
+		}
+		if (this.queuedInterruptTask === undefined) {
+			log.error('executeInterruptTask called but there is no queuedInterruptTask');
+			return;
+		}
+
+		let interruptTask = this.queuedInterruptTask;
+		this.queuedInterruptTask = undefined;
+
+		this.threadState = 'interrupting';
+		try {
+			await interruptTask.execute();
+			this.threadState = 'paused';
+		} catch(e) {
+			log.error(`interruptTask failed: ${e}`);
+			this.threadState = 'running';
+		}
+
+		this.interruptPromise = undefined;
+
+		this.doNext();
+	}
+
+	private async executeResumeTask(): Promise<void> {
+
+		if (this.threadState !== 'paused') {
+			log.error(`executeResumeTask called but threadState is ${this.threadState}`);
+			return;
+		}
+		if (this.tasksRunningOnPausedThread > 0) {
+			log.error(`executeResumeTask called but tasksRunningOnPausedThread is ${this.tasksRunningOnPausedThread}`);
+			return;
+		}
+		if (this.queuedResumeTask === undefined) {
+			log.error('executeResumeTask called but there is no queuedResumeTask');
+			return;
+		}
+
+		let resumeTask = this.queuedResumeTask;
+		this.queuedResumeTask = undefined;
+
+		this.threadState = 'resuming';
+		try {
+			await resumeTask.execute();
+			this.threadState = 'running';
+		} catch(e) {
+			log.error(`resumeTask failed: ${e}`);
+			this.threadState = 'paused';
+		}
+
+		this.resumePromise = undefined;
+
+		this.doNext();
+	}
+
+	private async executeOnPausedThread(task: DelayedTask<any>): Promise<void> {
+
+		if (this.threadState !== 'paused') {
+			log.error(`executeOnPausedThread called but threadState is ${this.threadState}`);
+			return;
+		}
+
+		this.tasksRunningOnPausedThread++;
+		try {
+			await task.execute();
+		} catch(e) {
+			log.warn(`task running on paused thread failed: ${e}`);
+		}
+		this.tasksRunningOnPausedThread--;
+
+		if (this.tasksRunningOnPausedThread === 0) {
+			this.doNext();
+		}
+	}
+
+	private async executeEvaluateTask(task: DelayedTask<VariableAdapter>): Promise<void> {
+
+		if (this.threadState !== 'paused') {
+			log.error(`executeEvaluateTask called but threadState is ${this.threadState}`);
+			return;
+		}
+		if (this.tasksRunningOnPausedThread > 0) {
+			log.error(`executeEvaluateTask called but tasksRunningOnPausedThread is ${this.tasksRunningOnPausedThread}`);
+			return;
+		}
+
+		this.threadState = 'evaluating';
+		try {
+			await task.execute();
+		} catch(e) {
+			log.warn(`evaluateTask failed: ${e}`);
+		}
+		this.threadState = 'paused';
+
+		this.doNext();
+	}
+
+	private isSet(val: any): string {
+		return (val === undefined) ? 'N' : 'Y';
 	}
 }

@@ -278,32 +278,48 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected async evaluate(args: DebugProtocol.EvaluateArguments): Promise<{ result: string, type?: string, variablesReference: number, namedVariables?: number, indexedVariables?: number }> {
 
-		let threadAdapter: ThreadAdapter | undefined;
-		let frameActorName: string | undefined; 
+		let variable: Variable;
 
-		if (args.frameId) {
+		if (args.context === 'watch') {
+
+			if (args.frameId === undefined) {
+				throw new Error('Failed evaluateRequest: can\'t evaluate a watch without a frame');
+			}
 
 			let frameAdapter = this.framesById.get(args.frameId);
 			if (!frameAdapter) {
 				throw new Error('Failed evaluateRequest: the requested frame can\'t be found');
 			}
 
-			threadAdapter = frameAdapter.threadAdapter;
-			frameActorName = frameAdapter.frame.actor;
+			let threadAdapter = frameAdapter.threadAdapter;
+			let frameActorName = frameAdapter.frame.actor;
+
+			variable = await threadAdapter.evaluate(args.expression, frameActorName!);
 
 		} else {
+
+			let threadAdapter: ThreadAdapter | undefined;
 			for (let i = 1; i < this.nextThreadId; i++) {
 				if (this.threadsById.has(i)) {
 					threadAdapter = this.threadsById.get(i)!;
 					break;
 				}
 			}
-			if (!threadAdapter) {
+
+			if (threadAdapter === undefined) {
 				throw new Error(`Couldn't find a thread to use for evaluating ${args.expression}`);
 			}
-		}
 
-		let variable = await threadAdapter.evaluate(args.expression, frameActorName, (args.context !== 'watch'));
+			let frameActorName: string | undefined = undefined;
+			if (args.frameId !== undefined) {
+				let frameAdapter = this.framesById.get(args.frameId);
+				if (frameAdapter !== undefined) {
+					frameActorName = frameAdapter.frame.actor;
+				}
+			}
+
+			variable = await threadAdapter.consoleEvaluate(args.expression, frameActorName);
+		}
 
 		return {
 			result: variable.value,

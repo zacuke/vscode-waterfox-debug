@@ -44,16 +44,18 @@ export class ThreadAdapter {
 		this._debugAdapter = debugAdapter;
 	}
 
-	public init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
+	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
+
 		this.actor.onPaused((reason) => {
 			this.completionValue = reason.frameFinished;
 		});
-		this.coordinator = new ThreadCoordinator(this.actor, this.consoleActor);
-		return this.actor.attach().then(() => {
-			this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
-			return this.actor.fetchSources().then(
-				() => this.coordinator.resume(() => Promise.resolve(undefined)));
-		});
+
+		this.coordinator = new ThreadCoordinator(this.actor);
+
+		await this.actor.attach();
+		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
+		await this.actor.fetchSources();
+		this.coordinator.resume();
 	}
 
 	public createSourceAdapter(id: number, actor: SourceActorProxy, path?: string): SourceAdapter {
@@ -138,35 +140,36 @@ export class ThreadAdapter {
 	}
 
 	private fetchAllStackFrames(): Promise<FrameAdapter[]> {
-		return this.coordinator.runOnPausedThread((finished) =>
+		return this.coordinator.runOnPausedThread(
 
-			this.actor.fetchStackFrames().then(
-				(frames) => {
-					let frameAdapters = frames.map((frame) => {
-						let frameAdapter = new FrameAdapter(frame, this);
-						this._debugAdapter.registerFrameAdapter(frameAdapter);
-						this.frames.push(frameAdapter);
-						return frameAdapter;
-					});
+			async () => {
 
-					if (frameAdapters.length > 0) {
-						frameAdapters[0].scopeAdapters[0].addCompletionValue(this.completionValue);
-					}
+				let frames = await this.actor.fetchStackFrames();
 
-					let objectGripAdapters = concatArrays(frameAdapters.map(
-						(frameAdapter) => frameAdapter.getObjectGripAdapters()));
+				let frameAdapters = frames.map((frame) => {
+					let frameAdapter = new FrameAdapter(frame, this);
+					this._debugAdapter.registerFrameAdapter(frameAdapter);
+					this.frames.push(frameAdapter);
+					return frameAdapter;
+				});
 
-					let extendLifetimePromises = objectGripAdapters.map((objectGripAdapter) =>
-						objectGripAdapter.actor.extendLifetime().catch((err) => undefined));
+				if (frameAdapters.length > 0) {
+					frameAdapters[0].scopeAdapters[0].addCompletionValue(this.completionValue);
+				}
 
-					Promise.all(extendLifetimePromises).then(() => finished());
+				return frameAdapters;
+			},
 
-					return frameAdapters;
-				},
-				(err) => {
-					finished();
-					throw err;
-				})
+			async (frameAdapters) => {
+
+				let objectGripAdapters = concatArrays(frameAdapters.map(
+					(frameAdapter) => frameAdapter.getObjectGripAdapters()));
+
+				let extendLifetimePromises = objectGripAdapters.map((objectGripAdapter) =>
+					objectGripAdapter.actor.extendLifetime().catch((err) => undefined));
+
+				await Promise.all(extendLifetimePromises);
+			}
 		);
 	}
 
@@ -186,61 +189,63 @@ export class ThreadAdapter {
 		})
 	}
 
-	public fetchVariables(variablesProvider: VariablesProvider): Promise<Variable[]> {
-		return this.coordinator.runOnPausedThread((finished) =>
-			variablesProvider.getVariables().then(
-				(variableAdapters) => {
+	public async fetchVariables(variablesProvider: VariablesProvider): Promise<Variable[]> {
 
-					let objectGripAdapters = variableAdapters
-						.map((variableAdapter) => variableAdapter.objectGripAdapter)
-						.filter((objectGripAdapter) => (objectGripAdapter !== undefined));
+		let variableAdapters = await this.coordinator.runOnPausedThread(
 
-					let extendLifetimePromises = objectGripAdapters.map((objectGripAdapter) =>
-						objectGripAdapter!.actor.extendLifetime().catch((err) => undefined));
+			() => variablesProvider.getVariables(),
 
-					Promise.all(extendLifetimePromises).then(() => finished());
+			async (variableAdapters) => {
 
-					return variableAdapters.map(
-						(variableAdapter) => variableAdapter.getVariable());
+				let objectGripAdapters = variableAdapters
+					.map((variableAdapter) => variableAdapter.objectGripAdapter)
+					.filter((objectGripAdapter) => (objectGripAdapter !== undefined));
 
-				},
-				(err) => {
-					finished();
-					throw err;
-				}
-			)
+				let extendLifetimePromises = objectGripAdapters.map((objectGripAdapter) =>
+					objectGripAdapter!.actor.extendLifetime().catch((err) => undefined));
+
+				await Promise.all(extendLifetimePromises);
+			}
 		);
+
+		return variableAdapters.map((variableAdapter) => variableAdapter.getVariable());
 	}
 
-	public evaluate(expression: string, frameActorName: string | undefined, threadLifetime: boolean): Promise<Variable> {
+	public async evaluate(expr: string, frameActorName: string): Promise<Variable> {
 
-		let evaluatePromise: Promise<[FirefoxDebugProtocol.Grip, Function]>;
-		if (frameActorName) {
-			evaluatePromise = this.coordinator.evaluate(expression, frameActorName);
+		let variableAdapter = await this.coordinator.evaluate(expr, frameActorName,
+
+			(grip) => {
+				if (grip) { //TODO can be undefined, but also false or 0 or ''...
+					return VariableAdapter.fromGrip('', grip, false, this);
+				} else {
+					return new VariableAdapter('', 'undefined');
+				}
+			},
+
+			async (variableAdapter) => {
+				let objectGripAdapter = variableAdapter.objectGripAdapter;
+				if (objectGripAdapter !== undefined) {
+					await objectGripAdapter.actor.extendLifetime();
+				}
+			}
+		);
+
+		return variableAdapter.getVariable();
+	}
+
+	public async consoleEvaluate(expr: string, frameActorName?: string): Promise<Variable> {
+
+		let grip = await this.consoleActor!.evaluate(expr, frameActorName);
+
+		let variableAdapter: VariableAdapter;
+		if (grip) {
+			variableAdapter = VariableAdapter.fromGrip('', grip, true, this);
 		} else {
-			evaluatePromise = this.coordinator.consoleEvaluate(expression);
+			variableAdapter = new VariableAdapter('', 'undefined');
 		}
 
-		return evaluatePromise.then(([grip, finished]) => {
-
-			let variableAdapter: VariableAdapter;
-			if (grip) { //TODO can be undefined, but also false or 0 or ''...
-				variableAdapter = VariableAdapter.fromGrip('', grip, threadLifetime, this);
-			} else {
-				variableAdapter = new VariableAdapter('', 'undefined');
-			}
-
-			let objectGripAdapter = variableAdapter.objectGripAdapter;
-			if (objectGripAdapter) {
-				objectGripAdapter.actor.extendLifetime().then(
-					() => finished(),
-					(err) => finished());
-			} else {
-				finished();
-			}
-
-			return variableAdapter.getVariable();
-		});
+		return variableAdapter.getVariable();
 	}
 
 	public detach(): Promise<void> {
