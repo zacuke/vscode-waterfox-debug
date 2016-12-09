@@ -22,7 +22,7 @@ export class FirefoxDebugSession extends DebugSession {
 	private firefoxDebugConnection: DebugConnection;
 	private firefoxDebugSocketClosed: boolean;
 
-	private pathMappings: [string, string][] = [];
+	private pathMappings: [string | RegExp, string][] = [];
 	private addonType: AddonType;
 	private addonId: string;
 	private addonPath: string;
@@ -128,15 +128,33 @@ export class FirefoxDebugSession extends DebugSession {
 
 			let [from, to] = this.pathMappings[i];
 
-			if (url.substr(0, from.length) === from) {
+			if (typeof from === 'string') {
 
-				let path = to + url.substr(from.length);
-				if (this.isWindowsPlatform) {
-					path = path.replace(/\//g, '\\');
+				if (url.substr(0, from.length) === from) {
+
+					let path = to + url.substr(from.length);
+					if (this.isWindowsPlatform) {
+						path = path.replace(/\//g, '\\');
+					}
+
+					pathConversionLog.debug(`Converted url ${url} to path ${path}`);
+					return path;
 				}
 
-				pathConversionLog.debug(`Converted url ${url} to path ${path}`);
-				return path;
+			} else {
+
+				let match = from.exec(url);
+				if (match) {
+
+					let path = to + match[1];
+					if (this.isWindowsPlatform) {
+						path = path.replace(/\//g, '\\');
+					}
+
+					pathConversionLog.debug(`Converted url ${url} to path ${path}`);
+					return path;
+				}
+
 			}
 		}
 
@@ -255,12 +273,24 @@ export class FirefoxDebugSession extends DebugSession {
 			}
 
 			if (this.addonType === 'addonSdk') {
+
 				let rewrittenAddonId = addonIdOrErrorMsg.replace("@", "-at-");
 				let sanitizedAddonPath = this.addonPath;
 				if (sanitizedAddonPath[sanitizedAddonPath.length - 1] === '/') {
 					sanitizedAddonPath = sanitizedAddonPath.substr(0, sanitizedAddonPath.length - 1);
 				}
 				this.pathMappings.push([ 'resource://' + rewrittenAddonId, sanitizedAddonPath ]);
+
+			} else if (this.addonType === 'webExtension') {
+
+				let rewrittenAddonId = this.addonId.replace('{', '%7B').replace('}', '%7D');
+				let regExp = new RegExp(`^jar:file:.*/extensions/${rewrittenAddonId}.xpi!(.*)$`);
+				let sanitizedAddonPath = this.addonPath;
+				if (sanitizedAddonPath[sanitizedAddonPath.length - 1] === '/') {
+					sanitizedAddonPath = sanitizedAddonPath.substr(0, sanitizedAddonPath.length - 1);
+				}
+				this.pathMappings.push([ regExp, sanitizedAddonPath ]);
+
 			}
 
 		} else if (args.addonPath) {
