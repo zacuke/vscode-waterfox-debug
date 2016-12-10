@@ -1,3 +1,6 @@
+### Version 0.7.7
+* fix debugging of WebExtension content scripts in recent Firefox builds
+
 ### Version 0.7.6
 * bugfix: breakpoints were sometimes not hit after a page reload
 
