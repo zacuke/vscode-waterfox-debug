@@ -108,12 +108,6 @@ export class FirefoxDebugSession extends DebugSession {
 			pathConversionLog.debug(`Sourcemapped path: ${sourcePath}`);
 			return sourcePath;
 
-		} else if ((this.addonType === 'webExtension') && (source.url.substr(0, 16) === 'moz-extension://')) {
-
-			let sourcePath = path.join(this.addonPath, source.url.substr(source.url.indexOf('/', 16)));
-			pathConversionLog.debug(`WebExtension script path: ${sourcePath}`);
-			return sourcePath;
-
 		} else {
 			return this.convertFirefoxUrlToPath(source.url);
 		}
@@ -284,12 +278,12 @@ export class FirefoxDebugSession extends DebugSession {
 			} else if (this.addonType === 'webExtension') {
 
 				let rewrittenAddonId = this.addonId.replace('{', '%7B').replace('}', '%7D');
-				let regExp = new RegExp(`^jar:file:.*/extensions/${rewrittenAddonId}.xpi!(.*)$`);
 				let sanitizedAddonPath = this.addonPath;
 				if (sanitizedAddonPath[sanitizedAddonPath.length - 1] === '/') {
 					sanitizedAddonPath = sanitizedAddonPath.substr(0, sanitizedAddonPath.length - 1);
 				}
-				this.pathMappings.push([ regExp, sanitizedAddonPath ]);
+				this.pathMappings.push([ new RegExp('^moz-extension://[0-9a-f-]*(/.*)$'), sanitizedAddonPath]);
+				this.pathMappings.push([ new RegExp(`^jar:file:.*/extensions/${rewrittenAddonId}.xpi!(/.*)$`), sanitizedAddonPath ]);
 
 			}
 
