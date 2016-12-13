@@ -26,33 +26,32 @@ export class ObjectGripAdapter implements VariablesProvider {
 	 * get the referenced object's properties and its prototype as an array of Variables.
 	 * This method can only be called when the thread is paused.
 	 */
-	public getVariables(): Promise<VariableAdapter[]> {
+	public async getVariables(): Promise<VariableAdapter[]> {
 
-		return this.actor.fetchPrototypeAndProperties().then((prototypeAndProperties) => {
+		let prototypeAndProperties = await this.actor.fetchPrototypeAndProperties();
 
-			let variables: VariableAdapter[] = [];
+		let variables: VariableAdapter[] = [];
 
-			for (let varname in prototypeAndProperties.ownProperties) {
-				variables.push(VariableAdapter.fromPropertyDescriptor(varname,
-					prototypeAndProperties.ownProperties[varname], this.isThreadLifetime, this.threadAdapter));
+		for (let varname in prototypeAndProperties.ownProperties) {
+			variables.push(VariableAdapter.fromPropertyDescriptor(varname,
+				prototypeAndProperties.ownProperties[varname], this.isThreadLifetime, this.threadAdapter));
+		}
+
+		if (prototypeAndProperties.safeGetterValues) {
+			for (let varname in prototypeAndProperties.safeGetterValues) {
+				variables.push(VariableAdapter.fromSafeGetterValueDescriptor(varname, 
+					prototypeAndProperties.safeGetterValues[varname], this.isThreadLifetime, this.threadAdapter));
 			}
+		}
 
-			if (prototypeAndProperties.safeGetterValues) {
-				for (let varname in prototypeAndProperties.safeGetterValues) {
-					variables.push(VariableAdapter.fromSafeGetterValueDescriptor(varname, 
-						prototypeAndProperties.safeGetterValues[varname], this.isThreadLifetime, this.threadAdapter));
-				}
-			}
+		VariableAdapter.sortVariables(variables);
 
-			VariableAdapter.sortVariables(variables);
+		if (prototypeAndProperties.prototype.type !== 'null') {
+			variables.push(VariableAdapter.fromGrip('__proto__', 
+				prototypeAndProperties.prototype, this.isThreadLifetime, this.threadAdapter));
+		}
 
-			if (prototypeAndProperties.prototype.type !== 'null') {
-				variables.push(VariableAdapter.fromGrip('__proto__', 
-					prototypeAndProperties.prototype, this.isThreadLifetime, this.threadAdapter));
-			}
-
-			return variables;
-		});
+		return variables;
 	}
 
 	public dispose(): void {

@@ -43,13 +43,12 @@ export async function initDebugClientForAddon(testDataPath: string, addonType: A
 	return dc;
 }
 
-export function receivePageLoadedEvent(dc: DebugClient): Promise<void> {
-	return dc.waitForEvent('output').then((ev: DebugProtocol.OutputEvent) => {
-		let outputMsg = ev.body.output.trim();
-		if (outputMsg !== 'Loaded') {
-			throw new Error(`Wrong output message '${outputMsg}'`);
-		}
-	});
+export async function receivePageLoadedEvent(dc: DebugClient): Promise<void> {
+	let ev = await dc.waitForEvent('output');
+	let outputMsg = ev.body.output.trim();
+	if (outputMsg !== 'Loaded') {
+		throw new Error(`Wrong output message '${outputMsg}'`);
+	}
 }
 
 export function setBreakpoints(dc: DebugClient, sourcePath: string, breakpointLines: number[]): Promise<DebugProtocol.SetBreakpointsResponse> {

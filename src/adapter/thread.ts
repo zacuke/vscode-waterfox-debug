@@ -160,20 +160,13 @@ export class ThreadAdapter {
 		);
 	}
 
-	public fetchStackFrames(start: number, count: number): Promise<[FrameAdapter[], number]> {
-		let stackFramesPromise = (this.frames.length > 0) ?
-			Promise.resolve(this.frames) :
-			this.fetchAllStackFrames();
+	public async fetchStackFrames(start: number, count: number): Promise<[FrameAdapter[], number]> {
 
-		return stackFramesPromise.then((frameAdapters) => {
-			let requestedFrames: FrameAdapter[];
-			if (count > 0) {
-				requestedFrames = frameAdapters.slice(start, start + count);
-			} else {
-				requestedFrames = frameAdapters.slice(start);
-			}
-			return [requestedFrames, frameAdapters.length];
-		})
+		let frameAdapters = (this.frames.length > 0) ? this.frames : await this.fetchAllStackFrames();
+
+		let requestedFrames = (count > 0) ? frameAdapters.slice(start, start + count) : frameAdapters.slice(start);
+
+		return [requestedFrames, frameAdapters.length];
 	}
 
 	public async fetchVariables(variablesProvider: VariablesProvider): Promise<Variable[]> {

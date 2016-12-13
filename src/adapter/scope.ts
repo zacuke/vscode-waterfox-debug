@@ -50,25 +50,19 @@ export abstract class ScopeAdapter implements VariablesProvider {
 		return new Scope(this.name, this.variablesProviderId);
 	}
 	
-	public getVariables(): Promise<VariableAdapter[]> {
+	public async getVariables(): Promise<VariableAdapter[]> {
 		
-		let variablesPromise = this.getVariablesInt();
+		let variables = await this.getVariablesInt();
 		
 		if (this.thisVariable) {
-			variablesPromise = variablesPromise.then((vars) => {
-				vars.unshift(this.thisVariable);
-				return vars;
-			});
+			variables.unshift(this.thisVariable);
 		}
 		
 		if (this.completionVariable) {
-			variablesPromise = variablesPromise.then((vars) => {
-				vars.unshift(this.completionVariable);
-				return vars;
-			});
+			variables.unshift(this.completionVariable);
 		}
 		
-		return variablesPromise;
+		return variables;
 	}
 	
 	protected abstract getVariablesInt(): Promise<VariableAdapter[]>;

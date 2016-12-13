@@ -49,12 +49,11 @@ describe('Firefox debug adapter', function() {
 		assert.equal(setBreakpointsResponse.body.breakpoints[0].verified, false);
 		let breakpointId = setBreakpointsResponse.body.breakpoints[0].id;
 
-		await util.receiveBreakpointEvent(dc).then((ev) => {
-			assert.equal(ev.body.reason, 'update');
-			assert.equal(ev.body.breakpoint.id, breakpointId);
-			assert.equal(ev.body.breakpoint.verified, true);
-			assert.equal(ev.body.breakpoint.line, 3);
-		});
+		let ev = await util.receiveBreakpointEvent(dc);
+		assert.equal(ev.body.reason, 'update');
+		assert.equal(ev.body.breakpoint.id, breakpointId);
+		assert.equal(ev.body.breakpoint.verified, true);
+		assert.equal(ev.body.breakpoint.line, 3);
 	});
 
 	it('should eventually move and verify a breakpoint set before the page is loaded', async function() {
@@ -66,12 +65,11 @@ describe('Firefox debug adapter', function() {
 		assert.equal(setBreakpointsResponse.body.breakpoints[0].verified, false);
 		let breakpointId = setBreakpointsResponse.body.breakpoints[0].id;
 
-		await util.receiveBreakpointEvent(dc).then((ev) => {
-			assert.equal(ev.body.reason, 'update');
-			assert.equal(ev.body.breakpoint.id, breakpointId);
-			assert.equal(ev.body.breakpoint.verified, true);
-			assert.equal(ev.body.breakpoint.line, 3);
-		});
+		let ev = await util.receiveBreakpointEvent(dc);
+		assert.equal(ev.body.reason, 'update');
+		assert.equal(ev.body.breakpoint.id, breakpointId);
+		assert.equal(ev.body.breakpoint.verified, true);
+		assert.equal(ev.body.breakpoint.line, 3);
 	});
 
 	it('should eventually verify a breakpoint set on a dynamically loaded script', async function() {
@@ -87,11 +85,10 @@ describe('Firefox debug adapter', function() {
 
 		util.evaluate(dc, 'loadScript("dlscript.js")');
 
-		await util.receiveBreakpointEvent(dc).then((ev) => {
-			assert.equal(ev.body.reason, 'update');
-			assert.equal(ev.body.breakpoint.id, breakpointId);
-			assert.equal(ev.body.breakpoint.verified, true);
-			assert.equal(ev.body.breakpoint.line, 3);
-		});
+		let ev = await util.receiveBreakpointEvent(dc);
+		assert.equal(ev.body.reason, 'update');
+		assert.equal(ev.body.breakpoint.id, breakpointId);
+		assert.equal(ev.body.breakpoint.verified, true);
+		assert.equal(ev.body.breakpoint.line, 3);
 	});
 });
