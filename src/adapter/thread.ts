@@ -30,7 +30,6 @@ export class ThreadAdapter {
 
 	private objectGripAdaptersByActorName = new Map<string, ObjectGripAdapter>();
 	private pauseLifetimeObjects: ObjectGripAdapter[] = [];
-	private threadLifetimeObjects: ObjectGripAdapter[] = [];
 
 	private completionValue?: FirefoxDebugProtocol.CompletionValue;
 
@@ -68,23 +67,11 @@ export class ThreadAdapter {
 
 		let objectGripAdapter = this.objectGripAdaptersByActorName.get(objectGrip.actor);
 
-		if (objectGripAdapter !== undefined) {
+		if (objectGripAdapter === undefined) {
 
-			// extend the lifetime of the found ObjectGripAdapter if necessary
-			if (threadLifetime && !objectGripAdapter.isThreadLifetime) {
-				this.pauseLifetimeObjects.splice(this.pauseLifetimeObjects.indexOf(objectGripAdapter), 1);
-				this.threadLifetimeObjects.push(objectGripAdapter);
-				objectGripAdapter.isThreadLifetime = true;
-			}
-
-		} else {
-
-			// create new ObjectGripAdapter
 			objectGripAdapter = new ObjectGripAdapter(objectGrip, threadLifetime, this);
 			this.objectGripAdaptersByActorName.set(objectGrip.actor, objectGripAdapter);
-			if (threadLifetime) {
-				this.threadLifetimeObjects.push(objectGripAdapter);
-			} else {
+			if (!threadLifetime) {
 				this.pauseLifetimeObjects.push(objectGripAdapter);
 			}
 
@@ -201,10 +188,13 @@ export class ThreadAdapter {
 					.map((variableAdapter) => variableAdapter.objectGripAdapter)
 					.filter((objectGripAdapter) => (objectGripAdapter !== undefined));
 
-				let extendLifetimePromises = objectGripAdapters.map((objectGripAdapter) =>
-					objectGripAdapter!.actor.extendLifetime().catch((err) => undefined));
+				if (!variablesProvider.isThreadLifetime) {
 
-				await Promise.all(extendLifetimePromises);
+					let extendLifetimePromises = objectGripAdapters.map((objectGripAdapter) =>
+						objectGripAdapter!.actor.extendLifetime().catch((err) => undefined));
+
+					await Promise.all(extendLifetimePromises);
+				}
 			}
 		);
 

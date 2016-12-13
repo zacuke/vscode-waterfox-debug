@@ -377,7 +377,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
 		} else if (response['error'] === 'notReleasable') {
 
-			log.error('Error releasing threadGrips');
+			log.warn('Error releasing threadGrips; this is probably due to Firefox bug #1249962');
 			this.pendingReleaseRequests.rejectOne('Not releasable');
 
 		} else if (response['error'] === 'unknownFrame') {

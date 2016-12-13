@@ -4,6 +4,7 @@ import { Scope, Variable } from 'vscode-debugadapter';
 export interface VariablesProvider {
 	variablesProviderId: number;
 	threadAdapter: ThreadAdapter;
+	isThreadLifetime: boolean;
 	getVariables(): Promise<VariableAdapter[]>;
 }
 
@@ -14,6 +15,7 @@ export abstract class ScopeAdapter implements VariablesProvider {
 	public thisVariable: VariableAdapter;
 	public completionVariable: VariableAdapter;
 	public threadAdapter: ThreadAdapter;
+	public isThreadLifetime = false;
 	
 	public constructor(name: string, threadAdapter: ThreadAdapter) {
 		this.threadAdapter = threadAdapter;
