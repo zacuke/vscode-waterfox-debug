@@ -12,7 +12,7 @@ export function urlBasename(url: string): string {
 }
 
 export function delay(timeout: number): Promise<void> {
-	return new Promise((resolve) => {
+	return new Promise<void>((resolve) => {
 		setTimeout(resolve, timeout);
 	});
 }
