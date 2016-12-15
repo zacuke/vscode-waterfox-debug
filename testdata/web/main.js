@@ -66,3 +66,7 @@ var obj = {
 		z: 'xyz'
 	}
 }
+
+function doEval(expr) {
+	return eval(expr);
+}

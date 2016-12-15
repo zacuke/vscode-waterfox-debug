@@ -7,7 +7,7 @@ import { ActorProxy } from './interface';
 let log = Log.create('LongStringGripActorProxy');
 
 export class LongStringGripActorProxy implements ActorProxy {
-	
+
 	private pendingSubstringRequests = new PendingRequests<string>();
 
 	constructor(private grip: FirefoxDebugProtocol.LongStringGrip, private connection: DebugConnection) {
@@ -21,9 +21,9 @@ export class LongStringGripActorProxy implements ActorProxy {
 	public extendLifetime() {
 		this.connection.sendRequest({ to: this.name, type: 'threadGrip' });
 	}
-	
+
 	public fetchContent(): Promise<string> {
-		
+
 		log.debug(`Fetching content from long string ${this.name}`);
 
 		return new Promise<string>((resolve, reject) => {
@@ -31,27 +31,27 @@ export class LongStringGripActorProxy implements ActorProxy {
 			this.connection.sendRequest({ to: this.name, type: 'substring', start: 0, end: this.grip.length });
 		});
 	}
-	
+
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 
 		if (response['substring'] !== undefined) {
-		
+
 			log.debug(`Content fetched from ${this.name}`);
 			this.pendingSubstringRequests.resolveOne(response['substring']);
-			
+
 		} else if (response['error'] === 'noSuchActor') {
-			
+
 			log.warn(`No such actor ${this.grip.actor} - you will not be able to inspect this value; this is probably due to Firefox bug #1249962`);
 			this.pendingSubstringRequests.rejectAll('No such actor');
 
 		} else if (Object.keys(response).length === 1) {
-			
+
 			log.debug('Received response to threadGrip or release request');
-			
+
 		} else {
-			
+
 			log.warn("Unknown message from LongStringActor: " + JSON.stringify(response));
-			
+
 		}
 	}
 }

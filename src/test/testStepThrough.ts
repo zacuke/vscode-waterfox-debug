@@ -85,4 +85,47 @@ describe('Firefox debug adapter', function() {
 		assert.equal(stackTrace.body.stackFrames[0].source!.path, sourcePath);
 		assert.equal(stackTrace.body.stackFrames[0].line, 21);
 	});
+
+	it('should step into an eval()', async function() {
+
+		let evalExpr = 'factorial(5)';
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ 71 ]);
+
+		dc.evaluateRequest({ expression: `doEval('${evalExpr}')`, context: 'repl' });
+		let stoppedEvent = await util.receiveStoppedEvent(dc);
+
+		dc.stepInRequest({ threadId: stoppedEvent.body.threadId! });
+		await util.receiveStoppedEvent(dc);
+
+		let stackTrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId! });
+		let source = await dc.sourceRequest({
+			sourceReference: stackTrace.body.stackFrames[0].source!.sourceReference!
+		});
+		assert.equal(source.body.content, evalExpr);
+	});
+
+	it('should fetch long eval() expressions', async function() {
+
+		let evalExpr = 'factorial(1);';
+		for (let i = 0; i < 12; i++) {
+			evalExpr = evalExpr + evalExpr;
+		}
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ 71 ]);
+
+		dc.evaluateRequest({ expression: `doEval('${evalExpr}')`, context: 'repl' });
+		let stoppedEvent = await util.receiveStoppedEvent(dc);
+
+		dc.stepInRequest({ threadId: stoppedEvent.body.threadId! });
+		await util.receiveStoppedEvent(dc);
+
+		let stackTrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId! });
+		let source = await dc.sourceRequest({
+			sourceReference: stackTrace.body.stackFrames[0].source!.sourceReference!
+		});
+		assert.equal(source.body.content, evalExpr);
+	});
 });
