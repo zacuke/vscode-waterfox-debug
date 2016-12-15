@@ -59,3 +59,10 @@ function startWorker() {
 function callWorker() {
 	worker.postMessage({ foo: 'bar' });
 }
+
+var obj = {
+	x: 17,
+	y: {
+		z: 'xyz'
+	}
+}
