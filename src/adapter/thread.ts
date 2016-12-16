@@ -49,7 +49,7 @@ export class ThreadAdapter {
 			this.completionValue = reason.frameFinished;
 		});
 
-		this.coordinator = new ThreadCoordinator(this.actor);
+		this.coordinator = new ThreadCoordinator(this.actor, () => this.disposePauseLifetimeAdapters());
 
 		await this.actor.attach();
 		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
@@ -102,20 +102,20 @@ export class ThreadAdapter {
 		return this.coordinator.interrupt();
 	}
 
-	public resume(): Promise<void> {
-		return this.coordinator.resume(() => this.disposePauseLifetimeAdapters());
+	public resume(): void {
+		this.coordinator.resume();
 	}
 
-	public stepOver(): Promise<void> {
-		return this.coordinator.resume(() => this.disposePauseLifetimeAdapters(), 'next');
+	public stepOver(): void {
+		this.coordinator.stepOver();
 	}
 
-	public stepIn(): Promise<void> {
-		return this.coordinator.resume(() => this.disposePauseLifetimeAdapters(), 'step');
+	public stepIn(): void {
+		this.coordinator.stepIn();
 	}
 
-	public stepOut(): Promise<void> {
-		return this.coordinator.resume(() => this.disposePauseLifetimeAdapters(), 'finish');
+	public stepOut(): void {
+		this.coordinator.stepOut();
 	}
 
 	public setBreakpoints(breakpointInfos: BreakpointInfo[], sourceAdapter: SourceAdapter): Promise<BreakpointAdapter[]> {
@@ -235,7 +235,7 @@ export class ThreadAdapter {
 		return this.actor.detach();
 	}
 
-	private disposePauseLifetimeAdapters(): Promise<void> {
+	private async disposePauseLifetimeAdapters(): Promise<void> {
 
 		let objectGripActorsToRelease = this.pauseLifetimeObjects.map(
 			(objectGripAdapter) => objectGripAdapter.actor.name);
@@ -256,6 +256,10 @@ export class ThreadAdapter {
 		});
 		this.frames = [];
 
-		return this.actor.releaseMany(objectGripActorsToRelease).catch((err) => undefined);
+		if (objectGripActorsToRelease.length > 0) {
+			try {
+				await this.actor.releaseMany(objectGripActorsToRelease);
+			} catch(err) {}
+		}
 	}
 }
