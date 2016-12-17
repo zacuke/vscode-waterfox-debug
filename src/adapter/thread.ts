@@ -41,15 +41,15 @@ export class ThreadAdapter {
 		this.consoleActor = consoleActor;
 		this._name = name;
 		this._debugAdapter = debugAdapter;
+
+		this.coordinator = new ThreadCoordinator(this.actor, () => this.disposePauseLifetimeAdapters());
 	}
 
 	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
 
-		this.actor.onPaused((reason) => {
+		this.coordinator.onPaused((reason) => {
 			this.completionValue = reason.frameFinished;
 		});
-
-		this.coordinator = new ThreadCoordinator(this.actor, () => this.disposePauseLifetimeAdapters());
 
 		await this.actor.attach();
 		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
@@ -261,5 +261,25 @@ export class ThreadAdapter {
 				await this.actor.releaseMany(objectGripActorsToRelease);
 			} catch(err) {}
 		}
+	}
+
+	public onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void) {
+		this.coordinator.onPaused(cb);
+	}
+
+	public onResumed(cb: () => void) {
+		this.actor.onResumed(cb);
+	}
+	
+	public onExited(cb: () => void) {
+		this.actor.onExited(cb);
+	}
+
+	public onWrongState(cb: () => void) {
+		this.actor.onWrongState(cb);
+	}
+
+	public onNewSource(cb: (newSource: SourceActorProxy) => void) {
+		this.actor.onNewSource(cb);
 	}
 }

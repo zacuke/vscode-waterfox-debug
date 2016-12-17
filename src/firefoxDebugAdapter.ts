@@ -607,7 +607,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		}
 		let threadAdapter = new ThreadAdapter(threadId, threadActor, consoleActor, threadName, this);
 
-		this.attachThread(threadActor, threadAdapter);
+		this.attachThread(threadAdapter, threadActor.name);
 
 		if (hasWorkers) {
 
@@ -664,7 +664,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		let threadAdapter = new ThreadAdapter(threadId, threadActor, undefined,
 			`Worker ${tabId}/${workerId}`, this);
 
-		this.attachThread(threadActor, threadAdapter);
+		this.attachThread(threadAdapter, threadActor.name);
 
 		await threadAdapter.init(this.exceptionBreakpoints);
 
@@ -677,27 +677,27 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		});
 	}
 
-	private attachThread(threadActor: ThreadActorProxy, threadAdapter: ThreadAdapter): void {
+	private attachThread(threadAdapter: ThreadAdapter, actorName: string): void {
 
-		threadActor.onNewSource((sourceActor) => {
-			pathConversionLog.debug(`New source ${sourceActor.url} in thread ${threadActor.name}`);
+		threadAdapter.onNewSource((sourceActor) => {
+			pathConversionLog.debug(`New source ${sourceActor.url} in thread ${actorName}`);
 			this.attachSource(sourceActor, threadAdapter);
 		});
 
-		threadActor.onPaused((reason) => {
-			log.info(`Thread ${threadActor.name} paused , reason: ${reason.type}`);
+		threadAdapter.onPaused((reason) => {
+			log.info(`Thread ${actorName} paused , reason: ${reason.type}`);
 			let stoppedEvent = new StoppedEvent(reason.type, threadAdapter.id);
 			(<DebugProtocol.StoppedEvent>stoppedEvent).body.allThreadsStopped = false;
 			this.sendEvent(stoppedEvent);
 		});
 
-		threadActor.onResumed(() => {
-			log.info(`Thread ${threadActor.name} resumed unexpectedly`);
+		threadAdapter.onResumed(() => {
+			log.info(`Thread ${actorName} resumed unexpectedly`);
 			this.sendEvent(new ContinuedEvent(threadAdapter.id));
 		});
 
-		threadActor.onExited(() => {
-			log.info(`Thread ${threadActor.name} exited`);
+		threadAdapter.onExited(() => {
+			log.info(`Thread ${actorName} exited`);
 			this.threadsById.delete(threadAdapter.id);
 			this.sendEvent(new ThreadEvent('exited', threadAdapter.id));
 		});

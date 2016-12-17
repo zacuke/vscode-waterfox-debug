@@ -35,6 +35,20 @@ describe('Firefox debug adapter', function() {
 		assert.equal(evalResult.body.result, '4');
 	});
 
+	it('should skip over breakpoints when evaluating watches', async function() {
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ 8, 25 ]);
+
+		util.evaluate(dc, 'vars()');
+		let stoppedEvent = await util.receiveStoppedEvent(dc);
+		let stackTrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId! });
+
+		dc.evaluateRequest({ expression: 'factorial(3)', context: 'watch',
+			frameId: stackTrace.body.stackFrames[0].id });
+		await util.assertPromiseTimeout(util.receiveStoppedEvent(dc), 200);
+	});
+
 	it('should inspect watches', async function() {
 
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');

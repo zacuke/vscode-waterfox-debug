@@ -1,4 +1,5 @@
 import { Log } from '../util/log';
+import { EventEmitter } from 'events';
 import { ExceptionBreakpoints, ThreadActorProxy } from '../firefox/index';
 import { VariableAdapter } from './variable';
 import { DelayedTask } from './delayedTask';
@@ -10,7 +11,7 @@ type ThreadState = 'paused' | 'resuming' | 'running' | 'interrupting' | 'evaluat
 
 type ThreadTarget = 'paused' | 'running' | 'stepOver' | 'stepIn' | 'stepOut';
 
-export class ThreadCoordinator {
+export class ThreadCoordinator extends EventEmitter {
 
 	private exceptionBreakpoints: ExceptionBreakpoints;
 
@@ -27,6 +28,7 @@ export class ThreadCoordinator {
 	private evaluateTaskIsRunning = false;
 
 	constructor(private actor: ThreadActorProxy, private prepareResume: () => Promise<void>) {
+		super();
 
 		actor.onPaused((reason) => {
 			if (this.threadState === 'evaluating') {
@@ -35,6 +37,7 @@ export class ThreadCoordinator {
 				this.threadState = 'paused';
 				this.threadTarget = 'paused';
 				this.interruptPromise = undefined;
+				this.emit('paused', reason);
 			}
 		});
 
@@ -132,9 +135,13 @@ export class ThreadCoordinator {
 		return delayedTask.promise;
 	}
 
+	public onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void) {
+		this.on('paused', cb);
+	}
+
 	private doNext(): void {
 
-		log.debug(`state: ${this.threadState}, target: ${this.threadTarget}, tasks: ${this.tasksRunningOnPausedThread}/${this.queuedTasksToRunOnPausedThread.length}, eval: ${this.queuedEvaluateTasks}`)
+		log.debug(`state: ${this.threadState}, target: ${this.threadTarget}, tasks: ${this.tasksRunningOnPausedThread}/${this.queuedTasksToRunOnPausedThread.length}, eval: ${this.queuedEvaluateTasks.length}`)
 
 		if ((this.threadState === 'interrupting') ||
 			(this.threadState === 'resuming') ||
