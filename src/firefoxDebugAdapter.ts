@@ -278,25 +278,24 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected async evaluate(args: DebugProtocol.EvaluateArguments): Promise<{ result: string, type?: string, variablesReference: number, namedVariables?: number, indexedVariables?: number }> {
 
-		let variable: Variable;
+		let variable: Variable | undefined = undefined;
 
 		if (args.context === 'watch') {
 
-			if (args.frameId === undefined) {
-				throw new Error('Failed evaluateRequest: can\'t evaluate a watch without a frame');
+			if (args.frameId !== undefined) {
+
+				let frameAdapter = this.framesById.get(args.frameId);
+				if (frameAdapter !== undefined) {
+
+					let threadAdapter = frameAdapter.threadAdapter;
+					let frameActorName = frameAdapter.frame.actor;
+
+					variable = await threadAdapter.evaluate(args.expression, frameActorName);
+				}
 			}
+		} 
 
-			let frameAdapter = this.framesById.get(args.frameId);
-			if (!frameAdapter) {
-				throw new Error('Failed evaluateRequest: the requested frame can\'t be found');
-			}
-
-			let threadAdapter = frameAdapter.threadAdapter;
-			let frameActorName = frameAdapter.frame.actor;
-
-			variable = await threadAdapter.evaluate(args.expression, frameActorName!);
-
-		} else {
+		if (variable === undefined) {
 
 			let threadAdapter: ThreadAdapter | undefined;
 			for (let i = 1; i < this.nextThreadId; i++) {
