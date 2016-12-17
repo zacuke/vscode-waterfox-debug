@@ -10,7 +10,9 @@
 			"cwd": "${workspaceRoot}",
 			"stopOnEntry": false,
 			"sourceMaps": true,
-			"outDir": "${workspaceRoot}/out"
+			"outFiles": [
+				"${workspaceRoot}/out"
+			]
 		},
 		{
 			"type": "node",
@@ -21,18 +23,22 @@
 			"cwd": "${workspaceRoot}",
 			"stopOnEntry": false,
 			"sourceMaps": true,
-			"outDir": "${workspaceRoot}/out"
+			"outFiles": [
+				"${workspaceRoot}/out"
+			]
 		},
 		{
 			"type": "firefox",
 			"request": "launch",
 			"name": "web test",
+			"debugServer": 4711,
 			"file": "${workspaceRoot}/testdata/web/index.html"
 		},
 		{
 			"type": "firefox",
 			"request": "launch",
 			"name": "jetpack test",
+			"debugServer": 4711,
 			"addonType": "addonSdk",
 			"addonPath": "${workspaceRoot}/testdata/addonSdk/addOn",
 			"file": "${workspaceRoot}/testdata/addonSdk/index.html"
@@ -41,36 +47,10 @@
 			"type": "firefox",
 			"request": "launch",
 			"name": "webextension test",
+			"debugServer": 4711,
 			"addonType": "webExtension",
 			"addonPath": "${workspaceRoot}/testdata/webExtension/addOn",
 			"file": "${workspaceRoot}/testdata/webExtension/index.html"
-		},
-		{
-			"type": "composite",
-			"request": "launch",
-			"name": "debug server with web test",
-			"configurationNames": [
-				"debug server",
-				"web test"
-			]
-		},
-		{
-			"type": "composite",
-			"request": "launch",
-			"name": "debug server with jetpack test",
-			"configurationNames": [
-				"debug server",
-				"jetpack test"
-			]
-		},
-		{
-			"type": "composite",
-			"request": "launch",
-			"name": "debug server with webextension test",
-			"configurationNames": [
-				"debug server",
-				"webextension test"
-			]
 		}
 	]
 }
