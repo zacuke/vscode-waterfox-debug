@@ -387,7 +387,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			pathConversionLog.debug(`Addon script path: ${sourcePath}`);
 			return sourcePath;
 
-		} else if (source.isSourceMapped && source.generatedUrl && !this.urlDetector.test(source.url)) {
+		} else if (source.isSourceMapped && source.generatedUrl && source.url && !this.urlDetector.test(source.url)) {
 
 			let generatedPath = this.convertFirefoxUrlToPath(source.generatedUrl);
 			if (!generatedPath) return undefined;
@@ -398,15 +398,16 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			pathConversionLog.debug(`Sourcemapped path: ${sourcePath}`);
 			return sourcePath;
 
-		} else {
+		} else if (source.url) {
 			return this.convertFirefoxUrlToPath(source.url);
+		} else {
+			return undefined;
 		}
 	}
 
 	private urlDetector = /^[a-zA-Z][a-zA-Z0-9\+\-\.]*\:\/\//;
 
 	private convertFirefoxUrlToPath(url: string): string | undefined {
-		if (!url) return undefined;
 
 		for (var i = 0; i < this.pathMappings.length; i++) {
 
@@ -680,7 +681,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	private attachThread(threadAdapter: ThreadAdapter, actorName: string): void {
 
 		threadAdapter.onNewSource((sourceActor) => {
-			pathConversionLog.debug(`New source ${sourceActor.url} in thread ${actorName}`);
+			pathConversionLog.debug(`New source ${sourceActor.url ? sourceActor.url : ''} in thread ${actorName}`);
 			this.attachSource(sourceActor, threadAdapter);
 		});
 
@@ -705,7 +706,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	private attachSource(sourceActor: SourceActorProxy, threadAdapter: ThreadAdapter): void {
 
-		let sourcePath = this.convertFirefoxSourceToPath(sourceActor.source);
+		const sourcePath = this.convertFirefoxSourceToPath(sourceActor.source);
 		let sourceAdapters = threadAdapter.findSourceAdaptersForPath(sourcePath);
 
 		if (sourceAdapters.length > 0) {
@@ -730,7 +731,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				let setBreakpointsPromise = threadAdapter.setBreakpoints(
 					breakpointInfos, sourceAdapter);
 
-				if (this.verifiedBreakpointSources.indexOf(sourceActor.url) < 0) {
+				if (this.verifiedBreakpointSources.indexOf(sourcePath) < 0) {
 
 					setBreakpointsPromise.then((breakpointAdapters) => {
 
@@ -743,7 +744,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 							this.sendEvent(new BreakpointEvent('update', breakpoint));
 						})
 
-						this.verifiedBreakpointSources.push(sourceActor.url);
+						this.verifiedBreakpointSources.push(sourcePath);
 					})
 				}
 			});

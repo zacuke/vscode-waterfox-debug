@@ -231,7 +231,7 @@ declare namespace FirefoxDebugProtocol {
 
 	interface Source {
 		actor: string;
-		url: string;
+		url?: string | null;
 		generatedUrl?: string;
 		introductionUrl?: string;
 		isBlackBoxed: boolean;
