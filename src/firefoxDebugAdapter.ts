@@ -457,6 +457,12 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			Log.config = args.log;
 		}
 
+		if (args.pathMappings) {
+			args.pathMappings.forEach((pathMapping) => {
+				this.pathMappings.push([ pathMapping.url, pathMapping.path ]);
+			});
+		}
+
 		if (args.addonType) {
 
 			if (!args.addonPath) {

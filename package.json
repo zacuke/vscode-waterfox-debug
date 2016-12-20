@@ -136,6 +136,23 @@
                 },
                 "default": []
               },
+              "pathMappings": {
+                "type": "array",
+                "description": "Additional mappings from URLs (as seen by Firefox) to filesystem paths (as seen by VS Code)",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "description": "The URL as seen by Firefox"
+                    },
+                    "path": {
+                      "type": "string",
+                      "description": "The corresponding filesystem path as seen by VS Code"
+                    }
+                  }
+                }
+              },
               "addonType": {
                 "type": "string",
                 "enum": [
@@ -250,6 +267,23 @@
                 "type": "string",
                 "description": "The remote debugging host to use",
                 "default": "localhost"
+              },
+              "pathMappings": {
+                "type": "array",
+                "description": "Additional mappings from URLs (as seen by Firefox) to filesystem paths (as seen by VS Code)",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "description": "The URL as seen by Firefox"
+                    },
+                    "path": {
+                      "type": "string",
+                      "description": "The corresponding filesystem path as seen by VS Code"
+                    }
+                  }
+                }
               },
               "addonType": {
                 "type": "string",
