@@ -93,6 +93,49 @@
             "addonPath": "${workspaceRoot}"
           }
         ],
+        "configurationSnippets": [
+          {
+            "label": "Firefox: Launch (file)",
+            "description": "Launch Firefox navigated to a local file in your project",
+            "body": {
+              "type": "firefox",
+              "request": "launch",
+              "name": "${1:Launch index.html}",
+              "file": "^\"\\${workspaceRoot}/${2:index.html}\""
+            }
+          },
+          {
+            "label": "Firefox: Launch (server)",
+            "description": "Launch Firefox navigated to your project running on a server",
+            "body": {
+              "type": "firefox",
+              "request": "launch",
+              "name": "${1:Launch localhost}",
+              "url": "${2:http://localhost/index.html}",
+              "webRoot": "^\"\\${workspaceRoot}${3:}\""
+            }
+          },
+          {
+            "label": "Firefox: Attach",
+            "description": "Attach to a running Firefox process",
+            "body": {
+              "type": "firefox",
+              "request": "attach",
+              "name": "${1:Attach}"
+            }
+          },
+          {
+            "label": "Firefox: Add-on",
+            "description": "Launch Firefox with your add-on project installed",
+            "body": {
+              "type": "firefox",
+              "request": "launch",
+              "name": "${1:Launch add-on}",
+              "addonType": "${2:addonSdk}",
+              "addonPath": "^\"\\${workspaceRoot}${3:}\""
+            }
+          }
+        ],
         "configurationAttributes": {
           "launch": {
             "required": [],
