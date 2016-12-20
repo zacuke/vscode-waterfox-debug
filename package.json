@@ -64,7 +64,7 @@
       {
         "type": "firefox",
         "label": "Firefox",
-        "program": "./out/firefoxDebugSession.js",
+        "program": "./out/firefoxDebugAdapter.js",
         "runtime": "node",
         "initialConfigurations": [
           {
