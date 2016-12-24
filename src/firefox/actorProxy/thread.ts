@@ -4,6 +4,7 @@ import { DebugConnection } from '../connection';
 import { PendingRequest, PendingRequests } from './pendingRequests';
 import { ActorProxy } from './interface';
 import { SourceActorProxy } from './source';
+import { exceptionGripToString } from '../../util/misc';
 
 let log = Log.create('ThreadActorProxy');
 
@@ -171,8 +172,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	 * Evaluate the given expression on the specified StackFrame. This can only be called while
 	 * the thread is paused and will resume it temporarily.
 	 */
-	public evaluate(expr: string, frameActorName: string): Promise<FirefoxDebugProtocol.Grip> {
-		log.debug(`Evaluating '${expr}' on thread ${this.name}`);
+	public evaluate(expression: string, frameActorName: string): Promise<FirefoxDebugProtocol.Grip> {
+		log.debug(`Evaluating '${expression}' on thread ${this.name}`);
 		
 		return new Promise<FirefoxDebugProtocol.Grip>((resolve, reject) => {
 			if (this.pendingEvaluateRequest) {
@@ -193,12 +194,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 				this.pendingResumeRequest = { resolve, reject };
 			});
 			this.interruptPromise = undefined;
-			
-			let escapedExpression = expr.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-			let tryExpression = `eval("try{${escapedExpression}}catch(e){e.name+':'+e.message}")`;
+
 			this.connection.sendRequest({ 
-				to: this.name, type: 'clientEvaluate', 
-				expression: tryExpression, frame: frameActorName 
+				to: this.name, type: 'clientEvaluate', expression, frame: frameActorName 
 			});
 		});
 	}
@@ -270,7 +268,12 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 					this.resumePromise = undefined;
 					if (this.pendingEvaluateRequest) {
 						//TODO handle undefined frameFinished and return!
-						this.pendingEvaluateRequest.resolve(pausedResponse.why.frameFinished!.return!);
+						let completionValue = pausedResponse.why.frameFinished!;
+						if (completionValue.return !== undefined) {
+							this.pendingEvaluateRequest.resolve(completionValue.return!);
+						} else {
+							this.pendingEvaluateRequest.reject(exceptionGripToString(completionValue.throw));
+						}
 						this.pendingEvaluateRequest = undefined;
 					} else {
 						log.warn('Received clientEvaluated message without pending request');

@@ -98,7 +98,7 @@ export abstract class DebugAdapterBase extends DebugSession {
 			response.body = executeRequest();
 		} catch (err) {
 			response.success = false;
-			response.message = String(err);
+			response.message = this.errorString(err);
 		}
 		this.sendResponse(response);
 	}
@@ -108,8 +108,16 @@ export abstract class DebugAdapterBase extends DebugSession {
 			response.body = await executeRequest();
 		} catch (err) {
 			response.success = false;
-			response.message = String(err);
+			response.message = this.errorString(err);
 		}
 		this.sendResponse(response);
+	}
+
+	private errorString(err: any) {
+		if ((typeof err === 'object') && (err !== null) && (typeof err.message === 'string')) {
+			return err.message;
+		} else {
+			return String(err);
+		}
 	}
 }

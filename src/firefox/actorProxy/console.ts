@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import { DebugConnection } from '../connection';
 import { PendingRequests, PendingRequest } from './pendingRequests';
 import { ActorProxy } from './interface';
+import { exceptionGripToString } from '../../util/misc';
 
 let log = Log.create('ConsoleActorProxy');
 
@@ -71,11 +72,9 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 				reject: () => {}
 			});
 
-			let escapedExpression = expr.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-			let tryExpression = `eval("try{${escapedExpression}}catch(e){e.name+':'+e.message}")`;
 			this.connection.sendRequest({
 				to: this.name, type: 'evaluateJSAsync',
-				text: tryExpression, frameActor: frameActorName
+				text: expr, frameActor: frameActorName
 			});
 		})
 	}
@@ -109,7 +108,12 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 			if (!this.pendingEvaluateRequests.has(resultResponse.resultID)) {
 				log.error('Received evaluationResult with unknown resultID');
 			} else {
-				this.pendingEvaluateRequests.get(resultResponse.resultID)!.resolve(resultResponse.result);
+				let evaluateRequest = this.pendingEvaluateRequests.get(resultResponse.resultID)!;
+				if (resultResponse.exceptionMessage === undefined) {
+					evaluateRequest.resolve(resultResponse.result);
+				} else {
+					evaluateRequest.reject(exceptionGripToString(resultResponse.exception));
+				}
 			}
 
 		} else if (response['resultID']) {

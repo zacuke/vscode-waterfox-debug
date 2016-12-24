@@ -126,20 +126,20 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface ConsoleAPICallResponseBody {
-			arguments: any[];
-			filename: string;
-			functionName: string;
-			groupName: string;
-			lineNumber: number;
-			columnNumber: number;
-			category: string;
-			timeStamp: number;
-			level: string;
-			workerType: string;
-			private: boolean;
-			styles: any[]; //?
-			counter: any; //?
-			timer: any; //?
+		arguments: any[];
+		filename: string;
+		functionName: string;
+		groupName: string;
+		lineNumber: number;
+		columnNumber: number;
+		category: string;
+		timeStamp: number;
+		level: string;
+		workerType: string;
+		private: boolean;
+		styles: any[]; //?
+		counter: any; //?
+		timer: any; //?
 	}
 
 	interface ResultIDResponse extends Response {
@@ -148,11 +148,13 @@ declare namespace FirefoxDebugProtocol {
 
 	interface EvaluationResultResponse extends TypedResponse {
 		input: string;
-		result: Grip;
-		timestamp: number;
-		exception: any; //?
-		helperResult: any; //?
 		resultID: number;
+		result: Grip;
+		exception?: Grip | null;
+		exceptionMessage?: string;
+		exceptionDocURL?: string;
+		timestamp: number;
+		helperResult: any; //?
 	}
 
 	interface ThreadPausedResponse extends TypedResponse {
@@ -312,9 +314,7 @@ declare namespace FirefoxDebugProtocol {
 	interface ObjectGrip extends ComplexGrip {
 		class: string;
 		actor: string;
-		preview?: {
-			items?: Grip[];
-		}
+		preview?: any; //TODO
 	}
 
 	interface FunctionGrip extends ObjectGrip {

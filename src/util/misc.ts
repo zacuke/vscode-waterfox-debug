@@ -16,3 +16,25 @@ export function delay(timeout: number): Promise<void> {
 		setTimeout(resolve, timeout);
 	});
 }
+
+export function exceptionGripToString(grip: FirefoxDebugProtocol.Grip | null | undefined) {
+
+	if ((typeof grip === 'object') && (grip !== null) && (grip.type === 'object')) {
+
+		let preview = (<FirefoxDebugProtocol.ObjectGrip>grip).preview;
+		if (preview !== undefined) {
+
+			if (preview.name === 'ReferenceError') {
+				return 'not available';
+			}
+
+			let str = (preview.name !== undefined) ? (preview.name + ': ') : '';
+			str += (preview.message !== undefined) ? preview.message : '';
+			if (str !== '') {
+				return str;
+			}
+		}
+	}
+
+	return 'unknown error';
+}
