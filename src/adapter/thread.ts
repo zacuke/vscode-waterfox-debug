@@ -17,6 +17,9 @@ export class ThreadAdapter {
 	public get actorName() {
 		return this.actor.name;
 	}
+	public get hasConsole() {
+		return this.consoleActor !== undefined;
+	}
 
 	private _debugAdapter: FirefoxDebugAdapter;
 	private actor: ThreadActorProxy;
