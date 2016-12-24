@@ -1,6 +1,6 @@
 import { Log } from '../util/log';
 import { EventEmitter } from 'events';
-import { ExceptionBreakpoints, ThreadActorProxy } from '../firefox/index';
+import { ExceptionBreakpoints, ThreadActorProxy, ConsoleActorProxy } from '../firefox/index';
 import { VariableAdapter } from './variable';
 import { DelayedTask } from './delayedTask';
 import { PendingRequest } from '../firefox/actorProxy/pendingRequests';
@@ -27,12 +27,14 @@ export class ThreadCoordinator extends EventEmitter {
 	private queuedEvaluateTasks: DelayedTask<VariableAdapter>[] = [];
 	private evaluateTaskIsRunning = false;
 
-	constructor(private actor: ThreadActorProxy, private prepareResume: () => Promise<void>) {
+	constructor(private threadActor: ThreadActorProxy, private consoleActor: ConsoleActorProxy | undefined,
+		private prepareResume: () => Promise<void>) {
+
 		super();
 
-		actor.onPaused((reason) => {
+		threadActor.onPaused((reason) => {
 			if (this.threadState === 'evaluating') {
-				actor.resume(this.exceptionBreakpoints);
+				threadActor.resume(this.exceptionBreakpoints);
 			} else {
 				this.threadState = 'paused';
 				this.threadTarget = 'paused';
@@ -41,7 +43,7 @@ export class ThreadCoordinator extends EventEmitter {
 			}
 		});
 
-		actor.onResumed(() => {
+		threadActor.onResumed(() => {
 			this.threadState = 'running';
 			this.threadTarget = 'running';
 			this.interruptPromise = undefined;
@@ -117,18 +119,36 @@ export class ThreadCoordinator extends EventEmitter {
 
 	public evaluate(expr: string, frameActorName: string,
 		convert: (grip: FirefoxDebugProtocol.Grip) => VariableAdapter,
-		postprocess: (result: VariableAdapter) => Promise<void>): Promise<VariableAdapter> {
-
-		if ((this.threadState === 'resuming') || (this.threadState === 'running')) {
-			return Promise.reject(`The thread is ${this.threadState}`);
-		}
+		postprocess?: (result: VariableAdapter) => Promise<void>): Promise<VariableAdapter> {
 
 		let evaluateTask = async () => {
-			let grip = await this.actor.evaluate(expr, frameActorName);
+			let grip = await this.threadActor.evaluate(expr, frameActorName);
 			return convert(grip);
 		};
 
 		let delayedTask = new DelayedTask(evaluateTask, postprocess);
+
+		this.queuedEvaluateTasks.push(delayedTask);
+		this.doNext();
+
+		return delayedTask.promise;
+	}
+
+	public consoleEvaluate(expr: string, frameActorName: string | undefined,
+		convert: (grip: FirefoxDebugProtocol.Grip) => VariableAdapter,
+		postprocess?: (result: VariableAdapter) => Promise<void>): Promise<VariableAdapter> {
+
+		if (this.consoleActor === undefined) {
+			throw new Error('This thread has no consoleActor');
+		}
+
+		let evaluateTask = async () => {
+			let grip = await this.consoleActor!.evaluate(expr);
+			return convert(grip);
+		};
+
+		let delayedTask = new DelayedTask(evaluateTask, postprocess);
+
 		this.queuedEvaluateTasks.push(delayedTask);
 		this.doNext();
 
@@ -149,50 +169,41 @@ export class ThreadCoordinator extends EventEmitter {
 			return;
 		}
 
-		if ((this.threadState === 'running') && (this.threadTarget === 'paused')) {
-			this.executeInterrupt(false);
-			return;
-		}
+		if (this.threadState === 'running') {
 
-		if (this.queuedTasksToRunOnPausedThread.length > 0) {
+			if ((this.queuedTasksToRunOnPausedThread.length > 0) || (this.queuedEvaluateTasks.length > 0)) {
+				this.executeInterrupt(true);
+				return;
+			}
+ 
+			if (this.threadTarget === 'paused') {
+				this.executeInterrupt(false);
+				return;
+			}
 
-			if (this.threadState === 'paused') {
+		} else { // this.threadState === 'paused'
+
+			if (this.queuedTasksToRunOnPausedThread.length > 0) {
 
 				for (let task of this.queuedTasksToRunOnPausedThread) {
 					this.executeOnPausedThread(task);
 				}
 				this.queuedTasksToRunOnPausedThread = [];
 
-			} else { // => this.threadState === 'running'
-
-				this.executeInterrupt(true);
-
+				return;
 			}
 
-			return;
-		}
+			if (this.tasksRunningOnPausedThread > 0) {
+				return;
+			}
 
-		if (this.tasksRunningOnPausedThread > 0) {
-			return;
-		}
-
-		if (this.queuedEvaluateTasks.length > 0) {
-
-			if (this.threadState === 'paused') {
+			if (this.queuedEvaluateTasks.length > 0) {
 
 				let task = this.queuedEvaluateTasks.shift()!;
 				this.executeEvaluateTask(task);
 
-			} else { // => threadState === 'running'
-
-				for (let task of this.queuedEvaluateTasks) {
-					task.cancel(`Thread is ${this.threadState}`);
-				}
-				this.queuedEvaluateTasks = [];
-				this.doNext();
-
+				return;
 			}
-			return;
 		}
 
 		if ((this.threadState === 'paused') && (this.threadTarget !== 'paused')) {
@@ -204,7 +215,7 @@ export class ThreadCoordinator extends EventEmitter {
 	private async executeInterrupt(immediate: boolean): Promise<void> {
 
 		this.threadState = 'interrupting';
-		this.interruptPromise = this.actor.interrupt(immediate);
+		this.interruptPromise = this.threadActor.interrupt(immediate);
 
 		try {
 			await this.interruptPromise;
@@ -240,7 +251,7 @@ export class ThreadCoordinator extends EventEmitter {
 		this.threadState = 'resuming';
 		try {
 			await this.prepareResume();
-			await this.actor.resume(this.exceptionBreakpoints, resumeLimit);
+			await this.threadActor.resume(this.exceptionBreakpoints, resumeLimit);
 			this.threadState = 'running';
 		} catch(e) {
 			log.error(`resumeTask failed: ${e}`);

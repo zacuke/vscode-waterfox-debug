@@ -45,7 +45,7 @@ export class ThreadAdapter {
 		this._name = name;
 		this._debugAdapter = debugAdapter;
 
-		this.coordinator = new ThreadCoordinator(this.actor, () => this.disposePauseLifetimeAdapters());
+		this.coordinator = new ThreadCoordinator(this.actor, this.consoleActor, () => this.disposePauseLifetimeAdapters());
 	}
 
 	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
@@ -197,25 +197,29 @@ export class ThreadAdapter {
 		return variableAdapters.map((variableAdapter) => variableAdapter.getVariable());
 	}
 
-	public async evaluate(expr: string, frameActorName: string): Promise<Variable> {
+	public async evaluate(expr: string, frameActorName?: string): Promise<Variable> {
 
-		let variableAdapter = await this.coordinator.evaluate(expr, frameActorName,
+		let variableAdapter: VariableAdapter;
+		if (frameActorName !== undefined) {
 
-			(grip) => {
-				if (grip) { //TODO can be undefined, but also false or 0 or ''...
-					return VariableAdapter.fromGrip('', grip, false, this);
-				} else {
-					return new VariableAdapter('', 'undefined');
+			variableAdapter = await this.coordinator.evaluate(expr, frameActorName, 
+
+				(grip) => this.variableFromGrip(grip, false),
+
+				async (variableAdapter) => {
+					let objectGripAdapter = variableAdapter.objectGripAdapter;
+					if (objectGripAdapter !== undefined) {
+						await objectGripAdapter.actor.extendLifetime();
+					}
 				}
-			},
+			);
 
-			async (variableAdapter) => {
-				let objectGripAdapter = variableAdapter.objectGripAdapter;
-				if (objectGripAdapter !== undefined) {
-					await objectGripAdapter.actor.extendLifetime();
-				}
-			}
-		);
+		} else {
+
+			variableAdapter = await this.coordinator.consoleEvaluate(expr, undefined, 
+				(grip) => this.variableFromGrip(grip, true));
+
+		}
 
 		return variableAdapter.getVariable();
 	}
@@ -224,18 +228,21 @@ export class ThreadAdapter {
 
 		let grip = await this.consoleActor!.evaluate(expr, frameActorName);
 
-		let variableAdapter: VariableAdapter;
-		if (grip) {
-			variableAdapter = VariableAdapter.fromGrip('', grip, true, this);
-		} else {
-			variableAdapter = new VariableAdapter('', 'undefined');
-		}
+		let variableAdapter = this.variableFromGrip(grip, true);
 
 		return variableAdapter.getVariable();
 	}
 
 	public detach(): Promise<void> {
 		return this.actor.detach();
+	}
+
+	private variableFromGrip(grip: FirefoxDebugProtocol.Grip | undefined, threadLifetime: boolean): VariableAdapter {
+		if (grip !== undefined) {
+			return VariableAdapter.fromGrip('', grip, threadLifetime, this);
+		} else {
+			return new VariableAdapter('', 'undefined');
+		}
 	}
 
 	private async disposePauseLifetimeAdapters(): Promise<void> {

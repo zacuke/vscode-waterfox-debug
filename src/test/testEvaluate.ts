@@ -35,7 +35,16 @@ describe('Firefox debug adapter', function() {
 		assert.equal(evalResult.body.result, '4');
 	});
 
-	it('should skip over breakpoints when evaluating watches', async function() {
+	it('should skip over breakpoints when evaluating watches while running', async function() {
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ 8, 25 ]);
+
+		dc.evaluateRequest({ expression: 'factorial(3)', context: 'watch' });
+		await util.assertPromiseTimeout(util.receiveStoppedEvent(dc), 200);
+	});
+
+	it('should skip over breakpoints when evaluating watches while paused', async function() {
 
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await util.setBreakpoints(dc, sourcePath, [ 8, 25 ]);

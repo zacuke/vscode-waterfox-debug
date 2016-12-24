@@ -319,33 +319,44 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 					let frameActorName = frameAdapter.frame.actor;
 
 					variable = await threadAdapter.evaluate(args.expression, frameActorName);
+
+				} else {
+					log.warn(`Couldn\'t find specified frame for evaluating ${args.expression}`);
+					throw 'not available';
 				}
-			}
-		} 
 
-		if (variable === undefined) {
+			} else {
 
-			let threadAdapter: ThreadAdapter | undefined;
-			for (let i = 1; i < this.nextThreadId; i++) {
-				if (this.threadsById.has(i)) {
-					threadAdapter = this.threadsById.get(i)!;
-					break;
-				}
-			}
+				let threadAdapter = this.findConsoleThread();
+				if (threadAdapter !== undefined) {
 
-			if (threadAdapter === undefined) {
-				throw new Error(`Couldn't find a thread to use for evaluating ${args.expression}`);
-			}
+					variable = await threadAdapter.evaluate(args.expression);
 
-			let frameActorName: string | undefined = undefined;
-			if (args.frameId !== undefined) {
-				let frameAdapter = this.framesById.get(args.frameId);
-				if (frameAdapter !== undefined) {
-					frameActorName = frameAdapter.frame.actor;
+				} else {
+					log.info(`Couldn't find a console for evaluating watch ${args.expression}`);
+					throw 'not available';
 				}
 			}
 
-			variable = await threadAdapter.consoleEvaluate(args.expression, frameActorName);
+		} else {
+
+			let threadAdapter = this.findConsoleThread();
+			if (threadAdapter !== undefined) {
+
+				let frameActorName: string | undefined = undefined;
+				if (args.frameId !== undefined) {
+					let frameAdapter = this.framesById.get(args.frameId);
+					if (frameAdapter !== undefined) {
+						frameActorName = frameAdapter.frame.actor;
+					}
+				}
+
+				variable = await threadAdapter.consoleEvaluate(args.expression, frameActorName);
+
+			} else {
+				log.info(`Couldn't find a console for evaluating ${args.expression}`);
+				throw 'not available';
+			}
 		}
 
 		return {
