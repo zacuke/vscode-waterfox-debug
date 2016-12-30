@@ -11,6 +11,7 @@ export class SourceActorProxy implements ActorProxy {
 
 	private pendingSetBreakpointRequests = new PendingRequests<SetBreakpointResult>();
 	private pendingFetchSourceRequests = new PendingRequests<FirefoxDebugProtocol.Grip>();
+	private pendingBlackboxRequests = new PendingRequests<void>();
 	
 	constructor(private _source: FirefoxDebugProtocol.Source, private connection: DebugConnection) {
 		this.connection.register(this);
@@ -47,7 +48,18 @@ export class SourceActorProxy implements ActorProxy {
 			this.connection.sendRequest({ to: this.name, type: 'source' });
 		});
 	}
-	
+
+	public setBlackbox(blackbox: boolean) {
+
+		log.debug(`Setting blackboxing of ${this.url} to ${blackbox}`);
+
+		return new Promise<void>((resolve, reject) => {
+			let type = blackbox ? 'blackbox' : 'unblackbox';
+			this.pendingBlackboxRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type });
+		});
+	}
+
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 		
 		if (response['isPending'] !== undefined) {
@@ -63,6 +75,7 @@ export class SourceActorProxy implements ActorProxy {
 
 		} else if (response['source'] !== undefined) {
 
+			log.debug('Received fetchSource response');
 			let grip = <FirefoxDebugProtocol.Grip>response['source'];
 			this.pendingFetchSourceRequests.resolveOne(grip);
 
@@ -72,9 +85,19 @@ export class SourceActorProxy implements ActorProxy {
 			this.pendingFetchSourceRequests.rejectAll('No such actor');
 			this.pendingSetBreakpointRequests.rejectAll('No such actor');
 
-		} else {
+		} else if (Object.keys(response).length === 1) {
 
-			log.warn("Unknown message from SourceActor: " + JSON.stringify(response));
+			let propertyCount = Object.keys(response).length;
+			if ((propertyCount === 1) || ((propertyCount === 2) && (response['pausedInSource'] !== undefined))) {
+
+				log.debug('Received (un)blackbox response');
+				this.pendingBlackboxRequests.resolveOne(undefined);
+
+			} else {
+
+				log.warn("Unknown message from SourceActor: " + JSON.stringify(response));
+
+			}
 
 		}
 	}

@@ -15,6 +15,7 @@
   "dependencies": {
     "firefox-profile": "^0.4.5",
     "fs-extra": "^1.0.0",
+    "minimatch": "^3.0.3",
     "node-uuid": "^1.4.7",
     "semver": "^5.3.0",
     "vscode-debugadapter": "^1.13.1",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@types/fs-extra": "^0.0.35",
+    "@types/minimatch": "^2.0.29",
     "@types/mocha": "^2.2.33",
     "@types/node": "^6.0.51",
     "@types/node-uuid": "0.0.28",
@@ -196,6 +198,14 @@
                   }
                 }
               },
+              "skipFiles": {
+                "type": "array",
+                "description": "An array of glob patterns to skip when debugging",
+                "items": {
+                  "type": "string"
+                },
+                "default": [ "${workspaceRoot}/node_modules/**/*" ]
+              },
               "addonType": {
                 "type": "string",
                 "enum": [
@@ -327,6 +337,14 @@
                     }
                   }
                 }
+              },
+              "skipFiles": {
+                "type": "array",
+                "description": "An array of glob patterns to skip when debugging",
+                "items": {
+                  "type": "string"
+                },
+                "default": [ "${workspaceRoot}/node_modules/**/*" ]
               },
               "addonType": {
                 "type": "string",

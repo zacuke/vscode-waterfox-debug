@@ -8,6 +8,7 @@ export interface CommonConfiguration {
 	url?: string;
 	webRoot?: string;
 	pathMappings?: { url: string, path: string }[];
+	skipFiles?: string[];
 	log?: LogConfiguration;
 	addonType?: AddonType;
 	addonPath?: string;

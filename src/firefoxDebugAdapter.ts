@@ -6,6 +6,7 @@ import { Log } from './util/log';
 import { concatArrays } from './util/misc';
 import { findAddonId } from './util/addon';
 import { launchFirefox, connect, waitForSocket } from './util/launcher';
+import { Minimatch } from 'minimatch';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugAdapterBase } from './debugAdapterBase';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, ContinuedEvent, Thread, StackFrame, Scope, Variable, Source, Breakpoint } from 'vscode-debugadapter';
@@ -24,6 +25,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	private firefoxDebugSocketClosed: boolean;
 
 	private pathMappings: [string | RegExp, string][] = [];
+	private filesToSkip: RegExp[] = [];
 	private addonType: AddonType | undefined;
 	private addonId: string | undefined;
 	private addonPath: string | undefined;
@@ -574,6 +576,20 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		pathConversionLog.debug('Path mappings:');
 		this.pathMappings.forEach(([from, to]) => pathConversionLog.debug(`'${from}' => '${to}'`));
 
+		if (args.skipFiles) {
+			args.skipFiles.forEach((glob) => {
+
+				let minimatch = new Minimatch(glob);
+				let regExp = minimatch.makeRe();
+
+				if (regExp) {
+					this.filesToSkip.push(regExp);
+				} else {
+					log.warn(`Invalid glob pattern "${glob}" specified in "skipFiles"`);
+				}
+			})
+		}
+
 		return undefined;
 	}
 
@@ -764,6 +780,22 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			this.sourcesById.set(sourceId, sourceAdapter);
 			sourceAdapters.push(sourceAdapter);
 
+		}
+
+		if (sourcePath !== undefined) {
+
+			let skipThisSource = false;
+			for (let regExp of this.filesToSkip) {
+				if (regExp.test(sourcePath)) {
+					skipThisSource = true;
+					break;
+				}
+			}
+
+			if (sourceActor.source.isBlackBoxed !== skipThisSource) {
+				sourceActor.setBlackbox(skipThisSource);
+				sourceActor.source.isBlackBoxed = skipThisSource;
+			}
 		}
 
 		if (sourcePath && this.breakpointsBySourcePath.has(sourcePath)) {
