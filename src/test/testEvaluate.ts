@@ -17,6 +17,12 @@ describe('Firefox debug adapter', function() {
 		await dc.stop();
 	});
 
+	it('should evaluate watches while running', async function() {
+
+		let evalResult = await dc.evaluateRequest({ expression: 'obj.x + 7', context: 'watch' });
+		assert.equal(evalResult.body.result, '24');
+	});
+
 	it('should evaluate watches on different stackframes', async function() {
 
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
@@ -58,7 +64,19 @@ describe('Firefox debug adapter', function() {
 		await util.assertPromiseTimeout(util.receiveStoppedEvent(dc), 200);
 	});
 
-	it('should inspect watches', async function() {
+	it('should inspect watches evaluated while running', async function() {
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ 25 ]);
+
+		let evalResult = await dc.evaluateRequest({ expression: 'obj', context: 'watch' });
+		let inspectResult = await dc.variablesRequest({ 
+			variablesReference: evalResult.body.variablesReference
+		});
+		assert.equal(util.findVariable(inspectResult.body.variables, 'x').value, '17');
+	});
+
+	it('should inspect watches evaluated while paused', async function() {
 
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await util.setBreakpoints(dc, sourcePath, [ 25 ]);
@@ -75,7 +93,23 @@ describe('Firefox debug adapter', function() {
 		assert.equal(util.findVariable(inspectResult.body.variables, 'x').value, '17');
 	});
 
-	it('should inspect watches after running other evaluations', async function() {
+	it('should inspect watches (evaluated while running) after running other evaluations', async function() {
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ 25 ]);
+
+		let evalResult = await dc.evaluateRequest({ expression: 'obj', context: 'watch' });
+
+		await dc.evaluateRequest({ expression: 'obj.x', context: 'watch' });
+		await dc.evaluateRequest({ expression: 'obj.y', context: 'repl' });
+
+		let inspectResult = await dc.variablesRequest({ 
+			variablesReference: evalResult.body.variablesReference
+		});
+		assert.equal(util.findVariable(inspectResult.body.variables, 'x').value, '17');
+	});
+
+	it('should inspect watches (evaluated while paused) after running other evaluations', async function() {
 
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await util.setBreakpoints(dc, sourcePath, [ 25 ]);
@@ -120,6 +154,15 @@ describe('Firefox debug adapter', function() {
 
 		let evalResult = await dc.evaluateRequest({ expression: 'obj.x', context: 'repl' });
 		assert.equal(evalResult.body.result, '17');
+	});
+
+	it('should hit breakpoints when evaluating console expressions while running', async function() {
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ 8, 25 ]);
+
+		dc.evaluateRequest({ expression: 'factorial(3)', context: 'repl' });
+		await util.receiveStoppedEvent(dc);
 	});
 
 	it('should inspect console evaluation results after breaking', async function() {
