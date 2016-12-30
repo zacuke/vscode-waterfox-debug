@@ -34,6 +34,9 @@ export function exceptionGripToString(grip: FirefoxDebugProtocol.Grip | null | u
 				return str;
 			}
 		}
+
+	} else if (typeof grip === 'string') {
+		return grip;
 	}
 
 	return 'unknown error';
