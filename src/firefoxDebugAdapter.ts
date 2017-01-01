@@ -563,6 +563,13 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				webRoot = webRoot.substr(0, webRoot.length - 1);
 			}
 
+			this.pathMappings.forEach((pathMapping) => {
+				const to = pathMapping[1];
+				if ((typeof to === 'string') && (to.substr(0, 10) === '${webRoot}')) {
+					pathMapping[1] = webRoot + to.substr(10);
+				}
+			});
+
 			this.pathMappings.push([ webRootUrl, webRoot ]);
 
 		} else if (args.webRoot) {
