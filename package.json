@@ -13,22 +13,22 @@
     "Debuggers"
   ],
   "dependencies": {
-    "firefox-profile": "^0.4.5",
+    "firefox-profile": "^0.4.6",
     "fs-extra": "^1.0.0",
     "minimatch": "^3.0.3",
-    "node-uuid": "^1.4.7",
     "semver": "^5.3.0",
+    "uuid": "^3.0.1",
     "vscode-debugadapter": "^1.13.1",
     "zip-dir": "^1.0.2"
   },
   "devDependencies": {
     "@types/fs-extra": "^0.0.35",
     "@types/minimatch": "^2.0.29",
-    "@types/mocha": "^2.2.33",
-    "@types/node": "^6.0.51",
-    "@types/node-uuid": "0.0.28",
+    "@types/mocha": "^2.2.35",
+    "@types/node": "^6.0.55",
     "@types/rimraf": "0.0.28",
     "@types/semver": "^5.3.30",
+    "@types/uuid": "^2.0.29",
     "mocha": "^3.2.0",
     "nyc": "^10.0.0",
     "typescript": "^2.1.4",
@@ -204,7 +204,9 @@
                 "items": {
                   "type": "string"
                 },
-                "default": [ "${workspaceRoot}/node_modules/**/*" ]
+                "default": [
+                  "${workspaceRoot}/node_modules/**/*"
+                ]
               },
               "addonType": {
                 "type": "string",
@@ -344,7 +346,9 @@
                 "items": {
                   "type": "string"
                 },
-                "default": [ "${workspaceRoot}/node_modules/**/*" ]
+                "default": [
+                  "${workspaceRoot}/node_modules/**/*"
+                ]
               },
               "addonType": {
                 "type": "string",

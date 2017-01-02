@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 import * as net from 'net';
 import { spawn, ChildProcess } from 'child_process';
-import * as uuid from 'node-uuid';
+import * as uuid from 'uuid';
 import { LaunchConfiguration } from '../adapter/launchConfiguration';
 import { createXpi } from './addon';
 import * as FirefoxProfile from 'firefox-profile';
