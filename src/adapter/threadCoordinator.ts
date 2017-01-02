@@ -296,7 +296,6 @@ export class ThreadCoordinator extends EventEmitter {
 		try {
 			await task.execute();
 		} catch(e) {
-			log.warn(`evaluateTask failed: ${e}`);
 		}
 		this.threadState = 'paused';
 

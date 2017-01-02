@@ -580,8 +580,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		this.pathMappings.push([(this.isWindowsPlatform ? 'file:///' : 'file://'), '']);
 
-		pathConversionLog.debug('Path mappings:');
-		this.pathMappings.forEach(([from, to]) => pathConversionLog.debug(`'${from}' => '${to}'`));
+		pathConversionLog.info('Path mappings:');
+		this.pathMappings.forEach(([from, to]) => pathConversionLog.info(`'${from}' => '${to}'`));
 
 		if (args.skipFiles) {
 			args.skipFiles.forEach((glob) => {
@@ -748,7 +748,6 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	private attachThread(threadAdapter: ThreadAdapter, actorName: string): void {
 
 		threadAdapter.onNewSource((sourceActor) => {
-			pathConversionLog.debug(`New source ${sourceActor.url ? sourceActor.url : ''} in thread ${actorName}`);
 			this.attachSource(sourceActor, threadAdapter);
 		});
 
