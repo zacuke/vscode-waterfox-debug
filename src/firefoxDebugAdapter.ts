@@ -773,7 +773,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	private attachSource(sourceActor: SourceActorProxy, threadAdapter: ThreadAdapter): void {
 
-		const sourcePath = this.convertFirefoxSourceToPath(sourceActor.source);
+		const source = sourceActor.source;
+		const sourcePath = this.convertFirefoxSourceToPath(source);
 		let sourceAdapters = threadAdapter.findSourceAdaptersForPath(sourcePath);
 
 		if (sourceAdapters.length > 0) {
@@ -789,19 +790,29 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		}
 
+		// check if this source should be skipped
+		let pathToCheck: string | null | undefined = undefined;
 		if (sourcePath !== undefined) {
+			pathToCheck = sourcePath;
+		} else if (source.generatedUrl && (!source.url || !this.urlDetector.test(source.url))) {
+			pathToCheck = source.generatedUrl;
+		} else {
+			pathToCheck = source.url;
+		}
+
+		if (pathToCheck) {
 
 			let skipThisSource = false;
 			for (let regExp of this.filesToSkip) {
-				if (regExp.test(sourcePath)) {
+				if (regExp.test(pathToCheck)) {
 					skipThisSource = true;
 					break;
 				}
 			}
 
-			if (sourceActor.source.isBlackBoxed !== skipThisSource) {
+			if (source.isBlackBoxed !== skipThisSource) {
 				sourceActor.setBlackbox(skipThisSource);
-				sourceActor.source.isBlackBoxed = skipThisSource;
+				source.isBlackBoxed = skipThisSource;
 			}
 		}
 
