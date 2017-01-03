@@ -1,7 +1,7 @@
 {
   "name": "vscode-firefox-debug",
   "displayName": "Debugger for Firefox",
-  "version": "0.7.7",
+  "version": "0.8.0",
   "author": "Holger Benl <hbenl@evandor.de>",
   "publisher": "hbenl",
   "description": "Debug your web application or browser extension in Firefox",
@@ -203,10 +203,7 @@
                 "description": "An array of glob patterns to skip when debugging",
                 "items": {
                   "type": "string"
-                },
-                "default": [
-                  "${workspaceRoot}/node_modules/**/*"
-                ]
+                }
               },
               "addonType": {
                 "type": "string",
