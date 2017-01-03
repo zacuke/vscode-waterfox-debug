@@ -1,3 +1,9 @@
+### Version 0.8.0
+* Add `skipFiles` configuration property
+* Add `pathMappings` configuration property
+* Add configuration snippets
+* Fix several bugs when evaluating watches and expressions entered in the debug console
+
 ### Version 0.7.7
 * fix debugging of WebExtension content scripts in recent Firefox builds
 

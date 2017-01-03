@@ -2,22 +2,6 @@
 
 A Visual Studio Code extension to debug your web application or browser extension in Firefox.
 
-## Features
-* Line breakpoints
-* Conditional breakpoints
-* Exception breakpoints (caught and uncaught)
-* Breaking on `debugger` statements
-* Step over, step in, step out
-* Stepping into scripts passed to eval()
-* Inspecting stackframes, object properties (including prototypes) and return values
-* Watches
-* Evaluating javascript expressions in the debug console of VS Code
-* Sourcemaps - these are handled by Firefox, so if they work in the built-in Firefox debugger,
-  they should also work in VS Code
-* Debugging WebWorkers
-* Debugging multiple browser tabs
-* Debugging Firefox add-ons
-
 ## Starting
 You can use this extension in launch or attach mode. 
 In launch mode it will start an instance of Firefox navigated to the start page of your application
@@ -27,6 +11,9 @@ In attach mode it attaches to a running instance of Firefox.
 To configure these modes you must create a file `.vscode/launch.json` in the root directory of your
 project. You can do so manually or let VS Code create an example configuration for you by clicking 
 the gear icon at the top of the Debug pane.
+Finally, if `.vscode/launch.json` already exists in your project, you can open it and add a 
+configuration snippet to it using the "Add Configuration" button in the lower right corner of the
+editor.
 
 ### Launch
 Here's an example configuration for launching Firefox navigated to the local file `index.html` 
@@ -137,6 +124,35 @@ add-on manifest (`package.json` for `addonSdk` add-ons, `manifest.json` for `web
 or `install.rdf` for `legacy` add-ons).
 
 ### Optional configuration properties
+* `skipFiles`: An array of glob patterns specifying javascript files that should be skipped while
+  debugging: the debugger won't break in or step into these files. This is the same as "black boxing"
+  scripts in the Firefox Developer Tools. If the URL of a file can't be mapped to a local file path,
+  the URL will be matched against these glob patterns, otherwise the local file path will be matched.
+  Examples for glob patterns:
+  * `"${workspaceRoot}/skipThis.js"` - will skip the file `skipThis.js` in the root folder of your project
+  * `"**/skipThis.js"` - will skip files called `skipThis.js` in any folder
+  * `"${workspaceRoot}/node_modules/**"` - will skip all files under `node_modules`
+  * `"http?(s)://**"` - will skip files that could not be mapped to local files
+* `pathMappings`: An array of urls and corresponding paths to use for translating the URLs of
+  javascript files to local file paths. Use this if the default mapping of URLs to paths is 
+  insufficient in your setup. In particular, if you use [webpack](https://webpack.github.io/), you
+  may need to use one of the following mappings:
+  ```
+  { "url": "webpack:///", "path": "${webRoot}" }
+  ```
+  or
+  ```
+  { url": "webpack:///./", "path": "${webRoot}" }
+  ```
+  or
+  ```
+  { "url": "webpack:///", "path": "" }
+  ```
+  To figure out the correct mappings for your project, you can use the `PathConversion` logger
+  (see the [Diagnostic logging](#diagnostic-logging) section below) to see all mappings that are
+  being used, how URLs are mapped to paths and which URLs couldn't be mapped.
+  If you specify more than one mapping, the first mappings in the list will take precedence over 
+  subsequent ones and all of them will take precedence over the default mappings.
 * `profileDir`, `profile`: You can specify a Firefox profile directory or the name of a profile
   created with the Firefox profile manager. The extension will create a copy of this profile in the
   system's temporary directory and modify the settings in this copy to allow remote debugging.
@@ -166,7 +182,7 @@ your workspace:
 ...
 ```
 
-This example will write all messages about conversions between paths and urls and all error messages
+This example will write all messages about conversions from URLs to paths and all error messages
 to the VS Code console:
 ```
 ...
