@@ -1,3 +1,6 @@
+### Version 0.8.2
+* fix skipFiles on Windows
+
 ### Version 0.8.1
 * bugfix: sources could not be skipped during their first execution
 
