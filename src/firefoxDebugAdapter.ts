@@ -793,6 +793,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		let pathToCheck: string | null | undefined = undefined;
 		if (sourcePath !== undefined) {
 			pathToCheck = sourcePath;
+			if (this.isWindowsPlatform) {
+				pathToCheck = pathToCheck.split('\\').join('/');
+			}
 		} else if (source.generatedUrl && (!source.url || !this.urlDetector.test(source.url))) {
 			pathToCheck = source.generatedUrl;
 		} else {
