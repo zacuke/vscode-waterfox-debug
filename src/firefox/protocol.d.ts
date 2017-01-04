@@ -159,6 +159,7 @@ declare namespace FirefoxDebugProtocol {
 
 	interface ThreadPausedResponse extends TypedResponse {
 		actor: string;
+		frame: Frame;
 		poppedFrames: Frame[];
 		why: ThreadPausedReason;
 	}
@@ -213,22 +214,9 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface SourceLocation {
+		source: Source;
 		line?: number;
 		column?: number;
-	}
-
-	interface UrlSourceLocation extends SourceLocation {
-		source: Source;
-	}
-
-	interface EvalSourceLocation extends SourceLocation {
-		eval: SourceLocation;
-		id: number;
-	}
-
-	interface FunctionConstructorSourceLocation extends SourceLocation {
-		function: SourceLocation;
-		id: number;
 	}
 
 	interface Source {

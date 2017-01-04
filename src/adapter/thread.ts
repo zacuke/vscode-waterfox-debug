@@ -5,6 +5,8 @@ import { ThreadCoordinator, BreakpointInfo, BreakpointsAdapter, FrameAdapter, Sc
 import { FirefoxDebugAdapter } from '../firefoxDebugAdapter';
 import { Variable } from 'vscode-debugadapter';
 
+let log = Log.create('ThreadAdapter');
+
 export class ThreadAdapter {
 
 	public id: number;
@@ -45,7 +47,8 @@ export class ThreadAdapter {
 		this._name = name;
 		this._debugAdapter = debugAdapter;
 
-		this.coordinator = new ThreadCoordinator(this.actor, this.consoleActor, () => this.disposePauseLifetimeAdapters());
+		this.coordinator = new ThreadCoordinator(this.actor, this.consoleActor,
+			(source) => this.shouldSkip(source), () => this.disposePauseLifetimeAdapters());
 	}
 
 	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
@@ -242,6 +245,16 @@ export class ThreadAdapter {
 			return VariableAdapter.fromGrip('', grip, threadLifetime, this);
 		} else {
 			return new VariableAdapter('', 'undefined');
+		}
+	}
+
+	private shouldSkip(source: FirefoxDebugProtocol.Source) {
+		let sourceAdapter = this.findSourceAdapterForActorName(source.actor);
+		if (sourceAdapter !== undefined) {
+			return sourceAdapter.actor.source.isBlackBoxed;
+		} else {
+			log.warn(`No adapter found for sourceActor ${source.actor}`);
+			return false;
 		}
 	}
 

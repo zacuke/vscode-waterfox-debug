@@ -260,7 +260,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 						this.pendingResumeRequest = undefined;
 					}
 					this.resumePromise = undefined;
-					this.emit('paused', pausedResponse.why);
+					this.emit('paused', pausedResponse.why, pausedResponse.frame);
 					break;
 
 				case 'clientEvaluated':
@@ -282,7 +282,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
 				default:
 					log.warn(`Paused event with reason ${pausedResponse.why.type} not handled yet`);
-					this.emit('paused', pausedResponse.why);
+					this.emit('paused', pausedResponse.why, pausedResponse.frame);
 					break;
 			}
 
@@ -416,7 +416,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	 * resumeLimit, but not if it was paused due to an interrupt request or because an evaluate
 	 * request is finished
 	 */	
-	public onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void) {
+	public onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason, frame: FirefoxDebugProtocol.Frame) => void) {
 		this.on('paused', cb);
 	}
 

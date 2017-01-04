@@ -27,7 +27,7 @@ export class FrameAdapter {
 
 	public getStackframe(): StackFrame {
 
-		let firefoxSource = (<FirefoxDebugProtocol.UrlSourceLocation>this.frame.where).source;
+		let firefoxSource = this.frame.where.source;
 		let sourceActorName = firefoxSource.actor;
 
 		let sourcePath = '';

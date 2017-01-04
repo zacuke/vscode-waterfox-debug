@@ -28,18 +28,27 @@ export class ThreadCoordinator extends EventEmitter {
 	private evaluateTaskIsRunning = false;
 
 	constructor(private threadActor: ThreadActorProxy, private consoleActor: ConsoleActorProxy | undefined,
-		private prepareResume: () => Promise<void>) {
+		shouldSkip: (source: FirefoxDebugProtocol.Source) => boolean, private prepareResume: () => Promise<void>) {
 
 		super();
 
-		threadActor.onPaused((reason) => {
+		threadActor.onPaused((reason, frame) => {
+
 			if (this.threadState === 'evaluating') {
+
 				threadActor.resume(this.exceptionBreakpoints);
+
+			} else if (shouldSkip(frame.where.source)) {
+
+				threadActor.resume(this.exceptionBreakpoints, this.getResumeLimit());
+
 			} else {
+
 				this.threadState = 'paused';
 				this.threadTarget = 'paused';
 				this.interruptPromise = undefined;
 				this.emit('paused', reason);
+
 			}
 		});
 
@@ -232,21 +241,7 @@ export class ThreadCoordinator extends EventEmitter {
 
 	private async executeResume(): Promise<void> {
 
-		let resumeLimit: 'next' | 'step' | 'finish' | undefined;
-		switch (this.threadTarget) {
-			case 'stepOver':
-				resumeLimit = 'next';
-				break;
-			case 'stepIn':
-				resumeLimit = 'step';
-				break;
-			case 'stepOut':
-				resumeLimit = 'finish';
-				break;
-			default:
-				resumeLimit = undefined;
-				break;
-		}
+		let resumeLimit = this.getResumeLimit();
 
 		this.threadState = 'resuming';
 		try {
@@ -300,5 +295,18 @@ export class ThreadCoordinator extends EventEmitter {
 		this.threadState = 'paused';
 
 		this.doNext();
+	}
+
+	private getResumeLimit(): 'next' | 'step' | 'finish' | undefined {
+		switch (this.threadTarget) {
+			case 'stepOver':
+				return 'next';
+			case 'stepIn':
+				return 'step';
+			case 'stepOut':
+				return 'finish';
+			default:
+				return undefined;
+		}
 	}
 }

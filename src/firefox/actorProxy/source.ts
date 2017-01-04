@@ -29,7 +29,7 @@ export class SourceActorProxy implements ActorProxy {
 		return this._source.url;
 	}
 
-	public setBreakpoint(location: FirefoxDebugProtocol.SourceLocation, condition: string): Promise<SetBreakpointResult> {
+	public setBreakpoint(location: { line: number }, condition: string): Promise<SetBreakpointResult> {
 
 		log.debug(`Setting breakpoint at line ${location.line} in ${this.url}`);
 
