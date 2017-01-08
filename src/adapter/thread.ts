@@ -90,7 +90,19 @@ export class ThreadAdapter {
 		this.scopes.push(scopeAdapter);
 	}
 
-	public findSourceAdaptersForPath(path?: string): SourceAdapter[] {
+	public findCorrespondingSourceAdapter(source: FirefoxDebugProtocol.Source): SourceAdapter | undefined {
+		if (!source.url) return undefined;
+
+		for (let sourceAdapter of this.sources) {
+			if (sourceAdapter.actor.source.url === source.url) {
+				return sourceAdapter;
+			}
+		}
+
+		return undefined;
+	}
+
+	public findSourceAdaptersForPath(path: string | undefined): SourceAdapter[] {
 		if (!path) return [];
 		return this.sources.filter((sourceAdapter) => (sourceAdapter.sourcePath === path));
 	}

@@ -423,7 +423,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		if (source.addonID && (source.addonID === this.addonId)) {
 
-			let sourcePath = path.join(this.addonPath, source.addonPath);
+			let sourcePath = this.removeQueryString(path.join(this.addonPath, source.addonPath));
 			pathConversionLog.debug(`Addon script path: ${sourcePath}`);
 			return sourcePath;
 
@@ -434,7 +434,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 			let relativePath = source.url;
 
-			let sourcePath = path.join(path.dirname(generatedPath), relativePath);
+			let sourcePath = this.removeQueryString(path.join(path.dirname(generatedPath), relativePath));
 			pathConversionLog.debug(`Sourcemapped path: ${sourcePath}`);
 			return sourcePath;
 
@@ -457,7 +457,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 				if (url.substr(0, from.length) === from) {
 
-					let path = to + url.substr(from.length);
+					let path = this.removeQueryString(to + url.substr(from.length));
 					if (this.isWindowsPlatform) {
 						path = path.replace(/\//g, '\\');
 					}
@@ -471,7 +471,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				let match = from.exec(url);
 				if (match) {
 
-					let path = to + match[1];
+					let path = this.removeQueryString(to + match[1]);
 					if (this.isWindowsPlatform) {
 						path = path.replace(/\//g, '\\');
 					}
@@ -490,6 +490,15 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		}
 
 		return undefined;
+	}
+
+	private removeQueryString(path: string): string {
+		let queryStringIndex = path.indexOf('?');
+		if (queryStringIndex >= 0) {
+			return path.substr(0, queryStringIndex);
+		} else {
+			return path;
+		}
 	}
 
 	private async readCommonConfiguration(args: CommonConfiguration): Promise<void> {
@@ -774,18 +783,17 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		const source = sourceActor.source;
 		const sourcePath = this.convertFirefoxSourceToPath(source);
-		let sourceAdapters = threadAdapter.findSourceAdaptersForPath(sourcePath);
+		let sourceAdapter = threadAdapter.findCorrespondingSourceAdapter(source);
 
-		if (sourceAdapters.length > 0) {
+		if (sourceAdapter !== undefined) {
 
-			sourceAdapters.forEach((sourceAdapter) => sourceAdapter.actor = sourceActor);
+			sourceAdapter.actor = sourceActor;
 
 		} else {
 
 			let sourceId = this.nextSourceId++;
-			let sourceAdapter = threadAdapter.createSourceAdapter(sourceId, sourceActor, sourcePath);
+			sourceAdapter = threadAdapter.createSourceAdapter(sourceId, sourceActor, sourcePath);
 			this.sourcesById.set(sourceId, sourceAdapter);
-			sourceAdapters.push(sourceAdapter);
 
 		}
 
@@ -822,7 +830,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 			let breakpointInfos = this.breakpointsBySourcePath.get(sourcePath) || [];
 
-			sourceAdapters.forEach((sourceAdapter) => {
+			if (sourceAdapter !== undefined) {
 
 				let setBreakpointsPromise = threadAdapter.setBreakpoints(
 					breakpointInfos, sourceAdapter);
@@ -843,7 +851,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 						this.verifiedBreakpointSources.push(sourcePath);
 					})
 				}
-			});
+			};
 		}
 	}
 

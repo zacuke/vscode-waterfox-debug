@@ -221,13 +221,14 @@ declare namespace FirefoxDebugProtocol {
 
 	interface Source {
 		actor: string;
-		url?: string | null;
-		generatedUrl?: string;
-		introductionUrl?: string;
+		url: string | null;
+		introductionType?: 'scriptElement' | 'eval' | 'Function' | 'debugger eval' | null;
+		introductionUrl: string | null;
 		isBlackBoxed: boolean;
 		isPrettyPrinted: boolean;
 		isSourceMapped: boolean;
-		sourceMapUrl?: string;
+		generatedUrl: string | null;
+		sourceMapUrl: string | null;
 		addonID?: string;
 		addonPath?: string;
 	}
