@@ -1,3 +1,6 @@
+### Version 0.8.3
+* strip query strings from urls when converting them to local file paths
+
 ### Version 0.8.2
 * fix skipFiles on Windows
 
