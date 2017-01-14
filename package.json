@@ -181,6 +181,11 @@
                 },
                 "default": []
               },
+              "reAttach": {
+                "type": "boolean",
+                "description": "Don't terminate Firefox at the end of the debugging session and re-attach to it when starting the next session",
+                "default": true
+              },
               "pathMappings": {
                 "type": "array",
                 "description": "Additional mappings from URLs (as seen by Firefox) to filesystem paths (as seen by VS Code)",

@@ -21,6 +21,7 @@ export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.
 	profile?: string;
 	port?: number;
 	firefoxArgs?: string[];
+	reAttach?: boolean;
 }
 
 export interface AttachConfiguration extends CommonConfiguration, DebugProtocol.AttachRequestArguments {
