@@ -36,7 +36,7 @@ export class ThreadAdapter {
 	private objectGripAdaptersByActorName = new Map<string, ObjectGripAdapter>();
 	private pauseLifetimeObjects: ObjectGripAdapter[] = [];
 
-	private completionValue?: FirefoxDebugProtocol.CompletionValue;
+	private threadPausedReason?: FirefoxDebugProtocol.ThreadPausedReason;
 
 	public constructor(id: number, threadActor: ThreadActorProxy, consoleActor: ConsoleActorProxy | undefined,
 		name: string, debugAdapter: FirefoxDebugAdapter) {
@@ -54,7 +54,7 @@ export class ThreadAdapter {
 	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
 
 		this.coordinator.onPaused((reason) => {
-			this.completionValue = reason.frameFinished;
+			this.threadPausedReason = reason;
 		});
 
 		await this.actor.attach();
@@ -158,8 +158,8 @@ export class ThreadAdapter {
 					return frameAdapter;
 				});
 
-				if (frameAdapters.length > 0) {
-					frameAdapters[0].scopeAdapters[0].addCompletionValue(this.completionValue);
+				if ((this.threadPausedReason !== undefined) && (frameAdapters.length > 0)) {
+					frameAdapters[0].scopeAdapters[0].addCompletionValue(this.threadPausedReason);
 				}
 
 				return frameAdapters;
