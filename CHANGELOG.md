@@ -1,3 +1,6 @@
+### Version 0.8.4
+* bugfix: exceptions were not shown
+
 ### Version 0.8.3
 * strip query strings from urls when converting them to local file paths
 
