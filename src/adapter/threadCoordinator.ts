@@ -20,6 +20,10 @@ export class ThreadCoordinator extends EventEmitter {
 	private threadTarget: ThreadTarget = 'paused';
 
 	private interruptPromise?: Promise<void>;
+	private pendingInterruptRequest?: PendingRequest<void>;
+
+	private resumePromise?: Promise<void>;
+	private pendingResumeRequest?: PendingRequest<void>;
 
 	private queuedTasksToRunOnPausedThread: DelayedTask<any>[] = [];
 	private tasksRunningOnPausedThread = 0;
@@ -44,18 +48,18 @@ export class ThreadCoordinator extends EventEmitter {
 
 			} else {
 
-				this.threadState = 'paused';
 				this.threadTarget = 'paused';
-				this.interruptPromise = undefined;
+				this.threadPaused();
 				this.emit('paused', reason);
 
 			}
 		});
 
 		threadActor.onResumed(() => {
-			this.threadState = 'running';
+
 			this.threadTarget = 'running';
-			this.interruptPromise = undefined;
+			this.threadResumed();
+
 			if (this.tasksRunningOnPausedThread > 0) {
 				log.warn('Thread resumed unexpectedly while tasks that need the thread to be paused were running');
 			}
@@ -82,39 +86,59 @@ export class ThreadCoordinator extends EventEmitter {
 		} else {
 
 			this.threadTarget = 'paused';
-			this.doNext(); // this will set this.interruptPromise
-			return this.interruptPromise!;
+			this.interruptPromise = new Promise<void>((resolve, reject) => {
+				this.pendingInterruptRequest = { resolve, reject };
+			});
+			this.doNext();
+			return this.interruptPromise;
 
 		}
 	}
 
-	public resume() {
-		this.resumeTo('running');
+	public resume(): Promise<void> {
+		return this.resumeTo('running');
 	}
 
-	public stepOver() {
-		this.resumeTo('stepOver');
+	public stepOver(): Promise<void> {
+		return this.resumeTo('stepOver');
 	}
 
-	public stepIn() {
-		this.resumeTo('stepIn');
+	public stepIn(): Promise<void> {
+		return this.resumeTo('stepIn');
 	}
 
-	public stepOut() {
-		this.resumeTo('stepOut');
+	public stepOut(): Promise<void> {
+		return this.resumeTo('stepOut');
 	}
 
-	private resumeTo(target: 'running' | 'stepOver' | 'stepIn' | 'stepOut'): void {
+	private resumeTo(target: 'running' | 'stepOver' | 'stepIn' | 'stepOut'): Promise<void> {
 
 		if (this.threadState === 'running') {
-			if (target != 'running') {
+
+			if (target !== 'running') {
 				log.warn(`Can't ${target} because the thread is already running`);
 			}
-		} else {
-			this.threadTarget = target;
-		}
 
-		this.doNext();
+			return Promise.resolve();
+
+		} else if (this.resumePromise !== undefined) {
+
+			if (target !== 'running') {
+				log.warn(`Can't ${target} because the thread is already resuming`);
+			}
+
+			return this.resumePromise;
+
+		} else {
+
+			this.threadTarget = target;
+			this.resumePromise = new Promise<void>((resolve, reject) => {
+				this.pendingResumeRequest = { resolve, reject };
+			});
+			this.doNext();
+			return this.resumePromise;
+
+		}
 	}
 
 	public runOnPausedThread<T>(mainTask: () => Promise<T>,
@@ -224,11 +248,10 @@ export class ThreadCoordinator extends EventEmitter {
 	private async executeInterrupt(immediate: boolean): Promise<void> {
 
 		this.threadState = 'interrupting';
-		this.interruptPromise = this.threadActor.interrupt(immediate);
 
 		try {
-			await this.interruptPromise;
-			this.threadState = 'paused';
+			await this.threadActor.interrupt(immediate);
+			this.threadPaused();
 		} catch(e) {
 			log.error(`interrupt failed: ${e}`);
 			this.threadState = 'running';
@@ -242,14 +265,14 @@ export class ThreadCoordinator extends EventEmitter {
 	private async executeResume(): Promise<void> {
 
 		let resumeLimit = this.getResumeLimit();
-
 		this.threadState = 'resuming';
+
 		try {
 			await this.prepareResume();
 			await this.threadActor.resume(this.exceptionBreakpoints, resumeLimit);
-			this.threadState = 'running';
+			this.threadResumed();
 		} catch(e) {
-			log.error(`resumeTask failed: ${e}`);
+			log.error(`resume failed: ${e}`);
 			this.threadState = 'paused';
 		}
 
@@ -295,6 +318,44 @@ export class ThreadCoordinator extends EventEmitter {
 		this.threadState = 'paused';
 
 		this.doNext();
+	}
+
+	private threadPaused(): void {
+
+		this.threadState = 'paused';
+
+		if (this.pendingInterruptRequest !== undefined) {
+			this.pendingInterruptRequest.resolve(undefined);
+			this.pendingInterruptRequest = undefined;
+		}
+		this.interruptPromise = undefined;
+
+		if (this.threadTarget === 'paused') {
+			if (this.pendingResumeRequest !== undefined) {
+				this.pendingResumeRequest.reject(undefined);
+				this.pendingResumeRequest = undefined;
+			}
+			this.resumePromise = undefined;
+		}
+	}
+
+	private threadResumed(): void {
+
+		this.threadState = 'running';
+
+		if (this.pendingResumeRequest !== undefined) {
+			this.pendingResumeRequest.resolve(undefined);
+			this.pendingResumeRequest = undefined;
+		}
+		this.resumePromise = undefined;
+
+		if (this.threadTarget !== 'paused') {
+			if (this.pendingInterruptRequest !== undefined) {
+				this.pendingInterruptRequest.reject(undefined);
+				this.pendingInterruptRequest = undefined;
+			}
+			this.interruptPromise = undefined;
+		}
 	}
 
 	private getResumeLimit(): 'next' | 'step' | 'finish' | undefined {

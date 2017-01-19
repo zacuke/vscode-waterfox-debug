@@ -60,7 +60,7 @@ export class ThreadAdapter {
 		await this.actor.attach();
 		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
 		await this.actor.fetchSources();
-		this.coordinator.resume();
+		await this.coordinator.resume();
 	}
 
 	public createSourceAdapter(id: number, actor: SourceActorProxy, path?: string): SourceAdapter {
@@ -120,20 +120,20 @@ export class ThreadAdapter {
 		return this.coordinator.interrupt();
 	}
 
-	public resume(): void {
-		this.coordinator.resume();
+	public resume(): Promise<void> {
+		return this.coordinator.resume();
 	}
 
-	public stepOver(): void {
-		this.coordinator.stepOver();
+	public stepOver(): Promise<void> {
+		return this.coordinator.stepOver();
 	}
 
-	public stepIn(): void {
-		this.coordinator.stepIn();
+	public stepIn(): Promise<void> {
+		return this.coordinator.stepIn();
 	}
 
-	public stepOut(): void {
-		this.coordinator.stepOut();
+	public stepOut(): Promise<void> {
+		return this.coordinator.stepOut();
 	}
 
 	public setBreakpoints(breakpointInfos: BreakpointInfo[], sourceAdapter: SourceAdapter): Promise<BreakpointAdapter[]> {
