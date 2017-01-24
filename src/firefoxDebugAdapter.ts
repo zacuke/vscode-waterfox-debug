@@ -87,7 +87,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		await this.readCommonConfiguration(args);
 
-		this.firefoxProc = await launchFirefox(args);
+		this.firefoxProc = await launchFirefox(args,
+			(msg) => this.sendEvent(new OutputEvent(msg, 'stdout')));
 
 		let socket = await waitForSocket(args);
 		this.startSession(socket);

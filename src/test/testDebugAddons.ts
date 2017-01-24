@@ -72,4 +72,13 @@ describe('Firefox debug adapter', function() {
 
 		assert.notEqual(contentThreadId, addOnThreadId);
 	});
+
+	it('should show log messages from a Jetpack add-on', async function() {
+
+		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'addonSdk', true);
+		let outputEvent = <DebugProtocol.OutputEvent> await dc.waitForEvent('output');
+
+		assert.equal(outputEvent.body.category, 'stdout');
+		assert.equal(outputEvent.body.output.trim(), 'console.log: test: foo: bar');
+	});
 });

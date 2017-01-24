@@ -14,7 +14,7 @@ import * as FirefoxProfile from 'firefox-profile';
  * The returned promise resolves to the spawned child process
  * and the addonId if the launch configuration is for addon debugging.
  */
-export async function launchFirefox(config: LaunchConfiguration): 
+export async function launchFirefox(config: LaunchConfiguration, sendToConsole: (msg: string) => void):
 	Promise<ChildProcess> {
 
 	let firefoxPath = getFirefoxExecutablePath(config);	
@@ -62,10 +62,18 @@ export async function launchFirefox(config: LaunchConfiguration):
 
 	await prepareDebugProfile(config, debugProfileDir);
 
-	let childProc = spawn(firefoxPath, firefoxArgs, { detached: true, stdio: 'ignore' });
+	let childProc = spawn(firefoxPath, firefoxArgs, { detached: true });
+
+	childProc.stdout.on('data', (data) => {
+		let msg = (typeof data === 'string') ? data : data.toString('utf8');
+		msg = msg.trim();
+		sendToConsole(msg);
+	});
+
 	childProc.on('exit', () => {
 		fs.removeSync(debugProfileDir);
 	});
+
 	childProc.unref();
 	return childProc;
 }
@@ -144,6 +152,7 @@ async function prepareDebugProfile(config: LaunchConfiguration, debugProfileDir:
 	profile.setPreference('devtools.debugger.workers', true);
 	profile.setPreference('extensions.autoDisableScopes', 10);
 	profile.setPreference('xpinstall.signatures.required', false);
+	profile.setPreference('extensions.sdk.console.logLevel', 'all');
 	profile.updatePreferences();
 
 	if (config.addonType && config.addonPath) {
