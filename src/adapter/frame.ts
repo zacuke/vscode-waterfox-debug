@@ -52,7 +52,7 @@ export class FrameAdapter {
 		}
 
 		let source = new Source(sourceName, sourcePath, sourceAdapter.id);
-		if ((sourceAdapter !== undefined) && sourceAdapter.actor.source.isBlackBoxed) {
+		if (sourceAdapter.actor.source.isBlackBoxed) {
 			(<DebugProtocol.Source>source).presentationHint = 'deemphasize';
 		}
 
