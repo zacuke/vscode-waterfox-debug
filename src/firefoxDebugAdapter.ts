@@ -87,8 +87,13 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		await this.readCommonConfiguration(args);
 
-		this.firefoxProc = await launchFirefox(args,
-			(msg) => this.sendEvent(new OutputEvent(msg, 'stdout')));
+		// only send messages from Firefox' stdout to the debug console when debugging an addonSdk extension
+		let sendToConsole: (msg: string) => void = 
+			(this.addonType === 'addonSdk') ? 
+				(msg) => this.sendEvent(new OutputEvent(msg, 'stdout')) :
+				(msg) => undefined;
+
+		this.firefoxProc = await launchFirefox(args, sendToConsole);
 
 		let socket = await waitForSocket(args);
 		this.startSession(socket);
