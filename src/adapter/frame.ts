@@ -1,6 +1,7 @@
 import { Log } from '../util/log';
 import { concatArrays } from '../util/misc';
 import { ThreadAdapter, EnvironmentAdapter, ScopeAdapter, ObjectGripAdapter } from '../adapter/index';
+import { DebugProtocol } from 'vscode-debugprotocol';
 import { Source, StackFrame } from 'vscode-debugadapter';
 import { urlBasename } from '../util/misc';
 
@@ -51,6 +52,9 @@ export class FrameAdapter {
 		}
 
 		let source = new Source(sourceName, sourcePath, sourceAdapter.id);
+		if ((sourceAdapter !== undefined) && sourceAdapter.actor.source.isBlackBoxed) {
+			(<DebugProtocol.Source>source).presentationHint = 'deemphasize';
+		}
 
 		let name: string;
 		switch (this.frame.type) {
