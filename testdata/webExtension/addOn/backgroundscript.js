@@ -1,3 +1,3 @@
 chrome.runtime.onMessage.addListener((msg) => {
-	let dummy;
+	console.log('foo: ' + msg.foo);
 });

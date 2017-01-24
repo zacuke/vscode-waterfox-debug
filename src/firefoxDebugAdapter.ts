@@ -624,10 +624,10 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				let addons = await rootActor.fetchAddons();
 				addons.forEach((addon) => {
 					if (addon.id === this.addonId) {
-						this.attachTab(
-							new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection),
-							new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection),
-							nextTabId++, false, 'Addon');
+						let tabActor = new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection);
+						let consoleActor = new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection);
+						this.attachTab(tabActor, consoleActor, nextTabId++, false, 'Addon');
+						this.attachConsole(consoleActor);
 					}
 				});
 
