@@ -1,3 +1,6 @@
+### Version 0.8.5
+* send log messages from add-ons to the debug console
+
 ### Version 0.8.4
 * bugfix: exceptions were not shown
 
