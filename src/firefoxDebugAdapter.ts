@@ -429,7 +429,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		if (source.addonID && (source.addonID === this.addonId)) {
 
-			let sourcePath = this.removeQueryString(path.join(this.addonPath, source.addonPath));
+			let sourcePath = this.removeQueryString(path.join(this.addonPath!, source.addonPath!));
 			pathConversionLog.debug(`Addon script path: ${sourcePath}`);
 			return sourcePath;
 
