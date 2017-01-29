@@ -1,6 +1,7 @@
 import { Log } from '../util/log';
 import { EventEmitter } from 'events';
 import { ExceptionBreakpoints, ThreadActorProxy, ConsoleActorProxy } from '../firefox/index';
+import { ThreadPauseCoordinator, PauseType } from './threadPauseCoordinator';
 import { VariableAdapter } from './variable';
 import { DelayedTask } from './delayedTask';
 import { PendingRequest } from '../firefox/actorProxy/pendingRequests';
@@ -31,8 +32,14 @@ export class ThreadCoordinator extends EventEmitter {
 	private queuedEvaluateTasks: DelayedTask<VariableAdapter>[] = [];
 	private evaluateTaskIsRunning = false;
 
-	constructor(private threadActor: ThreadActorProxy, private consoleActor: ConsoleActorProxy | undefined,
-		shouldSkip: (source: FirefoxDebugProtocol.Source) => boolean, private prepareResume: () => Promise<void>) {
+	constructor(
+		private threadId: number,
+		private threadName: string,
+		private threadActor: ThreadActorProxy,
+		private consoleActor: ConsoleActorProxy | undefined,
+		private pauseCoordinator: ThreadPauseCoordinator,
+		shouldSkip: (source: FirefoxDebugProtocol.Source) => boolean,
+		private prepareResume: () => Promise<void>) {
 
 		super();
 
@@ -49,7 +56,7 @@ export class ThreadCoordinator extends EventEmitter {
 			} else {
 
 				this.threadTarget = 'paused';
-				this.threadPaused();
+				this.threadPaused('user');
 				this.emit('paused', reason);
 
 			}
@@ -205,12 +212,12 @@ export class ThreadCoordinator extends EventEmitter {
 		if (this.threadState === 'running') {
 
 			if ((this.queuedTasksToRunOnPausedThread.length > 0) || (this.queuedEvaluateTasks.length > 0)) {
-				this.executeInterrupt(true);
+				this.executeInterrupt('auto');
 				return;
 			}
  
 			if (this.threadTarget === 'paused') {
-				this.executeInterrupt(false);
+				this.executeInterrupt('user');
 				return;
 			}
 
@@ -245,16 +252,20 @@ export class ThreadCoordinator extends EventEmitter {
 		}
 	}
 
-	private async executeInterrupt(immediate: boolean): Promise<void> {
+	private async executeInterrupt(pauseType: PauseType): Promise<void> {
 
 		this.threadState = 'interrupting';
 
 		try {
-			await this.threadActor.interrupt(immediate);
-			this.threadPaused();
+
+			await this.pauseCoordinator.requestInterrupt(this.threadId, this.threadName, pauseType);
+			await this.threadActor.interrupt(pauseType === 'auto');
+			this.threadPaused(pauseType);
+
 		} catch(e) {
 			log.error(`interrupt failed: ${e}`);
 			this.threadState = 'running';
+			this.pauseCoordinator.notifyInterruptFailed(this.threadId, this.threadName);
 		}
 
 		this.interruptPromise = undefined;
@@ -268,12 +279,16 @@ export class ThreadCoordinator extends EventEmitter {
 		this.threadState = 'resuming';
 
 		try {
+
+			await this.pauseCoordinator.requestResume(this.threadId, this.threadName);
 			await this.prepareResume();
 			await this.threadActor.resume(this.exceptionBreakpoints, resumeLimit);
 			this.threadResumed();
+
 		} catch(e) {
 			log.error(`resume failed: ${e}`);
 			this.threadState = 'paused';
+			this.pauseCoordinator.notifyResumeFailed(this.threadId, this.threadName);
 		}
 
 		this.doNext();
@@ -320,7 +335,7 @@ export class ThreadCoordinator extends EventEmitter {
 		this.doNext();
 	}
 
-	private threadPaused(): void {
+	private threadPaused(pauseType: PauseType): void {
 
 		this.threadState = 'paused';
 
@@ -337,6 +352,8 @@ export class ThreadCoordinator extends EventEmitter {
 			}
 			this.resumePromise = undefined;
 		}
+
+		this.pauseCoordinator.notifyInterrupted(this.threadId, this.threadName, pauseType);
 	}
 
 	private threadResumed(): void {
@@ -356,6 +373,8 @@ export class ThreadCoordinator extends EventEmitter {
 			}
 			this.interruptPromise = undefined;
 		}
+
+		this.pauseCoordinator.notifyResumed(this.threadId, this.threadName);
 	}
 
 	private getResumeLimit(): 'next' | 'step' | 'finish' | undefined {

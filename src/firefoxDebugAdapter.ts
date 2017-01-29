@@ -11,7 +11,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugAdapterBase } from './debugAdapterBase';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, ContinuedEvent, Thread, StackFrame, Scope, Variable, Source, Breakpoint } from 'vscode-debugadapter';
 import { DebugConnection, ActorProxy, TabActorProxy, WorkerActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
-import { ThreadAdapter, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, VariableAdapter, ObjectGripAdapter } from './adapter/index';
+import { ThreadAdapter, ThreadPauseCoordinator, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, VariableAdapter, ObjectGripAdapter } from './adapter/index';
 import { CommonConfiguration, LaunchConfiguration, AttachConfiguration, AddonType } from './adapter/launchConfiguration';
 
 let log = Log.create('FirefoxDebugAdapter');
@@ -38,6 +38,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	private nextBreakpointId = 1;
 	private breakpointsBySourcePath = new Map<string, BreakpointInfo[]>();
 	private verifiedBreakpointSources: string[] = [];
+	private threadPauseCoordinator = new ThreadPauseCoordinator();
 
 	private nextFrameId = 1;
 	private framesById = new Map<number, FrameAdapter>();
@@ -436,7 +437,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		if (source.addonID && (source.addonID === this.addonId)) {
 
-			let sourcePath = this.removeQueryString(path.join(this.addonPath, source.addonPath));
+			let sourcePath = this.removeQueryString(path.join(this.addonPath!, source.addonPath!));
 			pathConversionLog.debug(`Addon script path: ${sourcePath}`);
 			return sourcePath;
 
@@ -656,7 +657,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		rootActor.onTabOpened(([tabActor, consoleActor]) => {
 			log.info(`Tab opened with url ${tabActor.url}`);
 			let tabId = nextTabId++;
-			this.attachTab(tabActor, consoleActor, tabId);
+			this.attachTab(tabActor, consoleActor, tabId, true, `Tab ${tabId}`);
 			this.attachConsole(consoleActor);
 		});
 
@@ -679,7 +680,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	}
 
 	private async attachTab(tabActor: TabActorProxy, consoleActor: ConsoleActorProxy, tabId: number, 
-		hasWorkers: boolean = true, threadName?: string): Promise<void> {
+		hasWorkers: boolean, threadName: string): Promise<void> {
 
 		let threadActor: ThreadActorProxy;
 		try {
@@ -692,10 +693,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		log.debug(`Attached to tab ${tabActor.name}`);
 
 		let threadId = this.nextThreadId++;
-		if (!threadName) {
-			threadName = `Tab ${tabId}`;
-		}
-		let threadAdapter = new ThreadAdapter(threadId, threadActor, consoleActor, threadName, this);
+		let threadAdapter = new ThreadAdapter(threadId, threadActor, consoleActor,
+			this.threadPauseCoordinator, threadName, this);
 
 		this.attachThread(threadAdapter, threadActor.name);
 
@@ -752,7 +751,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		let threadId = this.nextThreadId++;
 		let threadAdapter = new ThreadAdapter(threadId, threadActor, undefined,
-			`Worker ${tabId}/${workerId}`, this);
+			this.threadPauseCoordinator, `Worker ${tabId}/${workerId}`, this);
 
 		this.attachThread(threadAdapter, threadActor.name);
 

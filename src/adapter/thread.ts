@@ -1,7 +1,7 @@
 import { Log } from '../util/log';
 import { concatArrays } from '../util/misc';
 import { ExceptionBreakpoints, ThreadActorProxy, ConsoleActorProxy, SourceActorProxy } from '../firefox/index';
-import { ThreadCoordinator, BreakpointInfo, BreakpointsAdapter, FrameAdapter, ScopeAdapter, SourceAdapter, BreakpointAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
+import { ThreadCoordinator, ThreadPauseCoordinator, PauseType, BreakpointInfo, BreakpointsAdapter, FrameAdapter, ScopeAdapter, SourceAdapter, BreakpointAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
 import { FirefoxDebugAdapter } from '../firefoxDebugAdapter';
 import { Variable } from 'vscode-debugadapter';
 
@@ -39,7 +39,7 @@ export class ThreadAdapter {
 	private completionValue?: FirefoxDebugProtocol.CompletionValue;
 
 	public constructor(id: number, threadActor: ThreadActorProxy, consoleActor: ConsoleActorProxy | undefined,
-		name: string, debugAdapter: FirefoxDebugAdapter) {
+		private pauseCoordinator: ThreadPauseCoordinator, name: string, debugAdapter: FirefoxDebugAdapter) {
 
 		this.id = id;
 		this.actor = threadActor;
@@ -47,19 +47,29 @@ export class ThreadAdapter {
 		this._name = name;
 		this._debugAdapter = debugAdapter;
 
-		this.coordinator = new ThreadCoordinator(this.actor, this.consoleActor,
-			(source) => this.shouldSkip(source), () => this.disposePauseLifetimeAdapters());
+		this.coordinator = new ThreadCoordinator(this.id, this.name, this.actor, this.consoleActor,
+			this.pauseCoordinator, (source) => this.shouldSkip(source), () => this.disposePauseLifetimeAdapters());
 	}
 
 	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
+
+		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
 
 		this.coordinator.onPaused((reason) => {
 			this.completionValue = reason.frameFinished;
 		});
 
-		await this.actor.attach();
-		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
+		await this.pauseCoordinator.requestInterrupt(this.id, this.name, 'auto');
+		try {
+			await this.actor.attach();
+			this.pauseCoordinator.notifyInterrupted(this.id, this.name, 'auto');
+		} catch(e) {
+			this.pauseCoordinator.notifyInterruptFailed(this.id, this.name);
+			throw e;
+		}
+
 		await this.actor.fetchSources();
+
 		await this.coordinator.resume();
 	}
 
