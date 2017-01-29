@@ -33,10 +33,12 @@ export class ThreadPauseCoordinator {
 			return Promise.resolve();
 		}
 
-		let hinderingPauses = this.findHinderingPauses(threadId);
-		if (hinderingPauses.length > 0) {
-			let msg = `${threadName} can't be resumed because you need to resume ${hinderingPauses.map((pauseInfo) => pauseInfo.threadName).join(', ')} first`;
-			return Promise.reject(msg);
+		if (this.currentPauses[pauseIndex].pauseType === 'user') {
+			let hinderingPauses = this.findHinderingPauses(threadId);
+			if (hinderingPauses.length > 0) {
+				let msg = `${threadName} can't be resumed because you need to resume ${hinderingPauses.map((pauseInfo) => pauseInfo.threadName).join(', ')} first`;
+				return Promise.reject(msg);
+			}
 		}
 
 		let promise = new Promise<void>((resolve, reject) => {

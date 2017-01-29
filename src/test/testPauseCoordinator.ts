@@ -106,7 +106,7 @@ describe('ThreadPauseCoordinator', function() {
 		]);
 	});
 
-	it('should wait for an automatically paused thread to be resumed before allowing a thread paused earlier to be resumed', async function() {
+	it('should wait for an automatically paused thread to be resumed before allowing a thread automatically paused earlier to be resumed', async function() {
 
 		let events: string[] = [];
 
@@ -150,6 +150,53 @@ describe('ThreadPauseCoordinator', function() {
 			'Pausing #1',
 			'Paused #1',
 			'Pausing #2',
+			'Paused #2',
+			'Request resuming #1',
+			'Request resuming #2',
+			'Resuming #2',
+			'Resumed #2',
+			'Resuming #1',
+			'Resumed #1',
+		]);
+	});
+
+	it('should wait for a thread paused by the user to be resumed before allowing a thread automatically paused earlier to be resumed', async function() {
+
+		let events: string[] = [];
+
+		events.push('Request pausing #1');
+		await pauseCoordinator.requestPause(1, 'Thread 1', 'auto').then(async () => {
+			events.push('Pausing #1');
+			await delay(10);
+			events.push('Paused #1');
+			pauseCoordinator.notifyPaused(1, 'Thread 1', 'auto');
+		});
+
+		pauseCoordinator.notifyPaused(2, 'Thread 2', 'user');
+		events.push('Paused #2');
+
+		events.push('Request resuming #1');
+		let resumePromise = pauseCoordinator.requestResume(1, 'Thread 1').then(async () => {
+			events.push('Resuming #1');
+			await delay(10);
+			events.push('Resumed #1');
+			pauseCoordinator.notifyResumed(1, 'Thread 1');
+		});
+
+		events.push('Request resuming #2');
+		pauseCoordinator.requestResume(2, 'Thread 2').then(async () => {
+			events.push('Resuming #2');
+			await delay(10);
+			events.push('Resumed #2');
+			pauseCoordinator.notifyResumed(2, 'Thread 2');
+		});
+
+		await resumePromise;
+
+		assert.deepEqual(events, [
+			'Request pausing #1',
+			'Pausing #1',
+			'Paused #1',
 			'Paused #2',
 			'Request resuming #1',
 			'Request resuming #2',
