@@ -10,9 +10,11 @@ export class ThreadPauseCoordinator {
 	private currentPauses: ThreadPauseInfo[] = [];
 	private requestedPauses: PendingThreadPauseRequest[] = [];
 	private requestedResumes: PendingThreadResumeRequest[] = [];
-	private pausingOrResumingThreadId?: number;
+	private interruptingOrResumingThreadId?: number;
 
-	public requestPause(threadId: number, threadName: string, pauseType: PauseType): Promise<void> {
+	public requestInterrupt(threadId: number, threadName: string, pauseType: PauseType): Promise<void> {
+
+		log.debug(`Requesting ${pauseType} interrupt for ${threadName}`);
 
 		let promise = new Promise<void>((resolve, reject) => {
 			let pendingRequest = { resolve, reject };
@@ -25,6 +27,8 @@ export class ThreadPauseCoordinator {
 	}
 
 	public requestResume(threadId: number, threadName: string): Promise<void> {
+
+		log.debug(`Requesting resume for ${threadName}`);
 
 		let pauseIndex = this.findPauseIndex(threadId);
 
@@ -51,17 +55,19 @@ export class ThreadPauseCoordinator {
 		return promise;
 	}
 
-	public notifyPaused(threadId: number, threadName: string, pauseType: PauseType): void {
+	public notifyInterrupted(threadId: number, threadName: string, pauseType: PauseType): void {
 
-		if (this.pausingOrResumingThreadId === threadId) {
+		log.debug(`${threadName} interrupted, type ${pauseType}`);
 
-			this.pausingOrResumingThreadId = undefined;
+		if (this.interruptingOrResumingThreadId === threadId) {
+
+			this.interruptingOrResumingThreadId = undefined;
 
 		} else {
 
 			this.currentPauses.push({ threadId, threadName, pauseType });
 
-			if (this.pausingOrResumingThreadId !== undefined) {
+			if (this.interruptingOrResumingThreadId !== undefined) {
 				log.warn(`Received paused notification from ${threadName} while waiting for a notification from another thread`);
 			}
 		}
@@ -69,7 +75,23 @@ export class ThreadPauseCoordinator {
 		this.doNext();
 	}
 
+	public notifyInterruptFailed(threadId: number, threadName: string): void {
+
+		log.debug(`Interrupting ${threadName} failed`);
+
+		if (this.interruptingOrResumingThreadId === threadId) {
+			this.interruptingOrResumingThreadId = undefined;
+		}
+
+		let pauseIndex = this.findPauseIndex(threadId);
+		if (pauseIndex !== undefined) {
+			this.currentPauses.splice(pauseIndex);
+		}
+	}
+
 	public notifyResumed(threadId: number, threadName: string): void {
+
+		log.debug(`${threadName} resumed`);
 
 		let pauseIndex = this.findPauseIndex(threadId);
 
@@ -88,18 +110,27 @@ export class ThreadPauseCoordinator {
 
 		}
 
-		if (this.pausingOrResumingThreadId === threadId) {
-			this.pausingOrResumingThreadId = undefined;
-		} else if (this.pausingOrResumingThreadId !== undefined) {
+		if (this.interruptingOrResumingThreadId === threadId) {
+			this.interruptingOrResumingThreadId = undefined;
+		} else if (this.interruptingOrResumingThreadId !== undefined) {
 			log.warn(`Received resumed notification from ${threadName} while waiting for a notification from another thread`);
 		}
 
 		this.doNext();
 	}
 
+	public notifyResumeFailed(threadId: number, threadName: string): void {
+
+		log.debug(`Resuming ${threadName} failed`);
+
+		if (this.interruptingOrResumingThreadId === threadId) {
+			this.interruptingOrResumingThreadId = undefined;
+		}
+	}
+
 	private doNext(): void {
 
-		if (this.pausingOrResumingThreadId !== undefined) {
+		if (this.interruptingOrResumingThreadId !== undefined) {
 			return;
 		}
 
@@ -138,14 +169,14 @@ export class ThreadPauseCoordinator {
 			threadName: pauseRequest.threadName, 
 			pauseType:pauseRequest.pauseType
 		});
-		this.pausingOrResumingThreadId = pauseRequest.threadId;
+		this.interruptingOrResumingThreadId = pauseRequest.threadId;
 		pauseRequest.pendingRequest.resolve(undefined);
 	}
 
 	private resumeThread(resumeRequestIndex: number) {
 		let resumeRequest = this.requestedResumes[resumeRequestIndex];
 		this.requestedResumes.splice(resumeRequestIndex);
-		this.pausingOrResumingThreadId = resumeRequest.threadId;
+		this.interruptingOrResumingThreadId = resumeRequest.threadId;
 		resumeRequest.pendingRequest.resolve(undefined);
 	}
 

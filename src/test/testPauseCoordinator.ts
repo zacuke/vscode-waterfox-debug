@@ -15,11 +15,11 @@ describe('ThreadPauseCoordinator', function() {
 		let events: string[] = [];
 
 		events.push('Request pausing #1');
-		pauseCoordinator.requestPause(1, 'Thread 1', 'user').then(async () => {
+		pauseCoordinator.requestInterrupt(1, 'Thread 1', 'user').then(async () => {
 			events.push('Pausing #1');
 			await delay(10);
 			events.push('Paused #1');
-			pauseCoordinator.notifyPaused(1, 'Thread 1', 'user');
+			pauseCoordinator.notifyInterrupted(1, 'Thread 1', 'user');
 		});
 
 		events.push('Request resuming #1');
@@ -45,15 +45,15 @@ describe('ThreadPauseCoordinator', function() {
 		let events: string[] = [];
 
 		events.push('Request pausing #1');
-		pauseCoordinator.requestPause(1, 'Thread 1', 'user').then(async () => {
+		pauseCoordinator.requestInterrupt(1, 'Thread 1', 'user').then(async () => {
 			events.push('Pausing #1');
 			await delay(10);
 			events.push('Paused #1');
-			pauseCoordinator.notifyPaused(1, 'Thread 1', 'user');
+			pauseCoordinator.notifyInterrupted(1, 'Thread 1', 'user');
 		});
 
 		events.push('Request pausing #2');
-		await pauseCoordinator.requestPause(2, 'Thread 2', 'user').then(async () => {
+		await pauseCoordinator.requestInterrupt(2, 'Thread 2', 'user').then(async () => {
 			events.push('Pausing #2');
 		});
 
@@ -71,15 +71,15 @@ describe('ThreadPauseCoordinator', function() {
 		let events: string[] = [];
 
 		events.push('Request pausing #1');
-		let autoPausePromise = pauseCoordinator.requestPause(1, 'Thread 1', 'auto').then(async () => {
+		let autoPausePromise = pauseCoordinator.requestInterrupt(1, 'Thread 1', 'auto').then(async () => {
 			events.push('Pausing #1');
 			await delay(10);
 			events.push('Paused #1');
-			pauseCoordinator.notifyPaused(1, 'Thread 1', 'auto');
+			pauseCoordinator.notifyInterrupted(1, 'Thread 1', 'auto');
 		});
 
 		events.push('Request pausing #2');
-		let userPausePromise = pauseCoordinator.requestPause(2, 'Thread 2', 'user').then(async () => {
+		let userPausePromise = pauseCoordinator.requestInterrupt(2, 'Thread 2', 'user').then(async () => {
 			events.push('Pausing #2');
 		});
 
@@ -111,19 +111,19 @@ describe('ThreadPauseCoordinator', function() {
 		let events: string[] = [];
 
 		events.push('Request pausing #1');
-		pauseCoordinator.requestPause(1, 'Thread 1', 'auto').then(async () => {
+		pauseCoordinator.requestInterrupt(1, 'Thread 1', 'auto').then(async () => {
 			events.push('Pausing #1');
 			await delay(10);
 			events.push('Paused #1');
-			pauseCoordinator.notifyPaused(1, 'Thread 1', 'auto');
+			pauseCoordinator.notifyInterrupted(1, 'Thread 1', 'auto');
 		});
 
 		events.push('Request pausing #2');
-		await pauseCoordinator.requestPause(2, 'Thread 2', 'auto').then(async () => {
+		await pauseCoordinator.requestInterrupt(2, 'Thread 2', 'auto').then(async () => {
 			events.push('Pausing #2');
 			await delay(10);
 			events.push('Paused #2');
-			pauseCoordinator.notifyPaused(2, 'Thread 2', 'auto');
+			pauseCoordinator.notifyInterrupted(2, 'Thread 2', 'auto');
 		});
 
 		events.push('Request resuming #1');
@@ -165,14 +165,14 @@ describe('ThreadPauseCoordinator', function() {
 		let events: string[] = [];
 
 		events.push('Request pausing #1');
-		await pauseCoordinator.requestPause(1, 'Thread 1', 'auto').then(async () => {
+		await pauseCoordinator.requestInterrupt(1, 'Thread 1', 'auto').then(async () => {
 			events.push('Pausing #1');
 			await delay(10);
 			events.push('Paused #1');
-			pauseCoordinator.notifyPaused(1, 'Thread 1', 'auto');
+			pauseCoordinator.notifyInterrupted(1, 'Thread 1', 'auto');
 		});
 
-		pauseCoordinator.notifyPaused(2, 'Thread 2', 'user');
+		pauseCoordinator.notifyInterrupted(2, 'Thread 2', 'user');
 		events.push('Paused #2');
 
 		events.push('Request resuming #1');
@@ -209,12 +209,12 @@ describe('ThreadPauseCoordinator', function() {
 
 	it('should reject resuming threads in the wrong order', async function() {
 
-		pauseCoordinator.requestPause(1, 'Thread 1', 'user').then(async () => {
-			pauseCoordinator.notifyPaused(1, 'Thread 1', 'user');
+		pauseCoordinator.requestInterrupt(1, 'Thread 1', 'user').then(async () => {
+			pauseCoordinator.notifyInterrupted(1, 'Thread 1', 'user');
 		});
 
-		await pauseCoordinator.requestPause(2, 'Thread 2', 'user').then(async () => {
-			pauseCoordinator.notifyPaused(2, 'Thread 2', 'user');
+		await pauseCoordinator.requestInterrupt(2, 'Thread 2', 'user').then(async () => {
+			pauseCoordinator.notifyInterrupted(2, 'Thread 2', 'user');
 		});
 
 		let resumeRequestFailed = false;
