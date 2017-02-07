@@ -1,3 +1,6 @@
+### Version 0.8.6
+* bugfix: some URLs were not handled correctly when processing sourcemapped sources
+
 ### Version 0.8.5
 * send log messages from add-ons to the debug console
 
