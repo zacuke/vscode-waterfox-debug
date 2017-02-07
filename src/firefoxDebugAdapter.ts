@@ -451,7 +451,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		}
 	}
 
-	private urlDetector = /^[a-zA-Z][a-zA-Z0-9\+\-\.]*\:\/\//;
+	private urlDetector = /^[a-zA-Z][a-zA-Z0-9\+\-\.]*\:\//;
 
 	private convertFirefoxUrlToPath(url: string): string | undefined {
 
