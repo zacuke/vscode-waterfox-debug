@@ -1,4 +1,5 @@
 import { Log } from '../util/log';
+import { EventEmitter } from 'events';
 import { concatArrays } from '../util/misc';
 import { ExceptionBreakpoints, ThreadActorProxy, ConsoleActorProxy, SourceActorProxy } from '../firefox/index';
 import { ThreadCoordinator, BreakpointInfo, BreakpointsAdapter, FrameAdapter, ScopeAdapter, SourceAdapter, BreakpointAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
@@ -7,7 +8,7 @@ import { Variable } from 'vscode-debugadapter';
 
 let log = Log.create('ThreadAdapter');
 
-export class ThreadAdapter {
+export class ThreadAdapter extends EventEmitter {
 
 	public id: number;
 	public get debugSession() {
@@ -41,6 +42,8 @@ export class ThreadAdapter {
 	public constructor(id: number, threadActor: ThreadActorProxy, consoleActor: ConsoleActorProxy | undefined,
 		name: string, debugAdapter: FirefoxDebugAdapter) {
 
+		super();
+
 		this.id = id;
 		this.actor = threadActor;
 		this.consoleActor = consoleActor;
@@ -48,14 +51,23 @@ export class ThreadAdapter {
 		this._debugAdapter = debugAdapter;
 
 		this.coordinator = new ThreadCoordinator(this.actor, this.consoleActor,
-			(source) => this.shouldSkip(source), () => this.disposePauseLifetimeAdapters());
+			() => this.disposePauseLifetimeAdapters());
+
+		this.coordinator.onPaused(async (reason) => {
+
+			this.threadPausedReason = reason;
+
+			await this.fetchAllStackFrames();
+
+			if (this.shouldSkip(this.frames[0].frame.where.source)) {
+				this.resume();
+			} else {
+				this.emit('paused', reason);
+			}
+		});
 	}
 
 	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
-
-		this.coordinator.onPaused((reason) => {
-			this.threadPausedReason = reason;
-		});
 
 		await this.actor.attach();
 		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
@@ -299,7 +311,7 @@ export class ThreadAdapter {
 	}
 
 	public onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void) {
-		this.coordinator.onPaused(cb);
+		this.on('paused', cb);
 	}
 
 	public onResumed(cb: () => void) {

@@ -28,19 +28,15 @@ export class ThreadCoordinator extends EventEmitter {
 	private evaluateTaskIsRunning = false;
 
 	constructor(private threadActor: ThreadActorProxy, private consoleActor: ConsoleActorProxy | undefined,
-		shouldSkip: (source: FirefoxDebugProtocol.Source) => boolean, private prepareResume: () => Promise<void>) {
+		private prepareResume: () => Promise<void>) {
 
 		super();
 
-		threadActor.onPaused((reason, frame) => {
+		threadActor.onPaused((reason) => {
 
 			if (this.threadState === 'evaluating') {
 
 				threadActor.resume(this.exceptionBreakpoints);
-
-			} else if (shouldSkip(frame.where.source)) {
-
-				threadActor.resume(this.exceptionBreakpoints, this.getResumeLimit());
 
 			} else {
 
