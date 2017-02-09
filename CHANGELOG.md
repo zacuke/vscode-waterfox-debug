@@ -1,3 +1,6 @@
+### Version 0.8.7
+* workaround for Firefox sending inaccurate source information in certain situations, which can break the `skipFiles` feature
+
 ### Version 0.8.6
 * bugfix: some URLs were not handled correctly when processing sourcemapped sources
 
