@@ -1,3 +1,6 @@
+### Version 0.8.8
+* bugfix: source files were not mapped to local files in VS Code 1.9
+
 ### Version 0.8.7
 * workaround for Firefox sending inaccurate source information in certain situations, which can break the `skipFiles` feature
 
