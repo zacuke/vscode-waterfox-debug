@@ -41,13 +41,14 @@ export class ThreadPauseCoordinator {
 			let hinderingPauses = this.findHinderingPauses(threadId);
 			if (hinderingPauses.length > 0) {
 				let msg = `${threadName} can't be resumed because you need to resume ${hinderingPauses.map((pauseInfo) => pauseInfo.threadName).join(', ')} first`;
+				log.info(msg);
 				return Promise.reject(msg);
 			}
 		}
 
 		let promise = new Promise<void>((resolve, reject) => {
 			let pendingRequest = { resolve, reject };
-			this.requestedResumes.push({ threadId, pendingRequest });
+			this.requestedResumes.push({ threadId, threadName, pendingRequest });
 		});
 
 		this.doNext();
@@ -162,21 +163,32 @@ export class ThreadPauseCoordinator {
 	}
 
 	private pauseThread(pauseRequestIndex: number) {
+
 		let pauseRequest = this.requestedPauses[pauseRequestIndex];
+		log.debug(`Interrupting ${pauseRequest.threadName}`);
+
 		this.requestedPauses.splice(pauseRequestIndex);
+
 		this.currentPauses.push({ 
 			threadId: pauseRequest.threadId, 
 			threadName: pauseRequest.threadName, 
 			pauseType:pauseRequest.pauseType
 		});
+
 		this.interruptingOrResumingThreadId = pauseRequest.threadId;
+
 		pauseRequest.pendingRequest.resolve(undefined);
 	}
 
 	private resumeThread(resumeRequestIndex: number) {
+
 		let resumeRequest = this.requestedResumes[resumeRequestIndex];
+		log.debug(`Resuming ${resumeRequest.threadName}`);
+
 		this.requestedResumes.splice(resumeRequestIndex);
+
 		this.interruptingOrResumingThreadId = resumeRequest.threadId;
+
 		resumeRequest.pendingRequest.resolve(undefined);
 	}
 
@@ -246,5 +258,6 @@ interface PendingThreadPauseRequest extends ThreadPauseInfo {
 
 interface PendingThreadResumeRequest {
 	threadId: number;
+	threadName: string;
 	pendingRequest: PendingRequest<void>;
 }
