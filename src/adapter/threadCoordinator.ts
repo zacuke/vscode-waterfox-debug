@@ -201,7 +201,9 @@ export class ThreadCoordinator extends EventEmitter {
 
 	private doNext(): void {
 
-		log.debug(`state: ${this.threadState}, target: ${this.threadTarget}, tasks: ${this.tasksRunningOnPausedThread}/${this.queuedTasksToRunOnPausedThread.length}, eval: ${this.queuedEvaluateTasks.length}`)
+		if (log.isDebugEnabled()) {
+			log.debug(`state: ${this.threadState}, target: ${this.threadTarget}, tasks: ${this.tasksRunningOnPausedThread}/${this.queuedTasksToRunOnPausedThread.length}, eval: ${this.queuedEvaluateTasks.length}`)
+		}
 
 		if ((this.threadState === 'interrupting') ||
 			(this.threadState === 'resuming') ||
