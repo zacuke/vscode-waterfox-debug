@@ -275,12 +275,26 @@ export class ThreadCoordinator extends EventEmitter {
 
 	private async executeResume(): Promise<void> {
 
+		try {
+
+			await this.pauseCoordinator.requestResume(this.threadId, this.threadName);
+
+		} catch(e) {
+
+			log.error(`resume denied: ${e}`);
+
+			if (this.pendingResumeRequest !== undefined) {
+				this.pendingResumeRequest.reject(e);
+				this.pendingResumeRequest = undefined;
+			}
+			this.resumePromise = undefined;
+		}
+
 		let resumeLimit = this.getResumeLimit();
 		this.threadState = 'resuming';
 
 		try {
 
-			await this.pauseCoordinator.requestResume(this.threadId, this.threadName);
 			await this.prepareResume();
 			await this.threadActor.resume(this.exceptionBreakpoints, resumeLimit);
 			this.threadResumed();
