@@ -18,6 +18,11 @@ export class ThreadPauseCoordinator {
 			log.debug(`Requesting ${pauseType} interrupt for ${threadName}`);
 		}
 
+		if (this.findPauseIndex(threadId) !== undefined) {
+			log.warn(`Requesting ${threadName} to be interrupted but it seems to be paused already`);
+			return Promise.resolve(undefined);
+		}
+
 		let promise = new Promise<void>((resolve, reject) => {
 			let pendingRequest = { resolve, reject };
 			this.requestedPauses.push({ threadId, threadName, pauseType, pendingRequest });
@@ -67,10 +72,10 @@ export class ThreadPauseCoordinator {
 		}
 
 		if (this.interruptingOrResumingThreadId === threadId) {
-
 			this.interruptingOrResumingThreadId = undefined;
+		}
 
-		} else {
+		if (this.findPauseIndex(threadId) === undefined) {
 
 			this.currentPauses.push({ threadId, threadName, pauseType });
 
@@ -191,13 +196,19 @@ export class ThreadPauseCoordinator {
 
 		this.requestedPauses.splice(pauseRequestIndex, 1);
 
-		this.currentPauses.push({ 
-			threadId: pauseRequest.threadId, 
-			threadName: pauseRequest.threadName, 
-			pauseType:pauseRequest.pauseType
-		});
+		if (this.findPauseIndex(pauseRequest.threadId) === undefined) {
 
-		this.interruptingOrResumingThreadId = pauseRequest.threadId;
+			this.currentPauses.push({ 
+				threadId: pauseRequest.threadId, 
+				threadName: pauseRequest.threadName, 
+				pauseType:pauseRequest.pauseType
+			});
+
+			this.interruptingOrResumingThreadId = pauseRequest.threadId;
+
+		} else {
+			log.warn(`Executing pause request for ${pauseRequest.threadName} but it seems to be paused already`);
+		}
 
 		pauseRequest.pendingRequest.resolve(undefined);
 	}
