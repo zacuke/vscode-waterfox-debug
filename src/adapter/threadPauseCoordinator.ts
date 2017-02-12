@@ -10,7 +10,8 @@ export class ThreadPauseCoordinator {
 	private currentPauses: ThreadPauseInfo[] = [];
 	private requestedPauses: PendingThreadPauseRequest[] = [];
 	private requestedResumes: PendingThreadResumeRequest[] = [];
-	private interruptingOrResumingThreadId?: number;
+	private interruptingThread?: ThreadPauseInfo;
+	private resumingThread?: ThreadInfo;
 
 	public requestInterrupt(threadId: number, threadName: string, pauseType: PauseType): Promise<void> {
 
@@ -39,14 +40,25 @@ export class ThreadPauseCoordinator {
 			log.debug(`Requesting resume for ${threadName}`);
 		}
 
-		let pauseIndex = this.findPauseIndex(threadId);
+		let pause: ThreadPauseInfo | undefined;
+		if ((this.interruptingThread !== undefined) && (this.interruptingThread.threadId == threadId)) {
 
-		if (pauseIndex === undefined) {
+			pause = this.interruptingThread;
+
+		} else {
+
+			let pauseIndex = this.findPauseIndex(threadId);
+			if (pauseIndex !== undefined) {
+				pause = this.currentPauses[pauseIndex];
+			}
+		}
+
+		if (pause === undefined) {
 			log.warn(`Requesting ${threadName} to be resumed but it doesn't seem to be paused`);
 			return Promise.resolve();
 		}
 
-		if (this.currentPauses[pauseIndex].pauseType === 'user') {
+		if (pause.pauseType === 'user') {
 			let hinderingPauses = this.findHinderingPauses(threadId);
 			if (hinderingPauses.length > 0) {
 				let msg = `${threadName} can't be resumed because you need to resume ${hinderingPauses.map((pauseInfo) => pauseInfo.threadName).join(', ')} first`;
@@ -71,15 +83,15 @@ export class ThreadPauseCoordinator {
 			log.debug(`${threadName} interrupted, type ${pauseType}`);
 		}
 
-		if (this.interruptingOrResumingThreadId === threadId) {
-			this.interruptingOrResumingThreadId = undefined;
+		if ((this.interruptingThread !== undefined) && (this.interruptingThread.threadId === threadId)) {
+			this.interruptingThread = undefined;
 		}
 
 		if (this.findPauseIndex(threadId) === undefined) {
 
 			this.currentPauses.push({ threadId, threadName, pauseType });
 
-			if (this.interruptingOrResumingThreadId !== undefined) {
+			if ((this.interruptingThread !== undefined) || (this.resumingThread !== undefined)) {
 				log.warn(`Received paused notification from ${threadName} while waiting for a notification from another thread`);
 			}
 		}
@@ -93,13 +105,8 @@ export class ThreadPauseCoordinator {
 			log.debug(`Interrupting ${threadName} failed`);
 		}
 
-		if (this.interruptingOrResumingThreadId === threadId) {
-			this.interruptingOrResumingThreadId = undefined;
-		}
-
-		let pauseIndex = this.findPauseIndex(threadId);
-		if (pauseIndex !== undefined) {
-			this.currentPauses.splice(pauseIndex, 1);
+		if ((this.interruptingThread !== undefined) && (this.interruptingThread.threadId === threadId)) {
+			this.interruptingThread = undefined;
 		}
 	}
 
@@ -126,9 +133,11 @@ export class ThreadPauseCoordinator {
 
 		}
 
-		if (this.interruptingOrResumingThreadId === threadId) {
-			this.interruptingOrResumingThreadId = undefined;
-		} else if (this.interruptingOrResumingThreadId !== undefined) {
+		if ((this.resumingThread !== undefined) && (this.resumingThread.threadId === threadId)) {
+			this.resumingThread = undefined;
+		} 
+
+		if ((this.interruptingThread !== undefined) || (this.resumingThread !== undefined)) {
 			log.warn(`Received resumed notification from ${threadName} while waiting for a notification from another thread`);
 		}
 
@@ -141,25 +150,37 @@ export class ThreadPauseCoordinator {
 			log.debug(`Resuming ${threadName} failed`);
 		}
 
-		if (this.interruptingOrResumingThreadId === threadId) {
-			this.interruptingOrResumingThreadId = undefined;
-		}
+		if ((this.resumingThread !== undefined) && (this.resumingThread.threadId === threadId)) {
+			this.resumingThread = undefined;
+		} 
 	}
 
 	private doNext(): void {
 
-		if (this.interruptingOrResumingThreadId !== undefined) {
-			return;
-		}
-
 		if (log.isDebugEnabled()) {
-			log.debug(`Current pauses: [${
+			let msg = '';
+
+			if (this.interruptingThread !== undefined) {
+				msg += `Interrupting ${this.interruptingThread.threadName}, `;
+			}
+
+			if (this.resumingThread !== undefined) {
+				msg += `Resuming ${this.resumingThread.threadName}, `;
+			}
+
+			msg += `current pauses: [${
 				this.currentPauses.map((info) => info.threadName + '/' + info.pauseType).join(',')
 			}], requested pauses: [${
 				this.requestedPauses.map((info) => info.threadName + '/' + info.pauseType).join(',')
 			}], requested resumes: [${
 				this.requestedResumes.map((info) => info.threadName).join(',')
-			}]`);
+			}]`;
+
+			log.debug(msg);
+		}
+
+		if ((this.interruptingThread !== undefined) || (this.resumingThread !== undefined)) {
+			return;
 		}
 
 		if (this.currentPauses.length > 0) {
@@ -198,13 +219,11 @@ export class ThreadPauseCoordinator {
 
 		if (this.findPauseIndex(pauseRequest.threadId) === undefined) {
 
-			this.currentPauses.push({ 
-				threadId: pauseRequest.threadId, 
-				threadName: pauseRequest.threadName, 
-				pauseType:pauseRequest.pauseType
-			});
-
-			this.interruptingOrResumingThreadId = pauseRequest.threadId;
+			this.interruptingThread =  {
+				threadId: pauseRequest.threadId,
+				threadName: pauseRequest.threadName,
+				pauseType: pauseRequest.pauseType
+			};
 
 		} else {
 			log.warn(`Executing pause request for ${pauseRequest.threadName} but it seems to be paused already`);
@@ -220,7 +239,10 @@ export class ThreadPauseCoordinator {
 
 		this.requestedResumes.splice(resumeRequestIndex, 1);
 
-		this.interruptingOrResumingThreadId = resumeRequest.threadId;
+		this.resumingThread = {
+			threadId: resumeRequest.threadId,
+			threadName: resumeRequest.threadName
+		};
 
 		resumeRequest.pendingRequest.resolve(undefined);
 	}
@@ -262,6 +284,13 @@ export class ThreadPauseCoordinator {
 
 		let hinderingPauses: ThreadPauseInfo[] = [];
 
+		if ((this.interruptingThread !== undefined) && 
+			(this.interruptingThread.threadId !== resumeThreadId) &&
+			(this.interruptingThread.pauseType === 'user')) {
+
+			hinderingPauses.push(this.interruptingThread);
+		}
+
 		for (let i = this.currentPauses.length - 1; i >= 0; i--) {
 
 			let pause = this.currentPauses[i];
@@ -279,9 +308,12 @@ export class ThreadPauseCoordinator {
 	}
 }
 
-interface ThreadPauseInfo {
+interface ThreadInfo {
 	threadId: number;
 	threadName: string;
+}
+
+interface ThreadPauseInfo extends ThreadInfo {
 	pauseType: PauseType;
 }
 
@@ -289,8 +321,6 @@ interface PendingThreadPauseRequest extends ThreadPauseInfo {
 	pendingRequest: PendingRequest<void>;
 }
 
-interface PendingThreadResumeRequest {
-	threadId: number;
-	threadName: string;
+interface PendingThreadResumeRequest extends ThreadInfo {
 	pendingRequest: PendingRequest<void>;
 }
