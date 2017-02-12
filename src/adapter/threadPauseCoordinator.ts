@@ -14,7 +14,9 @@ export class ThreadPauseCoordinator {
 
 	public requestInterrupt(threadId: number, threadName: string, pauseType: PauseType): Promise<void> {
 
-		log.debug(`Requesting ${pauseType} interrupt for ${threadName}`);
+		if (log.isDebugEnabled()) {
+			log.debug(`Requesting ${pauseType} interrupt for ${threadName}`);
+		}
 
 		let promise = new Promise<void>((resolve, reject) => {
 			let pendingRequest = { resolve, reject };
@@ -28,7 +30,9 @@ export class ThreadPauseCoordinator {
 
 	public requestResume(threadId: number, threadName: string): Promise<void> {
 
-		log.debug(`Requesting resume for ${threadName}`);
+		if (log.isDebugEnabled()) {
+			log.debug(`Requesting resume for ${threadName}`);
+		}
 
 		let pauseIndex = this.findPauseIndex(threadId);
 
@@ -58,7 +62,9 @@ export class ThreadPauseCoordinator {
 
 	public notifyInterrupted(threadId: number, threadName: string, pauseType: PauseType): void {
 
-		log.debug(`${threadName} interrupted, type ${pauseType}`);
+		if (log.isDebugEnabled()) {
+			log.debug(`${threadName} interrupted, type ${pauseType}`);
+		}
 
 		if (this.interruptingOrResumingThreadId === threadId) {
 
@@ -78,7 +84,9 @@ export class ThreadPauseCoordinator {
 
 	public notifyInterruptFailed(threadId: number, threadName: string): void {
 
-		log.debug(`Interrupting ${threadName} failed`);
+		if (log.isDebugEnabled()) {
+			log.debug(`Interrupting ${threadName} failed`);
+		}
 
 		if (this.interruptingOrResumingThreadId === threadId) {
 			this.interruptingOrResumingThreadId = undefined;
@@ -92,7 +100,9 @@ export class ThreadPauseCoordinator {
 
 	public notifyResumed(threadId: number, threadName: string): void {
 
-		log.debug(`${threadName} resumed`);
+		if (log.isDebugEnabled()) {
+			log.debug(`${threadName} resumed`);
+		}
 
 		let pauseIndex = this.findPauseIndex(threadId);
 
@@ -122,7 +132,9 @@ export class ThreadPauseCoordinator {
 
 	public notifyResumeFailed(threadId: number, threadName: string): void {
 
-		log.debug(`Resuming ${threadName} failed`);
+		if (log.isDebugEnabled()) {
+			log.debug(`Resuming ${threadName} failed`);
+		}
 
 		if (this.interruptingOrResumingThreadId === threadId) {
 			this.interruptingOrResumingThreadId = undefined;
@@ -133,6 +145,16 @@ export class ThreadPauseCoordinator {
 
 		if (this.interruptingOrResumingThreadId !== undefined) {
 			return;
+		}
+
+		if (log.isDebugEnabled()) {
+			log.debug(`Current pauses: [${
+				this.currentPauses.map((info) => info.threadName + '/' + info.pauseType).join(',')
+			}], requested pauses: [${
+				this.requestedPauses.map((info) => info.threadName + '/' + info.pauseType).join(',')
+			}], requested resumes: [${
+				this.requestedResumes.map((info) => info.threadName).join(',')
+			}]`);
 		}
 
 		if (this.currentPauses.length > 0) {
