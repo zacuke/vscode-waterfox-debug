@@ -86,7 +86,7 @@ export class ThreadPauseCoordinator {
 
 		let pauseIndex = this.findPauseIndex(threadId);
 		if (pauseIndex !== undefined) {
-			this.currentPauses.splice(pauseIndex);
+			this.currentPauses.splice(pauseIndex, 1);
 		}
 	}
 
@@ -107,7 +107,7 @@ export class ThreadPauseCoordinator {
 		} else {
 
 			log.warn(`Received resumed notification from ${threadName} even though it is not the most recently paused thread`);
-			this.currentPauses.splice(pauseIndex);
+			this.currentPauses.splice(pauseIndex, 1);
 
 		}
 
@@ -167,7 +167,7 @@ export class ThreadPauseCoordinator {
 		let pauseRequest = this.requestedPauses[pauseRequestIndex];
 		log.debug(`Interrupting ${pauseRequest.threadName}`);
 
-		this.requestedPauses.splice(pauseRequestIndex);
+		this.requestedPauses.splice(pauseRequestIndex, 1);
 
 		this.currentPauses.push({ 
 			threadId: pauseRequest.threadId, 
@@ -185,7 +185,7 @@ export class ThreadPauseCoordinator {
 		let resumeRequest = this.requestedResumes[resumeRequestIndex];
 		log.debug(`Resuming ${resumeRequest.threadName}`);
 
-		this.requestedResumes.splice(resumeRequestIndex);
+		this.requestedResumes.splice(resumeRequestIndex, 1);
 
 		this.interruptingOrResumingThreadId = resumeRequest.threadId;
 
