@@ -240,7 +240,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 					if (this.pendingInterruptRequest) {
 						this.pendingInterruptRequest.resolve(undefined);
 						this.pendingInterruptRequest = undefined;
-					} else {
+					} else if (pausedResponse.why.type !== 'alreadyPaused') {
 						log.warn(`Received ${pausedResponse.why.type} message without pending request`);
 					}
 					break;
