@@ -28,21 +28,25 @@ export abstract class ScopeAdapter implements VariablesProvider {
 		this.thisVariable = VariableAdapter.fromGrip('this', thisGrip, false, this.threadAdapter);
 	}
 
-	public addCompletionValue(completionValue?: FirefoxDebugProtocol.CompletionValue) {
+	public addCompletionValue(threadPausedReason: FirefoxDebugProtocol.ThreadPausedReason) {
 
-		if (completionValue) {
+		if (threadPausedReason.frameFinished !== undefined) {
 
-			if (completionValue.return) {
+			if (threadPausedReason.frameFinished.return !== undefined) {
 			
 				this.completionVariable = VariableAdapter.fromGrip(
-					'<return>', completionValue.return, false, this.threadAdapter);
+					'<return>', threadPausedReason.frameFinished.return, false, this.threadAdapter);
 				
-			} else if (completionValue.throw) {
+			} else if (threadPausedReason.frameFinished.throw !== undefined) {
 
 				this.completionVariable = VariableAdapter.fromGrip(
-					'<exception>', completionValue.throw, false, this.threadAdapter);
-
+					'<exception>', threadPausedReason.frameFinished.throw, false, this.threadAdapter);
 			}
+
+		} else if (threadPausedReason.exception !== undefined) {
+
+			this.completionVariable = VariableAdapter.fromGrip(
+				'<exception>', threadPausedReason.exception, false, this.threadAdapter);
 		}
 	}
 	

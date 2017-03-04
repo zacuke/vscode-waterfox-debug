@@ -6,3 +6,6 @@ tsconfig.json
 typings.json
 .vscode/**
 .gitignore
+.nyc_output/**
+coverage/**
+testdata/**

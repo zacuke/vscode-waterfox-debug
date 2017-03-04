@@ -1,4 +1,5 @@
 import { DebugClient } from 'vscode-debugadapter-testsupport';
+import { DebugProtocol } from 'vscode-debugprotocol';
 import * as path from 'path';
 import * as util from './util';
 import * as assert from 'assert';
@@ -36,6 +37,15 @@ describe('Firefox debug adapter', function() {
 		assert.notEqual(contentThreadId, addOnThreadId);
 	});
 
+	it('should show log messages from WebExtensions', async function() {
+
+		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'webExtension', true);
+		let outputEvent = <DebugProtocol.OutputEvent> await dc.waitForEvent('output');
+
+		assert.equal(outputEvent.body.category, 'stdout');
+		assert.equal(outputEvent.body.output.trim(), 'foo: bar');
+	});
+
 	it('should debug a Jetpack add-on', async function() {
 
 		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'addonSdk', false);
@@ -61,5 +71,14 @@ describe('Firefox debug adapter', function() {
 		stackTrace = await dc.stackTraceRequest({ threadId: addOnThreadId });
 
 		assert.notEqual(contentThreadId, addOnThreadId);
+	});
+
+	it('should show log messages from a Jetpack add-on', async function() {
+
+		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'addonSdk', true);
+		let outputEvent = <DebugProtocol.OutputEvent> await dc.waitForEvent('output');
+
+		assert.equal(outputEvent.body.category, 'stdout');
+		assert.equal(outputEvent.body.output.trim(), 'console.log: test: foo: bar');
 	});
 });

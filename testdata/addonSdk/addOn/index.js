@@ -5,7 +5,7 @@ pageMod.PageMod({
 	contentScriptFile: "./contentscript.js",
 	onAttach: (worker) => {
 		worker.port.on("test", (msg) => {
-			let dummy;
-		})
+			console.log('foo: ' + msg.foo);
+		});
 	}
 });

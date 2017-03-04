@@ -1,3 +1,18 @@
+### Version 0.8.8
+* bugfix: source files were not mapped to local files in VS Code 1.9
+
+### Version 0.8.7
+* workaround for Firefox sending inaccurate source information in certain situations, which can break the `skipFiles` feature
+
+### Version 0.8.6
+* bugfix: some URLs were not handled correctly when processing sourcemapped sources
+
+### Version 0.8.5
+* send log messages from add-ons to the debug console
+
+### Version 0.8.4
+* bugfix: exceptions were not shown
+
 ### Version 0.8.3
 * strip query strings from urls when converting them to local file paths
 

@@ -1,4 +1,5 @@
 import { Log } from '../util/log';
+import { EventEmitter } from 'events';
 import { concatArrays } from '../util/misc';
 import { ExceptionBreakpoints, ThreadActorProxy, ConsoleActorProxy, SourceActorProxy } from '../firefox/index';
 import { ThreadCoordinator, ThreadPauseCoordinator, PauseType, BreakpointInfo, BreakpointsAdapter, FrameAdapter, ScopeAdapter, SourceAdapter, BreakpointAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
@@ -7,7 +8,7 @@ import { Variable } from 'vscode-debugadapter';
 
 let log = Log.create('ThreadAdapter');
 
-export class ThreadAdapter {
+export class ThreadAdapter extends EventEmitter {
 
 	public id: number;
 	public get debugSession() {
@@ -36,10 +37,12 @@ export class ThreadAdapter {
 	private objectGripAdaptersByActorName = new Map<string, ObjectGripAdapter>();
 	private pauseLifetimeObjects: ObjectGripAdapter[] = [];
 
-	private completionValue?: FirefoxDebugProtocol.CompletionValue;
+	private threadPausedReason?: FirefoxDebugProtocol.ThreadPausedReason;
 
 	public constructor(id: number, threadActor: ThreadActorProxy, consoleActor: ConsoleActorProxy | undefined,
 		private pauseCoordinator: ThreadPauseCoordinator, name: string, debugAdapter: FirefoxDebugAdapter) {
+
+		super();
 
 		this.id = id;
 		this.actor = threadActor;
@@ -48,16 +51,25 @@ export class ThreadAdapter {
 		this._debugAdapter = debugAdapter;
 
 		this.coordinator = new ThreadCoordinator(this.id, this.name, this.actor, this.consoleActor,
-			this.pauseCoordinator, (source) => this.shouldSkip(source), () => this.disposePauseLifetimeAdapters());
+			this.pauseCoordinator, () => this.disposePauseLifetimeAdapters());
+
+		this.coordinator.onPaused(async (reason) => {
+
+			this.threadPausedReason = reason;
+
+			await this.fetchAllStackFrames();
+
+			if (this.shouldSkip(this.frames[0].frame.where.source)) {
+				this.resume();
+			} else {
+				this.emit('paused', reason);
+			}
+		});
 	}
 
 	public async init(exceptionBreakpoints: ExceptionBreakpoints, reload: boolean): Promise<void> {
 
 		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
-
-		this.coordinator.onPaused((reason) => {
-			this.completionValue = reason.frameFinished;
-		});
 
 		await this.pauseCoordinator.requestInterrupt(this.id, this.name, 'auto');
 		try {
@@ -172,8 +184,8 @@ export class ThreadAdapter {
 					return frameAdapter;
 				});
 
-				if (frameAdapters.length > 0) {
-					frameAdapters[0].scopeAdapters[0].addCompletionValue(this.completionValue);
+				if ((this.threadPausedReason !== undefined) && (frameAdapters.length > 0)) {
+					frameAdapters[0].scopeAdapters[0].addCompletionValue(this.threadPausedReason);
 				}
 
 				return frameAdapters;
@@ -313,7 +325,7 @@ export class ThreadAdapter {
 	}
 
 	public onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void) {
-		this.coordinator.onPaused(cb);
+		this.on('paused', cb);
 	}
 
 	public onResumed(cb: () => void) {

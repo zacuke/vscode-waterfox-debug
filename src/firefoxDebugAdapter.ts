@@ -100,10 +100,19 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		}
 
 		if (socket === undefined) {
-			let proc = await launchFirefox(args);
+
+			// only send messages from Firefox' stdout to the debug console when debugging an addonSdk extension
+			let sendToConsole: (msg: string) => void = 
+				(this.addonType === 'addonSdk') ? 
+					(msg) => this.sendEvent(new OutputEvent(msg, 'stdout')) :
+					(msg) => undefined;
+
+			let proc = await launchFirefox(args, sendToConsole);
+
 			if (!args.reAttach) {
 				this.firefoxProc = proc;
 			}
+
 			socket = await waitForSocket(args);
 		}
 
@@ -462,7 +471,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		}
 	}
 
-	private urlDetector = /^[a-zA-Z][a-zA-Z0-9\+\-\.]*\:\/\//;
+	private urlDetector = /^[a-zA-Z][a-zA-Z0-9\+\-\.]*\:\//;
 
 	private convertFirefoxUrlToPath(url: string): string | undefined {
 
@@ -641,10 +650,10 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				let addons = await rootActor.fetchAddons();
 				addons.forEach((addon) => {
 					if (addon.id === this.addonId) {
-						this.attachTab(
-							new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection),
-							new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection),
-							nextTabId++, false, 'Addon');
+						let tabActor = new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection);
+						let consoleActor = new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection);
+						this.attachTab(tabActor, consoleActor, nextTabId++, false, 'Addon');
+						this.attachConsole(consoleActor);
 					}
 				});
 
