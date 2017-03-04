@@ -2,7 +2,7 @@ import { Log } from '../util/log';
 import { EventEmitter } from 'events';
 import { concatArrays } from '../util/misc';
 import { ExceptionBreakpoints, ThreadActorProxy, ConsoleActorProxy, SourceActorProxy } from '../firefox/index';
-import { ThreadCoordinator, BreakpointInfo, BreakpointsAdapter, FrameAdapter, ScopeAdapter, SourceAdapter, BreakpointAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
+import { ThreadCoordinator, ThreadPauseCoordinator, PauseType, BreakpointInfo, BreakpointsAdapter, FrameAdapter, ScopeAdapter, SourceAdapter, BreakpointAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
 import { FirefoxDebugAdapter } from '../firefoxDebugAdapter';
 import { Variable } from 'vscode-debugadapter';
 
@@ -40,7 +40,7 @@ export class ThreadAdapter extends EventEmitter {
 	private threadPausedReason?: FirefoxDebugProtocol.ThreadPausedReason;
 
 	public constructor(id: number, threadActor: ThreadActorProxy, consoleActor: ConsoleActorProxy | undefined,
-		name: string, debugAdapter: FirefoxDebugAdapter) {
+		private pauseCoordinator: ThreadPauseCoordinator, name: string, debugAdapter: FirefoxDebugAdapter) {
 
 		super();
 
@@ -50,8 +50,8 @@ export class ThreadAdapter extends EventEmitter {
 		this._name = name;
 		this._debugAdapter = debugAdapter;
 
-		this.coordinator = new ThreadCoordinator(this.actor, this.consoleActor,
-			() => this.disposePauseLifetimeAdapters());
+		this.coordinator = new ThreadCoordinator(this.id, this.name, this.actor, this.consoleActor,
+			this.pauseCoordinator, () => this.disposePauseLifetimeAdapters());
 
 		this.coordinator.onPaused(async (reason) => {
 
@@ -67,12 +67,26 @@ export class ThreadAdapter extends EventEmitter {
 		});
 	}
 
-	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
+	public async init(exceptionBreakpoints: ExceptionBreakpoints, reload: boolean): Promise<void> {
 
-		await this.actor.attach();
 		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
+
+		await this.pauseCoordinator.requestInterrupt(this.id, this.name, 'auto');
+		try {
+			await this.actor.attach();
+			this.pauseCoordinator.notifyInterrupted(this.id, this.name, 'auto');
+		} catch(e) {
+			this.pauseCoordinator.notifyInterruptFailed(this.id, this.name);
+			throw e;
+		}
+
 		await this.actor.fetchSources();
-		this.coordinator.resume();
+
+		await this.coordinator.resume();
+
+		if (reload) {
+			await this.consoleEvaluate('location.reload(true)');
+		}
 	}
 
 	public createSourceAdapter(id: number, actor: SourceActorProxy, path?: string): SourceAdapter {
@@ -132,20 +146,20 @@ export class ThreadAdapter extends EventEmitter {
 		return this.coordinator.interrupt();
 	}
 
-	public resume(): void {
-		this.coordinator.resume();
+	public resume(): Promise<void> {
+		return this.coordinator.resume();
 	}
 
-	public stepOver(): void {
-		this.coordinator.stepOver();
+	public stepOver(): Promise<void> {
+		return this.coordinator.stepOver();
 	}
 
-	public stepIn(): void {
-		this.coordinator.stepIn();
+	public stepIn(): Promise<void> {
+		return this.coordinator.stepIn();
 	}
 
-	public stepOut(): void {
-		this.coordinator.stepOut();
+	public stepOut(): Promise<void> {
+		return this.coordinator.stepOut();
 	}
 
 	public setBreakpoints(breakpointInfos: BreakpointInfo[], sourceAdapter: SourceAdapter): Promise<BreakpointAdapter[]> {

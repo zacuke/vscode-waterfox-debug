@@ -25,7 +25,9 @@ export class ObjectGripActorProxy implements ActorProxy {
 			return this.threadGripPromise;
 		}
 
- 		log.debug(`Extending lifetime of ${this.name}`);
+		if (log.isDebugEnabled()) {
+			log.debug(`Extending lifetime of ${this.name}`);
+		}
 
 		this.threadGripPromise = new Promise<void>((resolve, reject) => {
 			this.pendingThreadGripRequest = { resolve, reject };
@@ -36,7 +38,9 @@ export class ObjectGripActorProxy implements ActorProxy {
 
 	public fetchPrototypeAndProperties(): Promise<FirefoxDebugProtocol.PrototypeAndPropertiesResponse> {
 
-		log.debug(`Fetching prototype and properties from ${this.name}`);
+		if (log.isDebugEnabled()) {
+			log.debug(`Fetching prototype and properties from ${this.name}`);
+		}
 
 		return new Promise<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>((resolve, reject) => {
 			this.pendingPrototypeAndPropertiesRequests.enqueue({ resolve, reject });
@@ -52,7 +56,9 @@ export class ObjectGripActorProxy implements ActorProxy {
 
 		if ((response['prototype'] !== undefined) && (response['ownProperties'] !== undefined)) {
 
-			log.debug(`Prototype and properties fetched from ${this.name}`);
+			if (log.isDebugEnabled()) {
+				log.debug(`Prototype and properties fetched from ${this.name}`);
+			}
 			this.pendingPrototypeAndPropertiesRequests.resolveOne(<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>response);
 
 		} else if (Object.keys(response).length === 1) {

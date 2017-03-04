@@ -7,6 +7,7 @@ export interface CommonConfiguration {
 	request: string;
 	url?: string;
 	webRoot?: string;
+	reloadOnAttach?: boolean;
 	pathMappings?: { url: string, path: string }[];
 	skipFiles?: string[];
 	log?: LogConfiguration;
@@ -21,6 +22,7 @@ export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.
 	profile?: string;
 	port?: number;
 	firefoxArgs?: string[];
+	reAttach?: boolean;
 }
 
 export interface AttachConfiguration extends CommonConfiguration, DebugProtocol.AttachRequestArguments {

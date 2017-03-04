@@ -11,7 +11,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugAdapterBase } from './debugAdapterBase';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, ContinuedEvent, Thread, StackFrame, Scope, Variable, Source, Breakpoint } from 'vscode-debugadapter';
 import { DebugConnection, ActorProxy, TabActorProxy, WorkerActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
-import { ThreadAdapter, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, VariableAdapter, ObjectGripAdapter } from './adapter/index';
+import { ThreadAdapter, ThreadPauseCoordinator, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, VariableAdapter, ObjectGripAdapter } from './adapter/index';
 import { CommonConfiguration, LaunchConfiguration, AttachConfiguration, AddonType } from './adapter/launchConfiguration';
 
 let log = Log.create('FirefoxDebugAdapter');
@@ -31,6 +31,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	private addonPath: string | undefined;
 	private isWindowsPlatform: boolean;
 
+	private reloadTabs = false;
+
 	private nextThreadId = 1;
 	private threadsById = new Map<number, ThreadAdapter>();
 	private lastActiveConsoleThreadId: number = 0;
@@ -38,6 +40,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	private nextBreakpointId = 1;
 	private breakpointsBySourcePath = new Map<string, BreakpointInfo[]>();
 	private verifiedBreakpointSources: string[] = [];
+	private threadPauseCoordinator = new ThreadPauseCoordinator();
 
 	private nextFrameId = 1;
 	private framesById = new Map<number, FrameAdapter>();
@@ -87,21 +90,54 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		await this.readCommonConfiguration(args);
 
-		// only send messages from Firefox' stdout to the debug console when debugging an addonSdk extension
-		let sendToConsole: (msg: string) => void = 
-			(this.addonType === 'addonSdk') ? 
-				(msg) => this.sendEvent(new OutputEvent(msg, 'stdout')) :
-				(msg) => undefined;
+		let socket: Socket | undefined = undefined;
 
-		this.firefoxProc = await launchFirefox(args, sendToConsole);
+		if (args.reAttach) {
 
-		let socket = await waitForSocket(args);
+			if (args.addonType !== undefined) {
+				throw '"reAttach" is not available for add-on debugging yet';
+			}
+
+			try {
+
+				socket = await connect(args.port || 6000, 'localhost');
+
+				if (args.reloadOnAttach !== undefined) {
+					this.reloadTabs = args.reloadOnAttach;
+				} else {
+					this.reloadTabs = true;
+				}
+
+			} catch(err) {}
+		}
+
+		if (socket === undefined) {
+
+			// only send messages from Firefox' stdout to the debug console when debugging an addonSdk extension
+			let sendToConsole: (msg: string) => void = 
+				(this.addonType === 'addonSdk') ? 
+					(msg) => this.sendEvent(new OutputEvent(msg, 'stdout')) :
+					(msg) => undefined;
+
+			let proc = await launchFirefox(args, sendToConsole);
+
+			if (!args.reAttach) {
+				this.firefoxProc = proc;
+			}
+
+			socket = await waitForSocket(args);
+		}
+
 		this.startSession(socket);
 	}
 
 	protected async attach(args: AttachConfiguration): Promise<void> {
 
 		await this.readCommonConfiguration(args);
+
+		if (args.reloadOnAttach !== undefined) {
+			this.reloadTabs = args.reloadOnAttach;
+		}
 
 		let socket = await connect(args.port || 6000, args.host || 'localhost');
 		this.startSession(socket);
@@ -649,7 +685,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		rootActor.onTabOpened(([tabActor, consoleActor]) => {
 			log.info(`Tab opened with url ${tabActor.url}`);
 			let tabId = nextTabId++;
-			this.attachTab(tabActor, consoleActor, tabId);
+			this.attachTab(tabActor, consoleActor, tabId, true, `Tab ${tabId}`);
 			this.attachConsole(consoleActor);
 		});
 
@@ -657,8 +693,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			rootActor.fetchTabs();
 		});
 
-		rootActor.onInit(() => {
-			rootActor.fetchTabs();
+		rootActor.onInit(async () => {
+			await rootActor.fetchTabs();
+			this.reloadTabs = false;
 		});
 
 		socket.on('close', () => {
@@ -672,7 +709,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	}
 
 	private async attachTab(tabActor: TabActorProxy, consoleActor: ConsoleActorProxy, tabId: number, 
-		hasWorkers: boolean = true, threadName?: string): Promise<void> {
+		hasWorkers: boolean, threadName: string): Promise<void> {
+
+		let reload = this.reloadTabs;
 
 		let threadActor: ThreadActorProxy;
 		try {
@@ -685,10 +724,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		log.debug(`Attached to tab ${tabActor.name}`);
 
 		let threadId = this.nextThreadId++;
-		if (!threadName) {
-			threadName = `Tab ${tabId}`;
-		}
-		let threadAdapter = new ThreadAdapter(threadId, threadActor, consoleActor, threadName, this);
+		let threadAdapter = new ThreadAdapter(threadId, threadActor, consoleActor,
+			this.threadPauseCoordinator, threadName, this);
 
 		this.attachThread(threadAdapter, threadActor.name);
 
@@ -714,7 +751,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		try {
 
-			await threadAdapter.init(this.exceptionBreakpoints)
+			await threadAdapter.init(this.exceptionBreakpoints, reload);
 
 			this.threadsById.set(threadId, threadAdapter);
 			this.sendEvent(new ThreadEvent('started', threadId));
@@ -745,11 +782,11 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		let threadId = this.nextThreadId++;
 		let threadAdapter = new ThreadAdapter(threadId, threadActor, undefined,
-			`Worker ${tabId}/${workerId}`, this);
+			this.threadPauseCoordinator, `Worker ${tabId}/${workerId}`, this);
 
 		this.attachThread(threadAdapter, threadActor.name);
 
-		await threadAdapter.init(this.exceptionBreakpoints);
+		await threadAdapter.init(this.exceptionBreakpoints, false);
 
 		this.threadsById.set(threadId, threadAdapter);
 		this.sendEvent(new ThreadEvent('started', threadId));

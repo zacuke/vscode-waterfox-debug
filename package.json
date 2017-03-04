@@ -181,6 +181,16 @@
                 },
                 "default": []
               },
+              "reAttach": {
+                "type": "boolean",
+                "description": "Don't terminate Firefox at the end of the debugging session and re-attach to it when starting the next session",
+                "default": true
+              },
+              "reloadOnAttach": {
+                "type": "boolean",
+                "description": "Reload all tabs after re-attaching to Firefox",
+                "default": true
+              },
               "pathMappings": {
                 "type": "array",
                 "description": "Additional mappings from URLs (as seen by Firefox) to filesystem paths (as seen by VS Code)",
@@ -319,6 +329,11 @@
                 "type": "string",
                 "description": "The remote debugging host to use",
                 "default": "localhost"
+              },
+              "reloadOnAttach": {
+                "type": "boolean",
+                "description": "Reload all tabs after attaching to Firefox",
+                "default": false
               },
               "pathMappings": {
                 "type": "array",

@@ -37,17 +37,21 @@ export async function initDebugClientForAddon(testDataPath: string, addonType: A
 	dc.setExceptionBreakpointsRequest({ filters: [] });
 
 	if (waitForPageLoadedEvent) {
-		await receivePageLoadedEvent(dc);
+		await receivePageLoadedEvent(dc, (addonType === 'addonSdk'));
 	}
 
 	return dc;
 }
 
-export async function receivePageLoadedEvent(dc: DebugClient): Promise<void> {
-	let ev = await dc.waitForEvent('output');
+export async function receivePageLoadedEvent(dc: DebugClient, lenient: boolean = false): Promise<void> {
+	let ev = await dc.waitForEvent('output', 10000);
 	let outputMsg = ev.body.output.trim();
 	if (outputMsg !== 'Loaded') {
-		throw new Error(`Wrong output message '${outputMsg}'`);
+		if (lenient) {
+			await receivePageLoadedEvent(dc, true);
+		} else {
+			throw new Error(`Wrong output message '${outputMsg}'`);
+		}
 	}
 }
 
@@ -59,11 +63,11 @@ export function setBreakpoints(dc: DebugClient, sourcePath: string, breakpointLi
 }
 
 export function receiveBreakpointEvent(dc: DebugClient): Promise<DebugProtocol.BreakpointEvent> {
-	return dc.waitForEvent('breakpoint');
+	return dc.waitForEvent('breakpoint', 10000);
 }
 
 export function receiveStoppedEvent(dc: DebugClient): Promise<DebugProtocol.StoppedEvent> {
-	return dc.waitForEvent('stopped');
+	return dc.waitForEvent('stopped', 10000);
 }
 
 export function evaluate(dc: DebugClient, js: string): Promise<DebugProtocol.EvaluateResponse> {
