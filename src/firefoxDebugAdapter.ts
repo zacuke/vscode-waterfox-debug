@@ -3,15 +3,14 @@ import * as path from 'path';
 import { Socket } from 'net';
 import { ChildProcess } from 'child_process';
 import { Log } from './util/log';
-import { concatArrays } from './util/misc';
 import { findAddonId } from './util/addon';
 import { launchFirefox, connect, waitForSocket } from './util/launcher';
 import { Minimatch } from 'minimatch';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugAdapterBase } from './debugAdapterBase';
-import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, ContinuedEvent, Thread, StackFrame, Scope, Variable, Source, Breakpoint } from 'vscode-debugadapter';
-import { DebugConnection, ActorProxy, TabActorProxy, WorkerActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, BreakpointActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
-import { ThreadAdapter, ThreadPauseCoordinator, BreakpointInfo, BreakpointsAdapter, SourceAdapter, BreakpointAdapter, FrameAdapter, EnvironmentAdapter, VariablesProvider, VariableAdapter, ObjectGripAdapter } from './adapter/index';
+import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, ContinuedEvent, Thread, Variable, Breakpoint } from 'vscode-debugadapter';
+import { DebugConnection, TabActorProxy, WorkerActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
+import { ThreadAdapter, ThreadPauseCoordinator, BreakpointInfo, SourceAdapter, FrameAdapter, VariablesProvider } from './adapter/index';
 import { CommonConfiguration, LaunchConfiguration, AttachConfiguration, AddonType } from './adapter/launchConfiguration';
 
 let log = Log.create('FirefoxDebugAdapter');
@@ -563,8 +562,6 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 			this.addonType = args.addonType;
 
-			let success: boolean;
-			let addonIdOrErrorMsg: string;
 			this.addonId = await findAddonId(args.addonPath);
 			this.addonPath = args.addonPath;
 
@@ -775,7 +772,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	private async attachWorker(workerActor: WorkerActorProxy, tabId: number, workerId: number): Promise<void> {
 
-		let url = await workerActor.attach();
+		await workerActor.attach();
 		let threadActor = await workerActor.connect();
 
 		log.debug(`Attached to worker ${workerActor.name}`);

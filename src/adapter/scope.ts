@@ -1,5 +1,5 @@
 import { ThreadAdapter, ObjectGripAdapter, VariableAdapter } from './index';
-import { Scope, Variable } from 'vscode-debugadapter';
+import { Scope } from 'vscode-debugadapter';
 
 export interface VariablesProvider {
 	variablesProviderId: number;

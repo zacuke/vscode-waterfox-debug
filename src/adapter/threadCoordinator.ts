@@ -30,7 +30,6 @@ export class ThreadCoordinator extends EventEmitter {
 	private tasksRunningOnPausedThread = 0;
 
 	private queuedEvaluateTasks: DelayedTask<VariableAdapter>[] = [];
-	private evaluateTaskIsRunning = false;
 
 	constructor(
 		private threadId: number,

@@ -1,5 +1,4 @@
 import { Log } from '../../util/log';
-import { EventEmitter } from 'events';
 import { DebugConnection } from '../connection';
 import { PendingRequests, PendingRequest } from './pendingRequests';
 import { ActorProxy } from './interface';

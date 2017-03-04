@@ -3,7 +3,6 @@ import { concatArrays } from '../util/misc';
 import { ThreadAdapter, EnvironmentAdapter, ScopeAdapter, ObjectGripAdapter } from '../adapter/index';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { Source, StackFrame } from 'vscode-debugadapter';
-import { urlBasename } from '../util/misc';
 
 let log = Log.create('FrameAdapter');
 

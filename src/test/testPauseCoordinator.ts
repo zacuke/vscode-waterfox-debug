@@ -1,4 +1,4 @@
-import { ThreadPauseCoordinator, PauseType } from '../adapter/threadPauseCoordinator';
+import { ThreadPauseCoordinator } from '../adapter/threadPauseCoordinator';
 import { delay } from '../util/misc';
 import * as assert from 'assert';
 

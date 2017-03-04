@@ -1,5 +1,4 @@
 import { Log } from '../util/log';
-import { DebugProtocol } from 'vscode-debugprotocol';
 import { ThreadCoordinator, SourceAdapter, BreakpointAdapter } from '../adapter/index';
 
 let log = Log.create('BreakpointsAdapter');

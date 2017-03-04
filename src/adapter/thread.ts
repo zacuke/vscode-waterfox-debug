@@ -2,7 +2,7 @@ import { Log } from '../util/log';
 import { EventEmitter } from 'events';
 import { concatArrays } from '../util/misc';
 import { ExceptionBreakpoints, ThreadActorProxy, ConsoleActorProxy, SourceActorProxy } from '../firefox/index';
-import { ThreadCoordinator, ThreadPauseCoordinator, PauseType, BreakpointInfo, BreakpointsAdapter, FrameAdapter, ScopeAdapter, SourceAdapter, BreakpointAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
+import { ThreadCoordinator, ThreadPauseCoordinator, BreakpointInfo, BreakpointsAdapter, FrameAdapter, ScopeAdapter, SourceAdapter, BreakpointAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
 import { FirefoxDebugAdapter } from '../firefoxDebugAdapter';
 import { Variable } from 'vscode-debugadapter';
 

@@ -1,6 +1,5 @@
 import { ThreadAdapter, VariablesProvider, VariableAdapter } from './index';
 import { ObjectGripActorProxy } from '../firefox/index';
-import { Variable } from 'vscode-debugadapter';
 
 export class ObjectGripAdapter implements VariablesProvider {
 	
