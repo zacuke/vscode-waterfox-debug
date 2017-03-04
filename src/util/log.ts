@@ -67,19 +67,19 @@ export class Log {
 	}
 
 	public isDebugEnabled(): boolean {
-		return this.minLevel <= NumericLogLevel.Debug;
+		return (this.minLevel !== undefined) && (this.minLevel <= NumericLogLevel.Debug);
 	}
 
 	public isInfoEnabled(): boolean {
-		return this.minLevel <= NumericLogLevel.Info;
+		return (this.minLevel !== undefined) && (this.minLevel <= NumericLogLevel.Info);
 	}
 
 	public isWarnEnabled(): boolean {
-		return this.minLevel <= NumericLogLevel.Warn;
+		return (this.minLevel !== undefined) && (this.minLevel <= NumericLogLevel.Warn);
 	}
 
 	public isErrorEnabled(): boolean {
-		return this.minLevel <= NumericLogLevel.Error;
+		return (this.minLevel !== undefined) && (this.minLevel <= NumericLogLevel.Error);
 	}
 
 	private configure() {
