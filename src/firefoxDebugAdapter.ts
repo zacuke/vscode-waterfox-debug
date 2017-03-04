@@ -94,8 +94,15 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		if (args.reAttach) {
 			try {
+
 				socket = await connect(args.port || 6000, 'localhost');
-				this.reloadTabs = true;
+
+				if (args.reloadOnAttach !== undefined) {
+					this.reloadTabs = args.reloadOnAttach;
+				} else {
+					this.reloadTabs = true;
+				}
+
 			} catch(err) {}
 		}
 
@@ -122,6 +129,10 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	protected async attach(args: AttachConfiguration): Promise<void> {
 
 		await this.readCommonConfiguration(args);
+
+		if (args.reloadOnAttach !== undefined) {
+			this.reloadTabs = args.reloadOnAttach;
+		}
 
 		let socket = await connect(args.port || 6000, args.host || 'localhost');
 		this.startSession(socket);

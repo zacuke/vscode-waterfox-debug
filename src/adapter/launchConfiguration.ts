@@ -7,6 +7,7 @@ export interface CommonConfiguration {
 	request: string;
 	url?: string;
 	webRoot?: string;
+	reloadOnAttach?: boolean;
 	pathMappings?: { url: string, path: string }[];
 	skipFiles?: string[];
 	log?: LogConfiguration;
