@@ -93,6 +93,11 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		let socket: Socket | undefined = undefined;
 
 		if (args.reAttach) {
+
+			if (args.addonType !== undefined) {
+				throw '"reAttach" is not available for add-on debugging yet';
+			}
+
 			try {
 
 				socket = await connect(args.port || 6000, 'localhost');
