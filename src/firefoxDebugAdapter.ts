@@ -31,6 +31,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	private addonPath: string | undefined;
 	private isWindowsPlatform: boolean;
 
+	private reloadTabs = false;
+
 	private nextThreadId = 1;
 	private threadsById = new Map<number, ThreadAdapter>();
 	private lastActiveConsoleThreadId: number = 0;
@@ -93,6 +95,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		if (args.reAttach) {
 			try {
 				socket = await connect(args.port || 6000, 'localhost');
+				this.reloadTabs = true;
 			} catch(err) {}
 		}
 
@@ -665,8 +668,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			rootActor.fetchTabs();
 		});
 
-		rootActor.onInit(() => {
-			rootActor.fetchTabs();
+		rootActor.onInit(async () => {
+			await rootActor.fetchTabs();
+			this.reloadTabs = false;
 		});
 
 		socket.on('close', () => {
@@ -681,6 +685,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	private async attachTab(tabActor: TabActorProxy, consoleActor: ConsoleActorProxy, tabId: number, 
 		hasWorkers: boolean, threadName: string): Promise<void> {
+
+		let reload = this.reloadTabs;
 
 		let threadActor: ThreadActorProxy;
 		try {
@@ -720,7 +726,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		try {
 
-			await threadAdapter.init(this.exceptionBreakpoints)
+			await threadAdapter.init(this.exceptionBreakpoints, reload);
 
 			this.threadsById.set(threadId, threadAdapter);
 			this.sendEvent(new ThreadEvent('started', threadId));
@@ -755,7 +761,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		this.attachThread(threadAdapter, threadActor.name);
 
-		await threadAdapter.init(this.exceptionBreakpoints);
+		await threadAdapter.init(this.exceptionBreakpoints, false);
 
 		this.threadsById.set(threadId, threadAdapter);
 		this.sendEvent(new ThreadEvent('started', threadId));

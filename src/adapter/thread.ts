@@ -51,7 +51,7 @@ export class ThreadAdapter {
 			this.pauseCoordinator, (source) => this.shouldSkip(source), () => this.disposePauseLifetimeAdapters());
 	}
 
-	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
+	public async init(exceptionBreakpoints: ExceptionBreakpoints, reload: boolean): Promise<void> {
 
 		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
 
@@ -71,6 +71,10 @@ export class ThreadAdapter {
 		await this.actor.fetchSources();
 
 		await this.coordinator.resume();
+
+		if (reload) {
+			await this.consoleEvaluate('location.reload(true)');
+		}
 	}
 
 	public createSourceAdapter(id: number, actor: SourceActorProxy, path?: string): SourceAdapter {
