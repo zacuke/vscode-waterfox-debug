@@ -57,7 +57,7 @@ describe('Firefox debug adapter', function() {
 		let backgroundScriptPath = path.join(TESTDATA_PATH, 'addonSdk/addOn/index.js');
 		await util.setBreakpoints(dc, backgroundScriptPath, [ 8 ]);
 
-		await util.receivePageLoadedEvent(dc);
+		await util.receivePageLoadedEvent(dc, true);
 
 		let stoppedEvent = await util.receiveStoppedEvent(dc);
 		let contentThreadId = stoppedEvent.body.threadId!;
