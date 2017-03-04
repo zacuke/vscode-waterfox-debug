@@ -82,7 +82,8 @@ export class Log {
 		}
 
 		this.minLevel = this.fileLevel;
-		if ((this.consoleLevel !== undefined) && !(this.consoleLevel >= this.minLevel)) {
+		if ((this.consoleLevel !== undefined) && 
+			((this.minLevel === undefined) || (this.consoleLevel < this.minLevel))) {
 			this.minLevel = this.consoleLevel;
 		}
 	}
@@ -108,7 +109,7 @@ export class Log {
 	}
 
 	private log(msg: string, level: NumericLogLevel, displayLevel: string) {
-		if (level >= this.minLevel) {
+		if ((this.minLevel !== undefined) && (level >= this.minLevel)) {
 			
 			let elapsedTime = (Date.now() - Log.startTime) / 1000;
 			let elapsedTimeString = elapsedTime.toFixed(3);
@@ -117,10 +118,11 @@ export class Log {
 			}
 			let logMsg = displayLevel + '|' + elapsedTimeString + '|' + this.name + ': ' + msg;
 			
-			if ((Log.fileDescriptor !== undefined) && (level >= this.fileLevel)) {
+			if ((Log.fileDescriptor !== undefined) && 
+				(this.fileLevel !== undefined) && (level >= this.fileLevel)) {
 				fs.write(Log.fileDescriptor, logMsg + '\n', (err, written, str) => {});
 			}
-			if (level >= this.consoleLevel) {
+			if ((this.consoleLevel !== undefined) && (level >= this.consoleLevel)) {
 				Log.consoleLog(logMsg);
 			}
 		}

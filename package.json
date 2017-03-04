@@ -13,27 +13,27 @@
     "Debuggers"
   ],
   "dependencies": {
-    "firefox-profile": "^0.4.7",
+    "firefox-profile": "^0.4.9",
     "fs-extra": "^2.0.0",
     "minimatch": "^3.0.3",
     "semver": "^5.3.0",
     "uuid": "^3.0.1",
-    "vscode-debugadapter": "^1.15.0",
+    "vscode-debugadapter": "^1.17.0",
     "zip-dir": "^1.0.2"
   },
   "devDependencies": {
     "@types/fs-extra": "^0.0.37",
     "@types/minimatch": "^2.0.29",
-    "@types/mocha": "^2.2.38",
-    "@types/node": "^7.0.3",
+    "@types/mocha": "^2.2.39",
+    "@types/node": "^7.0.5",
     "@types/rimraf": "0.0.28",
     "@types/semver": "^5.3.30",
     "@types/uuid": "^2.0.29",
     "mocha": "^3.2.0",
     "nyc": "^10.1.2",
-    "typescript": "^2.1.5",
+    "typescript": "^2.2.1",
     "vsce": "^1.18.0",
-    "vscode-debugadapter-testsupport": "^1.16.0"
+    "vscode-debugadapter-testsupport": "^1.17.0"
   },
   "scripts": {
     "test": "mocha --timeout 20000 --slow 6000 out/test/test*.js",
