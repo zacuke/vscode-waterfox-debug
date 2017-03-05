@@ -45,10 +45,14 @@ export function createXpi(addonType: AddonType, addonPath: string, destDir: stri
 }
 
 export function findAddonId(addonPath: string): Promise<string> {
-	return new Promise<string>((resolve) => {
+	return new Promise<string>((resolve, reject) => {
 		var dummyProfile = new FirefoxProfile();
-		(<any>dummyProfile)._addonDetails(addonPath, (addonDetails: { id: string }) => {
-			resolve(addonDetails.id);
+		(<any>dummyProfile)._addonDetails(addonPath, (addonDetails: { id?: string | null }) => {
+			if (typeof addonDetails.id === 'string') {
+				resolve(addonDetails.id);
+			} else {
+				reject('This debugger currently requires add-ons to specify an ID in their manifest');
+			}
 		});
 	});
 }
