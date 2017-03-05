@@ -6,6 +6,9 @@ A Visual Studio Code extension to debug your web application or browser extensio
 You can use this extension in launch or attach mode. 
 In launch mode it will start an instance of Firefox navigated to the start page of your application
 and terminate it when you stop debugging.
+You can also set the `reAttach` option in your launch configuration to `true`, in this case Firefox
+won't be terminated at the end of your debugging session and the debugger will re-attach to it when
+you start the next debugging session - this is a lot faster than restarting Firefox every time.
 In attach mode it attaches to a running instance of Firefox.
 
 To configure these modes you must create a file `.vscode/launch.json` in the root directory of your
@@ -26,6 +29,7 @@ in the root directory of your project:
             "name": "Launch index.html",
             "type": "firefox",
             "request": "launch",
+            "reAttach": true,
             "file": "${workspaceRoot}/index.html"
         }
     ]
@@ -44,6 +48,7 @@ urls to local files:
             "name": "Launch localhost",
             "type": "firefox",
             "request": "launch",
+            "reAttach": true,
             "url": "http://localhost/index.html",
 			"webRoot": "${workspaceRoot}"
         }
@@ -124,6 +129,13 @@ add-on manifest (`package.json` for `addonSdk` add-ons, `manifest.json` for `web
 or `install.rdf` for `legacy` add-ons).
 
 ### Optional configuration properties
+* `reAttach`: If you set this option to `true` in a `launch` configuration, Firefox won't be 
+  terminated at the end of your debugging session and the debugger will re-attach to it at the
+  start of your next debugging session. Note that this is not yet supported for add-on
+  debugging.
+* `reloadOnAttach`: This flag controls whether the web page(s) should be automatically reloaded
+  after attaching to Firefox. The default is to reload in a `launch` configuration with the
+  `reAttach` flag set to `true` and to not reload in an `attach` configuration.
 * `skipFiles`: An array of glob patterns specifying javascript files that should be skipped while
   debugging: the debugger won't break in or step into these files. This is the same as "black boxing"
   scripts in the Firefox Developer Tools. If the URL of a file can't be mapped to a local file path,
