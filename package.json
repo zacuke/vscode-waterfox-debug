@@ -74,12 +74,14 @@
             "name": "Launch index.html",
             "type": "firefox",
             "request": "launch",
+            "reAttach": true,
             "file": "${workspaceRoot}/index.html"
           },
           {
             "name": "Launch localhost",
             "type": "firefox",
             "request": "launch",
+            "reAttach": true,
             "url": "http://localhost/index.html",
             "webRoot": "${workspaceRoot}"
           },
@@ -103,6 +105,7 @@
             "body": {
               "type": "firefox",
               "request": "launch",
+              "reAttach": true,
               "name": "${1:Launch index.html}",
               "file": "^\"\\${workspaceRoot}/${2:index.html}\""
             }
@@ -113,6 +116,7 @@
             "body": {
               "type": "firefox",
               "request": "launch",
+              "reAttach": true,
               "name": "${1:Launch localhost}",
               "url": "${2:http://localhost/index.html}",
               "webRoot": "^\"\\${workspaceRoot}${3:}\""
