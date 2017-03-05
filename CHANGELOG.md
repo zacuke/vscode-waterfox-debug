@@ -1,3 +1,6 @@
+### Version 0.9.0
+* Add `reAttach` and `reloadOnAttach` configuration properties
+
 ### Version 0.8.8
 * bugfix: source files were not mapped to local files in VS Code 1.9
 
