@@ -1,3 +1,6 @@
+### Version 0.9.1
+* fix `reAttach` on Windows
+
 ### Version 0.9.0
 * Add `reAttach` and `reloadOnAttach` configuration properties
 
