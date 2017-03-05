@@ -3,7 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import * as net from 'net';
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, fork, ChildProcess } from 'child_process';
 import * as uuid from 'uuid';
 import { LaunchConfiguration } from '../adapter/launchConfiguration';
 import { createXpi } from './addon';
@@ -15,7 +15,7 @@ import * as FirefoxProfile from 'firefox-profile';
  * and the addonId if the launch configuration is for addon debugging.
  */
 export async function launchFirefox(config: LaunchConfiguration, sendToConsole: (msg: string) => void):
-	Promise<ChildProcess> {
+	Promise<ChildProcess | undefined> {
 
 	let firefoxPath = getFirefoxExecutablePath(config);	
 	if (!firefoxPath) {
@@ -62,19 +62,33 @@ export async function launchFirefox(config: LaunchConfiguration, sendToConsole: 
 
 	await prepareDebugProfile(config, debugProfileDir);
 
-	let childProc = spawn(firefoxPath, firefoxArgs, { detached: true });
+	let childProc: ChildProcess | undefined = undefined;
 
-	childProc.stdout.on('data', (data) => {
-		let msg = (typeof data === 'string') ? data : data.toString('utf8');
-		msg = msg.trim();
-		sendToConsole(msg);
-	});
+	if (config.reAttach && (os.platform() === 'win32')) {
 
-	childProc.on('exit', () => {
-		fs.removeSync(debugProfileDir);
-	});
+		let forkArgs = [...firefoxArgs];
+		forkArgs.unshift(firefoxPath);
+		let forkedLauncherPath = path.join(__dirname, 'forkedLauncher.js');
 
-	childProc.unref();
+		fork(forkedLauncherPath, forkArgs, { execArgv: [] });
+
+	} else {
+
+		childProc = spawn(firefoxPath, firefoxArgs, { detached: true });
+
+		childProc.stdout.on('data', (data) => {
+			let msg = (typeof data === 'string') ? data : data.toString('utf8');
+			msg = msg.trim();
+			sendToConsole(msg);
+		});
+
+		childProc.on('exit', () => {
+			fs.removeSync(debugProfileDir);
+		});
+
+		childProc.unref();
+	}
+
 	return childProc;
 }
 
