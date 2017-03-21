@@ -11,7 +11,7 @@ import { Minimatch } from 'minimatch';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugAdapterBase } from './debugAdapterBase';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, ContinuedEvent, Thread, Variable, Breakpoint } from 'vscode-debugadapter';
-import { DebugConnection, TabActorProxy, WorkerActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
+import { DebugConnection, RootActorProxy, TabActorProxy, WorkerActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, ThreadPauseCoordinator, BreakpointInfo, SourceAdapter, FrameAdapter, VariablesProvider } from './adapter/index';
 import { CommonConfiguration, LaunchConfiguration, AttachConfiguration, AddonType } from './adapter/launchConfiguration';
 
@@ -33,6 +33,10 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	private isWindowsPlatform: boolean;
 
 	private reloadTabs = false;
+
+	private nextTabId = 1;
+
+	private addonAttached = false;
 
 	private nextThreadId = 1;
 	private threadsById = new Map<number, ThreadAdapter>();
@@ -677,34 +681,27 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		this.firefoxDebugSocketClosed = false;
 		let rootActor = this.firefoxDebugConnection.rootActor;
 
-		let nextTabId = 1;
-
 		if (this.addonId) {
-			// attach to Firefox addon
-			rootActor.onInit(async () => {
 
-				let addons = await rootActor.fetchAddons();
-				addons.forEach((addon) => {
-					if (addon.id === this.addonId) {
-						let addonActor = new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection);
-						let consoleActor = new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection);
-						this.attachTabOrAddon(addonActor, consoleActor, nextTabId++, false, 'Addon');
-						this.attachConsole(consoleActor);
-					}
+			if (this.addonType === 'legacy') {
+
+				rootActor.onInit(async () => {
+					let [addonActor, consoleActor] = await rootActor.fetchProcess();
+					this.attachTabOrAddon(addonActor, consoleActor, this.nextTabId++, true, 'Browser');
 				});
 
-				if (this.addonType === 'legacy') {
-					rootActor.fetchProcess().then(([addonActor, consoleActor]) => {
-						this.attachTabOrAddon(addonActor, consoleActor, nextTabId++, true, 'Browser');
-					});
-				}
-			});
+			} else {
+
+				rootActor.onInit(() => this.fetchAddonsAndAttach(rootActor));
+				rootActor.onAddonListChanged(() => this.fetchAddonsAndAttach(rootActor));
+
+			}
 		}
 
 		// attach to all tabs, register the corresponding threads and inform VSCode about them
 		rootActor.onTabOpened(([tabActor, consoleActor]) => {
 			log.info(`Tab opened with url ${tabActor.url}`);
-			let tabId = nextTabId++;
+			let tabId = this.nextTabId++;
 			this.attachTabOrAddon(tabActor, consoleActor, tabId, true, `Tab ${tabId}`);
 			this.attachConsole(consoleActor);
 		});
@@ -726,6 +723,25 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		// now we are ready to accept breakpoints -> fire the initialized event to give UI a chance to set breakpoints
 		this.sendEvent(new InitializedEvent());
+	}
+
+	private async fetchAddonsAndAttach(rootActor: RootActorProxy): Promise<void> {
+
+		if (this.addonAttached) return;
+
+		let addons = await rootActor.fetchAddons();
+
+		if (this.addonAttached) return;
+
+		addons.forEach((addon) => {
+			if (addon.id === this.addonId) {
+				let addonActor = new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection);
+				let consoleActor = new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection);
+				this.attachTabOrAddon(addonActor, consoleActor, this.nextTabId++, false, 'Addon');
+				this.attachConsole(consoleActor);
+				this.addonAttached = true;
+			}
+		});
 	}
 
 	private async attachTabOrAddon(tabActor: TabActorProxy, consoleActor: ConsoleActorProxy, tabId: number, 

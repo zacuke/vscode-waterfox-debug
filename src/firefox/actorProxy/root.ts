@@ -124,6 +124,12 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 			log.debug(`Received ${addonsResponse.addons.length} addons`);
 			this.pendingAddonsRequests.resolveOne(addonsResponse.addons);
 
+		} else if (response['type'] === 'addonListChanged') {
+
+			log.debug('Received addonListChanged event');
+			
+			this.emit('addonListChanged');
+
 		} else if (response['form']) {
 
 			let processResponse = <FirefoxDebugProtocol.ProcessResponse>response;
@@ -158,5 +164,9 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 	public onTabListChanged(cb: () => void) {
 		this.on('tabListChanged', cb);
+	}
+
+	public onAddonListChanged(cb: () => void) {
+		this.on('addonListChanged', cb);
 	}
 }
