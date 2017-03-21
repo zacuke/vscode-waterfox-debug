@@ -94,6 +94,7 @@
             "name": "Launch addon",
             "type": "firefox",
             "request": "launch",
+            "reAttach": true,
             "addonType": "addonSdk",
             "addonPath": "${workspaceRoot}"
           }
@@ -137,6 +138,7 @@
             "body": {
               "type": "firefox",
               "request": "launch",
+              "reAttach": true,
               "name": "${1:Launch add-on}",
               "addonType": "${2:addonSdk}",
               "addonPath": "^\"\\${workspaceRoot}${3:}\""
