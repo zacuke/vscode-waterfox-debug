@@ -1,10 +1,12 @@
 import * as os from 'os';
 import * as path from 'path';
+import * as fs from 'fs-extra';
 import { Socket } from 'net';
 import { ChildProcess } from 'child_process';
+import * as uuid from 'uuid';
 import { Log } from './util/log';
-import { findAddonId } from './util/addon';
-import { launchFirefox, connect, waitForSocket } from './util/launcher';
+import { createXpi, findAddonId } from './util/addon';
+import { launchFirefox, connect, waitForSocket, installXpiViaAutoInstaller } from './util/launcher';
 import { Minimatch } from 'minimatch';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugAdapterBase } from './debugAdapterBase';
@@ -89,15 +91,24 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		await this.readCommonConfiguration(args);
 
+		let tempXpiDir: string | undefined = undefined;
+		let tempXpiPath: string | undefined = undefined;
+
+		if (args.addonType && args.addonPath) {
+			tempXpiDir = path.join(os.tmpdir(), `vscode-firefox-debug-${uuid.v4()}`);
+			fs.mkdirSync(tempXpiDir);
+			tempXpiPath = await createXpi(args.addonType, args.addonPath, tempXpiDir);
+		}
+
 		let socket: Socket | undefined = undefined;
 
 		if (args.reAttach) {
 
-			if (args.addonType !== undefined) {
-				throw '"reAttach" is not available for add-on debugging yet';
-			}
-
 			try {
+
+				if (tempXpiPath !== undefined) {
+					await installXpiViaAutoInstaller(tempXpiPath, 8888);
+				}
 
 				socket = await connect(args.port || 6000, 'localhost');
 
@@ -112,19 +123,23 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		if (socket === undefined) {
 
-			// only send messages from Firefox' stdout to the debug console when debugging an addonSdk extension
+			// send messages from Firefox' stdout to the debug console when debugging an addonSdk extension
 			let sendToConsole: (msg: string) => void = 
 				(this.addonType === 'addonSdk') ? 
 					(msg) => this.sendEvent(new OutputEvent(msg, 'stdout')) :
 					(msg) => undefined;
 
-			let proc = await launchFirefox(args, sendToConsole);
+			let proc = await launchFirefox(args, tempXpiPath, sendToConsole);
 
 			if (!args.reAttach) {
 				this.firefoxProc = proc;
 			}
 
-			socket = await waitForSocket(args);
+			socket = await waitForSocket(args.port || 6000);
+		}
+
+		if (tempXpiDir !== undefined) {
+			fs.removeSync(tempXpiDir);
 		}
 
 		this.startSession(socket);
@@ -136,6 +151,14 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		if (args.reloadOnAttach !== undefined) {
 			this.reloadTabs = args.reloadOnAttach;
+		}
+
+		if (args.addonType && args.addonPath) {
+			let tempXpiDir = path.join(os.tmpdir(), `vscode-firefox-debug-${uuid.v4()}`);
+			fs.mkdirSync(tempXpiDir);
+			let tempXpiPath = await createXpi(args.addonType, args.addonPath, tempXpiDir);
+			await installXpiViaAutoInstaller(tempXpiPath, 8888);
+			fs.removeSync(tempXpiDir);
 		}
 
 		let socket = await connect(args.port || 6000, args.host || 'localhost');
@@ -663,16 +686,16 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				let addons = await rootActor.fetchAddons();
 				addons.forEach((addon) => {
 					if (addon.id === this.addonId) {
-						let tabActor = new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection);
+						let addonActor = new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection);
 						let consoleActor = new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection);
-						this.attachTab(tabActor, consoleActor, nextTabId++, false, 'Addon');
+						this.attachTabOrAddon(addonActor, consoleActor, nextTabId++, false, 'Addon');
 						this.attachConsole(consoleActor);
 					}
 				});
 
 				if (this.addonType === 'legacy') {
-					rootActor.fetchProcess().then(([tabActor, consoleActor]) => {
-						this.attachTab(tabActor, consoleActor, nextTabId++, true, 'Browser');
+					rootActor.fetchProcess().then(([addonActor, consoleActor]) => {
+						this.attachTabOrAddon(addonActor, consoleActor, nextTabId++, true, 'Browser');
 					});
 				}
 			});
@@ -682,7 +705,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		rootActor.onTabOpened(([tabActor, consoleActor]) => {
 			log.info(`Tab opened with url ${tabActor.url}`);
 			let tabId = nextTabId++;
-			this.attachTab(tabActor, consoleActor, tabId, true, `Tab ${tabId}`);
+			this.attachTabOrAddon(tabActor, consoleActor, tabId, true, `Tab ${tabId}`);
 			this.attachConsole(consoleActor);
 		});
 
@@ -705,10 +728,10 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		this.sendEvent(new InitializedEvent());
 	}
 
-	private async attachTab(tabActor: TabActorProxy, consoleActor: ConsoleActorProxy, tabId: number, 
-		hasWorkers: boolean, threadName: string): Promise<void> {
+	private async attachTabOrAddon(tabActor: TabActorProxy, consoleActor: ConsoleActorProxy, tabId: number, 
+		isTab: boolean, threadName: string): Promise<void> {
 
-		let reload = this.reloadTabs;
+		let reload = isTab && this.reloadTabs;
 
 		let threadActor: ThreadActorProxy;
 		try {
@@ -726,7 +749,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		this.attachThread(threadAdapter, threadActor.name);
 
-		if (hasWorkers) {
+		if (isTab) {
 
 			let nextWorkerId = 1;
 			tabActor.onWorkerStarted(async (workerActor) => {

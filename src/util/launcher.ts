@@ -6,16 +6,14 @@ import * as net from 'net';
 import { spawn, fork, ChildProcess } from 'child_process';
 import * as uuid from 'uuid';
 import { LaunchConfiguration } from '../adapter/launchConfiguration';
-import { createXpi } from './addon';
 import * as FirefoxProfile from 'firefox-profile';
 
 /**
  * Tries to launch Firefox with the given launch configuration.
- * The returned promise resolves to the spawned child process
- * and the addonId if the launch configuration is for addon debugging.
+ * The returned promise resolves to the spawned child process.
  */
-export async function launchFirefox(config: LaunchConfiguration, sendToConsole: (msg: string) => void):
-	Promise<ChildProcess | undefined> {
+export async function launchFirefox(config: LaunchConfiguration, xpiPath: string | undefined,
+	sendToConsole: (msg: string) => void): Promise<ChildProcess | undefined> {
 
 	let firefoxPath = getFirefoxExecutablePath(config);	
 	if (!firefoxPath) {
@@ -25,7 +23,7 @@ export async function launchFirefox(config: LaunchConfiguration, sendToConsole: 
 		} else {
 			errorMsg += 'Please specify the path in your launch configuration.'
 		}
-		return Promise.reject(errorMsg);
+		throw errorMsg;
 	}
 
 	let port = config.port || 6000;
@@ -60,9 +58,14 @@ export async function launchFirefox(config: LaunchConfiguration, sendToConsole: 
 	let debugProfileDir = path.join(os.tmpdir(), `vscode-firefox-debug-profile-${uuid.v4()}`);
 	firefoxArgs.push('-profile', debugProfileDir);
 
-	await prepareDebugProfile(config, debugProfileDir);
+	let profile = await prepareDebugProfile(config, debugProfileDir);
 
 	let childProc: ChildProcess | undefined = undefined;
+
+	if ((xpiPath !== undefined) && config.reAttach) {
+		let autoInstallerXpiPath = path.join(__dirname, '../../autoinstaller@adblockplus.org.xpi');
+		await installXpiInProfile(profile, autoInstallerXpiPath);
+	}
 
 	if (config.reAttach && (os.platform() === 'win32')) {
 
@@ -72,7 +75,15 @@ export async function launchFirefox(config: LaunchConfiguration, sendToConsole: 
 
 		fork(forkedLauncherPath, forkArgs, { execArgv: [] });
 
+		if (xpiPath !== undefined) {
+			await installXpiViaAutoInstaller(xpiPath, 8888);
+		}
+
 	} else {
+
+		if ((xpiPath !== undefined) && !config.reAttach) {
+			await installXpiInProfile(profile, xpiPath);
+		}
 
 		childProc = spawn(firefoxPath, firefoxArgs, { detached: true });
 
@@ -87,13 +98,16 @@ export async function launchFirefox(config: LaunchConfiguration, sendToConsole: 
 		});
 
 		childProc.unref();
+
+		if ((xpiPath !== undefined) && config.reAttach) {
+			await installXpiViaAutoInstaller(xpiPath, 8888);
+		}
 	}
 
 	return childProc;
 }
 
-export async function waitForSocket(config: LaunchConfiguration): Promise<net.Socket> {
-	let port = config.port || 6000;
+export async function waitForSocket(port: number): Promise<net.Socket> {
 	let lastError: any;
 	for (var i = 0; i < 25; i++) {
 		try {
@@ -154,7 +168,7 @@ function getFirefoxExecutablePath(config: LaunchConfiguration): string | undefin
 	return undefined;
 }
 
-async function prepareDebugProfile(config: LaunchConfiguration, debugProfileDir: string): Promise<string | undefined> {
+async function prepareDebugProfile(config: LaunchConfiguration, debugProfileDir: string): Promise<FirefoxProfile> {
 
 	var profile = await createDebugProfile(config, debugProfileDir);
 
@@ -169,22 +183,10 @@ async function prepareDebugProfile(config: LaunchConfiguration, debugProfileDir:
 	profile.setPreference('extensions.sdk.console.logLevel', 'all');
 	profile.updatePreferences();
 
-	if (config.addonType && config.addonPath) {
-
-		let tempXpiDir = path.join(os.tmpdir(), `vscode-firefox-debug-${uuid.v4()}`);
-		fs.mkdirSync(tempXpiDir);
-		var xpiPath = await createXpi(config.addonType, config.addonPath, tempXpiDir);
-		var addonId = await installXpi(profile, xpiPath);
-		fs.removeSync(tempXpiDir);
-
-		return addonId;
-
-	} else {
-		return undefined;
-	}
+	return profile;
 }
 
-function installXpi(profile: FirefoxProfile, xpiPath: string): Promise<string> {
+function installXpiInProfile(profile: FirefoxProfile, xpiPath: string): Promise<string> {
 	return new Promise<string>((resolve, reject) => {
 		profile.addExtension(xpiPath, (err, addonDetails) => {
 			if (err) {
@@ -194,6 +196,16 @@ function installXpi(profile: FirefoxProfile, xpiPath: string): Promise<string> {
 			}
 		})
 	});
+}
+
+export async function installXpiViaAutoInstaller(xpiPath: string, autoInstallerPort: number): Promise<void> {
+
+	let xpiBuffer = fs.readFileSync(xpiPath);
+	let autoInstallerSocket = await waitForSocket(autoInstallerPort);
+
+	autoInstallerSocket.write(new Buffer('\rPOST / HTTP/1.1\n\rUser-Agent: NodeJS Compiler\n\r\n'));
+	autoInstallerSocket.write(xpiBuffer);
+	autoInstallerSocket.end();
 }
 
 function createDebugProfile(config: LaunchConfiguration, debugProfileDir: string): Promise<FirefoxProfile> {
