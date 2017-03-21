@@ -76,7 +76,7 @@ export async function launchFirefox(config: LaunchConfiguration, xpiPath: string
 		fork(forkedLauncherPath, forkArgs, { execArgv: [] });
 
 		if (xpiPath !== undefined) {
-			await installXpiViaAutoInstaller(xpiPath, 8888);
+			await installXpiViaAutoInstaller(xpiPath, config.addonInstallerPort || 8888);
 		}
 
 	} else {
@@ -100,7 +100,7 @@ export async function launchFirefox(config: LaunchConfiguration, xpiPath: string
 		childProc.unref();
 
 		if ((xpiPath !== undefined) && config.reAttach) {
-			await installXpiViaAutoInstaller(xpiPath, 8888);
+			await installXpiViaAutoInstaller(xpiPath, config.addonInstallerPort || 8888);
 		}
 	}
 
@@ -173,6 +173,7 @@ async function prepareDebugProfile(config: LaunchConfiguration, debugProfileDir:
 	var profile = await createDebugProfile(config, debugProfileDir);
 
 	profile.defaultPreferences = {};
+
 	profile.setPreference('browser.shell.checkDefaultBrowser', false);
 	profile.setPreference('devtools.chrome.enabled', true);
 	profile.setPreference('devtools.debugger.prompt-connection', false);
@@ -181,6 +182,11 @@ async function prepareDebugProfile(config: LaunchConfiguration, debugProfileDir:
 	profile.setPreference('extensions.autoDisableScopes', 10);
 	profile.setPreference('xpinstall.signatures.required', false);
 	profile.setPreference('extensions.sdk.console.logLevel', 'all');
+
+	if (config.addonInstallerPort) {
+		profile.setPreference('extensions.autoinstaller.serverPort', config.addonInstallerPort);
+	}
+
 	profile.updatePreferences();
 
 	return profile;

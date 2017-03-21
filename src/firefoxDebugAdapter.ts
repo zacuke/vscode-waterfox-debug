@@ -107,7 +107,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			try {
 
 				if (tempXpiPath !== undefined) {
-					await installXpiViaAutoInstaller(tempXpiPath, 8888);
+					await installXpiViaAutoInstaller(tempXpiPath, args.addonInstallerPort || 8888);
 				}
 
 				socket = await connect(args.port || 6000, 'localhost');
@@ -157,7 +157,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			let tempXpiDir = path.join(os.tmpdir(), `vscode-firefox-debug-${uuid.v4()}`);
 			fs.mkdirSync(tempXpiDir);
 			let tempXpiPath = await createXpi(args.addonType, args.addonPath, tempXpiDir);
-			await installXpiViaAutoInstaller(tempXpiPath, 8888);
+			await installXpiViaAutoInstaller(tempXpiPath, args.addonInstallerPort || 8888);
 			fs.removeSync(tempXpiDir);
 		}
 

@@ -235,6 +235,11 @@
                 "description": "The path of the directory containing the addon",
                 "default": "${workspaceRoot}"
               },
+              "addonInstallerPort": {
+                "type": "number",
+                "description": "The port to use for the extension auto-installer",
+                "default": 8888
+              },
               "log": {
                 "type": "object",
                 "description": "Configuration for diagnostic logging of the debug adapter",
@@ -381,6 +386,11 @@
                 "type": "string",
                 "description": "The path of the directory containing the addon",
                 "default": "${workspaceRoot}"
+              },
+              "addonInstallerPort": {
+                "type": "number",
+                "description": "The port to use for the extension auto-installer",
+                "default": 8888
               },
               "log": {
                 "type": "object",
