@@ -142,6 +142,11 @@ declare namespace FirefoxDebugProtocol {
 		timer: any; //?
 	}
 
+	interface LogMessageResponse extends TypedResponse {
+		message: string;
+		timeStamp: number;
+	}
+
 	interface ResultIDResponse extends Response {
 		resultID: number;
 	}

@@ -101,6 +101,11 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 			log.debug(`Received PageError message`);
 			this.emit('pageError', (<FirefoxDebugProtocol.PageErrorResponse>response).pageError);
 
+		} else if (response['type'] === 'logMessage') {
+
+			log.debug(`Received LogMessage message`);
+			this.emit('logMessage', (<FirefoxDebugProtocol.LogMessageResponse>response).message);
+
 		} else if (response['type'] === 'evaluationResult') {
 
 			log.debug(`Received EvaluationResult message`);
@@ -134,5 +139,9 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 
 	public onPageErrorCall(cb: (body: FirefoxDebugProtocol.PageErrorResponseBody) => void) {
 		this.on('pageError', cb);
+	}
+
+	public onLogMessageCall(cb: (message: string) => void) {
+		this.on('logMessage', cb);
 	}
 }
