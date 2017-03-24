@@ -1,3 +1,6 @@
+### Version 0.9.2
+* support `reAttach` for add-on debugging
+
 ### Version 0.9.1
 * fix `reAttach` on Windows
 
