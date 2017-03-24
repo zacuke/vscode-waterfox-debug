@@ -4,12 +4,18 @@ A Visual Studio Code extension to debug your web application or browser extensio
 
 ## Starting
 You can use this extension in launch or attach mode. 
+
 In launch mode it will start an instance of Firefox navigated to the start page of your application
 and terminate it when you stop debugging.
 You can also set the `reAttach` option in your launch configuration to `true`, in this case Firefox
 won't be terminated at the end of your debugging session and the debugger will re-attach to it when
 you start the next debugging session - this is a lot faster than restarting Firefox every time.
-In attach mode it attaches to a running instance of Firefox.
+`reAttach` also works for add-on debugging: in this case, the add-on is (re-)installed using the
+[Extension Auto-Installer](https://addons.mozilla.org/en-US/firefox/addon/autoinstaller/), which
+is automatically added to the Firefox debugging profile.
+
+In attach mode the extension attaches to a running instance of Firefox (which must be manually
+configured to allow remote debugging - see [below](#attach)).
 
 To configure these modes you must create a file `.vscode/launch.json` in the root directory of your
 project. You can do so manually or let VS Code create an example configuration for you by clicking 
@@ -117,6 +123,7 @@ Here's an example configuration for add-on debugging:
             "name": "Launch addon",
             "type": "firefox",
             "request": "launch",
+            "reAttach": true,
             "addonType": "addonSdk",
             "addonPath": "${workspaceRoot}"
         }
@@ -131,8 +138,9 @@ or `install.rdf` for `legacy` add-ons).
 ### Optional configuration properties
 * `reAttach`: If you set this option to `true` in a `launch` configuration, Firefox won't be 
   terminated at the end of your debugging session and the debugger will re-attach to it at the
-  start of your next debugging session. Note that this is not yet supported for add-on
-  debugging.
+  start of your next debugging session. If you're debugging an add-on developed with the add-on SDK,
+  messages sent to the javascript console won't be shown in the VS Code debug console in `reAttach`
+  mode.
 * `reloadOnAttach`: This flag controls whether the web page(s) should be automatically reloaded
   after attaching to Firefox. The default is to reload in a `launch` configuration with the
   `reAttach` flag set to `true` and to not reload in an `attach` configuration.
@@ -210,7 +218,7 @@ to the VS Code console:
 ## Troubleshooting
 * Breakpoints that should get hit immediately after the javascript file is loaded may not work the
   first time: You will have to click "Reload" in Firefox for the debugger to stop at such a
-  breakpoint. This is a weakness of the Firefox debug protocol: VSCode can't tell Firefox about
+  breakpoint. This is a weakness of the Firefox debug protocol: VS Code can't tell Firefox about
   breakpoints in a file before the execution of that file starts.
 * If your breakpoints remain unverified after launching the debugger (i.e. they appear gray instead
   of red), the conversion between file paths and urls may not work. The messages from the 
