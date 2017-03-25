@@ -76,7 +76,7 @@ export async function launchFirefox(config: LaunchConfiguration, xpiPath: string
 		fork(forkedLauncherPath, forkArgs, { execArgv: [] });
 
 		if (xpiPath !== undefined) {
-			await installXpiViaAutoInstaller(xpiPath, config.addonInstallerPort || 8888);
+			await installXpiViaAutoInstaller(xpiPath, config.addonInstallerPort || 8888, true);
 		}
 
 	} else {
@@ -100,7 +100,7 @@ export async function launchFirefox(config: LaunchConfiguration, xpiPath: string
 		childProc.unref();
 
 		if ((xpiPath !== undefined) && config.reAttach) {
-			await installXpiViaAutoInstaller(xpiPath, config.addonInstallerPort || 8888);
+			await installXpiViaAutoInstaller(xpiPath, config.addonInstallerPort || 8888, true);
 		}
 	}
 
@@ -204,10 +204,15 @@ function installXpiInProfile(profile: FirefoxProfile, xpiPath: string): Promise<
 	});
 }
 
-export async function installXpiViaAutoInstaller(xpiPath: string, autoInstallerPort: number): Promise<void> {
+export async function installXpiViaAutoInstaller(xpiPath: string, autoInstallerPort: number, wait = false): Promise<void> {
 
 	let xpiBuffer = fs.readFileSync(xpiPath);
-	let autoInstallerSocket = await waitForSocket(autoInstallerPort);
+	let autoInstallerSocket : net.Socket;
+	if (wait) {
+		autoInstallerSocket = await waitForSocket(autoInstallerPort);
+	} else {
+		autoInstallerSocket = await connect(autoInstallerPort);
+	}
 
 	autoInstallerSocket.write(new Buffer('\rPOST / HTTP/1.1\n\rUser-Agent: NodeJS Compiler\n\r\n'));
 	autoInstallerSocket.write(xpiBuffer);
