@@ -45,7 +45,8 @@ export class BreakpointsAdapter {
 						for (let i = 0; i < breakpointsToSet.length; i++) {
 							let breakpointToSet = breakpointsToSet[i];
 							if (breakpointToSet && 
-								(breakpointToSet.requestedLine === breakpointAdapter.breakpointInfo.requestedLine)) {
+								(breakpointToSet.requestedLine === breakpointAdapter.breakpointInfo.requestedLine) &&
+								(breakpointToSet.requestedColumn === breakpointAdapter.breakpointInfo.requestedColumn)) {
 								breakpointIndex = i;
 								break;
 							}
@@ -67,17 +68,26 @@ export class BreakpointsAdapter {
 					breakpointsToSet.map((requestedBreakpoint, index) => {
 						if (requestedBreakpoint !== undefined) {
 
-							breakpointsBeingSet.push(sourceAdapter.actor.setBreakpoint(
-								{ line: requestedBreakpoint.requestedLine }, 
-								requestedBreakpoint.condition).then(
-									
+							breakpointsBeingSet.push(
+								sourceAdapter.actor.setBreakpoint(
+									{ 
+										line: requestedBreakpoint.requestedLine,
+										column: requestedBreakpoint.requestedColumn,
+									}, 
+									requestedBreakpoint.condition
+								).then(
+
 									(setBreakpointResult) => {
 
 										requestedBreakpoint.actualLine = 
 											(setBreakpointResult.actualLocation === undefined) ? 
 											requestedBreakpoint.requestedLine : 
 											setBreakpointResult.actualLocation.line;
-											
+										requestedBreakpoint.actualColumn = 
+											(setBreakpointResult.actualLocation === undefined) ? 
+											requestedBreakpoint.requestedColumn : 
+											setBreakpointResult.actualLocation.column;
+
 										newBreakpoints[index] = new BreakpointAdapter(
 											requestedBreakpoint, setBreakpointResult.breakpointActor);
 									},
@@ -126,6 +136,8 @@ export class BreakpointsAdapter {
 export class BreakpointInfo {
 	id: number;
 	requestedLine: number;
+	requestedColumn: number | undefined;
 	actualLine: number | undefined;
-	condition: string;
+	actualColumn: number | undefined;
+	condition: string | undefined;
 }

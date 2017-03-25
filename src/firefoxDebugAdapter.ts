@@ -206,6 +206,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		let breakpointInfos = breakpoints.map((breakpoint) => <BreakpointInfo>{
 			id: this.nextBreakpointId++,
 			requestedLine: breakpoint.line,
+			requestedColumn: breakpoint.column,
 			condition: breakpoint.condition
 		});
 
@@ -236,7 +237,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 									breakpoints: breakpointAdapters.map(
 										(breakpointAdapter) => {
 											let breakpoint: DebugProtocol.Breakpoint =
-												new Breakpoint(true, breakpointAdapter.breakpointInfo.actualLine);
+												new Breakpoint(true, 
+												breakpointAdapter.breakpointInfo.actualLine,
+												breakpointAdapter.breakpointInfo.actualColumn);
 											breakpoint.id = breakpointAdapter.breakpointInfo.id;
 											return breakpoint;
 										})
@@ -256,7 +259,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				resolve({
 					breakpoints: breakpointInfos.map((breakpointInfo) => {
 						let breakpoint: DebugProtocol.Breakpoint =
-							new Breakpoint(false, breakpointInfo.requestedLine);
+							new Breakpoint(false, breakpointInfo.requestedLine, breakpointInfo.requestedColumn);
 						breakpoint.id = breakpointInfo.id;
 						return breakpoint;
 					})

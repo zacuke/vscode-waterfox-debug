@@ -28,9 +28,9 @@ export class SourceActorProxy implements ActorProxy {
 		return this._source.url;
 	}
 
-	public setBreakpoint(location: { line: number }, condition: string): Promise<SetBreakpointResult> {
+	public setBreakpoint(location: { line: number, column?: number }, condition?: string): Promise<SetBreakpointResult> {
 
-		log.debug(`Setting breakpoint at line ${location.line} in ${this.url}`);
+		log.debug(`Setting breakpoint at line ${location.line} and column ${location.column} in ${this.url}`);
 
 		return new Promise<SetBreakpointResult>((resolve, reject) => {
 			this.pendingSetBreakpointRequests.enqueue({ resolve, reject });
