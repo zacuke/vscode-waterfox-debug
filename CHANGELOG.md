@@ -1,3 +1,6 @@
+### Version 0.9.3
+* fix slow initial startup of add-on debugging with the `reAttach` option
+
 ### Version 0.9.2
 * support `reAttach` for add-on debugging
 
