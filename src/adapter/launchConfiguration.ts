@@ -22,6 +22,7 @@ export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.
 	firefoxExecutable?: string;
 	profileDir?: string;
 	profile?: string;
+	preferences?: { [key: string]: boolean | number | string | null };
 	port?: number;
 	firefoxArgs?: string[];
 	reAttach?: boolean;

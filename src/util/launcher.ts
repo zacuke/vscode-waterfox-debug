@@ -174,17 +174,33 @@ async function prepareDebugProfile(config: LaunchConfiguration, debugProfileDir:
 
 	profile.defaultPreferences = {};
 
-	profile.setPreference('browser.shell.checkDefaultBrowser', false);
-	profile.setPreference('devtools.chrome.enabled', true);
-	profile.setPreference('devtools.debugger.prompt-connection', false);
-	profile.setPreference('devtools.debugger.remote-enabled', true);
-	profile.setPreference('devtools.debugger.workers', true);
-	profile.setPreference('extensions.autoDisableScopes', 10);
-	profile.setPreference('xpinstall.signatures.required', false);
-	profile.setPreference('extensions.sdk.console.logLevel', 'all');
+	let preferences: { [key: string]: boolean | number | string } = {};
+	preferences['browser.shell.checkDefaultBrowser'] = false;
+	preferences['devtools.chrome.enabled'] = true;
+	preferences['devtools.debugger.prompt-connection'] = false;
+	preferences['devtools.debugger.remote-enabled'] = true;
+	preferences['devtools.debugger.workers'] = true;
+	preferences['extensions.autoDisableScopes'] = 10;
+	preferences['xpinstall.signatures.required'] = false;
+	preferences['extensions.sdk.console.logLevel'] = 'all';
 
 	if (config.addonInstallerPort) {
-		profile.setPreference('extensions.autoinstaller.serverPort', config.addonInstallerPort);
+		preferences['extensions.autoinstaller.serverPort'] = config.addonInstallerPort;
+	}
+
+	if (config.preferences !== undefined) {
+		for (let key in config.preferences) {
+			let value = config.preferences[key];
+			if (value !== null) {
+				preferences[key] = value;
+			} else {
+				delete preferences[key];
+			}
+		}
+	}
+
+	for (let key in preferences) {
+		profile.setPreference(key, preferences[key]);
 	}
 
 	profile.updatePreferences();

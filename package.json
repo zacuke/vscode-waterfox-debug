@@ -222,6 +222,18 @@
                   "type": "string"
                 }
               },
+              "preferences": {
+                "type": "object",
+                "description": "Set additional Firefox preferences",
+                "additionalProperties": {
+                  "type": [
+                    "boolean",
+                    "integer",
+                    "string",
+                    "null"
+                  ]
+                }
+              },
               "showConsoleCallLocation": {
                 "type": "boolean",
                 "description": "Show the location of console API calls",
