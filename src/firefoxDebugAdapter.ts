@@ -12,7 +12,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugAdapterBase } from './debugAdapterBase';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, ContinuedEvent, Thread, Variable, Breakpoint } from 'vscode-debugadapter';
 import { DebugConnection, RootActorProxy, TabActorProxy, WorkerActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
-import { ThreadAdapter, ThreadPauseCoordinator, BreakpointInfo, SourceAdapter, FrameAdapter, VariablesProvider } from './adapter/index';
+import { ThreadAdapter, ThreadPauseCoordinator, BreakpointInfo, SourceAdapter, FrameAdapter, VariableAdapter, VariablesProvider, ConsoleAPICallAdapter } from './adapter/index';
 import { CommonConfiguration, LaunchConfiguration, AttachConfiguration, AddonType } from './adapter/launchConfiguration';
 
 let log = Log.create('FirefoxDebugAdapter');
@@ -699,11 +699,13 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		}
 
 		// attach to all tabs, register the corresponding threads and inform VSCode about them
-		rootActor.onTabOpened(([tabActor, consoleActor]) => {
+		rootActor.onTabOpened(async ([tabActor, consoleActor]) => {
 			log.info(`Tab opened with url ${tabActor.url}`);
 			let tabId = this.nextTabId++;
-			this.attachTabOrAddon(tabActor, consoleActor, tabId, true, `Tab ${tabId}`);
-			this.attachConsole(consoleActor);
+			let threadAdapter = await this.attachTabOrAddon(tabActor, consoleActor, tabId, true, `Tab ${tabId}`);
+			if (threadAdapter !== undefined) {
+				this.attachConsole(consoleActor, threadAdapter);
+			}
 		});
 
 		rootActor.onTabListChanged(() => {
@@ -735,17 +737,21 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		addons.forEach((addon) => {
 			if (addon.id === this.addonId) {
-				let addonActor = new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection);
-				let consoleActor = new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection);
-				this.attachTabOrAddon(addonActor, consoleActor, this.nextTabId++, false, 'Addon');
-				this.attachConsole(consoleActor);
-				this.addonAttached = true;
+				(async () => {
+					let addonActor = new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection);
+					let consoleActor = new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection);
+					let threadAdapter = await this.attachTabOrAddon(addonActor, consoleActor, this.nextTabId++, false, 'Addon');
+					if (threadAdapter !== undefined) {
+						this.attachConsole(consoleActor, threadAdapter);
+					}
+					this.addonAttached = true;
+				})();
 			}
 		});
 	}
 
 	private async attachTabOrAddon(tabActor: TabActorProxy, consoleActor: ConsoleActorProxy, tabId: number, 
-		isTab: boolean, threadName: string): Promise<void> {
+		isTab: boolean, threadName: string): Promise<ThreadAdapter | undefined> {
 
 		let reload = isTab && this.reloadTabs;
 
@@ -754,7 +760,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			threadActor = await tabActor.attach();
 		} catch (err) {
 			log.error(`Failed attaching to tab: ${err}`);
-			return;
+			return undefined;
 		}
 
 		log.debug(`Attached to tab ${tabActor.name}`);
@@ -797,6 +803,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				this.sendEvent(new ThreadEvent('exited', threadId));
 			});
 
+			return threadAdapter;
+
 		} catch (err) {
 			// When the user closes a tab, Firefox creates an invisible tab and
 			// immediately closes it again (while we're still trying to attach to it),
@@ -806,6 +814,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				this.nextThreadId--;
 			}
 			log.info(`Failed attaching to tab: ${err}`);
+
+			return undefined;
 		}
 	}
 
@@ -934,15 +944,31 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		}
 	}
 
-	private attachConsole(consoleActor: ConsoleActorProxy): void {
+	private attachConsole(consoleActor: ConsoleActorProxy, threadAdapter: ThreadAdapter): void {
 
 		consoleActor.onConsoleAPICall((msg) => {
 			consoleActorLog.debug(`Console API: ${JSON.stringify(msg)}`);
 
 			let category = (msg.level === 'error') ? 'stderr' :
 				(msg.level === 'warn') ? 'console' : 'stdout';
-			let displayMsg = msg.arguments.join(',') + '\n';
-			this.sendEvent(new OutputEvent(displayMsg, category));
+
+			let outputEvent: DebugProtocol.OutputEvent;
+			if ((msg.arguments.length === 1) && (typeof msg.arguments[0] !== 'object')) {
+
+				outputEvent = new OutputEvent(String(msg.arguments[0]), category);
+
+			} else {
+
+				let args = msg.arguments.map((grip, index) =>
+					VariableAdapter.fromGrip(String(index), grip, true, threadAdapter));
+				let argsAdapter = new ConsoleAPICallAdapter(args, threadAdapter);
+				this.registerVariablesProvider(argsAdapter);
+
+				outputEvent = new OutputEvent('', category);
+				outputEvent.body.variablesReference = argsAdapter.variablesProviderId;
+			}
+
+			this.sendEvent(outputEvent);
 		});
 
 		consoleActor.onPageErrorCall((err) => {

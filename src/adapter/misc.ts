@@ -1,5 +1,5 @@
 import { SourceActorProxy, BreakpointActorProxy } from '../firefox/index';
-import { BreakpointInfo } from './index';
+import { BreakpointInfo, VariablesProvider, VariableAdapter, ThreadAdapter } from './index';
 
 export class SourceAdapter {
 	
@@ -50,3 +50,18 @@ export class BreakpointAdapter {
 	}
 }
 
+export class ConsoleAPICallAdapter implements VariablesProvider {
+
+	public variablesProviderId: number;
+
+	public get isThreadLifetime(): boolean {
+		return true;
+	}
+
+	public constructor(private variables: VariableAdapter[], public threadAdapter: ThreadAdapter) {
+	}
+
+	public getVariables(): Promise<VariableAdapter[]> {
+		return Promise.resolve(this.variables);
+	}
+}

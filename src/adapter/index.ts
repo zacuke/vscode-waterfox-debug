@@ -1,4 +1,4 @@
-export { SourceAdapter, BreakpointAdapter } from './misc';
+export { SourceAdapter, BreakpointAdapter, ConsoleAPICallAdapter } from './misc';
 export { ThreadCoordinator } from './threadCoordinator';
 export { ThreadPauseCoordinator, PauseType } from './threadPauseCoordinator';
 export { ThreadAdapter } from './thread';

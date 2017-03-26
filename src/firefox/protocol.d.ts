@@ -126,7 +126,7 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface ConsoleAPICallResponseBody {
-		arguments: any[];
+		arguments: Grip[];
 		filename: string;
 		functionName: string;
 		groupName: string;
