@@ -10,6 +10,7 @@ export interface CommonConfiguration {
 	reloadOnAttach?: boolean;
 	pathMappings?: { url: string, path: string }[];
 	skipFiles?: string[];
+	showConsoleCallLocation?: boolean;
 	log?: LogConfiguration;
 	addonType?: AddonType;
 	addonPath?: string;

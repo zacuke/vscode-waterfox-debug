@@ -27,6 +27,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	private pathMappings: [string | RegExp, string][] = [];
 	private filesToSkip: RegExp[] = [];
+	private showConsoleCallLocation = false;
 	private addonType: AddonType | undefined;
 	private addonId: string | undefined;
 	private addonPath: string | undefined;
@@ -581,6 +582,10 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			});
 		}
 
+		if (args.showConsoleCallLocation !== undefined) {
+			this.showConsoleCallLocation = args.showConsoleCallLocation;
+		}
+
 		if (args.addonType) {
 
 			if (!args.addonPath) {
@@ -946,21 +951,34 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	private attachConsole(consoleActor: ConsoleActorProxy, threadAdapter: ThreadAdapter): void {
 
-		consoleActor.onConsoleAPICall((msg) => {
-			consoleActorLog.debug(`Console API: ${JSON.stringify(msg)}`);
+		consoleActor.onConsoleAPICall((consoleEvent) => {
+			consoleActorLog.debug(`Console API: ${JSON.stringify(consoleEvent)}`);
 
-			let category = (msg.level === 'error') ? 'stderr' :
-				(msg.level === 'warn') ? 'console' : 'stdout';
+			let category = (consoleEvent.level === 'error') ? 'stderr' :
+				(consoleEvent.level === 'warn') ? 'console' : 'stdout';
 
 			let outputEvent: DebugProtocol.OutputEvent;
-			if ((msg.arguments.length === 1) && (typeof msg.arguments[0] !== 'object')) {
+			if ((consoleEvent.arguments.length === 1) && (typeof consoleEvent.arguments[0] !== 'object')) {
 
-				outputEvent = new OutputEvent(String(msg.arguments[0]), category);
+				let msg = String(consoleEvent.arguments[0]);
+				if (this.showConsoleCallLocation) {
+					let filename = this.convertFirefoxUrlToPath(consoleEvent.filename);
+					msg += ` (${filename}:${consoleEvent.lineNumber}:${consoleEvent.columnNumber})`;
+				}
+				outputEvent = new OutputEvent(msg, category);
 
 			} else {
 
-				let args = msg.arguments.map((grip, index) =>
+				let args = consoleEvent.arguments.map((grip, index) =>
 					VariableAdapter.fromGrip(String(index), grip, true, threadAdapter));
+
+				if (this.showConsoleCallLocation) {
+					let filename = this.convertFirefoxUrlToPath(consoleEvent.filename);
+					let locationVar = new VariableAdapter('location',
+					`(${filename}:${consoleEvent.lineNumber}:${consoleEvent.columnNumber})`);
+					args.push(locationVar);
+				}
+
 				let argsAdapter = new ConsoleAPICallAdapter(args, threadAdapter);
 				this.registerVariablesProvider(argsAdapter);
 

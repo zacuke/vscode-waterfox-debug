@@ -222,6 +222,11 @@
                   "type": "string"
                 }
               },
+              "showConsoleCallLocation": {
+                "type": "boolean",
+                "description": "Show the location of console API calls",
+                "default": true
+              },
               "addonType": {
                 "type": "string",
                 "enum": [
@@ -373,6 +378,11 @@
                 "default": [
                   "${workspaceRoot}/node_modules/**/*"
                 ]
+              },
+              "showConsoleCallLocation": {
+                "type": "boolean",
+                "description": "Show the location of console API calls",
+                "default": true
               },
               "addonType": {
                 "type": "string",
