@@ -856,8 +856,27 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		threadAdapter.onPaused((reason) => {
 			log.info(`Thread ${actorName} paused , reason: ${reason.type}`);
-			let stoppedEvent = new StoppedEvent(reason.type, threadAdapter.id);
-			(<DebugProtocol.StoppedEvent>stoppedEvent).body.allThreadsStopped = false;
+
+			let stoppedEvent: DebugProtocol.StoppedEvent = new StoppedEvent(reason.type, threadAdapter.id);
+			stoppedEvent.body.allThreadsStopped = false;
+
+			if (reason.exception) {
+
+				if (typeof reason.exception === 'string') {
+
+					stoppedEvent.body.text = reason.exception;
+
+				} else if ((typeof reason.exception === 'object') && (reason.exception.type === 'object')) {
+
+					let exceptionGrip = <FirefoxDebugProtocol.ObjectGrip>reason.exception;
+					if (exceptionGrip.preview.message) {
+						stoppedEvent.body.text = `${exceptionGrip.class}: ${exceptionGrip.preview.message}`;
+					} else {
+						stoppedEvent.body.text = exceptionGrip.class;
+					}
+				}
+			}
+
 			this.sendEvent(stoppedEvent);
 		});
 
