@@ -187,6 +187,9 @@ or `install.rdf` for `legacy` add-ons).
   device's address using this property (`attach` configuration only).
 * `log`: Configures diagnostic logging for this extension. This may be useful for troubleshooting
   (see below for examples).
+* `showConsoleCallLocation`: Set this option to `true` to append the source location of `console`
+  calls to their output
+* `preferences`: Set additional Firefox preferences in the debugging profile
 
 ### Diagnostic logging
 The following example for the `log` property will write all log messages to the file `log.txt` in
