@@ -9,17 +9,17 @@ let log = Log.create('FrameAdapter');
 let actorIdRegex = /[0-9]+$/;
 
 export class FrameAdapter {
-	
+
 	public id: number;
 	public frame: FirefoxDebugProtocol.Frame;
 	public scopeAdapters: ScopeAdapter[];
 	public threadAdapter: ThreadAdapter;
-	
+
 	public constructor(frame: FirefoxDebugProtocol.Frame, threadAdapter: ThreadAdapter) {
 		this.frame = frame;
 		this.threadAdapter = threadAdapter;
 		this.threadAdapter.debugSession.registerFrameAdapter(this);
-		
+
 		let environmentAdapter = EnvironmentAdapter.from(this.frame.environment);
 		this.scopeAdapters = environmentAdapter.getScopeAdapters(this.threadAdapter);
 		this.scopeAdapters[0].addThis(this.frame.this);
@@ -34,7 +34,7 @@ export class FrameAdapter {
 		let sourceName = '';
 
 		if (firefoxSource.url != null) {
-			sourceName = firefoxSource.url;
+			sourceName = firefoxSource.url.split('/').pop()!.split('#')[0];
 		} else if (this.frame.type === 'eval') {
 			let match = actorIdRegex.exec(sourceActorName);
 			if (match) {
@@ -72,7 +72,7 @@ export class FrameAdapter {
 
 				}
 				break;
-				
+
 			case 'global':
 				name = '[Global]';
 				break;
@@ -81,14 +81,16 @@ export class FrameAdapter {
 			case 'clientEvaluate':
 				name = '[eval]';
 				break;
-				
+
 			default:
 				name = `[${this.frame.type}]`;
 				log.error(`Unexpected frame type ${this.frame.type}`);
 				break;
 		}
-		
-		return new StackFrame(this.id, name, source, this.frame.where.line, this.frame.where.column);
+
+		let result = new StackFrame(this.id, name, source, this.frame.where.line, this.frame.where.column);
+		(<DebugProtocol.StackFrame>result).moduleId = 'bla';
+		return result;
 	}
 
 	public getObjectGripAdapters(): ObjectGripAdapter[] {
