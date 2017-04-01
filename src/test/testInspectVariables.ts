@@ -80,7 +80,7 @@ describe('Firefox debug adapter', function() {
 			let stackTrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId! });
 			let scopes = await dc.scopesRequest({ frameId: stackTrace.body.stackFrames[0].id });
 			let variables = await dc.variablesRequest({ variablesReference: scopes.body.scopes[0].variablesReference });
-			assert.equal(util.findVariable(variables.body.variables, '<return>').value, factorial(i + 1));
+			assert.equal(util.findVariable(variables.body.variables, 'Return value').value, factorial(i + 1));
 		}
 	})
 });
