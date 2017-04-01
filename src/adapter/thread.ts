@@ -185,7 +185,25 @@ export class ThreadAdapter extends EventEmitter {
 				});
 
 				if ((this.threadPausedReason !== undefined) && (frameAdapters.length > 0)) {
-					frameAdapters[0].scopeAdapters[0].addCompletionValue(this.threadPausedReason);
+
+					if (this.threadPausedReason.frameFinished !== undefined) {
+
+						if (this.threadPausedReason.frameFinished.return !== undefined) {
+
+							frameAdapters[0].scopeAdapters[0].addReturnValue(
+								this.threadPausedReason.frameFinished.return);
+
+						} else if (this.threadPausedReason.frameFinished.throw !== undefined) {
+
+							frameAdapters[0].scopeAdapters.unshift(ScopeAdapter.fromGrip(
+								'Exception', this.threadPausedReason.frameFinished.throw, this));
+						}
+
+					} else if (this.threadPausedReason.exception !== undefined) {
+
+							frameAdapters[0].scopeAdapters.unshift(ScopeAdapter.fromGrip(
+								'Exception', this.threadPausedReason.exception, this));
+					}
 				}
 
 				return frameAdapters;
