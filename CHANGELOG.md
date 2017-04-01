@@ -1,3 +1,9 @@
+### Version 0.10.0
+* add `preferences` configuration property
+* add `showConsoleCallLocation` configuration property
+* support sending objects to the console (e.g. `console.log(document)`)
+* change the display of call stack, return values and exceptions to be more in line with other VS Code javascript debuggers
+
 ### Version 0.9.3
 * fix slow initial startup of add-on debugging with the `reAttach` option
 

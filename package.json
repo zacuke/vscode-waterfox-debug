@@ -1,7 +1,7 @@
 {
   "name": "vscode-firefox-debug",
   "displayName": "Debugger for Firefox",
-  "version": "0.9.3",
+  "version": "0.10.0",
   "author": "Holger Benl <hbenl@evandor.de>",
   "publisher": "hbenl",
   "description": "Debug your web application or browser extension in Firefox",
