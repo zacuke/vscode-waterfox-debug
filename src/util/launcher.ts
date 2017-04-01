@@ -288,7 +288,7 @@ function isExecutable(path: string): boolean {
 
 export function connect(port: number, host?: string): Promise<net.Socket> {
 	return new Promise<net.Socket>((resolve, reject) => {
-		let socket = net.connect(port);
+		let socket = net.connect(port, host || 'localhost');
 		socket.on('connect', () => resolve(socket));
 		socket.on('error', reject);
 	});
