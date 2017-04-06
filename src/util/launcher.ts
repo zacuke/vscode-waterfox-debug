@@ -67,11 +67,13 @@ export async function launchFirefox(config: LaunchConfiguration, xpiPath: string
 		await installXpiInProfile(profile, autoInstallerXpiPath);
 	}
 
-	if (config.reAttach && (os.platform() === 'win32')) {
+	if (config.reAttach) {
 
-		let forkArgs = [...firefoxArgs];
-		forkArgs.unshift(firefoxPath);
 		let forkedLauncherPath = path.join(__dirname, 'forkedLauncher.js');
+		let forkArgs = [
+			'spawnDetached', process.execPath, forkedLauncherPath,
+			'spawnAndRemove', debugProfileDir, firefoxPath, ...firefoxArgs
+		];
 
 		fork(forkedLauncherPath, forkArgs, { execArgv: [] });
 
