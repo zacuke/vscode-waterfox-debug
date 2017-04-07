@@ -5,6 +5,7 @@ import { Socket } from 'net';
 import { ChildProcess } from 'child_process';
 import * as uuid from 'uuid';
 import { Log } from './util/log';
+import { delay } from "./util/misc";
 import { createXpi, findAddonId } from './util/addon';
 import { launchFirefox, connect, waitForSocket, installXpiViaAutoInstaller } from './util/launcher';
 import { Minimatch } from 'minimatch';
@@ -22,6 +23,7 @@ let consoleActorLog = Log.create('ConsoleActor');
 export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	private firefoxProc?: ChildProcess;
+	private debugProfileDir?: string;
 	private firefoxDebugConnection: DebugConnection;
 	private firefoxDebugSocketClosed: boolean;
 
@@ -134,11 +136,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 					(msg) => this.sendEvent(new OutputEvent(msg, 'stdout')) :
 					(msg) => undefined;
 
-			let proc = await launchFirefox(args, tempXpiPath, sendToConsole);
-
-			if (!args.reAttach) {
-				this.firefoxProc = proc;
-			}
+			[this.firefoxProc, this.debugProfileDir] = await launchFirefox(args, tempXpiPath, sendToConsole);
 
 			socket = await waitForSocket(args.port || 6000);
 		}
@@ -446,7 +444,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		}
 		await Promise.all(detachPromises);
 
-		this.disconnectFirefox();
+		await this.disconnectFirefoxAndCleanup();
 	}
 
 	public registerVariablesProvider(variablesProvider: VariablesProvider) {
@@ -1046,14 +1044,77 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		return undefined;
 	}
 
-	private async disconnectFirefox(): Promise<void> {
-		if (this.firefoxDebugConnection) {
+	private async disconnectFirefoxAndCleanup(): Promise<void> {
+
+		let isFirefoxRunning = !this.firefoxDebugSocketClosed;
+
+		if (isFirefoxRunning) {
 			await this.firefoxDebugConnection.disconnect();
-			if (this.firefoxProc) {
-				this.firefoxProc.kill('SIGTERM');
-				this.firefoxProc = undefined;
+		}
+
+		if (this.firefoxProc && isFirefoxRunning) {
+
+			if (this.debugProfileDir) {
+
+				await new Promise<void>((resolve) => {
+
+					this.firefoxProc!.once('exit', async () => {
+						try {
+							await this.tryRemoveRepeatedly(this.debugProfileDir!);
+						} catch (err) {
+							log.warn(`Failed to remove temporary profile: ${err}`);
+						}
+						resolve();
+					});
+
+					this.firefoxProc!.kill('SIGTERM');
+				});
+
+			} else {
+				this.firefoxProc!.kill('SIGTERM');
+			}
+
+			this.firefoxProc = undefined;
+
+		} else if (this.debugProfileDir) {
+
+			try {
+				await this.tryRemoveRepeatedly(this.debugProfileDir);
+			} catch (err) {
+				log.warn(`Failed to remove temporary profile: ${err}`);
+			}
+
+		}
+	}
+
+	private async tryRemoveRepeatedly(dir: string): Promise<void> {
+		for (var i = 0; i < 5; i++) {
+			try {
+				await this.tryRemove(dir);
+				log.debug(`Removed ${dir}`);
+				return;
+			} catch (err) {
+				if (i < 4) {
+					log.debug(`Attempt to remove ${dir} failed, will retry in 100ms`);
+					await delay(100);
+				} else {
+					log.debug(`Attempt to remove ${dir} failed, giving up`);
+					throw err;
+				}
 			}
 		}
+	}
+
+	private tryRemove(dir: string): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			fs.remove(dir, (err) => {
+				if (!err) {
+					resolve();
+				} else {
+					reject(err);
+				}
+			})
+		})
 	}
 }
 

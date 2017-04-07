@@ -10,10 +10,13 @@ import * as FirefoxProfile from 'firefox-profile';
 
 /**
  * Tries to launch Firefox with the given launch configuration.
- * The returned promise resolves to the spawned child process.
+ * The returned promise resolves to the resources that should be
+ * cleaned up at the end of the debugging session:
+ * * the spawned Firefox child process
+ * * the path of the temporary profile created for this debugging session
  */
 export async function launchFirefox(config: LaunchConfiguration, xpiPath: string | undefined,
-	sendToConsole: (msg: string) => void): Promise<ChildProcess | undefined> {
+	sendToConsole: (msg: string) => void): Promise<[ChildProcess | undefined, string | undefined]> {
 
 	let firefoxPath = getFirefoxExecutablePath(config);	
 	if (!firefoxPath) {
@@ -95,10 +98,6 @@ export async function launchFirefox(config: LaunchConfiguration, xpiPath: string
 			sendToConsole(msg);
 		});
 
-		childProc.on('exit', () => {
-			fs.removeSync(debugProfileDir);
-		});
-
 		childProc.unref();
 
 		if ((xpiPath !== undefined) && config.reAttach) {
@@ -106,7 +105,7 @@ export async function launchFirefox(config: LaunchConfiguration, xpiPath: string
 		}
 	}
 
-	return childProc;
+	return [childProc, (config.reAttach ? undefined : debugProfileDir)];
 }
 
 export async function waitForSocket(port: number): Promise<net.Socket> {
