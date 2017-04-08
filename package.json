@@ -175,6 +175,11 @@
                 "type": "string",
                 "description": "The name of the Firefox profile to use"
               },
+              "keepProfileChanges": {
+                "type": "boolean",
+                "description": "Use the specified profile directly instead of a temporary copy",
+                "default": true
+              },
               "port": {
                 "type": "number",
                 "description": "The remote debugging port to use",

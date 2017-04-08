@@ -36,6 +36,10 @@ export async function launchFirefox(config: LaunchConfiguration, xpiPath: string
 		firefoxArgs = firefoxArgs.concat(config.firefoxArgs);
 	}
 
+	let profile = await prepareDebugProfile(config);
+
+	firefoxArgs.push('-profile', profile.path());
+
 	if (config.file) {
 
 		if (!path.isAbsolute(config.file)) {
@@ -58,11 +62,6 @@ export async function launchFirefox(config: LaunchConfiguration, xpiPath: string
 		return Promise.reject('You need to set either "file" or "url" in the launch configuration');
 	}
 
-	let debugProfileDir = path.join(os.tmpdir(), `vscode-firefox-debug-profile-${uuid.v4()}`);
-	firefoxArgs.push('-profile', debugProfileDir);
-
-	let profile = await prepareDebugProfile(config, debugProfileDir);
-
 	let childProc: ChildProcess | undefined = undefined;
 
 	if ((xpiPath !== undefined) && config.reAttach) {
@@ -73,10 +72,17 @@ export async function launchFirefox(config: LaunchConfiguration, xpiPath: string
 	if (config.reAttach) {
 
 		let forkedLauncherPath = path.join(__dirname, 'forkedLauncher.js');
-		let forkArgs = [
-			'spawnDetached', process.execPath, forkedLauncherPath,
-			'spawnAndRemove', debugProfileDir, firefoxPath, ...firefoxArgs
-		];
+		let forkArgs: string[];
+		if (config.keepProfileChanges) {
+			forkArgs = [
+				'spawnDetached', firefoxPath, ...firefoxArgs
+			];
+		} else {
+			forkArgs = [
+				'spawnDetached', process.execPath, forkedLauncherPath,
+				'spawnAndRemove', profile.path(), firefoxPath, ...firefoxArgs
+			];
+		}
 
 		fork(forkedLauncherPath, forkArgs, { execArgv: [] });
 
@@ -105,7 +111,8 @@ export async function launchFirefox(config: LaunchConfiguration, xpiPath: string
 		}
 	}
 
-	return [childProc, (config.reAttach ? undefined : debugProfileDir)];
+	let removeProfileOnExit = !config.reAttach && !config.keepProfileChanges;
+	return [childProc, (removeProfileOnExit ? profile.path() : undefined)];
 }
 
 export async function waitForSocket(port: number): Promise<net.Socket> {
@@ -169,9 +176,9 @@ function getFirefoxExecutablePath(config: LaunchConfiguration): string | undefin
 	return undefined;
 }
 
-async function prepareDebugProfile(config: LaunchConfiguration, debugProfileDir: string): Promise<FirefoxProfile> {
+async function prepareDebugProfile(config: LaunchConfiguration): Promise<FirefoxProfile> {
 
-	var profile = await createDebugProfile(config, debugProfileDir);
+	var profile = await createDebugProfile(config);
 
 	profile.defaultPreferences = {};
 
@@ -236,44 +243,91 @@ export async function installXpiViaAutoInstaller(xpiPath: string, autoInstallerP
 	autoInstallerSocket.end();
 }
 
-function createDebugProfile(config: LaunchConfiguration, debugProfileDir: string): Promise<FirefoxProfile> {
+function createDebugProfile(config: LaunchConfiguration): Promise<FirefoxProfile> {
 	return new Promise<FirefoxProfile>((resolve, reject) => {
 
-		if (config.profileDir) {
-			
-			FirefoxProfile.copy({
-				profileDirectory: config.profileDir,
-				destinationDirectory: debugProfileDir
-			}, 
-			(err, profile) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(profile);
-				}
-			});
+		if (config.keepProfileChanges) {
 
-		} else if (config.profile) {
+			if (config.addonType) {
 
-			FirefoxProfile.copyFromUserProfile({
-				name: config.profile,
-				destinationDirectory: debugProfileDir
-			}, 
-			(err, profile) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(profile);
-				}
-			});
+				reject('"keepProfileChanges" is currently not supported for add-on debugging');
+
+			} else if (!config.reAttach) {
+
+				reject('To enable "keepProfileChanges" you need to enable "reAttach" as well');
+
+			} else if (config.profileDir) {
+
+				fs.ensureDir(config.profileDir, (err) => {
+					if (err) {
+						reject(err);
+					} else {
+						resolve(new FirefoxProfile({ 
+							destinationDirectory: config.profileDir
+						}));
+					}
+				});
+
+			} else if (config.profile) {
+
+				let finder = new FirefoxProfile.Finder();
+				finder.getPath(config.profile,
+				(err, path) => {
+					if (err) {
+						reject(err);
+					} else {
+						resolve(new FirefoxProfile({
+							destinationDirectory: path
+						}));
+					}
+				});
+
+			} else {
+
+				reject('To enable "keepProfileChanges" you need to set either "profile" or "profileDir"');
+
+			}
 
 		} else {
 
-			fs.mkdirSync(debugProfileDir);
-			resolve(new FirefoxProfile({
-				destinationDirectory: debugProfileDir
-			}));
+			let debugProfileDir = path.join(os.tmpdir(), `vscode-firefox-debug-profile-${uuid.v4()}`);
 
+			if (config.profileDir) {
+				
+				FirefoxProfile.copy({
+					profileDirectory: config.profileDir,
+					destinationDirectory: debugProfileDir
+				}, 
+				(err, profile) => {
+					if (err) {
+						reject(err);
+					} else {
+						resolve(profile);
+					}
+				});
+
+			} else if (config.profile) {
+
+				FirefoxProfile.copyFromUserProfile({
+					name: config.profile,
+					destinationDirectory: debugProfileDir
+				}, 
+				(err, profile) => {
+					if (err) {
+						reject(err);
+					} else {
+						resolve(profile);
+					}
+				});
+
+			} else {
+
+				fs.mkdirSync(debugProfileDir);
+				resolve(new FirefoxProfile({
+					destinationDirectory: debugProfileDir
+				}));
+
+			}
 		}
 	});
 }
