@@ -1,3 +1,7 @@
+### Version 0.11.0
+* add `keepProfileChanges` configuration property
+* bugfix: the temporary profiles are now deleted reliably
+
 ### Version 0.10.0
 * add `preferences` configuration property
 * add `showConsoleCallLocation` configuration property
