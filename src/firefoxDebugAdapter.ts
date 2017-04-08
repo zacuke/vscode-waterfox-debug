@@ -133,7 +133,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			// send messages from Firefox' stdout to the debug console when debugging an addonSdk extension
 			let sendToConsole: (msg: string) => void = 
 				(this.addonType === 'addonSdk') ? 
-					(msg) => this.sendEvent(new OutputEvent(msg, 'stdout')) :
+					(msg) => this.sendEvent(new OutputEvent(msg + '\n', 'stdout')) :
 					(msg) => undefined;
 
 			[this.firefoxProc, this.debugProfileDir] = await launchFirefox(args, tempXpiPath, sendToConsole);
@@ -982,7 +982,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 					let filename = this.convertFirefoxUrlToPath(consoleEvent.filename);
 					msg += ` (${filename}:${consoleEvent.lineNumber}:${consoleEvent.columnNumber})`;
 				}
-				outputEvent = new OutputEvent(msg, category);
+				outputEvent = new OutputEvent(msg + '\n', category);
 
 			} else {
 
