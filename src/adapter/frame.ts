@@ -62,7 +62,8 @@ export class FrameAdapter {
 				if ((typeof callee === 'object') && (callee.type === 'object') && 
 					((<FirefoxDebugProtocol.ObjectGrip>callee).class === 'Function')) {
 
-					let calleeName = (<FirefoxDebugProtocol.FunctionGrip>callee).name;
+					let functionGrip = (<FirefoxDebugProtocol.FunctionGrip>callee);
+					let calleeName = functionGrip.name || functionGrip.displayName;
 					name = (calleeName !== undefined) ? calleeName : '[anonymous function]';
 
 				} else {
