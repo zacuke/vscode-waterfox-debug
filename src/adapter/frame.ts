@@ -47,9 +47,13 @@ export class FrameAdapter {
 			throw new Error(`Couldn't find source adapter for ${sourceActorName}`);
 		}
 
-		let sourceReference = (sourcePath === undefined) ? sourceAdapter.id : undefined;
+		let source: Source;
+		if (sourcePath !== undefined) {
+			source = new Source(sourceName, sourcePath);
+		} else {
+			source = new Source(sourceName, firefoxSource.url || undefined, sourceAdapter.id);
+		}
 
-		let source = new Source(sourceName, sourcePath, sourceReference);
 		if (sourceAdapter.actor.source.isBlackBoxed) {
 			(<DebugProtocol.Source>source).presentationHint = 'deemphasize';
 		}
