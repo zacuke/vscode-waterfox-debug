@@ -30,17 +30,18 @@ export class ObjectGripAdapter implements VariablesProvider {
 		let prototypeAndProperties = await this.actor.fetchPrototypeAndProperties();
 
 		let variables: VariableAdapter[] = [];
+		let safeGetterValues = prototypeAndProperties.safeGetterValues || {};
 
 		for (let varname in prototypeAndProperties.ownProperties) {
-			variables.push(VariableAdapter.fromPropertyDescriptor(varname,
-				prototypeAndProperties.ownProperties[varname], this.isThreadLifetime, this.threadAdapter));
+			if (!safeGetterValues[varname]) {
+				variables.push(VariableAdapter.fromPropertyDescriptor(varname,
+					prototypeAndProperties.ownProperties[varname], this.isThreadLifetime, this.threadAdapter));
+			}
 		}
 
-		if (prototypeAndProperties.safeGetterValues) {
-			for (let varname in prototypeAndProperties.safeGetterValues) {
-				variables.push(VariableAdapter.fromSafeGetterValueDescriptor(varname, 
-					prototypeAndProperties.safeGetterValues[varname], this.isThreadLifetime, this.threadAdapter));
-			}
+		for (let varname in safeGetterValues) {
+			variables.push(VariableAdapter.fromSafeGetterValueDescriptor(varname, 
+				safeGetterValues[varname], this.isThreadLifetime, this.threadAdapter));
 		}
 
 		VariableAdapter.sortVariables(variables);
