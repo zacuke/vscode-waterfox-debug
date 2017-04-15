@@ -796,15 +796,20 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		try {
 
+			tabActor.onDetached(() => {
+
+				this.threadPauseCoordinator.threadTerminated(threadAdapter.id, threadAdapter.name);
+
+				if (this.threadsById.has(threadId)) {
+					this.threadsById.delete(threadId);
+					this.sendEvent(new ThreadEvent('exited', threadId));
+				}
+			});
+
 			await threadAdapter.init(this.exceptionBreakpoints, reload);
 
 			this.threadsById.set(threadId, threadAdapter);
 			this.sendEvent(new ThreadEvent('started', threadId));
-
-			tabActor.onDetached(() => {
-				this.threadsById.delete(threadId);
-				this.sendEvent(new ThreadEvent('exited', threadId));
-			});
 
 			return threadAdapter;
 

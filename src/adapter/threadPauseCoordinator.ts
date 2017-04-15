@@ -155,6 +155,42 @@ export class ThreadPauseCoordinator {
 		} 
 	}
 
+	public threadTerminated(threadId: number, threadName: string) {
+
+		if (log.isDebugEnabled()) {
+			log.debug(`Removing ${threadName}`);
+		}
+		
+		if (this.interruptingThread && (this.interruptingThread.threadId === threadId)) {
+			this.interruptingThread = undefined;
+		}
+		
+		if (this.resumingThread && (this.resumingThread.threadId === threadId)) {
+			this.resumingThread = undefined;
+		}
+
+		this.requestedPauses = this.requestedPauses.filter((pauseRequest) => {
+			if (pauseRequest.threadId === threadId) {
+				pauseRequest.pendingRequest.reject('Thread terminated');
+				return false;
+			}
+			return true;
+		});
+
+		this.requestedResumes = this.requestedResumes.filter((requestedResume) => {
+			if (requestedResume.threadId === threadId) {
+				requestedResume.pendingRequest.reject('Thread terminated');
+				return false;
+			}
+			return true;
+		});
+
+		this.currentPauses = this.currentPauses.filter(
+			(currentPause) => (currentPause.threadId !== threadId));
+
+		this.doNext();
+	}
+
 	private doNext(): void {
 
 		if (log.isDebugEnabled()) {
