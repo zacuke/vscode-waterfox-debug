@@ -24,6 +24,8 @@ export abstract class DebugAdapterBase extends DebugSession {
 	protected abstract getScopes(args: DebugProtocol.ScopesArguments): { scopes: DebugProtocol.Scope[] };
 	protected abstract getVariables(args: DebugProtocol.VariablesArguments): Promise<{ variables: DebugProtocol.Variable[] }>;
 	protected abstract evaluate(args: DebugProtocol.EvaluateArguments): Promise<{ result: string, type?: string, variablesReference: number, namedVariables?: number, indexedVariables?: number }>;
+	protected abstract reloadAddon(): Promise<void>;
+	protected abstract rebuildAddon(): Promise<void>;
 
 	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
 		this.handleRequest(response, () => this.initialize(args));
@@ -91,6 +93,20 @@ export abstract class DebugAdapterBase extends DebugSession {
 
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
 		this.handleRequestAsync(response, () => this.evaluate(args));
+	}
+
+    protected customRequest(command: string, response: DebugProtocol.Response, args: any): void {
+		this.handleRequestAsync(response, async () => {
+			switch(command) {
+
+				case 'reloadAddon':
+				return this.reloadAddon();
+
+				case 'rebuildAndReloadAddon':
+				await this.rebuildAddon();
+				return this.reloadAddon();
+			}
+		});
 	}
 
 	private handleRequest<TResponse extends DebugProtocol.Response, TResponseBody>(response: TResponse, executeRequest: () => TResponseBody): void {

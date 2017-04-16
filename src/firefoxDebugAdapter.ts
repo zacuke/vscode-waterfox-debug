@@ -434,6 +434,12 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		};
 	}
 
+	protected async reloadAddon(): Promise<void> {
+	}
+
+	protected async rebuildAddon(): Promise<void> {
+	}
+
 	protected async disconnect(args: DebugProtocol.DisconnectArguments): Promise<void> {
 
 		let detachPromises: Promise<void>[] = [];
