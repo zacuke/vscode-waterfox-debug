@@ -39,6 +39,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	private nextTabId = 1;
 
+	private addonActor: TabActorProxy | undefined = undefined;
 	private addonAttached = false;
 
 	private nextThreadId = 1;
@@ -435,6 +436,13 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	}
 
 	protected async reloadAddon(): Promise<void> {
+		if (!this.addonId) {
+			throw 'This command is only available when debugging an addon'
+		} else if (!this.addonActor) {
+			throw 'Addon isn\'t attached';
+		} else {
+			await this.addonActor.reload();
+		}
 	}
 
 	protected async rebuildAddon(): Promise<void> {
@@ -747,9 +755,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		addons.forEach((addon) => {
 			if (addon.id === this.addonId) {
 				(async () => {
-					let addonActor = new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection);
+					this.addonActor = new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection);
 					let consoleActor = new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection);
-					let threadAdapter = await this.attachTabOrAddon(addonActor, consoleActor, this.nextTabId++, false, 'Addon');
+					let threadAdapter = await this.attachTabOrAddon(this.addonActor, consoleActor, this.nextTabId++, false, 'Addon');
 					if (threadAdapter !== undefined) {
 						this.attachConsole(consoleActor, threadAdapter);
 					}

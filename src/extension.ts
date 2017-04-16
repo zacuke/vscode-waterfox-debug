@@ -10,10 +10,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 }
 
-function reloadAddon() {
-	vscode.commands.executeCommand<void>('workbench.customDebugRequest', 'reloadAddon', {});
+async function reloadAddon(): Promise<void> {
+	await vscode.commands.executeCommand<void>('workbench.customDebugRequest', 'reloadAddon', {});
 }
 
-function rebuildAndReloadAddon() {
-	vscode.commands.executeCommand<void>('workbench.customDebugRequest', 'rebuildAndReloadAddon', {});
+async function rebuildAndReloadAddon() {
+	await vscode.commands.executeCommand<void>('workbench.customDebugRequest', 'rebuildAndReloadAddon', {});
 }

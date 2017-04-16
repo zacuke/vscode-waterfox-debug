@@ -100,11 +100,11 @@ export abstract class DebugAdapterBase extends DebugSession {
 			switch(command) {
 
 				case 'reloadAddon':
-				return this.reloadAddon();
+				return await this.reloadAddon();
 
 				case 'rebuildAndReloadAddon':
 				await this.rebuildAddon();
-				return this.reloadAddon();
+				return await this.reloadAddon();
 			}
 		});
 	}
