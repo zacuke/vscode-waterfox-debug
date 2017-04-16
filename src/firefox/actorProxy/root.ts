@@ -4,17 +4,26 @@ import { PendingRequests } from './pendingRequests';
 import { ActorProxy } from './interface';
 import { TabActorProxy } from './tab';
 import { ConsoleActorProxy } from './console';
+import { PreferenceActorProxy } from './preference';
+import { AddonsActorProxy } from './addons';
+import { DebugConnection } from "../connection";
 
 let log = Log.create('RootActorProxy');
+
+export type FetchTabsResult = {
+	tabs: Map<string, [TabActorProxy, ConsoleActorProxy]>,
+	preference: PreferenceActorProxy,
+	addons: AddonsActorProxy
+};
 
 export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 	private tabs = new Map<string, [TabActorProxy, ConsoleActorProxy]>();
 	private pendingProcessRequests = new PendingRequests<[TabActorProxy, ConsoleActorProxy]>();
-	private pendingTabsRequests = new PendingRequests<Map<string, [TabActorProxy, ConsoleActorProxy]>>();
+	private pendingTabsRequests = new PendingRequests<FetchTabsResult>();
 	private pendingAddonsRequests = new PendingRequests<FirefoxDebugProtocol.Addon[]>();
 
-	constructor(private connection: any) {
+	constructor(private connection: DebugConnection) {
 		super();
 		this.connection.register(this);
 	}
@@ -33,11 +42,11 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 		})
 	}
 
-	public fetchTabs(): Promise<Map<string, [TabActorProxy, ConsoleActorProxy]>> {
+	public fetchTabs(): Promise<FetchTabsResult> {
 
 		log.debug('Fetching tabs');
 
-		return new Promise<Map<string, [TabActorProxy, ConsoleActorProxy]>>((resolve, reject) => {
+		return new Promise<FetchTabsResult>((resolve, reject) => {
 			this.pendingTabsRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'listTabs' });
 		})
@@ -110,7 +119,17 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 			});					
 
 			this.tabs = currentTabs;
-			this.pendingTabsRequests.resolveOne(currentTabs);
+
+			let preferenceActor = this.connection.getOrCreate(tabsResponse.preferenceActor,
+				() => new PreferenceActorProxy(tabsResponse.preferenceActor, this.connection));
+			let addonsActor = this.connection.getOrCreate(tabsResponse.addonsActor,
+				() => new AddonsActorProxy(tabsResponse.addonsActor, this.connection));
+
+			this.pendingTabsRequests.resolveOne({
+				tabs: currentTabs, 
+				preference: preferenceActor, 
+				addons: addonsActor
+			});
 
 		} else if (response['type'] === 'tabListChanged') {
 
