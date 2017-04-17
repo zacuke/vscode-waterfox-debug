@@ -1,3 +1,9 @@
+### Version 0.11.1
+* bugfix: some function names were not shown in the call stack
+* bugfix: the tooltips of tabs for external source files didn't show the full url
+* bugfix: some accessor properties (e.g. window.window) were shown as undefined
+* bugfix for sporadical failures to attach to Firefox after launching it
+
 ### Version 0.11.0
 * add `keepProfileChanges` configuration property
 * bugfix: the temporary profiles are now deleted reliably
