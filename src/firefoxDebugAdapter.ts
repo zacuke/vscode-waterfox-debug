@@ -366,9 +366,23 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		this.setActiveThread(variablesProvider.threadAdapter);
 
-		let variables = await variablesProvider.threadAdapter.fetchVariables(variablesProvider);
+		try {
 
-		return { variables };
+			let variables = await variablesProvider.threadAdapter.fetchVariables(variablesProvider);
+
+			return { variables };
+
+		} catch(err) {
+
+			let msg: string;
+			if (err === 'No such actor') {
+				msg = 'Value can\'t be inspected - this is probably due to Firefox bug #1249962';
+			} else {
+				msg = String(err);
+			}
+
+			return { variables: [new Variable('Error from debugger', msg)]};
+		}
 	}
 
 	protected async evaluate(args: DebugProtocol.EvaluateArguments): Promise<{ result: string, type?: string, variablesReference: number, namedVariables?: number, indexedVariables?: number }> {
