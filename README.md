@@ -152,7 +152,9 @@ or `install.rdf` for `legacy` add-ons).
   * `"${workspaceRoot}/skipThis.js"` - will skip the file `skipThis.js` in the root folder of your project
   * `"**/skipThis.js"` - will skip files called `skipThis.js` in any folder
   * `"${workspaceRoot}/node_modules/**"` - will skip all files under `node_modules`
-  * `"http?(s)://**"` - will skip files that could not be mapped to local files
+  * `"http?(s):/**"` - will skip files that could not be mapped to local files
+  * `"**/google.com/**"` - will skip files containing `/google.com/` in their url, in particular
+    all files from the domain `google.com` (that could not be mapped to local files)
 * `pathMappings`: An array of urls and corresponding paths to use for translating the URLs of
   javascript files to local file paths. Use this if the default mapping of URLs to paths is 
   insufficient in your setup. In particular, if you use [webpack](https://webpack.github.io/), you
