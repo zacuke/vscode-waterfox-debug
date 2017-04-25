@@ -6,8 +6,8 @@ import { ChildProcess } from 'child_process';
 import * as uuid from 'uuid';
 import { Log } from './util/log';
 import { delay } from "./util/misc";
-import { createXpi, findAddonId } from './util/addon';
-import { launchFirefox, connect, waitForSocket, installXpiViaAutoInstaller } from './util/launcher';
+import { createXpi, buildAddonDir, findAddonId } from './util/addon';
+import { launchFirefox, connect, waitForSocket } from './util/launcher';
 import { Minimatch } from 'minimatch';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugAdapterBase } from './debugAdapterBase';
@@ -33,6 +33,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	private addonType: AddonType | undefined;
 	private addonId: string | undefined;
 	private addonPath: string | undefined;
+	private addonBuildPath: string | undefined;
 	private isWindowsPlatform: boolean;
 
 	private reloadTabs = false;
@@ -99,13 +100,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		await this.readCommonConfiguration(args);
 
-		let tempXpiDir: string | undefined = undefined;
-		let tempXpiPath: string | undefined = undefined;
-
+		let installAddonViaRDP = false;
 		if (args.addonType && args.addonPath) {
-			tempXpiDir = path.join(os.tmpdir(), `vscode-firefox-debug-${uuid.v4()}`);
-			fs.mkdirSync(tempXpiDir);
-			tempXpiPath = await createXpi(args.addonType, args.addonPath, tempXpiDir);
+			installAddonViaRDP = !!args.reAttach;
 		}
 
 		let socket: Socket | undefined = undefined;
@@ -113,10 +110,6 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		if (args.reAttach) {
 
 			try {
-
-				if (tempXpiPath !== undefined) {
-					await installXpiViaAutoInstaller(tempXpiPath, args.addonInstallerPort || 8888);
-				}
 
 				socket = await connect(args.port || 6000, 'localhost');
 
@@ -126,10 +119,28 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 					this.reloadTabs = true;
 				}
 
+				installAddonViaRDP = this.reloadTabs;
+
 			} catch(err) {}
 		}
 
 		if (socket === undefined) {
+
+			let tempXpiDir: string | undefined = undefined;
+			let tempXpiPath: string | undefined = undefined;
+
+			if (args.addonType && args.addonPath) {
+
+				if (installAddonViaRDP && (args.addonType === 'addonSdk')) {
+					this.addonBuildPath = path.join(os.tmpdir(), `vscode-firefox-debug-addon-${uuid.v4()}`);
+				}
+
+				if (!installAddonViaRDP) {
+					tempXpiDir = path.join(os.tmpdir(), `vscode-firefox-debug-${uuid.v4()}`);
+					fs.mkdirSync(tempXpiDir);
+					tempXpiPath = await createXpi(args.addonType, args.addonPath, tempXpiDir);
+				}
+			}
 
 			// send messages from Firefox' stdout to the debug console when debugging an addonSdk extension
 			let sendToConsole: (msg: string) => void = 
@@ -137,16 +148,17 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 					(msg) => this.sendEvent(new OutputEvent(msg + '\n', 'stdout')) :
 					(msg) => undefined;
 
-			[this.firefoxProc, this.debugProfileDir] = await launchFirefox(args, tempXpiPath, sendToConsole);
+			[this.firefoxProc, this.debugProfileDir] = await launchFirefox(
+				args, tempXpiPath, this.addonBuildPath, sendToConsole);
 
 			socket = await waitForSocket(args.port || 6000);
+
+			if (tempXpiDir !== undefined) {
+				fs.removeSync(tempXpiDir);
+			}
 		}
 
-		if (tempXpiDir !== undefined) {
-			fs.removeSync(tempXpiDir);
-		}
-
-		this.startSession(socket);
+		this.startSession(socket, installAddonViaRDP);
 	}
 
 	protected async attach(args: AttachConfiguration): Promise<void> {
@@ -157,16 +169,13 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			this.reloadTabs = args.reloadOnAttach;
 		}
 
+		let installAddonViaRDP = false;
 		if (args.addonType && args.addonPath) {
-			let tempXpiDir = path.join(os.tmpdir(), `vscode-firefox-debug-${uuid.v4()}`);
-			fs.mkdirSync(tempXpiDir);
-			let tempXpiPath = await createXpi(args.addonType, args.addonPath, tempXpiDir);
-			await installXpiViaAutoInstaller(tempXpiPath, args.addonInstallerPort || 8888);
-			fs.removeSync(tempXpiDir);
+			installAddonViaRDP = true;
 		}
 
 		let socket = await connect(args.port || 6000, args.host || 'localhost');
-		this.startSession(socket);
+		this.startSession(socket, installAddonViaRDP);
 	}
 
 	protected setBreakpoints(args: DebugProtocol.SetBreakpointsArguments): Promise<{ breakpoints: DebugProtocol.Breakpoint[] }> {
@@ -436,16 +445,25 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	}
 
 	protected async reloadAddon(): Promise<void> {
-		if (!this.addonId) {
+		if (!this.addonPath) {
 			throw 'This command is only available when debugging an addon'
 		} else if (!this.addonActor) {
 			throw 'Addon isn\'t attached';
-		} else {
-			await this.addonActor.reload();
 		}
+
+		if (this.addonBuildPath) {
+			fs.copySync(this.addonPath, this.addonBuildPath);
+		}
+
+		await this.addonActor.reload();
 	}
 
 	protected async rebuildAddon(): Promise<void> {
+		if (!this.addonPath || !this.addonBuildPath) {
+			throw 'This command is only available when debugging an addon of type \'addonSdk\'';
+		}
+
+		await buildAddonDir(this.addonPath, this.addonBuildPath);
 	}
 
 	protected async disconnect(args: DebugProtocol.DisconnectArguments): Promise<void> {
@@ -692,28 +710,11 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		return undefined;
 	}
 
-	private startSession(socket: Socket) {
+	private startSession(socket: Socket, installAddon: boolean) {
 
 		this.firefoxDebugConnection = new DebugConnection(socket);
 		this.firefoxDebugSocketClosed = false;
 		let rootActor = this.firefoxDebugConnection.rootActor;
-
-		if (this.addonId) {
-
-			if (this.addonType === 'legacy') {
-
-				rootActor.onInit(async () => {
-					let [addonActor, consoleActor] = await rootActor.fetchProcess();
-					this.attachTabOrAddon(addonActor, consoleActor, this.nextTabId++, true, 'Browser');
-				});
-
-			} else {
-
-				rootActor.onInit(() => this.fetchAddonsAndAttach(rootActor));
-				rootActor.onAddonListChanged(() => this.fetchAddonsAndAttach(rootActor));
-
-			}
-		}
 
 		// attach to all tabs, register the corresponding threads and inform VSCode about them
 		rootActor.onTabOpened(async ([tabActor, consoleActor]) => {
@@ -730,7 +731,53 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		});
 
 		rootActor.onInit(async () => {
-			await rootActor.fetchTabs();
+
+			let actors = await rootActor.fetchTabs();
+
+			if (this.addonPath) {
+				switch (this.addonType) {
+
+					case 'legacy':
+						if (installAddon) {
+							await actors.addons.installAddon(this.addonPath);
+						}
+
+						let [addonActor, consoleActor] = await rootActor.fetchProcess();
+						this.attachTabOrAddon(addonActor, consoleActor, this.nextTabId++, true, 'Browser');
+
+						break;
+
+					case 'addonSdk':
+						if (installAddon) {
+
+							if (this.addonBuildPath) {
+								await buildAddonDir(this.addonPath, this.addonBuildPath);
+								await actors.addons.installAddon(this.addonBuildPath);
+								await actors.preference.setCharPref('vscode.debug.temporaryAddonPath', this.addonBuildPath);
+							} else {
+								try {
+									this.addonBuildPath = await actors.preference.getCharPref('vscode.debug.temporaryAddonPath');
+									fs.copySync(this.addonPath, this.addonBuildPath);
+								} catch (err) {
+								}
+							}
+						}
+
+						this.fetchAddonsAndAttach(rootActor);
+
+						break;
+
+					case 'webExtension':
+						if (installAddon) {
+							await actors.addons.installAddon(this.addonPath);
+						}
+
+						this.fetchAddonsAndAttach(rootActor);
+
+						break;
+				}
+			}
+
 			this.reloadTabs = false;
 		});
 

@@ -14,7 +14,6 @@ export interface CommonConfiguration {
 	log?: LogConfiguration;
 	addonType?: AddonType;
 	addonPath?: string;
-	addonInstallerPort?: number;
 }
 
 export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.LaunchRequestArguments {
