@@ -171,7 +171,12 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		let installAddonViaRDP = false;
 		if (args.addonType && args.addonPath) {
+
 			installAddonViaRDP = true;
+
+			if (args.addonType === 'addonSdk') {
+				throw 'Attach mode is currently not supported for addonType "addonSdk"';
+			}
 		}
 
 		let socket = await connect(args.port || 6000, args.host || 'localhost');
@@ -460,7 +465,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected async rebuildAddon(): Promise<void> {
 		if (!this.addonPath || !this.addonBuildPath) {
-			throw 'This command is only available when debugging an addon of type \'addonSdk\'';
+			throw 'This command is only available when debugging an addon of type "addonSdk"';
 		}
 
 		await buildAddonDir(this.addonPath, this.addonBuildPath);
