@@ -10,6 +10,7 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 	private pendingAttachRequests = new PendingRequests<ThreadActorProxy>();
 	private pendingDetachRequests = new PendingRequests<void>();
 	private pendingWorkersRequests = new PendingRequests<Map<string, WorkerActorProxy>>();
+	private pendingReloadRequests = new PendingRequests<void>();
 	private workers = new Map<string, WorkerActorProxy>();
 
 	constructor(private _name: string, private _title: string, private _url: string, private connection: DebugConnection) {
@@ -56,7 +57,17 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 		return new Promise<Map<string, WorkerActorProxy>>((resolve, reject) => {
 			this.pendingWorkersRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'listWorkers' });
-		})
+		});
+	}
+
+	public reload(): Promise<void> {
+		
+		log.debug(`Reloading ${this.name}`);
+		
+		return new Promise<void>((resolve, reject) => {
+			this.pendingReloadRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'reload' });
+		});
 	}
 
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
@@ -157,6 +168,11 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 			log.error(`No such actor ${JSON.stringify(this.name)}`);
 			this.pendingAttachRequests.rejectAll('No such actor');
 			this.pendingDetachRequests.rejectAll('No such actor');
+
+		} else if (Object.keys(response).length === 1) {
+
+			log.debug('Received response to reload request');
+			this.pendingReloadRequests.resolveOne(undefined);
 
 		} else {
 

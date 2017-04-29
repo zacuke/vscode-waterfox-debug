@@ -5,6 +5,7 @@ import * as semver from 'semver';
 import { AddonType } from '../adapter/launchConfiguration';
 import * as FirefoxProfile from 'firefox-profile';
 import * as zipdir from 'zip-dir';
+import { Extract } from 'unzip';
 
 export function createXpi(addonType: AddonType, addonPath: string, destDir: string): Promise<string> {
 	return new Promise<string>((resolve, reject) => {
@@ -44,6 +45,13 @@ export function createXpi(addonType: AddonType, addonPath: string, destDir: stri
 	});
 }
 
+export async function buildAddonDir(addonPath: string, destDir: string): Promise<void> {
+	fs.mkdirSync(destDir);
+	let xpiPath = await createXpi('addonSdk', addonPath, destDir);
+	await unzip(xpiPath, destDir);
+	fs.unlinkSync(xpiPath);
+}
+
 export function findAddonId(addonPath: string): Promise<string> {
 	return new Promise<string>((resolve, reject) => {
 		var dummyProfile = new FirefoxProfile();
@@ -54,5 +62,14 @@ export function findAddonId(addonPath: string): Promise<string> {
 				reject('This debugger currently requires add-ons to specify an ID in their manifest');
 			}
 		});
+	});
+}
+
+function unzip(srcFile: string, destDir: string): Promise<void> {
+	return new Promise<void>((resolve, reject) => {
+		let extractor = Extract({ path: destDir });
+		extractor.on('close', resolve);
+		extractor.on('error', reject);
+		fs.createReadStream(srcFile).pipe(extractor);
 	});
 }

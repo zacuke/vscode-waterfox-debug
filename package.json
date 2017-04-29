@@ -18,6 +18,7 @@
     "minimatch": "^3.0.3",
     "semver": "^5.3.0",
     "tslib": "^1.6.0",
+    "unzip": "^0.1.11",
     "uuid": "^3.0.1",
     "vscode-debugadapter": "^1.18.0",
     "zip-dir": "^1.0.2"
@@ -34,9 +35,11 @@
     "nyc": "^10.2.0",
     "typescript": "^2.2.2",
     "vsce": "^1.20.0",
+    "vscode": "^1.1.0",
     "vscode-debugadapter-testsupport": "^1.18.0"
   },
   "scripts": {
+    "postinstall": "node ./node_modules/vscode/bin/install",
     "test": "mocha --timeout 20000 --slow 6000 out/test/test*.js",
     "cover": "nyc npm test && nyc report --reporter=lcov && nyc report --reporter=html"
   },
@@ -62,7 +65,22 @@
     "url": "https://github.com/hbenl/vscode-firefox-debug/issues"
   },
   "homepage": "https://github.com/hbenl/vscode-firefox-debug",
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onCommand:extension.firefox.reloadAddon",
+    "onCommand:extension.firefox.rebuildAndReloadAddon"
+  ],
   "contributes": {
+    "commands": [
+      {
+        "command": "extension.firefox.reloadAddon",
+        "title": "Firefox: Reload add-on"
+      },
+      {
+        "command": "extension.firefox.rebuildAndReloadAddon",
+        "title": "Firefox: Rebuild and reload add-on"
+      }
+    ],
     "debuggers": [
       {
         "type": "firefox",
@@ -259,10 +277,10 @@
                 "description": "The path of the directory containing the addon",
                 "default": "${workspaceRoot}"
               },
-              "addonInstallerPort": {
-                "type": "number",
-                "description": "The port to use for the extension auto-installer",
-                "default": 8888
+              "installAddonInProfile": {
+                "type": "boolean",
+                "description": "Install the addon by placing it in the temporary profile (necessary for XUL overlays)",
+                "default": false
               },
               "log": {
                 "type": "object",
@@ -415,11 +433,6 @@
                 "type": "string",
                 "description": "The path of the directory containing the addon",
                 "default": "${workspaceRoot}"
-              },
-              "addonInstallerPort": {
-                "type": "number",
-                "description": "The port to use for the extension auto-installer",
-                "default": 8888
               },
               "log": {
                 "type": "object",

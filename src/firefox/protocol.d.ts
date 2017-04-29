@@ -26,6 +26,8 @@ declare namespace FirefoxDebugProtocol {
 	interface TabsResponse extends Response {
 		tabs: Tab[];
 		selected: number;
+		preferenceActor: string;
+		addonsActor: string;
 	}
 
 	interface Tab {
@@ -51,6 +53,13 @@ declare namespace FirefoxDebugProtocol {
 			highlightable: boolean;
 			networkMonitor: boolean;
 		}
+	}
+
+	interface InstallAddonResponse extends Response {
+		addon: {
+			id: string,
+			actor: boolean
+		};
 	}
 
 	interface ProcessResponse extends Response {

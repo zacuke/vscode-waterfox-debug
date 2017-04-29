@@ -16,6 +16,7 @@ import * as FirefoxProfile from 'firefox-profile';
  * * the path of the temporary profile created for this debugging session
  */
 export async function launchFirefox(config: LaunchConfiguration, xpiPath: string | undefined,
+	addonBuildPath: string | undefined,
 	sendToConsole: (msg: string) => void): Promise<[ChildProcess | undefined, string | undefined]> {
 
 	let firefoxPath = getFirefoxExecutablePath(config);	
@@ -64,35 +65,45 @@ export async function launchFirefox(config: LaunchConfiguration, xpiPath: string
 
 	let childProc: ChildProcess | undefined = undefined;
 
-	if ((xpiPath !== undefined) && config.reAttach) {
-		let autoInstallerXpiPath = path.join(__dirname, '../../autoinstaller@adblockplus.org.xpi');
-		await installXpiInProfile(profile, autoInstallerXpiPath);
-	}
-
 	if (config.reAttach) {
+
+		let directoriesToRemove: string[] = [];
+		if (!config.keepProfileChanges) {
+			directoriesToRemove.push(profile.path());
+		}
+		if (addonBuildPath) {
+			directoriesToRemove.push(addonBuildPath);
+		}
 
 		let forkedLauncherPath = path.join(__dirname, 'forkedLauncher.js');
 		let forkArgs: string[];
-		if (config.keepProfileChanges) {
-			forkArgs = [
-				'spawnDetached', firefoxPath, ...firefoxArgs
-			];
-		} else {
-			forkArgs = [
-				'spawnDetached', process.execPath, forkedLauncherPath,
-				'spawnAndRemove', profile.path(), firefoxPath, ...firefoxArgs
-			];
+		switch (directoriesToRemove.length) {
+			case 0:
+				forkArgs = [
+					'spawnDetached', firefoxPath, ...firefoxArgs
+				];
+				break;
+
+			case 1:
+				forkArgs = [
+					'spawnDetached', process.execPath, forkedLauncherPath,
+					'spawnAndRemove', directoriesToRemove[0], firefoxPath, ...firefoxArgs
+				];
+				break;
+
+			default:
+				forkArgs = [
+					'spawnDetached', process.execPath, forkedLauncherPath,
+					'spawnAndRemove2', directoriesToRemove[0], directoriesToRemove[1], firefoxPath, ...firefoxArgs
+				];
+				break;
 		}
 
 		fork(forkedLauncherPath, forkArgs, { execArgv: [] });
 
-		if (xpiPath !== undefined) {
-			await installXpiViaAutoInstaller(xpiPath, config.addonInstallerPort || 8888, true);
-		}
-
 	} else {
 
-		if ((xpiPath !== undefined) && !config.reAttach) {
+		if (xpiPath !== undefined) {
 			await installXpiInProfile(profile, xpiPath);
 		}
 
@@ -105,10 +116,6 @@ export async function launchFirefox(config: LaunchConfiguration, xpiPath: string
 		});
 
 		childProc.unref();
-
-		if ((xpiPath !== undefined) && config.reAttach) {
-			await installXpiViaAutoInstaller(xpiPath, config.addonInstallerPort || 8888, true);
-		}
 	}
 
 	let removeProfileOnExit = !config.reAttach && !config.keepProfileChanges;
@@ -192,10 +199,6 @@ async function prepareDebugProfile(config: LaunchConfiguration): Promise<Firefox
 	preferences['xpinstall.signatures.required'] = false;
 	preferences['extensions.sdk.console.logLevel'] = 'all';
 
-	if (config.addonInstallerPort) {
-		preferences['extensions.autoinstaller.serverPort'] = config.addonInstallerPort;
-	}
-
 	if (config.preferences !== undefined) {
 		for (let key in config.preferences) {
 			let value = config.preferences[key];
@@ -228,29 +231,14 @@ function installXpiInProfile(profile: FirefoxProfile, xpiPath: string): Promise<
 	});
 }
 
-export async function installXpiViaAutoInstaller(xpiPath: string, autoInstallerPort: number, wait = false): Promise<void> {
-
-	let xpiBuffer = fs.readFileSync(xpiPath);
-	let autoInstallerSocket : net.Socket;
-	if (wait) {
-		autoInstallerSocket = await waitForSocket(autoInstallerPort);
-	} else {
-		autoInstallerSocket = await connect(autoInstallerPort);
-	}
-
-	autoInstallerSocket.write(new Buffer('\rPOST / HTTP/1.1\n\rUser-Agent: NodeJS Compiler\n\r\n'));
-	autoInstallerSocket.write(xpiBuffer);
-	autoInstallerSocket.end();
-}
-
 function createDebugProfile(config: LaunchConfiguration): Promise<FirefoxProfile> {
 	return new Promise<FirefoxProfile>((resolve, reject) => {
 
 		if (config.keepProfileChanges) {
 
-			if (config.addonType) {
+			if (config.addonType === 'addonSdk') {
 
-				reject('"keepProfileChanges" is currently not supported for add-on debugging');
+				reject('"keepProfileChanges" is currently not supported for addonType "addonSdk"');
 
 			} else if (!config.reAttach) {
 
