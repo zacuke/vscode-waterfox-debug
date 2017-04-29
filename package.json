@@ -277,6 +277,11 @@
                 "description": "The path of the directory containing the addon",
                 "default": "${workspaceRoot}"
               },
+              "installAddonInProfile": {
+                "type": "boolean",
+                "description": "Install the addon by placing it in the temporary profile (necessary for XUL overlays)",
+                "default": false
+              },
               "log": {
                 "type": "object",
                 "description": "Configuration for diagnostic logging of the debug adapter",

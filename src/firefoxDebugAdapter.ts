@@ -102,7 +102,14 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		let installAddonViaRDP = false;
 		if (args.addonType && args.addonPath) {
-			installAddonViaRDP = !!args.reAttach;
+			if (args.installAddonInProfile !== undefined) {
+				if (args.installAddonInProfile && args.reAttach) {
+					throw '"installAddonInProfile" is not available with "reAttach"';
+				}
+				installAddonViaRDP = !args.installAddonInProfile;
+			} else {
+				installAddonViaRDP = !!args.reAttach;
+			}
 		}
 
 		let socket: Socket | undefined = undefined;
