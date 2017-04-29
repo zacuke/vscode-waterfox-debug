@@ -1,3 +1,7 @@
+### Version 0.12.0
+* add support for reloading add-ons
+* add `installAddonInProfile` configuration property
+
 ### Version 0.11.1
 * bugfix: some function names were not shown in the call stack
 * bugfix: the tooltips of tabs for external source files didn't show the full url
