@@ -1,3 +1,6 @@
+### Version 0.12.1
+* fix temporary add-on installation on Windows
+
 ### Version 0.12.0
 * add support for reloading add-ons
 * add `installAddonInProfile` configuration property
