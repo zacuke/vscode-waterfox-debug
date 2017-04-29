@@ -646,7 +646,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			this.addonType = args.addonType;
 
 			this.addonId = await findAddonId(args.addonPath);
-			this.addonPath = args.addonPath;
+			this.addonPath = path.normalize(args.addonPath);
 
 			if (this.addonType === 'addonSdk') {
 
