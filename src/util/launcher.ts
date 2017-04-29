@@ -236,9 +236,9 @@ function createDebugProfile(config: LaunchConfiguration): Promise<FirefoxProfile
 
 		if (config.keepProfileChanges) {
 
-			if (config.addonType) {
+			if (config.addonType === 'addonSdk') {
 
-				reject('"keepProfileChanges" is currently not supported for add-on debugging');
+				reject('"keepProfileChanges" is currently not supported for addonType "addonSdk"');
 
 			} else if (!config.reAttach) {
 

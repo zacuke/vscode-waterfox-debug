@@ -1117,7 +1117,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	private async disconnectFirefoxAndCleanup(): Promise<void> {
 
-		let isFirefoxRunning = !this.firefoxDebugSocketClosed;
+		let isFirefoxRunning = this.firefoxDebugConnection && !this.firefoxDebugSocketClosed;
 
 		if (isFirefoxRunning) {
 			await this.firefoxDebugConnection.disconnect();
