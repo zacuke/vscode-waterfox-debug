@@ -74,11 +74,11 @@
     "commands": [
       {
         "command": "extension.firefox.reloadAddon",
-        "title": "Reload your Firefox addon"
+        "title": "Firefox: Reload add-on"
       },
       {
         "command": "extension.firefox.rebuildAndReloadAddon",
-        "title": "Rebuild and reload your Firefox addon"
+        "title": "Firefox: Rebuild and reload add-on"
       }
     ],
     "debuggers": [
