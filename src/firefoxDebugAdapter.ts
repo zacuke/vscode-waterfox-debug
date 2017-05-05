@@ -884,6 +884,11 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				reload = () => {
 					if (this.addonActor !== undefined) {
 						log.debug('Reloading add-on');
+
+						if (this.addonPath && this.addonBuildPath) {
+							fs.copySync(this.addonPath, this.addonBuildPath);
+						}
+
 						this.addonActor.reload();
 					}
 				}
@@ -892,6 +897,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 				reload = () => {
 					log.debug('Reloading tabs');
+
 					for (let [, tabActor] of this.tabsById) {
 						tabActor.reload();
 					}
