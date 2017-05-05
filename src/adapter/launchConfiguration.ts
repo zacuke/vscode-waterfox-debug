@@ -8,6 +8,7 @@ export interface CommonConfiguration {
 	url?: string;
 	webRoot?: string;
 	reloadOnAttach?: boolean;
+	reloadOnChange?: ReloadConfiguration;
 	pathMappings?: { url: string, path: string }[];
 	skipFiles?: string[];
 	showConsoleCallLocation?: boolean;
@@ -32,4 +33,18 @@ export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.
 export interface AttachConfiguration extends CommonConfiguration, DebugProtocol.AttachRequestArguments {
 	port?: number;
 	host?: string;
+}
+
+export type ReloadConfiguration = string | string[] | DetailedReloadConfiguration;
+
+export interface DetailedReloadConfiguration {
+	watch: string | string[];
+	ignore?: string | string[];
+	debounce?: number | boolean;
+}
+
+export interface NormalizedReloadConfiguration {
+	watch: string[];
+	ignore: string[];
+	debounce: number;
 }

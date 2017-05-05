@@ -14,7 +14,7 @@ import { DebugAdapterBase } from './debugAdapterBase';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, ContinuedEvent, Thread, Variable, Breakpoint } from 'vscode-debugadapter';
 import { DebugConnection, RootActorProxy, TabActorProxy, WorkerActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, ThreadPauseCoordinator, BreakpointInfo, SourceAdapter, FrameAdapter, VariableAdapter, VariablesProvider, ConsoleAPICallAdapter } from './adapter/index';
-import { CommonConfiguration, LaunchConfiguration, AttachConfiguration, AddonType } from './adapter/launchConfiguration';
+import { CommonConfiguration, LaunchConfiguration, AttachConfiguration, AddonType, ReloadConfiguration, DetailedReloadConfiguration, NormalizedReloadConfiguration } from './adapter/launchConfiguration';
 
 let log = Log.create('FirefoxDebugAdapter');
 let pathConversionLog = Log.create('PathConversion');
@@ -30,11 +30,13 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	private pathMappings: [string | RegExp, string][] = [];
 	private filesToSkip: RegExp[] = [];
 	private showConsoleCallLocation = false;
-	private addonType: AddonType | undefined;
-	private addonId: string | undefined;
-	private addonPath: string | undefined;
-	private addonBuildPath: string | undefined;
+	private addonType?: AddonType;
+	private addonId?: string;
+	private addonPath?: string;
+	private addonBuildPath?: string;
 	private isWindowsPlatform: boolean;
+
+	private reloadConfig?: NormalizedReloadConfiguration;
 
 	private reloadTabs = false;
 
@@ -627,6 +629,10 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			Log.config = args.log;
 		}
 
+		if (args.reloadOnChange) {
+			this.reloadConfig = this.readReloadConfiguration(<ReloadConfiguration>args.reloadOnChange);
+		}
+
 		if (args.pathMappings) {
 			args.pathMappings.forEach((pathMapping) => {
 				this.pathMappings.push([ pathMapping.url, pathMapping.path ]);
@@ -729,6 +735,58 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		}
 
 		return undefined;
+	}
+
+	private readReloadConfiguration(config: ReloadConfiguration): NormalizedReloadConfiguration {
+
+		const defaultDebounce = 100;
+
+		if (typeof config === 'string') {
+
+			return {
+				watch: [ config ],
+				ignore: [],
+				debounce: defaultDebounce
+			};
+
+		} else if (config['watch'] === undefined) {
+
+			return {
+				watch: <string[]>config,
+				ignore: [],
+				debounce: defaultDebounce
+			};
+
+		} else {
+
+			let _config = <DetailedReloadConfiguration>config;
+
+			let watch: string[];
+			if (typeof _config.watch === 'string') {
+				watch = [ _config.watch ];
+			} else {
+				watch = _config.watch;
+			}
+
+			let ignore: string[];
+			if (_config.ignore === undefined) {
+				ignore = [];
+			} else if (typeof _config.ignore === 'string') {
+				ignore = [ _config.ignore ];
+			} else {
+				ignore = _config.ignore;
+			}
+
+			let debounce: number;
+			if (typeof _config.debounce === 'number') {
+				debounce = _config.debounce;
+			} else {
+				debounce = _config.debounce ? defaultDebounce : 0;
+			}
+
+			return { watch, ignore, debounce };
+
+		}
 	}
 
 	private startSession(socket: Socket, installAddon: boolean) {
