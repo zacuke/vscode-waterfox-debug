@@ -225,6 +225,52 @@
                 "description": "Reload all tabs after re-attaching to Firefox",
                 "default": true
               },
+              "reloadOnChange": {
+                "description": "Watch the specified files, directories or glob patterns and reload the tabs or add-on when they change",
+                "type": [
+                  "string",
+                  "array",
+                  "object"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "properties": {
+                  "watch": {
+                    "description": "Files, directories or glob patterns to be watched for file changes",
+                    "type": [
+                      "string",
+                      "array"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": "${workspaceRoot}/**/*.js"
+                  },
+                  "ignore": {
+                    "description": "Files, directories or glob patterns to be ignored",
+                    "type": [
+                      "string",
+                      "array"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": "**/node_modules/**"
+                  },
+                  "debounce": {
+                    "description": "The time in milliseconds to wait after a file change before reloading, or false to start reloading immediately",
+                    "type": [
+                      "number",
+                      "boolean"
+                    ]
+                  }
+                },
+                "default": {
+                  "watch": "${workspaceRoot}/**/*.js",
+                  "ignore": "**/node_modules/**"
+                }
+              },
               "pathMappings": {
                 "type": "array",
                 "description": "Additional mappings from URLs (as seen by Firefox) to filesystem paths (as seen by VS Code)",
@@ -390,6 +436,52 @@
                 "type": "boolean",
                 "description": "Reload all tabs after attaching to Firefox",
                 "default": false
+              },
+              "reloadOnChange": {
+                "description": "Watch the specified files, directories or glob patterns and reload the tabs or add-on when they change",
+                "type": [
+                  "string",
+                  "array",
+                  "object"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "properties": {
+                  "watch": {
+                    "description": "Files, directories or glob patterns to be watched for file changes",
+                    "type": [
+                      "string",
+                      "array"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": "${workspaceRoot}/**/*.js"
+                  },
+                  "ignore": {
+                    "description": "Files, directories or glob patterns to be ignored",
+                    "type": [
+                      "string",
+                      "array"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": "**/node_modules/**"
+                  },
+                  "debounce": {
+                    "description": "The time in milliseconds to wait after a file change before reloading, or false to start reloading immediately",
+                    "type": [
+                      "number",
+                      "boolean"
+                    ]
+                  }
+                },
+                "default": {
+                  "watch": "${workspaceRoot}/**/*.js",
+                  "ignore": "**/node_modules/**"
+                }
               },
               "pathMappings": {
                 "type": "array",
