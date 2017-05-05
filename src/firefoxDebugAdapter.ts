@@ -4,14 +4,16 @@ import * as fs from 'fs-extra';
 import { Socket } from 'net';
 import { ChildProcess } from 'child_process';
 import * as uuid from 'uuid';
+import { Minimatch } from 'minimatch';
+import * as chokidar from 'chokidar';
+import debounce = require('debounce');
+import { DebugProtocol } from 'vscode-debugprotocol';
+import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, ContinuedEvent, Thread, Variable, Breakpoint } from 'vscode-debugadapter';
 import { Log } from './util/log';
 import { delay } from "./util/misc";
 import { createXpi, buildAddonDir, findAddonId } from './util/addon';
 import { launchFirefox, connect, waitForSocket } from './util/launcher';
-import { Minimatch } from 'minimatch';
-import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugAdapterBase } from './debugAdapterBase';
-import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, ContinuedEvent, Thread, Variable, Breakpoint } from 'vscode-debugadapter';
 import { DebugConnection, RootActorProxy, TabActorProxy, WorkerActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, ThreadPauseCoordinator, BreakpointInfo, SourceAdapter, FrameAdapter, VariableAdapter, VariablesProvider, ConsoleAPICallAdapter } from './adapter/index';
 import { CommonConfiguration, LaunchConfiguration, AttachConfiguration, AddonType, ReloadConfiguration, DetailedReloadConfiguration, NormalizedReloadConfiguration } from './adapter/launchConfiguration';
@@ -37,10 +39,12 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	private isWindowsPlatform: boolean;
 
 	private reloadConfig?: NormalizedReloadConfiguration;
+	private reloadWatcher?: chokidar.FSWatcher;
 
 	private reloadTabs = false;
 
 	private nextTabId = 1;
+	private tabsById = new Map<number, TabActorProxy>();
 
 	private addonActor: TabActorProxy | undefined = undefined;
 	private addonAttached = false;
@@ -799,6 +803,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		rootActor.onTabOpened(async ([tabActor, consoleActor]) => {
 			log.info(`Tab opened with url ${tabActor.url}`);
 			let tabId = this.nextTabId++;
+			this.tabsById.set(tabId, tabActor);
 			let threadAdapter = await this.attachTabOrAddon(tabActor, consoleActor, tabId, true, `Tab ${tabId}`);
 			if (threadAdapter !== undefined) {
 				this.attachConsole(consoleActor, threadAdapter);
@@ -866,6 +871,42 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			this.sendEvent(new TerminatedEvent());
 		});
 
+		if (this.reloadConfig !== undefined) {
+
+			this.reloadWatcher = chokidar.watch(this.reloadConfig.watch, { 
+				ignored: this.reloadConfig.ignore,
+				ignoreInitial: true
+			});
+
+			let reload: () => void;
+			if (this.addonId) {
+
+				reload = () => {
+					if (this.addonActor !== undefined) {
+						log.debug('Reloading add-on');
+						this.addonActor.reload();
+					}
+				}
+
+			} else {
+
+				reload = () => {
+					log.debug('Reloading tabs');
+					for (let [, tabActor] of this.tabsById) {
+						tabActor.reload();
+					}
+				}
+			}
+
+			if (this.reloadConfig.debounce > 0) {
+				reload = debounce(reload, this.reloadConfig.debounce);
+			}
+
+			this.reloadWatcher.on('add', reload);
+			this.reloadWatcher.on('change', reload);
+			this.reloadWatcher.on('unlink', reload);
+		}
+
 		// now we are ready to accept breakpoints -> fire the initialized event to give UI a chance to set breakpoints
 		this.sendEvent(new InitializedEvent());
 	}
@@ -932,9 +973,6 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 			tabActor.onWorkerListChanged(() => tabActor.fetchWorkers());
 			tabActor.fetchWorkers();
-		}
-
-		try {
 
 			tabActor.onDetached(() => {
 
@@ -944,7 +982,14 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 					this.threadsById.delete(threadId);
 					this.sendEvent(new ThreadEvent('exited', threadId));
 				}
+
+				if (this.tabsById.has(tabId)) {
+					this.tabsById.delete(tabId);
+				}
 			});
+		}
+
+		try {
 
 			await threadAdapter.init(this.exceptionBreakpoints, reload);
 
@@ -1190,6 +1235,11 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	}
 
 	private async disconnectFirefoxAndCleanup(): Promise<void> {
+
+		if (this.reloadWatcher !== undefined) {
+			this.reloadWatcher.close();
+			this.reloadWatcher = undefined;
+		}
 
 		let isFirefoxRunning = this.firefoxDebugConnection && !this.firefoxDebugSocketClosed;
 
