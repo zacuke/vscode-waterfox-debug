@@ -160,9 +160,20 @@ whenever you change a file.
   `node_modules`:
   ```
     "reloadOnChange": {
-        "watch": "${workspaceRoot}/**/*.js",
-        "ignore": "${workspaceRoot}/node_modules/**"
+        "watch": [ "${workspaceRoot}/**/*.js" ],
+        "ignore": [ "${workspaceRoot}/node_modules/**" ]
     }
+  ```
+  By default, the reloading will be "debounced": the debug adapter will wait until the last file
+  change was 100 milliseconds ago before reloading. This is useful if your project uses a build
+  system that generates multiple files - without debouncing, each file would trigger a separate
+  reload. You can use `reloadOnChange.debounce` to change the debounce time span or to disable
+  debouncing (by setting it to `0` or `false`).
+
+  Instead of string arrays, you can also use a single string for `watch` and `ignore` and if you
+  don't need to specify `ignore` or `debounce`, you can specify the `watch` value directly, e.g.
+  ```
+  "reloadOnChange": "${workspaceRoot}/lib/*.js"
   ```
 * `skipFiles`: An array of glob patterns specifying javascript files that should be skipped while
   debugging: the debugger won't break in or step into these files. This is the same as "black boxing"
