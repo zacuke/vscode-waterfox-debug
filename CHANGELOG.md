@@ -1,3 +1,6 @@
+### Version 0.13.0
+* add `reloadOnChange` configuration property
+
 ### Version 0.12.1
 * fix temporary add-on installation on Windows
 
