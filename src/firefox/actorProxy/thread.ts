@@ -39,7 +39,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 	private pendingSourcesRequests = new PendingRequests<FirefoxDebugProtocol.Source[]>();
 	private pendingStackFramesRequests = new PendingRequests<FirefoxDebugProtocol.Frame[]>();
 	private pendingEvaluateRequest?: PendingRequest<FirefoxDebugProtocol.Grip>;
-	private pendingReleaseRequests = new PendingRequests<void>();
+	private pendingThreadGripsRequests = new PendingRequests<void>();
 	
 	/**
 	 * Attach the thread if it is detached
@@ -201,6 +201,18 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		});
 	}
 
+	public threadGrips(objectGripActorNames: string[]): Promise<void> {
+		log.debug(`Extending lifetime of grips on thread ${this.name}`);
+		
+		return new Promise<void>((resolve, reject) => {
+			this.pendingThreadGripsRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({
+				to: this.name, type: 'threadGrips',
+				actors: objectGripActorNames 
+			});
+		});
+	}
+
 	/**
 	 * Release object grips that were promoted to thread-lifetime grips using 
 	 * ObjectGripActorProxy.extendLifetime(). This can only be called while the thread is paused.
@@ -209,7 +221,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		log.debug(`Releasing grips on thread ${this.name}`);
 		
 		return new Promise<void>((resolve, reject) => {
-			this.pendingReleaseRequests.enqueue({ resolve, reject });
+			this.pendingThreadGripsRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ 
 				to: this.name, type: 'releaseMany',
 				actors: objectGripActorNames 
@@ -376,12 +388,12 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 				this.pendingEvaluateRequest.reject('No such actor');
 				this.pendingEvaluateRequest = undefined;
 			}
-			this.pendingReleaseRequests.rejectAll('No such actor');
+			this.pendingThreadGripsRequests.rejectAll('No such actor');
 
 		} else if (response['error'] === 'notReleasable') {
 
 			log.warn('Error releasing threadGrips; this is probably due to Firefox bug #1249962');
-			this.pendingReleaseRequests.rejectOne('Not releasable');
+			this.pendingThreadGripsRequests.rejectOne('Not releasable');
 
 		} else if (response['error'] === 'unknownFrame') {
 
@@ -394,8 +406,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 
 		} else if (Object.keys(response).length === 1) {
 
-			log.debug('Received response to releaseMany request');
-			this.pendingReleaseRequests.resolveOne(undefined);
+			log.debug('Received response to threadGrips/releaseMany request');
+			this.pendingThreadGripsRequests.resolveOne(undefined);
 
 		} else {
 

@@ -214,10 +214,10 @@ export class ThreadAdapter extends EventEmitter {
 				let objectGripAdapters = concatArrays(frameAdapters.map(
 					(frameAdapter) => frameAdapter.getObjectGripAdapters()));
 
-				let extendLifetimePromises = objectGripAdapters.map((objectGripAdapter) =>
-					objectGripAdapter.actor.extendLifetime().catch((err) => undefined));
-
-				await Promise.all(extendLifetimePromises);
+				await this.actor.threadGrips(
+					Array.from(new Set(objectGripAdapters.map(
+						objectGripAdapter => objectGripAdapter.actor.name
+				))));
 			}
 		);
 	}
@@ -239,16 +239,16 @@ export class ThreadAdapter extends EventEmitter {
 
 			async (variableAdapters) => {
 
-				let objectGripAdapters = variableAdapters
-					.map((variableAdapter) => variableAdapter.objectGripAdapter)
-					.filter((objectGripAdapter) => (objectGripAdapter !== undefined));
-
 				if (!variablesProvider.isThreadLifetime) {
 
-					let extendLifetimePromises = objectGripAdapters.map((objectGripAdapter) =>
-						objectGripAdapter!.actor.extendLifetime().catch((err) => undefined));
+					let objectGripAdapters = variableAdapters
+						.map((variableAdapter) => variableAdapter.objectGripAdapter)
+						.filter((objectGripAdapter) => (objectGripAdapter !== undefined));
 
-					await Promise.all(extendLifetimePromises);
+					await this.actor.threadGrips(
+						Array.from(new Set(objectGripAdapters.map(
+							objectGripAdapter => objectGripAdapter!.actor.name
+					))));
 				}
 			}
 		);
