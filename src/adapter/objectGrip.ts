@@ -3,7 +3,7 @@ import { ObjectGripActorProxy } from '../firefox/index';
 
 export class ObjectGripAdapter implements VariablesProvider {
 
-	public variablesProviderId: number;
+	public readonly variablesProviderId: number;
 	public readonly actor: ObjectGripActorProxy;
 	public get threadAdapter(): ThreadAdapter {
 		return this.variableAdapter.threadAdapter;
@@ -14,10 +14,8 @@ export class ObjectGripAdapter implements VariablesProvider {
 		objectGrip: FirefoxDebugProtocol.ObjectGrip,
 		public readonly threadLifetime: boolean
 	) {
-
 		this.actor = this.threadAdapter.debugSession.getOrCreateObjectGripActorProxy(objectGrip);
-
-		this.threadAdapter.debugSession.registerVariablesProvider(this);
+		this.variablesProviderId = this.threadAdapter.debugSession.registerVariablesProvider(this);
 	}
 
 	/**

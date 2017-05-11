@@ -511,10 +511,10 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		await this.disconnectFirefoxAndCleanup();
 	}
 
-	public registerVariablesProvider(variablesProvider: VariablesProvider) {
+	public registerVariablesProvider(variablesProvider: VariablesProvider): number {
 		let providerId = this.nextVariablesProviderId++;
-		variablesProvider.variablesProviderId = providerId;
 		this.variablesProvidersById.set(providerId, variablesProvider);
+		return providerId;
 	}
 
 	public unregisterVariablesProvider(variablesProvider: VariablesProvider) {
@@ -1195,7 +1195,6 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				}
 
 				let argsAdapter = new ConsoleAPICallAdapter(args, threadAdapter);
-				this.registerVariablesProvider(argsAdapter);
 
 				outputEvent = new OutputEvent('', category);
 				outputEvent.body.variablesReference = argsAdapter.variablesProviderId;

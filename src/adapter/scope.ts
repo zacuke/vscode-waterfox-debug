@@ -2,16 +2,16 @@ import { ThreadAdapter, ObjectGripAdapter, VariableAdapter } from './index';
 import { Scope } from 'vscode-debugadapter';
 
 export interface VariablesProvider {
-	variablesProviderId: number;
-	threadAdapter: ThreadAdapter;
-	threadLifetime: boolean;
+	readonly variablesProviderId: number;
+	readonly threadAdapter: ThreadAdapter;
+	readonly threadLifetime: boolean;
 	getVariables(): Promise<VariableAdapter[]>;
 }
 
 export abstract class ScopeAdapter implements VariablesProvider {
 	
 	public name: string;
-	public variablesProviderId: number;
+	public readonly variablesProviderId: number;
 	public thisVariable: VariableAdapter;
 	public returnVariable: VariableAdapter;
 	public threadAdapter: ThreadAdapter;
@@ -21,7 +21,7 @@ export abstract class ScopeAdapter implements VariablesProvider {
 		this.threadAdapter = threadAdapter;
 		this.name = name;
 		this.threadAdapter.registerScopeAdapter(this);
-		this.threadAdapter.debugSession.registerVariablesProvider(this);
+		this.variablesProviderId = this.threadAdapter.debugSession.registerVariablesProvider(this);
 	}
 
 	public static fromGrip(name: string, grip: FirefoxDebugProtocol.Grip, threadAdapter: ThreadAdapter): ScopeAdapter {

@@ -52,11 +52,11 @@ export class BreakpointAdapter {
 
 export class ConsoleAPICallAdapter implements VariablesProvider {
 
-	public variablesProviderId: number;
-
+	public readonly variablesProviderId: number;
 	public readonly threadLifetime = true;
 
 	public constructor(private variables: VariableAdapter[], public threadAdapter: ThreadAdapter) {
+		this.variablesProviderId = threadAdapter.debugSession.registerVariablesProvider(this);
 	}
 
 	public getVariables(): Promise<VariableAdapter[]> {
