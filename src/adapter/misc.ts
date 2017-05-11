@@ -54,9 +54,7 @@ export class ConsoleAPICallAdapter implements VariablesProvider {
 
 	public variablesProviderId: number;
 
-	public get isThreadLifetime(): boolean {
-		return true;
-	}
+	public readonly threadLifetime = true;
 
 	public constructor(private variables: VariableAdapter[], public threadAdapter: ThreadAdapter) {
 	}

@@ -6,35 +6,43 @@ let log = Log.create('VariableAdapter');
 
 export class VariableAdapter {
 
-	private varname: string;
-	private value: string;
-	private _objectGripAdapter?: ObjectGripAdapter;
+	public readonly objectGripAdapter?: ObjectGripAdapter;
 
-	public constructor(varname: string, value: string, objectGripAdapter?: ObjectGripAdapter) {
-		this.varname = varname;
-		this.value = value;
-		this._objectGripAdapter = objectGripAdapter;
+	public constructor(
+		public readonly varname: string,
+		public readonly referenceExpression: string | undefined,
+		public readonly displayValue: string,
+		public readonly threadAdapter: ThreadAdapter,
+		objectGrip?: FirefoxDebugProtocol.ObjectGrip,
+		threadLifetime?: boolean
+	) {
+		if (objectGrip && (threadLifetime !== undefined)) {
+			this.objectGripAdapter = new ObjectGripAdapter(this, objectGrip, threadLifetime);
+		}
 	}
 
 	public getVariable(): Variable {
-		return new Variable(this.varname, this.value, 
-			this._objectGripAdapter ? this._objectGripAdapter.variablesProviderId : undefined);
+		return new Variable(this.varname, this.displayValue,
+			this.objectGripAdapter ? this.objectGripAdapter.variablesProviderId : undefined);
 	}
 
-	public get objectGripAdapter(): ObjectGripAdapter | undefined {
-		return this._objectGripAdapter;
-	}
+	public static fromGrip(
+		varname: string,
+		parentReferenceExpression: string | undefined,
+		grip: FirefoxDebugProtocol.Grip,
+		threadLifetime: boolean,
+		threadAdapter: ThreadAdapter
+	): VariableAdapter {
 
-	public static fromGrip(varname: string, grip: FirefoxDebugProtocol.Grip, 
-		threadLifetime: boolean, threadAdapter: ThreadAdapter): VariableAdapter {
+		let referenceExpression = accessorExpression(parentReferenceExpression, varname);
 
 		if ((typeof grip === 'boolean') || (typeof grip === 'number')) {
 
-			return new VariableAdapter(varname, grip.toString());
+			return new VariableAdapter(varname, referenceExpression, grip.toString(), threadAdapter);
 
 		} else if (typeof grip === 'string') {
 
-			return new VariableAdapter(varname, `"${grip}"`);
+			return new VariableAdapter(varname, referenceExpression, `"${grip}"`, threadAdapter);
 
 		} else {
 
@@ -47,55 +55,77 @@ export class VariableAdapter {
 				case 'NaN':
 				case '-0':
 
-					return new VariableAdapter(varname, grip.type);
+					return new VariableAdapter(varname, referenceExpression, grip.type, threadAdapter);
 
 				case 'longString':
 
-					return new VariableAdapter(varname, 
-						(<FirefoxDebugProtocol.LongStringGrip>grip).initial);
+					return new VariableAdapter(
+						varname, referenceExpression,
+						(<FirefoxDebugProtocol.LongStringGrip>grip).initial, threadAdapter);
 
 				case 'symbol':
 
-					return new VariableAdapter(varname,
-						(<FirefoxDebugProtocol.SymbolGrip>grip).name);
+					return new VariableAdapter(
+						varname, referenceExpression,
+						(<FirefoxDebugProtocol.SymbolGrip>grip).name, threadAdapter);
 
 				case 'object':
 
 					let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
 					let vartype = objectGrip.class;
-					let objectGripAdapter = threadAdapter.getOrCreateObjectGripAdapter(objectGrip, threadLifetime);
-					return new VariableAdapter(varname, vartype, objectGripAdapter);
+					return new VariableAdapter(
+						varname, referenceExpression, vartype, threadAdapter,
+						objectGrip, threadLifetime);
 
 				default:
 
 					log.warn(`Unexpected object grip of type ${grip.type}: ${JSON.stringify(grip)}`);
-					return new VariableAdapter(varname, grip.type);
+					return new VariableAdapter(varname, referenceExpression, grip.type, threadAdapter);
 
 			}
 		}
 	}
 
-	public static fromPropertyDescriptor(varname: string, propertyDescriptor: FirefoxDebugProtocol.PropertyDescriptor, 
-		threadLifetime: boolean, threadAdapter: ThreadAdapter): VariableAdapter {
-			
+	public static fromPropertyDescriptor(
+		varname: string,
+		parentReferenceExpression: string | undefined,
+		propertyDescriptor: FirefoxDebugProtocol.PropertyDescriptor,
+		threadLifetime: boolean,
+		threadAdapter: ThreadAdapter
+	): VariableAdapter {
+
 		if ((<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value !== undefined) {
-			return VariableAdapter.fromGrip(varname, (<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value, threadLifetime, threadAdapter);
+
+			return VariableAdapter.fromGrip(
+				varname, parentReferenceExpression,
+				(<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value,
+				threadLifetime, threadAdapter);
+
 		} else {
-			return new VariableAdapter(varname, 'undefined');
+
+			let referenceExpression = accessorExpression(parentReferenceExpression, varname);
+			return new VariableAdapter(varname, referenceExpression, 'undefined', threadAdapter);
+
 		}
 	}
 
-	public static fromSafeGetterValueDescriptor(varname: string, 
-		safeGetterValueDescriptor: FirefoxDebugProtocol.SafeGetterValueDescriptor, 
-		threadLifetime: boolean, threadAdapter: ThreadAdapter): VariableAdapter {
+	public static fromSafeGetterValueDescriptor(
+		varname: string,
+		parentReferenceExpression: string | undefined,
+		safeGetterValueDescriptor: FirefoxDebugProtocol.SafeGetterValueDescriptor,
+		threadLifetime: boolean,
+		threadAdapter: ThreadAdapter
+	): VariableAdapter {
 
-		return VariableAdapter.fromGrip(varname, safeGetterValueDescriptor.getterValue, threadLifetime, threadAdapter);
+		return VariableAdapter.fromGrip(
+			varname, parentReferenceExpression, safeGetterValueDescriptor.getterValue,
+			threadLifetime, threadAdapter);
 	}
 
 	public static sortVariables(variables: VariableAdapter[]): void {
 		variables.sort((var1, var2) => VariableAdapter.compareStrings(var1.varname, var2.varname));
 	}
-	
+
 	private static compareStrings(s1: string, s2: string): number {
 		if (s1 < s2) {
 			return -1;
@@ -104,5 +134,20 @@ export class VariableAdapter {
 		} else {
 			return 1;
 		}
+	}
+}
+
+const identifierExpression = /^[a-zA-Z_$][a-zA-Z_$]*$/;
+
+function accessorExpression(objectExpression: string | undefined, propertyName: string): string | undefined {
+	if (objectExpression === undefined) {
+		return undefined;
+	} else if (objectExpression === '') {
+		return propertyName;
+	} else if (identifierExpression.test(propertyName)) {
+		return `${objectExpression}.${propertyName}`;
+	} else {
+		const escapedPropertyName = propertyName.replace('\\', '\\\\').replace('\'', '\\\'');
+		return `${objectExpression}['${escapedPropertyName}']`;
 	}
 }

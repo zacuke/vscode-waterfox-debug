@@ -1183,12 +1183,14 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			} else {
 
 				let args = consoleEvent.arguments.map((grip, index) =>
-					VariableAdapter.fromGrip(String(index), grip, true, threadAdapter));
+					VariableAdapter.fromGrip(String(index), undefined, grip, true, threadAdapter));
 
 				if (this.showConsoleCallLocation) {
 					let filename = this.convertFirefoxUrlToPath(consoleEvent.filename);
-					let locationVar = new VariableAdapter('location',
-					`(${filename}:${consoleEvent.lineNumber}:${consoleEvent.columnNumber})`);
+					let locationVar = new VariableAdapter(
+						'location', undefined,
+						`(${filename}:${consoleEvent.lineNumber}:${consoleEvent.columnNumber})`,
+						threadAdapter);
 					args.push(locationVar);
 				}
 

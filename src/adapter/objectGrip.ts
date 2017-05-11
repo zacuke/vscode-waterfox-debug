@@ -2,21 +2,20 @@ import { ThreadAdapter, VariablesProvider, VariableAdapter } from './index';
 import { ObjectGripActorProxy } from '../firefox/index';
 
 export class ObjectGripAdapter implements VariablesProvider {
-	
-	public isThreadLifetime: boolean;
+
 	public variablesProviderId: number;
-	public threadAdapter: ThreadAdapter;
-	public get actor(): ObjectGripActorProxy {
-		return this._actor;
+	public readonly actor: ObjectGripActorProxy;
+	public get threadAdapter(): ThreadAdapter {
+		return this.variableAdapter.threadAdapter;
 	}
-	
-	private _actor: ObjectGripActorProxy;
 
-	public constructor(objectGrip: FirefoxDebugProtocol.ObjectGrip, threadLifetime: boolean, threadAdapter: ThreadAdapter) {
+	public constructor(
+		private readonly variableAdapter: VariableAdapter,
+		objectGrip: FirefoxDebugProtocol.ObjectGrip,
+		public readonly threadLifetime: boolean
+	) {
 
-		this.threadAdapter = threadAdapter;
-		this._actor = threadAdapter.debugSession.getOrCreateObjectGripActorProxy(objectGrip);
-		this.isThreadLifetime = threadLifetime;
+		this.actor = this.threadAdapter.debugSession.getOrCreateObjectGripActorProxy(objectGrip);
 
 		this.threadAdapter.debugSession.registerVariablesProvider(this);
 	}
@@ -34,21 +33,27 @@ export class ObjectGripAdapter implements VariablesProvider {
 
 		for (let varname in prototypeAndProperties.ownProperties) {
 			if (!safeGetterValues[varname]) {
-				variables.push(VariableAdapter.fromPropertyDescriptor(varname,
-					prototypeAndProperties.ownProperties[varname], this.isThreadLifetime, this.threadAdapter));
+				variables.push(VariableAdapter.fromPropertyDescriptor(
+					varname, this.variableAdapter.referenceExpression,
+					prototypeAndProperties.ownProperties[varname],
+					this.threadLifetime, this.threadAdapter));
 			}
 		}
 
 		for (let varname in safeGetterValues) {
-			variables.push(VariableAdapter.fromSafeGetterValueDescriptor(varname, 
-				safeGetterValues[varname], this.isThreadLifetime, this.threadAdapter));
+			variables.push(VariableAdapter.fromSafeGetterValueDescriptor(
+				varname, this.variableAdapter.referenceExpression,
+				safeGetterValues[varname],
+				this.threadLifetime, this.threadAdapter));
 		}
 
 		VariableAdapter.sortVariables(variables);
 
 		if (prototypeAndProperties.prototype.type !== 'null') {
-			variables.push(VariableAdapter.fromGrip('__proto__', 
-				prototypeAndProperties.prototype, this.isThreadLifetime, this.threadAdapter));
+			variables.push(VariableAdapter.fromGrip(
+				'__proto__', this.variableAdapter.referenceExpression,
+				prototypeAndProperties.prototype,
+				this.threadLifetime, this.threadAdapter));
 		}
 
 		return variables;

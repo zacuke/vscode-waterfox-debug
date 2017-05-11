@@ -4,7 +4,7 @@ import { Scope } from 'vscode-debugadapter';
 export interface VariablesProvider {
 	variablesProviderId: number;
 	threadAdapter: ThreadAdapter;
-	isThreadLifetime: boolean;
+	threadLifetime: boolean;
 	getVariables(): Promise<VariableAdapter[]>;
 }
 
@@ -15,7 +15,7 @@ export abstract class ScopeAdapter implements VariablesProvider {
 	public thisVariable: VariableAdapter;
 	public returnVariable: VariableAdapter;
 	public threadAdapter: ThreadAdapter;
-	public isThreadLifetime = false;
+	public threadLifetime = false;
 	
 	protected constructor(name: string, threadAdapter: ThreadAdapter) {
 		this.threadAdapter = threadAdapter;
@@ -33,11 +33,13 @@ export abstract class ScopeAdapter implements VariablesProvider {
 	}
 
 	public addThis(thisValue: FirefoxDebugProtocol.Grip) {
-		this.thisVariable = VariableAdapter.fromGrip('this', thisValue, false, this.threadAdapter);
+		this.thisVariable = VariableAdapter.fromGrip(
+			'this', '', thisValue, false, this.threadAdapter);
 	}
 
 	public addReturnValue(returnValue: FirefoxDebugProtocol.Grip) {
-		this.returnVariable = VariableAdapter.fromGrip('Return value', returnValue, false, this.threadAdapter);
+		this.returnVariable = VariableAdapter.fromGrip(
+			'Return value', undefined, returnValue, false, this.threadAdapter);
 	}
 
 	public getScope(): Scope {
@@ -87,7 +89,7 @@ export class SingleValueScopeAdapter extends ScopeAdapter {
 
 	public constructor(name: string, grip: FirefoxDebugProtocol.Grip, threadAdapter: ThreadAdapter) {
 		super(name, threadAdapter);
-		this.variableAdapter = VariableAdapter.fromGrip('', grip, false, threadAdapter);
+		this.variableAdapter = VariableAdapter.fromGrip('', '', grip, false, threadAdapter);
 	}
 
 	protected getVariablesInt(): Promise<VariableAdapter[]> {
@@ -102,35 +104,33 @@ export class SingleValueScopeAdapter extends ScopeAdapter {
 
 export class ObjectScopeAdapter extends ScopeAdapter {
 
-	private objectGripAdapter: ObjectGripAdapter;
+	private variableAdapter: VariableAdapter;
 
 	public constructor(name: string, object: FirefoxDebugProtocol.ObjectGrip, threadAdapter: ThreadAdapter) {
 		super(name, threadAdapter);
-		this.objectGripAdapter = threadAdapter.getOrCreateObjectGripAdapter(object, false);
+		this.variableAdapter = VariableAdapter.fromGrip('', '', object, false, threadAdapter);
 	}
 
 	protected getVariablesInt(): Promise<VariableAdapter[]> {
-		return this.objectGripAdapter.getVariables();
+		return this.variableAdapter.objectGripAdapter!.getVariables();
 	}
 
 	protected getObjectGripAdaptersInt(): ObjectGripAdapter[] {
-		return [this.objectGripAdapter];
+		return [this.variableAdapter.objectGripAdapter!];
 	}
 }
 
 export class LocalVariablesScopeAdapter extends ScopeAdapter {
 
 	public name: string;
-	public variableDescriptors: FirefoxDebugProtocol.PropertyDescriptors;
 	public variables: VariableAdapter[] = [];
 
 	public constructor(name: string, variableDescriptors: FirefoxDebugProtocol.PropertyDescriptors, threadAdapter: ThreadAdapter) {
 		super(name, threadAdapter);
-		this.variableDescriptors = variableDescriptors;
 
-		for (let varname in this.variableDescriptors) {
+		for (let varname in variableDescriptors) {
 			this.variables.push(VariableAdapter.fromPropertyDescriptor(
-				varname, this.variableDescriptors[varname], false, this.threadAdapter));
+				varname, '', variableDescriptors[varname], false, this.threadAdapter));
 		}
 
 		VariableAdapter.sortVariables(this.variables);
@@ -150,23 +150,21 @@ export class LocalVariablesScopeAdapter extends ScopeAdapter {
 export class FunctionScopeAdapter extends ScopeAdapter {
 
 	public name: string;
-	public bindings: FirefoxDebugProtocol.FunctionBindings;
 	public variables: VariableAdapter[] = [];
 
 	public constructor(name: string, bindings: FirefoxDebugProtocol.FunctionBindings, threadAdapter: ThreadAdapter) {
 		super(name, threadAdapter);
-		this.bindings = bindings;
 
-		this.bindings.arguments.forEach((arg) => {
+		bindings.arguments.forEach((arg) => {
 			for (let varname in arg) {
 				this.variables.push(VariableAdapter.fromPropertyDescriptor(
-					varname, arg[varname], false, this.threadAdapter));
+					varname, '', arg[varname], false, this.threadAdapter));
 			}
 		});
 
-		for (let varname in this.bindings.variables) {
+		for (let varname in bindings.variables) {
 			this.variables.push(VariableAdapter.fromPropertyDescriptor(
-				varname, this.bindings.variables[varname], false, this.threadAdapter));
+				varname, '', bindings.variables[varname], false, this.threadAdapter));
 		}
 
 		VariableAdapter.sortVariables(this.variables);

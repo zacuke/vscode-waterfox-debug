@@ -34,7 +34,6 @@ export class ThreadAdapter extends EventEmitter {
 	private frames: FrameAdapter[] = [];
 	private scopes: ScopeAdapter[] = [];
 
-	private objectGripAdaptersByActorName = new Map<string, ObjectGripAdapter>();
 	private pauseLifetimeObjects: ObjectGripAdapter[] = [];
 
 	private threadPausedReason?: FirefoxDebugProtocol.ThreadPausedReason;
@@ -93,23 +92,6 @@ export class ThreadAdapter extends EventEmitter {
 		let adapter = new SourceAdapter(id, actor, path);
 		this.sources.push(adapter);
 		return adapter;
-	}
-
-	public getOrCreateObjectGripAdapter(objectGrip: FirefoxDebugProtocol.ObjectGrip, threadLifetime: boolean) {
-
-		let objectGripAdapter = this.objectGripAdaptersByActorName.get(objectGrip.actor);
-
-		if (objectGripAdapter === undefined) {
-
-			objectGripAdapter = new ObjectGripAdapter(objectGrip, threadLifetime, this);
-			this.objectGripAdaptersByActorName.set(objectGrip.actor, objectGripAdapter);
-			if (!threadLifetime) {
-				this.pauseLifetimeObjects.push(objectGripAdapter);
-			}
-
-		}
-
-		return objectGripAdapter;
 	}
 
 	public registerScopeAdapter(scopeAdapter: ScopeAdapter) {
@@ -239,7 +221,7 @@ export class ThreadAdapter extends EventEmitter {
 
 			async (variableAdapters) => {
 
-				if (!variablesProvider.isThreadLifetime) {
+				if (!variablesProvider.threadLifetime) {
 
 					let objectGripAdapters = variableAdapters
 						.map((variableAdapter) => variableAdapter.objectGripAdapter)
@@ -298,9 +280,9 @@ export class ThreadAdapter extends EventEmitter {
 
 	private variableFromGrip(grip: FirefoxDebugProtocol.Grip | undefined, threadLifetime: boolean): VariableAdapter {
 		if (grip !== undefined) {
-			return VariableAdapter.fromGrip('', grip, threadLifetime, this);
+			return VariableAdapter.fromGrip('', undefined, grip, threadLifetime, this);
 		} else {
-			return new VariableAdapter('', 'undefined');
+			return new VariableAdapter('', undefined, 'undefined', this);
 		}
 	}
 
@@ -321,7 +303,6 @@ export class ThreadAdapter extends EventEmitter {
 
 		this.pauseLifetimeObjects.forEach((objectGripAdapter) => {
 			objectGripAdapter.dispose();
-			this.objectGripAdaptersByActorName.delete(objectGripAdapter.actor.name);
 		});
 		this.pauseLifetimeObjects = [];
 
