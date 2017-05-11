@@ -1,6 +1,7 @@
 import { Log } from '../util/log';
 import { ThreadAdapter, ObjectGripAdapter } from './index';
 import { Variable } from 'vscode-debugadapter';
+import { DebugProtocol } from "vscode-debugprotocol";
 
 let log = Log.create('VariableAdapter');
 
@@ -22,8 +23,13 @@ export class VariableAdapter {
 	}
 
 	public getVariable(): Variable {
-		return new Variable(this.varname, this.displayValue,
+
+		let variable = new Variable(this.varname, this.displayValue,
 			this.objectGripAdapter ? this.objectGripAdapter.variablesProviderId : undefined);
+
+		(<DebugProtocol.Variable>variable).evaluateName = this.referenceExpression;
+
+		return variable;
 	}
 
 	public static fromGrip(
