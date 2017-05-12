@@ -47,6 +47,11 @@ export class ThreadCoordinator extends EventEmitter {
 
 				threadActor.resume(this.exceptionBreakpoints);
 
+			} else if ((reason.type === 'exception') && 
+						(this.exceptionBreakpoints === ExceptionBreakpoints.None)) {
+
+				threadActor.resume(this.exceptionBreakpoints);
+
 			} else {
 
 				this.threadTarget = 'paused';
