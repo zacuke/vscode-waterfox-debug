@@ -54,6 +54,8 @@ export class ConsoleAPICallAdapter implements VariablesProvider {
 
 	public readonly variablesProviderId: number;
 	public readonly threadLifetime = true;
+	public readonly referenceExpression = undefined;
+	public readonly referenceFrame = undefined;
 
 	public constructor(private variables: VariableAdapter[], public threadAdapter: ThreadAdapter) {
 		this.variablesProviderId = threadAdapter.debugSession.registerVariablesProvider(this);

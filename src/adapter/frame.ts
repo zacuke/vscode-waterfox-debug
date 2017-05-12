@@ -21,7 +21,7 @@ export class FrameAdapter {
 		this.threadAdapter.debugSession.registerFrameAdapter(this);
 
 		let environmentAdapter = EnvironmentAdapter.from(this.frame.environment);
-		this.scopeAdapters = environmentAdapter.getScopeAdapters(this.threadAdapter);
+		this.scopeAdapters = environmentAdapter.getScopeAdapters(this);
 		this.scopeAdapters[0].addThis(this.frame.this);
 	}
 

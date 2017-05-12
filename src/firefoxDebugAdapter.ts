@@ -10,7 +10,7 @@ import debounce = require('debounce');
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, ContinuedEvent, Thread, Variable, Breakpoint } from 'vscode-debugadapter';
 import { Log } from './util/log';
-import { delay } from "./util/misc";
+import { delay, accessorExpression } from "./util/misc";
 import { createXpi, buildAddonDir, findAddonId } from './util/addon';
 import { launchFirefox, connect, waitForSocket } from './util/launcher';
 import { DebugAdapterBase } from './debugAdapterBase';
@@ -87,6 +87,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			supportsEvaluateForHovers: false,
 			supportsFunctionBreakpoints: false,
 			supportsConditionalBreakpoints: true,
+			supportsSetVariable: true,
 			exceptionBreakpointFilters: [
 				{
 					filter: 'all',
@@ -411,6 +412,24 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 			return { variables: [new Variable('Error from debugger', msg)]};
 		}
+	}
+
+	protected async setVariable(args: DebugProtocol.SetVariableArguments): Promise<{ value: string, variablesReference?: number }> {
+
+		let variablesProvider = this.variablesProvidersById.get(args.variablesReference);
+		if (variablesProvider === undefined) {
+			throw new Error('Failed setVariableRequest: the requested context can\'t be found')
+		}
+		if (variablesProvider.referenceFrame === undefined) {
+			throw new Error('Failed setVariableRequest: the requested context has no associated stack frame');
+		}
+
+		let referenceExpression = accessorExpression(variablesProvider.referenceExpression, args.name);
+		let setterExpression = `${referenceExpression} = ${args.value}`;
+		let frameActorName = variablesProvider.referenceFrame.frame.actor;
+		let result = await variablesProvider.threadAdapter.consoleEvaluate(setterExpression, frameActorName);
+
+		return { value: result.value, variablesReference: result.variablesReference };
 	}
 
 	protected async evaluate(args: DebugProtocol.EvaluateArguments): Promise<{ result: string, type?: string, variablesReference: number, namedVariables?: number, indexedVariables?: number }> {
@@ -1183,12 +1202,12 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			} else {
 
 				let args = consoleEvent.arguments.map((grip, index) =>
-					VariableAdapter.fromGrip(String(index), undefined, grip, true, threadAdapter));
+					VariableAdapter.fromGrip(String(index), undefined, undefined, grip, true, threadAdapter));
 
 				if (this.showConsoleCallLocation) {
 					let filename = this.convertFirefoxUrlToPath(consoleEvent.filename);
 					let locationVar = new VariableAdapter(
-						'location', undefined,
+						'location', undefined, undefined,
 						`(${filename}:${consoleEvent.lineNumber}:${consoleEvent.columnNumber})`,
 						threadAdapter);
 					args.push(locationVar);

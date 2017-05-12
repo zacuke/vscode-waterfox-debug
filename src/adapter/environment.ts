@@ -1,6 +1,6 @@
 import { Log } from '../util/log';
 import { ScopeAdapter, ObjectScopeAdapter, LocalVariablesScopeAdapter, FunctionScopeAdapter } from './scope';
-import { ThreadAdapter } from './thread';
+import { FrameAdapter } from "./frame";
 
 let log = Log.create('EnvironmentAdapter');
 
@@ -31,30 +31,30 @@ export abstract class EnvironmentAdapter {
 		}
 	}
 
-	public getScopeAdapters(threadAdapter: ThreadAdapter): ScopeAdapter[] {
+	public getScopeAdapters(frameAdapter: FrameAdapter): ScopeAdapter[] {
 
-		let scopes = this.getAllScopeAdapters(threadAdapter);
+		let scopes = this.getAllScopeAdapters(frameAdapter);
 
 		return scopes;
 	}
 
-	protected getAllScopeAdapters(threadAdapter: ThreadAdapter): ScopeAdapter[] {
+	protected getAllScopeAdapters(frameAdapter: FrameAdapter): ScopeAdapter[] {
 
 		let scopes: ScopeAdapter[];
 
 		if (this.parent !== undefined) {
-			scopes = this.parent.getAllScopeAdapters(threadAdapter);
+			scopes = this.parent.getAllScopeAdapters(frameAdapter);
 		} else {
 			scopes = [];
 		}
 
-		let ownScope = this.getOwnScopeAdapter(threadAdapter);
+		let ownScope = this.getOwnScopeAdapter(frameAdapter);
 		scopes.unshift(ownScope);
 
 		return scopes;
 	}
 
-	protected abstract getOwnScopeAdapter(threadAdapter: ThreadAdapter): ScopeAdapter;
+	protected abstract getOwnScopeAdapter(frameAdapter: FrameAdapter): ScopeAdapter;
 }
 
 export class ObjectEnvironmentAdapter extends EnvironmentAdapter {
@@ -65,7 +65,7 @@ export class ObjectEnvironmentAdapter extends EnvironmentAdapter {
 		super(environment);
 	}
 
-	protected getOwnScopeAdapter(threadAdapter: ThreadAdapter): ScopeAdapter {
+	protected getOwnScopeAdapter(frameAdapter: FrameAdapter): ScopeAdapter {
 
 		let grip = this.environment.object;
 		
@@ -81,7 +81,7 @@ export class ObjectEnvironmentAdapter extends EnvironmentAdapter {
 
 			let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
 			let name = `Object: ${objectGrip.class}`;
-			return new ObjectScopeAdapter(name, objectGrip, threadAdapter);
+			return new ObjectScopeAdapter(name, objectGrip, frameAdapter);
 
 		}
 	}
@@ -95,7 +95,7 @@ export class FunctionEnvironmentAdapter extends EnvironmentAdapter {
 		super(environment);
 	}
 
-	protected getOwnScopeAdapter(threadAdapter: ThreadAdapter): ScopeAdapter {
+	protected getOwnScopeAdapter(frameAdapter: FrameAdapter): ScopeAdapter {
 
 		let func = this.environment.function;
 		let scopeName: string;
@@ -112,7 +112,7 @@ export class FunctionEnvironmentAdapter extends EnvironmentAdapter {
 
 		}
 
-		return new FunctionScopeAdapter(scopeName, this.environment.bindings, threadAdapter);
+		return new FunctionScopeAdapter(scopeName, this.environment.bindings, frameAdapter);
 	}
 }
 
@@ -124,7 +124,7 @@ export class WithEnvironmentAdapter extends EnvironmentAdapter {
 		super(environment);
 	}
 
-	protected getOwnScopeAdapter(threadAdapter: ThreadAdapter): ScopeAdapter {
+	protected getOwnScopeAdapter(frameAdapter: FrameAdapter): ScopeAdapter {
 
 		let grip = this.environment.object;
 
@@ -140,7 +140,7 @@ export class WithEnvironmentAdapter extends EnvironmentAdapter {
 
 			let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
 			let name = `With: ${objectGrip.class}`;
-			return new ObjectScopeAdapter(name, objectGrip, threadAdapter);
+			return new ObjectScopeAdapter(name, objectGrip, frameAdapter);
 
 		}
 	}
@@ -154,9 +154,9 @@ export class BlockEnvironmentAdapter extends EnvironmentAdapter {
 		super(environment);
 	}
 
-	protected getOwnScopeAdapter(threadAdapter: ThreadAdapter): ScopeAdapter {
+	protected getOwnScopeAdapter(frameAdapter: FrameAdapter): ScopeAdapter {
 
-		return new LocalVariablesScopeAdapter('Block', this.environment.bindings.variables, threadAdapter);
+		return new LocalVariablesScopeAdapter('Block', this.environment.bindings.variables, frameAdapter);
 
 	}
 }

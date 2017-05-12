@@ -41,3 +41,19 @@ export function exceptionGripToString(grip: FirefoxDebugProtocol.Grip | null | u
 
 	return 'unknown error';
 }
+
+
+const identifierExpression = /^[a-zA-Z_$][a-zA-Z_$]*$/;
+
+export function accessorExpression(objectExpression: string | undefined, propertyName: string): string | undefined {
+	if (objectExpression === undefined) {
+		return undefined;
+	} else if (objectExpression === '') {
+		return propertyName;
+	} else if (identifierExpression.test(propertyName)) {
+		return `${objectExpression}.${propertyName}`;
+	} else {
+		const escapedPropertyName = propertyName.replace('\\', '\\\\').replace('\'', '\\\'');
+		return `${objectExpression}['${escapedPropertyName}']`;
+	}
+}

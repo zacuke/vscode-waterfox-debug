@@ -178,13 +178,13 @@ export class ThreadAdapter extends EventEmitter {
 						} else if (this.threadPausedReason.frameFinished.throw !== undefined) {
 
 							frameAdapters[0].scopeAdapters.unshift(ScopeAdapter.fromGrip(
-								'Exception', this.threadPausedReason.frameFinished.throw, this));
+								'Exception', this.threadPausedReason.frameFinished.throw, frameAdapters[0]));
 						}
 
 					} else if (this.threadPausedReason.exception !== undefined) {
 
 							frameAdapters[0].scopeAdapters.unshift(ScopeAdapter.fromGrip(
-								'Exception', this.threadPausedReason.exception, this));
+								'Exception', this.threadPausedReason.exception, frameAdapters[0]));
 					}
 				}
 
@@ -280,9 +280,9 @@ export class ThreadAdapter extends EventEmitter {
 
 	private variableFromGrip(grip: FirefoxDebugProtocol.Grip | undefined, threadLifetime: boolean): VariableAdapter {
 		if (grip !== undefined) {
-			return VariableAdapter.fromGrip('', undefined, grip, threadLifetime, this);
+			return VariableAdapter.fromGrip('', undefined, undefined, grip, threadLifetime, this);
 		} else {
-			return new VariableAdapter('', undefined, 'undefined', this);
+			return new VariableAdapter('', undefined, undefined, 'undefined', this);
 		}
 	}
 

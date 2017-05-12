@@ -1,7 +1,8 @@
 import { Log } from '../util/log';
-import { ThreadAdapter, ObjectGripAdapter } from './index';
+import { ThreadAdapter, ObjectGripAdapter, FrameAdapter } from './index';
 import { Variable } from 'vscode-debugadapter';
 import { DebugProtocol } from "vscode-debugprotocol";
+import { accessorExpression } from "../util/misc";
 
 let log = Log.create('VariableAdapter');
 
@@ -12,6 +13,7 @@ export class VariableAdapter {
 	public constructor(
 		public readonly varname: string,
 		public readonly referenceExpression: string | undefined,
+		public readonly referenceFrame: FrameAdapter | undefined,
 		public readonly displayValue: string,
 		public readonly threadAdapter: ThreadAdapter,
 		objectGrip?: FirefoxDebugProtocol.ObjectGrip,
@@ -35,6 +37,7 @@ export class VariableAdapter {
 	public static fromGrip(
 		varname: string,
 		parentReferenceExpression: string | undefined,
+		referenceFrame: FrameAdapter | undefined,
 		grip: FirefoxDebugProtocol.Grip,
 		threadLifetime: boolean,
 		threadAdapter: ThreadAdapter
@@ -44,11 +47,11 @@ export class VariableAdapter {
 
 		if ((typeof grip === 'boolean') || (typeof grip === 'number')) {
 
-			return new VariableAdapter(varname, referenceExpression, grip.toString(), threadAdapter);
+			return new VariableAdapter(varname, referenceExpression, referenceFrame, grip.toString(), threadAdapter);
 
 		} else if (typeof grip === 'string') {
 
-			return new VariableAdapter(varname, referenceExpression, `"${grip}"`, threadAdapter);
+			return new VariableAdapter(varname, referenceExpression, referenceFrame, `"${grip}"`, threadAdapter);
 
 		} else {
 
@@ -61,18 +64,19 @@ export class VariableAdapter {
 				case 'NaN':
 				case '-0':
 
-					return new VariableAdapter(varname, referenceExpression, grip.type, threadAdapter);
+					return new VariableAdapter(
+						varname, referenceExpression, referenceFrame, grip.type, threadAdapter);
 
 				case 'longString':
 
 					return new VariableAdapter(
-						varname, referenceExpression,
+						varname, referenceExpression, referenceFrame,
 						(<FirefoxDebugProtocol.LongStringGrip>grip).initial, threadAdapter);
 
 				case 'symbol':
 
 					return new VariableAdapter(
-						varname, referenceExpression,
+						varname, referenceExpression, referenceFrame,
 						(<FirefoxDebugProtocol.SymbolGrip>grip).name, threadAdapter);
 
 				case 'object':
@@ -80,13 +84,14 @@ export class VariableAdapter {
 					let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
 					let vartype = objectGrip.class;
 					return new VariableAdapter(
-						varname, referenceExpression, vartype, threadAdapter,
+						varname, referenceExpression, referenceFrame, vartype, threadAdapter,
 						objectGrip, threadLifetime);
 
 				default:
 
 					log.warn(`Unexpected object grip of type ${grip.type}: ${JSON.stringify(grip)}`);
-					return new VariableAdapter(varname, referenceExpression, grip.type, threadAdapter);
+					return new VariableAdapter(
+						varname, referenceExpression, referenceFrame, grip.type, threadAdapter);
 
 			}
 		}
@@ -95,6 +100,7 @@ export class VariableAdapter {
 	public static fromPropertyDescriptor(
 		varname: string,
 		parentReferenceExpression: string | undefined,
+		referenceFrame: FrameAdapter | undefined,
 		propertyDescriptor: FirefoxDebugProtocol.PropertyDescriptor,
 		threadLifetime: boolean,
 		threadAdapter: ThreadAdapter
@@ -103,14 +109,15 @@ export class VariableAdapter {
 		if ((<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value !== undefined) {
 
 			return VariableAdapter.fromGrip(
-				varname, parentReferenceExpression,
+				varname, parentReferenceExpression, referenceFrame,
 				(<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value,
 				threadLifetime, threadAdapter);
 
 		} else {
 
 			let referenceExpression = accessorExpression(parentReferenceExpression, varname);
-			return new VariableAdapter(varname, referenceExpression, 'undefined', threadAdapter);
+			return new VariableAdapter(
+				varname, referenceExpression, referenceFrame, 'undefined', threadAdapter);
 
 		}
 	}
@@ -118,14 +125,15 @@ export class VariableAdapter {
 	public static fromSafeGetterValueDescriptor(
 		varname: string,
 		parentReferenceExpression: string | undefined,
+		referenceFrame: FrameAdapter | undefined,
 		safeGetterValueDescriptor: FirefoxDebugProtocol.SafeGetterValueDescriptor,
 		threadLifetime: boolean,
 		threadAdapter: ThreadAdapter
 	): VariableAdapter {
 
 		return VariableAdapter.fromGrip(
-			varname, parentReferenceExpression, safeGetterValueDescriptor.getterValue,
-			threadLifetime, threadAdapter);
+			varname, parentReferenceExpression, referenceFrame, 
+			safeGetterValueDescriptor.getterValue, threadLifetime, threadAdapter);
 	}
 
 	public static sortVariables(variables: VariableAdapter[]): void {
@@ -140,20 +148,5 @@ export class VariableAdapter {
 		} else {
 			return 1;
 		}
-	}
-}
-
-const identifierExpression = /^[a-zA-Z_$][a-zA-Z_$]*$/;
-
-function accessorExpression(objectExpression: string | undefined, propertyName: string): string | undefined {
-	if (objectExpression === undefined) {
-		return undefined;
-	} else if (objectExpression === '') {
-		return propertyName;
-	} else if (identifierExpression.test(propertyName)) {
-		return `${objectExpression}.${propertyName}`;
-	} else {
-		const escapedPropertyName = propertyName.replace('\\', '\\\\').replace('\'', '\\\'');
-		return `${objectExpression}['${escapedPropertyName}']`;
 	}
 }

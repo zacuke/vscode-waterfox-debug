@@ -23,6 +23,7 @@ export abstract class DebugAdapterBase extends DebugSession {
 	protected abstract getStackTrace(args: DebugProtocol.StackTraceArguments): Promise<{ stackFrames: DebugProtocol.StackFrame[], totalFrames?: number }>;
 	protected abstract getScopes(args: DebugProtocol.ScopesArguments): { scopes: DebugProtocol.Scope[] };
 	protected abstract getVariables(args: DebugProtocol.VariablesArguments): Promise<{ variables: DebugProtocol.Variable[] }>;
+	protected abstract setVariable(args: DebugProtocol.SetVariableArguments): Promise<{ value: string, variablesReference?: number }>;
 	protected abstract evaluate(args: DebugProtocol.EvaluateArguments): Promise<{ result: string, type?: string, variablesReference: number, namedVariables?: number, indexedVariables?: number }>;
 	protected abstract reloadAddon(): Promise<void>;
 	protected abstract rebuildAddon(): Promise<void>;
@@ -89,6 +90,10 @@ export abstract class DebugAdapterBase extends DebugSession {
 
 	protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): void {
 		this.handleRequestAsync(response, () => this.getVariables(args));
+	}
+
+	protected setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments): void {
+		this.handleRequestAsync(response, () => this.setVariable(args));
 	}
 
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {

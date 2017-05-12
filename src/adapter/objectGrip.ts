@@ -1,4 +1,4 @@
-import { ThreadAdapter, VariablesProvider, VariableAdapter } from './index';
+import { ThreadAdapter, VariablesProvider, VariableAdapter, FrameAdapter } from './index';
 import { ObjectGripActorProxy } from '../firefox/index';
 
 export class ObjectGripAdapter implements VariablesProvider {
@@ -7,6 +7,12 @@ export class ObjectGripAdapter implements VariablesProvider {
 	public readonly actor: ObjectGripActorProxy;
 	public get threadAdapter(): ThreadAdapter {
 		return this.variableAdapter.threadAdapter;
+	}
+	public get referenceExpression(): string | undefined {
+		return this.variableAdapter.referenceExpression;
+	}
+	public get referenceFrame(): FrameAdapter | undefined {
+		return this.variableAdapter.referenceFrame;
 	}
 
 	public constructor(
@@ -32,7 +38,7 @@ export class ObjectGripAdapter implements VariablesProvider {
 		for (let varname in prototypeAndProperties.ownProperties) {
 			if (!safeGetterValues[varname]) {
 				variables.push(VariableAdapter.fromPropertyDescriptor(
-					varname, this.variableAdapter.referenceExpression,
+					varname, this.referenceExpression, this.referenceFrame,
 					prototypeAndProperties.ownProperties[varname],
 					this.threadLifetime, this.threadAdapter));
 			}
@@ -40,7 +46,7 @@ export class ObjectGripAdapter implements VariablesProvider {
 
 		for (let varname in safeGetterValues) {
 			variables.push(VariableAdapter.fromSafeGetterValueDescriptor(
-				varname, this.variableAdapter.referenceExpression,
+				varname, this.referenceExpression, this.referenceFrame,
 				safeGetterValues[varname],
 				this.threadLifetime, this.threadAdapter));
 		}
@@ -49,7 +55,7 @@ export class ObjectGripAdapter implements VariablesProvider {
 
 		if (prototypeAndProperties.prototype.type !== 'null') {
 			variables.push(VariableAdapter.fromGrip(
-				'__proto__', this.variableAdapter.referenceExpression,
+				'__proto__', this.referenceExpression, this.referenceFrame,
 				prototypeAndProperties.prototype,
 				this.threadLifetime, this.threadAdapter));
 		}
