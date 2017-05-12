@@ -35,6 +35,7 @@ export class ThreadAdapter extends EventEmitter {
 	private scopes: ScopeAdapter[] = [];
 
 	private pauseLifetimeObjects: ObjectGripAdapter[] = [];
+	private threadLifetimeObjects: ObjectGripAdapter[] = [];
 
 	private threadPausedReason?: FirefoxDebugProtocol.ThreadPausedReason;
 
@@ -96,6 +97,14 @@ export class ThreadAdapter extends EventEmitter {
 
 	public registerScopeAdapter(scopeAdapter: ScopeAdapter) {
 		this.scopes.push(scopeAdapter);
+	}
+
+	public registerObjectGripAdapter(objectGripAdapter: ObjectGripAdapter) {
+		if (objectGripAdapter.threadLifetime) {
+			this.threadLifetimeObjects.push(objectGripAdapter);
+		} else {
+			this.pauseLifetimeObjects.push(objectGripAdapter);
+		}
 	}
 
 	public findCorrespondingSourceAdapter(source: FirefoxDebugProtocol.Source): SourceAdapter | undefined {
@@ -300,15 +309,7 @@ export class ThreadAdapter extends EventEmitter {
 		}
 	}
 
-	private async disposePauseLifetimeAdapters(): Promise<void> {
-
-		let objectGripActorsToRelease = this.pauseLifetimeObjects.map(
-			(objectGripAdapter) => objectGripAdapter.actor.name);
-
-		this.pauseLifetimeObjects.forEach((objectGripAdapter) => {
-			objectGripAdapter.dispose();
-		});
-		this.pauseLifetimeObjects = [];
+	private async disposePauseLifetimeAdapters(threadIsGone: boolean = false): Promise<void> {
 
 		this.scopes.forEach((scopeAdapter) => {
 			scopeAdapter.dispose();
@@ -320,10 +321,54 @@ export class ThreadAdapter extends EventEmitter {
 		});
 		this.frames = [];
 
-		if (objectGripActorsToRelease.length > 0) {
-			try {
-				await this.actor.releaseMany(objectGripActorsToRelease);
-			} catch(err) {}
+		this.pauseLifetimeObjects.forEach((objectGripAdapter) => {
+			objectGripAdapter.dispose();
+		});
+
+		if (!threadIsGone) {
+
+			let objectGripActorsToRelease = this.pauseLifetimeObjects
+			.filter((objectGripAdapter) => (objectGripAdapter.actor.refCount === 0))
+			.map((objectGripAdapter) => objectGripAdapter.actor.name);
+
+			if (objectGripActorsToRelease.length > 0) {
+				try {
+					await this.actor.releaseMany(objectGripActorsToRelease);
+				} catch(err) {}
+			}
+		}
+
+		this.pauseLifetimeObjects = [];
+	}
+
+	public async dispose(threadIsGone: boolean): Promise<void> {
+
+		await this.disposePauseLifetimeAdapters(threadIsGone);
+
+		this.threadLifetimeObjects.forEach((objectGripAdapter) => {
+			objectGripAdapter.dispose();
+		});
+
+		if (!threadIsGone) {
+
+			let objectGripActorsToRelease = this.threadLifetimeObjects
+			.filter((objectGripAdapter) => (objectGripAdapter.actor.refCount === 0))
+			.map((objectGripAdapter) => objectGripAdapter.actor.name);
+
+			if (objectGripActorsToRelease.length > 0) {
+				try {
+					await this.actor.releaseMany(objectGripActorsToRelease);
+				} catch(err) {}
+			}
+		}
+
+		this.sources.forEach((source) => {
+			source.dispose();
+		});
+
+		this.actor.dispose();
+		if (this.consoleActor !== undefined) {
+			this.consoleActor.dispose();
 		}
 	}
 

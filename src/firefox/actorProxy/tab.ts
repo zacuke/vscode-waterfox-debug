@@ -70,6 +70,10 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 		});
 	}
 
+	public dispose(): void {
+		this.connection.unregister(this);
+	}
+
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 
 		if (response['type'] === 'tabAttached') {
@@ -157,8 +161,9 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 				if (!currentWorkers.has(workerActor.name)) {
 					log.debug(`Worker ${workerActor.name} stopped`);
 					this.emit('workerStopped', workerActor);
+					workerActor.dispose();
 				}
-			});					
+			});
 
 			this.workers = currentWorkers;
 			this.pendingWorkersRequests.resolveOne(currentWorkers);

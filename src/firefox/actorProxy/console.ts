@@ -91,6 +91,10 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 		})
 	}
 
+	public dispose(): void {
+		this.connection.unregister(this);
+	}
+
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 
 		if (response['startedListeners']) {

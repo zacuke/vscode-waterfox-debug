@@ -60,6 +60,10 @@ export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 		return this.connectPromise;
 	}
 
+	public dispose(): void {
+		this.connection.unregister(this);
+	}
+
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 
 		if (response['type'] === 'attached') {

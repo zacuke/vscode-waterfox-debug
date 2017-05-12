@@ -59,6 +59,10 @@ export class SourceActorProxy implements ActorProxy {
 		});
 	}
 
+	public dispose(): void {
+		this.connection.unregister(this);
+	}
+
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 		
 		if (response['isPending'] !== undefined) {

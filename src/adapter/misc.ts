@@ -37,6 +37,10 @@ export class SourceAdapter {
 		this.currentBreakpoints = undefined;
 		this.breakpointsPromise.then((breakpoints) => this.currentBreakpoints = breakpoints);
 	}
+
+	public dispose(): void {
+		this.actor.dispose();
+	}
 }
 
 export class BreakpointAdapter {

@@ -7,6 +7,8 @@ let log = Log.create('ObjectGripActorProxy');
 
 export class ObjectGripActorProxy implements ActorProxy {
 
+	private _refCount = 0;
+
 	private pendingThreadGripRequest: PendingRequest<void> | undefined = undefined;
 	private threadGripPromise: Promise<void> | undefined = undefined;
  	private pendingPrototypeAndPropertiesRequests = new PendingRequests<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>();
@@ -17,6 +19,21 @@ export class ObjectGripActorProxy implements ActorProxy {
 
 	public get name() {
 		return this.grip.actor;
+	}
+
+	public get refCount() {
+		return this._refCount;
+	}
+
+	public increaseRefCount() {
+		this._refCount++;
+	}
+
+	public decreaseRefCount() {
+		this._refCount--;
+		if (this._refCount === 0) {
+			this.connection.unregister(this);
+		}
 	}
 
 	public extendLifetime(): Promise<void> {
@@ -45,10 +62,6 @@ export class ObjectGripActorProxy implements ActorProxy {
 			this.pendingPrototypeAndPropertiesRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'prototypeAndProperties' });
 		});
-	}
-
-	public dispose(): void {
-		this.connection.unregister(this);
 	}
 
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {

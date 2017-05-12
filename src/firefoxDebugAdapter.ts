@@ -1050,9 +1050,13 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 					this.sendEvent(new ThreadEvent('exited', threadId));
 				}
 
+				threadAdapter.dispose(true);
+
 				if (this.tabsById.has(tabId)) {
 					this.tabsById.delete(tabId);
 				}
+
+				tabActor.dispose();
 			});
 		}
 
