@@ -25,6 +25,7 @@ export abstract class DebugAdapterBase extends DebugSession {
 	protected abstract getVariables(args: DebugProtocol.VariablesArguments): Promise<{ variables: DebugProtocol.Variable[] }>;
 	protected abstract setVariable(args: DebugProtocol.SetVariableArguments): Promise<{ value: string, variablesReference?: number }>;
 	protected abstract evaluate(args: DebugProtocol.EvaluateArguments): Promise<{ result: string, type?: string, variablesReference: number, namedVariables?: number, indexedVariables?: number }>;
+	protected abstract getCompletions(args: DebugProtocol.CompletionsArguments): Promise<{ targets: DebugProtocol.CompletionItem[] }>;
 	protected abstract reloadAddon(): Promise<void>;
 	protected abstract rebuildAddon(): Promise<void>;
 
@@ -100,7 +101,11 @@ export abstract class DebugAdapterBase extends DebugSession {
 		this.handleRequestAsync(response, () => this.evaluate(args));
 	}
 
-    protected customRequest(command: string, response: DebugProtocol.Response, args: any): void {
+	protected completionsRequest(response: DebugProtocol.CompletionsResponse, args: DebugProtocol.CompletionsArguments): void {
+		this.handleRequestAsync(response, () => this.getCompletions(args));
+	}
+
+	protected customRequest(command: string, response: DebugProtocol.Response, args: any): void {
 		this.handleRequestAsync(response, async () => {
 			switch(command) {
 

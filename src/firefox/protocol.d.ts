@@ -171,6 +171,11 @@ declare namespace FirefoxDebugProtocol {
 		helperResult: any; //?
 	}
 
+	interface AutoCompleteResponse extends Response {
+		matches: string[];
+		matchProp: string;
+	}
+
 	interface ThreadPausedResponse extends TypedResponse {
 		actor: string;
 		frame: Frame;

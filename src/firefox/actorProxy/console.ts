@@ -15,6 +15,7 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 	private pendingStopListenersRequests = new PendingRequests<void>();
 	private pendingResultIDRequests = new PendingRequests<number>();
 	private pendingEvaluateRequests = new Map<number, PendingRequest<FirefoxDebugProtocol.Grip>>();
+	private pendingAutoCompleteRequests = new PendingRequests<string[]>();
 
 	constructor(private _name: string, private connection: DebugConnection) {
 		super();
@@ -79,6 +80,17 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 		})
 	}
 
+	public autoComplete(text: string, column: number, frameActor?: string) {
+		log.debug(`Getting completions for ${text} at position ${column}`);
+
+		return new Promise<string[]>((resolve, reject) => {
+			this.pendingAutoCompleteRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({
+				to: this.name, type: 'autocomplete', text, cursor: column, frameActor
+			})
+		})
+	}
+
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 
 		if (response['startedListeners']) {
@@ -125,6 +137,12 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 
 			log.debug(`Received ResultID message`);
 			this.pendingResultIDRequests.resolveOne(response['resultID']);
+
+		} else if (response['matches']) {
+
+			log.debug(`Received autoComplete response`);
+			this.pendingAutoCompleteRequests.resolveOne(
+				(<FirefoxDebugProtocol.AutoCompleteResponse>response).matches);
 
 		} else {
 

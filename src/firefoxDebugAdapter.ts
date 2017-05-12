@@ -88,6 +88,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			supportsFunctionBreakpoints: false,
 			supportsConditionalBreakpoints: true,
 			supportsSetVariable: true,
+			supportsCompletionsRequest: true,
 			exceptionBreakpointFilters: [
 				{
 					filter: 'all',
@@ -493,6 +494,47 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			result: variable.value,
 			variablesReference: variable.variablesReference
 		};
+	}
+
+	protected async getCompletions(args: DebugProtocol.CompletionsArguments): Promise<{ targets: DebugProtocol.CompletionItem[] }> {
+
+		let matches: string[];
+
+		if (args.frameId !== undefined) {
+
+			let frameAdapter = this.framesById.get(args.frameId);
+
+			if (frameAdapter === undefined) {
+				log.warn(`Couldn\'t find specified frame for auto-completing ${args.text}`);
+				throw 'not available';
+			}
+			if (!frameAdapter.threadAdapter.hasConsole) {
+				log.warn(`Specified frame for auto-completing ${args.text} has no console`);
+				throw 'not available';
+			}
+
+			this.setActiveThread(frameAdapter.threadAdapter);
+
+			let threadAdapter = frameAdapter.threadAdapter;
+			let frameActorName = frameAdapter.frame.actor;
+
+			matches = await threadAdapter.autoComplete(args.text, args.column - 1, frameActorName);
+
+		} else {
+
+			let threadAdapter = this.findConsoleThread();
+
+			if (threadAdapter === undefined) {
+				log.warn(`Couldn't find a console for auto-completing ${args.text}`);
+				throw 'not available';
+			}
+
+			matches = await threadAdapter.autoComplete(args.text, args.column - 1);
+		}
+
+		return { 
+			targets: matches.map((match) => <DebugProtocol.CompletionItem>{ label: match })
+		 };
 	}
 
 	protected async reloadAddon(): Promise<void> {

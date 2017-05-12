@@ -274,6 +274,10 @@ export class ThreadAdapter extends EventEmitter {
 		return variableAdapter.getVariable();
 	}
 
+	public async autoComplete(text: string, column: number, frameActorName?: string): Promise<string[]> {
+		return await this.consoleActor!.autoComplete(text, column, frameActorName);
+	}
+
 	public detach(): Promise<void> {
 		return this.actor.detach();
 	}
