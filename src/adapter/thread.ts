@@ -170,7 +170,6 @@ export class ThreadAdapter extends EventEmitter {
 
 				let frameAdapters = frames.map((frame) => {
 					let frameAdapter = new FrameAdapter(frame, this);
-					this._debugAdapter.registerFrameAdapter(frameAdapter);
 					this.frames.push(frameAdapter);
 					return frameAdapter;
 				});
