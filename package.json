@@ -13,11 +13,11 @@
     "Debuggers"
   ],
   "dependencies": {
-    "chokidar": "^1.6.1",
+    "chokidar": "^1.7.0",
     "debounce": "^1.0.2",
     "firefox-profile": "^1.0.0",
     "fs-extra": "^3.0.1",
-    "minimatch": "^3.0.3",
+    "minimatch": "^3.0.4",
     "semver": "^5.3.0",
     "tslib": "^1.7.0",
     "unzip": "^0.1.11",
@@ -36,9 +36,9 @@
     "@types/semver": "^5.3.31",
     "@types/uuid": "^2.0.29",
     "mocha": "^3.3.0",
-    "nyc": "^10.3.0",
+    "nyc": "^10.3.2",
     "typescript": "^2.3.2",
-    "vsce": "^1.20.0",
+    "vsce": "^1.22.0",
     "vscode": "^1.1.0",
     "vscode-debugadapter-testsupport": "^1.19.0"
   },
