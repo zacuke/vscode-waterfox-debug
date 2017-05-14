@@ -1,3 +1,7 @@
+### Version 0.13.1
+* add support for setting variable values in the debug side bar
+* add support for IntelliSense in the debug console
+
 ### Version 0.13.0
 * add `reloadOnChange` configuration property
 
