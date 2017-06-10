@@ -14,7 +14,7 @@ import { delay, accessorExpression } from "./util/misc";
 import { createXpi, buildAddonDir, findAddonId } from './util/addon';
 import { launchFirefox, connect, waitForSocket } from './util/launcher';
 import { DebugAdapterBase } from './debugAdapterBase';
-import { DebugConnection, RootActorProxy, TabActorProxy, WorkerActorProxy, ThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, SourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
+import { DebugConnection, RootActorProxy, TabActorProxy, WorkerActorProxy, IThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, ISourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, ThreadPauseCoordinator, BreakpointInfo, SourceAdapter, FrameAdapter, VariableAdapter, VariablesProvider, ConsoleAPICallAdapter } from './adapter/index';
 import { CommonConfiguration, LaunchConfiguration, AttachConfiguration, AddonType, ReloadConfiguration, DetailedReloadConfiguration, NormalizedReloadConfiguration } from './adapter/launchConfiguration';
 
@@ -1009,7 +1009,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		let reload = isTab && this.reloadTabs;
 
-		let threadActor: ThreadActorProxy;
+		let threadActor: IThreadActorProxy;
 		try {
 			threadActor = await tabActor.attach();
 		} catch (err) {
@@ -1154,7 +1154,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		});
 	}
 
-	private attachSource(sourceActor: SourceActorProxy, threadAdapter: ThreadAdapter): void {
+	private attachSource(sourceActor: ISourceActorProxy, threadAdapter: ThreadAdapter): void {
 
 		const source = sourceActor.source;
 		const sourcePath = this.convertFirefoxSourceToPath(source);

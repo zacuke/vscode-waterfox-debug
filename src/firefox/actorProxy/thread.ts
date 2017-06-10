@@ -3,10 +3,29 @@ import { EventEmitter } from 'events';
 import { DebugConnection } from '../connection';
 import { PendingRequest, PendingRequests } from './pendingRequests';
 import { ActorProxy } from './interface';
-import { SourceActorProxy } from './source';
+import { ISourceActorProxy, SourceActorProxy } from './source';
 import { exceptionGripToString } from '../../util/misc';
 
 let log = Log.create('ThreadActorProxy');
+
+export interface IThreadActorProxy {
+	name: string;
+	attach(): Promise<void>;
+	resume(exceptionBreakpoints: ExceptionBreakpoints, resumeLimitType?: 'next' | 'step' | 'finish'): Promise<void>;
+	interrupt(immediately?: boolean): Promise<void>;
+	detach(): Promise<void>;
+	fetchSources(): Promise<FirefoxDebugProtocol.Source[]>;
+	fetchStackFrames(start?: number, count?: number): Promise<FirefoxDebugProtocol.Frame[]>;
+	evaluate(expression: string, frameActorName: string): Promise<FirefoxDebugProtocol.Grip>;
+	threadGrips(objectGripActorNames: string[]): Promise<void>;
+	releaseMany(objectGripActorNames: string[]): Promise<void>;
+	onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void): void;
+	onResumed(cb: () => void): void;
+	onExited(cb: () => void): void;
+	onWrongState(cb: () => void): void;
+	onNewSource(cb: (newSource: ISourceActorProxy) => void): void;
+	dispose(): void;
+}
 
 export enum ExceptionBreakpoints {
 	All, Uncaught, None
@@ -15,7 +34,7 @@ export enum ExceptionBreakpoints {
 /**
  * A ThreadActorProxy is a proxy for a "thread-like actor" (a Tab or a WebWorker) in Firefox. 
  */
-export class ThreadActorProxy extends EventEmitter implements ActorProxy {
+export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThreadActorProxy {
 
 	constructor(private _name: string, private connection: DebugConnection) {
 		super();
@@ -453,7 +472,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy {
 		this.on('wrongState', cb);
 	}
 
-	public onNewSource(cb: (newSource: SourceActorProxy) => void) {
+	public onNewSource(cb: (newSource: ISourceActorProxy) => void) {
 		this.on('newSource', cb);
 	}
 }

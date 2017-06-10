@@ -1,7 +1,7 @@
 import { Log } from '../util/log';
 import { EventEmitter } from 'events';
 import { concatArrays } from '../util/misc';
-import { ExceptionBreakpoints, ThreadActorProxy, ConsoleActorProxy, SourceActorProxy } from '../firefox/index';
+import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy, ISourceActorProxy } from '../firefox/index';
 import { ThreadCoordinator, ThreadPauseCoordinator, BreakpointInfo, BreakpointsAdapter, FrameAdapter, ScopeAdapter, SourceAdapter, BreakpointAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
 import { FirefoxDebugAdapter } from '../firefoxDebugAdapter';
 import { Variable } from 'vscode-debugadapter';
@@ -25,7 +25,7 @@ export class ThreadAdapter extends EventEmitter {
 	}
 
 	private _debugAdapter: FirefoxDebugAdapter;
-	private actor: ThreadActorProxy;
+	private actor: IThreadActorProxy;
 	private consoleActor?: ConsoleActorProxy;
 	private coordinator: ThreadCoordinator;
 	private _name: string;
@@ -39,7 +39,7 @@ export class ThreadAdapter extends EventEmitter {
 
 	private threadPausedReason?: FirefoxDebugProtocol.ThreadPausedReason;
 
-	public constructor(id: number, threadActor: ThreadActorProxy, consoleActor: ConsoleActorProxy | undefined,
+	public constructor(id: number, threadActor: IThreadActorProxy, consoleActor: ConsoleActorProxy | undefined,
 		private pauseCoordinator: ThreadPauseCoordinator, name: string, debugAdapter: FirefoxDebugAdapter) {
 
 		super();
@@ -89,7 +89,7 @@ export class ThreadAdapter extends EventEmitter {
 		}
 	}
 
-	public createSourceAdapter(id: number, actor: SourceActorProxy, path?: string): SourceAdapter {
+	public createSourceAdapter(id: number, actor: ISourceActorProxy, path?: string): SourceAdapter {
 		let adapter = new SourceAdapter(id, actor, path);
 		this.sources.push(adapter);
 		return adapter;
@@ -387,7 +387,7 @@ export class ThreadAdapter extends EventEmitter {
 		this.actor.onWrongState(cb);
 	}
 
-	public onNewSource(cb: (newSource: SourceActorProxy) => void) {
+	public onNewSource(cb: (newSource: ISourceActorProxy) => void) {
 		this.actor.onNewSource(cb);
 	}
 }

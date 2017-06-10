@@ -1,6 +1,6 @@
 import { Log } from '../util/log';
 import { EventEmitter } from 'events';
-import { ExceptionBreakpoints, ThreadActorProxy, ConsoleActorProxy } from '../firefox/index';
+import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy } from '../firefox/index';
 import { ThreadPauseCoordinator, PauseType } from './threadPauseCoordinator';
 import { VariableAdapter } from './variable';
 import { DelayedTask } from './delayedTask';
@@ -34,7 +34,7 @@ export class ThreadCoordinator extends EventEmitter {
 	constructor(
 		private threadId: number,
 		private threadName: string,
-		private threadActor: ThreadActorProxy,
+		private threadActor: IThreadActorProxy,
 		private consoleActor: ConsoleActorProxy | undefined,
 		private pauseCoordinator: ThreadPauseCoordinator,
 		private prepareResume: () => Promise<void>) {

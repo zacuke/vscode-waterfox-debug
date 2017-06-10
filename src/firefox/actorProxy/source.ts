@@ -6,7 +6,17 @@ import { BreakpointActorProxy } from './breakpoint';
 
 let log = Log.create('SourceActorProxy');
 
-export class SourceActorProxy implements ActorProxy {
+export interface ISourceActorProxy {
+	name: string;
+	source: FirefoxDebugProtocol.Source;
+	url: string | null;
+	setBreakpoint(location: { line: number, column?: number }, condition?: string): Promise<SetBreakpointResult>;
+	fetchSource(): Promise<FirefoxDebugProtocol.Grip>;
+	setBlackbox(blackbox: boolean): Promise<void>;
+	dispose(): void;
+}
+
+export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 
 	private pendingSetBreakpointRequests = new PendingRequests<SetBreakpointResult>();
 	private pendingFetchSourceRequests = new PendingRequests<FirefoxDebugProtocol.Grip>();

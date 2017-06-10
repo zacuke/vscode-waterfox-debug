@@ -1,10 +1,10 @@
-import { SourceActorProxy, BreakpointActorProxy } from '../firefox/index';
+import { ISourceActorProxy, BreakpointActorProxy } from '../firefox/index';
 import { BreakpointInfo, VariablesProvider, VariableAdapter, ThreadAdapter } from './index';
 
 export class SourceAdapter {
 	
 	public id: number;
-	public actor: SourceActorProxy;
+	public actor: ISourceActorProxy;
 	public sourcePath?: string;
 	// this promise will resolve to the list of breakpoints set on this source
 	private breakpointsPromise: Promise<BreakpointAdapter[]>;
@@ -12,7 +12,7 @@ export class SourceAdapter {
 	// are in the process of being sent to Firefox, in this case use breakpointsPromise
 	private currentBreakpoints?: BreakpointAdapter[];
 
-	public constructor(id: number, actor: SourceActorProxy, sourcePath?: string) {
+	public constructor(id: number, actor: ISourceActorProxy, sourcePath?: string) {
 		this.id = id;
 		this.actor = actor;
 		this.sourcePath = sourcePath;

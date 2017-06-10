@@ -1,13 +1,13 @@
 import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
-import { DebugConnection, ActorProxy, WorkerActorProxy, ThreadActorProxy } from '../index';
+import { DebugConnection, ActorProxy, WorkerActorProxy, IThreadActorProxy, ThreadActorProxy } from '../index';
 import { PendingRequests } from './pendingRequests';
 
 let log = Log.create('TabActorProxy');
 
 export class TabActorProxy extends EventEmitter implements ActorProxy {
 
-	private pendingAttachRequests = new PendingRequests<ThreadActorProxy>();
+	private pendingAttachRequests = new PendingRequests<IThreadActorProxy>();
 	private pendingDetachRequests = new PendingRequests<void>();
 	private pendingWorkersRequests = new PendingRequests<Map<string, WorkerActorProxy>>();
 	private pendingReloadRequests = new PendingRequests<void>();
@@ -30,11 +30,11 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 		return this._url;
 	}
 
-	public attach(): Promise<ThreadActorProxy> {
+	public attach(): Promise<IThreadActorProxy> {
 
 		log.debug(`Attaching to tab ${this.name}`);
 
-		return new Promise<ThreadActorProxy>((resolve, reject) => {
+		return new Promise<IThreadActorProxy>((resolve, reject) => {
 			this.pendingAttachRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'attach' });
 		});
@@ -192,7 +192,7 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 		}
 	}
 
-	public onAttached(cb: (threadActor: ThreadActorProxy) => void) {
+	public onAttached(cb: (threadActor: IThreadActorProxy) => void) {
 		this.on('attached', cb);
 	}
 
