@@ -248,7 +248,7 @@ declare namespace FirefoxDebugProtocol {
 		isPrettyPrinted: boolean;
 		isSourceMapped: boolean;
 		generatedUrl: string | null;
-		sourceMapUrl: string | null;
+		sourceMapURL: string | null;
 		addonID?: string;
 		addonPath?: string;
 	}

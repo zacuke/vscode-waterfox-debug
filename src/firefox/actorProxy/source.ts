@@ -58,7 +58,7 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 		});
 	}
 
-	public setBlackbox(blackbox: boolean) {
+	public setBlackbox(blackbox: boolean): Promise<void> {
 
 		log.debug(`Setting blackboxing of ${this.url} to ${blackbox}`);
 

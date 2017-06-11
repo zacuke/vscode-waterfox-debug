@@ -9,3 +9,5 @@ export { ISourceActorProxy, SourceActorProxy } from './actorProxy/source';
 export { BreakpointActorProxy } from './actorProxy/breakpoint';
 export { ObjectGripActorProxy } from './actorProxy/objectGrip';
 export { LongStringGripActorProxy } from './actorProxy/longString';
+export { SourceMappingThreadActorProxy } from './sourceMaps/thread';
+export { SourceMappingSourceActorProxy } from './sourceMaps/source';
