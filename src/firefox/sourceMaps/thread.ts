@@ -164,7 +164,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 	}
 
 	public attach(): Promise<void> {
-		return this.underlyingActorProxy.attach();
+		return this.underlyingActorProxy.attach(false);
 	}
 
 	public resume(exceptionBreakpoints: ExceptionBreakpoints, resumeLimitType?: "next" | "step" | "finish" | undefined): Promise<void> {

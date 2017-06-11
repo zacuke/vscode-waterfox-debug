@@ -351,6 +351,15 @@
                 "description": "Install the addon by placing it in the temporary profile (necessary for XUL overlays)",
                 "default": false
               },
+              "sourceMaps": {
+                "type": "string",
+                "enum": [
+                  "client",
+                  "server"
+                ],
+                "description": "Set to \"server\" for sourcemaps to be handled by Firefox, or \"client\" for them to be handled by this debug adapter",
+                "default": "server"
+              },
               "log": {
                 "type": "object",
                 "description": "Configuration for diagnostic logging of the debug adapter",
@@ -548,6 +557,15 @@
                 "type": "string",
                 "description": "The path of the directory containing the addon",
                 "default": "${workspaceRoot}"
+              },
+              "sourceMaps": {
+                "type": "string",
+                "enum": [
+                  "client",
+                  "server"
+                ],
+                "description": "Set to \"server\" for source-maps to be handled by Firefox, or \"client\" for them to be handled by this debug adapter",
+                "default": "server"
               },
               "log": {
                 "type": "object",

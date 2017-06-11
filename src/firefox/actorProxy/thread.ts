@@ -10,7 +10,7 @@ let log = Log.create('ThreadActorProxy');
 
 export interface IThreadActorProxy {
 	name: string;
-	attach(): Promise<void>;
+	attach(useSourceMaps?: boolean): Promise<void>;
 	resume(exceptionBreakpoints: ExceptionBreakpoints, resumeLimitType?: 'next' | 'step' | 'finish'): Promise<void>;
 	interrupt(immediately?: boolean): Promise<void>;
 	detach(): Promise<void>;
@@ -63,7 +63,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	/**
 	 * Attach the thread if it is detached
 	 */
-	public attach(): Promise<void> {
+	public attach(useSourceMaps = true): Promise<void> {
 		if (!this.attachPromise) {
 			log.debug(`Attaching thread ${this.name}`);
 
@@ -71,7 +71,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 				this.pendingAttachRequest = { resolve, reject };
 				this.connection.sendRequest({ 
 					to: this.name, type: 'attach', 
-					options: { useSourceMaps: true }
+					options: { useSourceMaps }
 				});
 			});
 			this.detachPromise = undefined;

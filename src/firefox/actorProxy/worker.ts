@@ -1,13 +1,18 @@
 import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
-import { DebugConnection, ActorProxy, IThreadActorProxy, ThreadActorProxy } from '../index';
+import { DebugConnection, ActorProxy, IThreadActorProxy, ThreadActorProxy, SourceMappingThreadActorProxy } from '../index';
 import { PendingRequest } from './pendingRequests';
 
 let log = Log.create('WorkerActorProxy');
 
 export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 
-	constructor(private _name: string, private _url: string, private connection: DebugConnection) {
+	constructor(
+		public readonly _name: string,
+		public readonly _url: string,
+		private readonly sourceMaps: 'client' | 'server',
+		private readonly connection: DebugConnection
+	) {
 		super();
 		this.connection.register(this);
 	}
@@ -85,8 +90,14 @@ export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 			let connectedResponse = <FirefoxDebugProtocol.WorkerConnectedResponse>response;
 			if (this.pendingConnectRequest) {
 
-				let threadActor = this.connection.getOrCreate(connectedResponse.threadActor, 
+				let threadActor: IThreadActorProxy = this.connection.getOrCreate(
+					connectedResponse.threadActor, 
 					() => new ThreadActorProxy(connectedResponse.threadActor, this.connection));
+
+				if (this.sourceMaps === 'client') {
+					threadActor = new SourceMappingThreadActorProxy(threadActor, this.connection);
+				}
+
 				this.pendingConnectRequest.resolve(threadActor);
 				this.pendingConnectRequest = undefined;
 

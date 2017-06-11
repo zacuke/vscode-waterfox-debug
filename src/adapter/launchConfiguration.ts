@@ -15,6 +15,7 @@ export interface CommonConfiguration {
 	log?: LogConfiguration;
 	addonType?: AddonType;
 	addonPath?: string;
+	sourceMaps?: 'client' | 'server';
 }
 
 export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.LaunchRequestArguments {

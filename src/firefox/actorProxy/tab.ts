@@ -1,6 +1,6 @@
 import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
-import { DebugConnection, ActorProxy, WorkerActorProxy, IThreadActorProxy, ThreadActorProxy } from '../index';
+import { DebugConnection, ActorProxy, WorkerActorProxy, IThreadActorProxy, ThreadActorProxy, SourceMappingThreadActorProxy } from '../index';
 import { PendingRequests } from './pendingRequests';
 
 let log = Log.create('TabActorProxy');
@@ -13,20 +13,22 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 	private pendingReloadRequests = new PendingRequests<void>();
 	private workers = new Map<string, WorkerActorProxy>();
 
-	constructor(private _name: string, private _title: string, private _url: string, private connection: DebugConnection) {
+	constructor(
+		public readonly name: string,
+		private _title: string,
+		private _url: string,
+		private readonly sourceMaps: 'client' | 'server',
+		private readonly connection: DebugConnection
+	) {
 		super();
 		this.connection.register(this);
 	}
 
-	public get name() {
-		return this._name;
-	}
-
-	public get title() {
+	public get title(): string {
 		return this._title;
 	}
 
-	public get url() {
+	public get url(): string {
 		return this._url;
 	}
 
@@ -80,8 +82,15 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 
 			log.debug(`Attached to tab ${this.name}`);
 			let tabAttachedResponse = <FirefoxDebugProtocol.TabAttachedResponse>response;
-			let threadActor = this.connection.getOrCreate(tabAttachedResponse.threadActor, 
+
+			let threadActor: IThreadActorProxy = this.connection.getOrCreate(
+				tabAttachedResponse.threadActor, 
 				() => new ThreadActorProxy(tabAttachedResponse.threadActor, this.connection));
+
+			if (this.sourceMaps === 'client') {
+				threadActor = new SourceMappingThreadActorProxy(threadActor, this.connection);
+			}
+
 			this.emit('attached', threadActor);
 			this.pendingAttachRequests.resolveOne(threadActor);
 
@@ -149,7 +158,8 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 
 					log.debug(`Worker ${worker.actor} started`);
 
-					workerActor = new WorkerActorProxy(worker.actor, worker.url, this.connection);
+					workerActor = new WorkerActorProxy(
+						worker.actor, worker.url, this.sourceMaps, this.connection);
 					this.emit('workerStarted', workerActor);
 
 				}

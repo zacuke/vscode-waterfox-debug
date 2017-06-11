@@ -36,6 +36,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	private addonId?: string;
 	private addonPath?: string;
 	private addonBuildPath?: string;
+	private sourceMaps: 'client' | 'server' = 'server';
 	private isWindowsPlatform: boolean;
 
 	private reloadConfig?: NormalizedReloadConfiguration;
@@ -802,6 +803,10 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			})
 		}
 
+		if (args.sourceMaps === 'client') {
+			this.sourceMaps = 'client';
+		}
+
 		return undefined;
 	}
 
@@ -859,7 +864,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	private startSession(socket: Socket, installAddon: boolean) {
 
-		this.firefoxDebugConnection = new DebugConnection(socket);
+		this.firefoxDebugConnection = new DebugConnection(this.sourceMaps, socket);
 		this.firefoxDebugSocketClosed = false;
 		let rootActor = this.firefoxDebugConnection.rootActor;
 
@@ -992,9 +997,12 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		addons.forEach((addon) => {
 			if (addon.id === this.addonId) {
 				(async () => {
-					this.addonActor = new TabActorProxy(addon.actor, addon.name, '', this.firefoxDebugConnection);
-					let consoleActor = new ConsoleActorProxy(addon.consoleActor, this.firefoxDebugConnection);
-					let threadAdapter = await this.attachTabOrAddon(this.addonActor, consoleActor, this.nextTabId++, false, 'Addon');
+					this.addonActor = new TabActorProxy(
+						addon.actor, addon.name, '', this.sourceMaps, this.firefoxDebugConnection);
+					let consoleActor = new ConsoleActorProxy(
+						addon.consoleActor, this.firefoxDebugConnection);
+					let threadAdapter = await this.attachTabOrAddon(
+						this.addonActor, consoleActor, this.nextTabId++, false, 'Addon');
 					if (threadAdapter !== undefined) {
 						this.attachConsole(consoleActor, threadAdapter);
 					}

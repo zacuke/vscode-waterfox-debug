@@ -15,9 +15,9 @@ export class DebugConnection {
 	private actors: Map<string, ActorProxy>;
 	private _rootActor: RootActorProxy;
 
-	constructor(socket: Socket) {
+	constructor(sourceMaps: 'client' | 'server', socket: Socket) {
 		this.actors = new Map<string, ActorProxy>();
-		this._rootActor = new RootActorProxy(this);
+		this._rootActor = new RootActorProxy(sourceMaps, this);
 		this.transport = new DebugProtocolTransport(socket);
 		this.transport.on('message', (response: FirefoxDebugProtocol.Response) => {
 			if (this.actors.has(response.from)) {

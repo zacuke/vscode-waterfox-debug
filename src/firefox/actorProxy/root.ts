@@ -23,7 +23,10 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 	private pendingTabsRequests = new PendingRequests<FetchTabsResult>();
 	private pendingAddonsRequests = new PendingRequests<FirefoxDebugProtocol.Addon[]>();
 
-	constructor(private connection: DebugConnection) {
+	constructor(
+		private sourceMaps: 'client' | 'server',
+		private readonly connection: DebugConnection
+	) {
 		super();
 		this.connection.register(this);
 	}
@@ -101,7 +104,8 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 					log.debug(`Tab ${tab.actor} opened`);
 
 					actorsForTab = [
-						new TabActorProxy(tab.actor, tab.title, tab.url, this.connection),
+						new TabActorProxy(
+							tab.actor, tab.title, tab.url, this.sourceMaps, this.connection),
 						new ConsoleActorProxy(tab.consoleActor, this.connection)
 					];
 					this.emit('tabOpened', actorsForTab);
@@ -154,7 +158,9 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 			let processResponse = <FirefoxDebugProtocol.ProcessResponse>response;
 			log.debug('Received getProcess response');
 			this.pendingProcessRequests.resolveOne([
-				new TabActorProxy(processResponse.form.actor, 'Browser', processResponse.form.url, this.connection),
+				new TabActorProxy(
+					processResponse.form.actor, 'Browser', processResponse.form.url,
+					this.sourceMaps, this.connection),
 				new ConsoleActorProxy(processResponse.form.consoleActor, this.connection)
 			]);
 
