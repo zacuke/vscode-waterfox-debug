@@ -8,12 +8,13 @@ export class SourceMappingInfo {
 
 	public constructor(
 		public readonly sources: ISourceActorProxy[],
+		public readonly underlyingSource: ISourceActorProxy,
 		public readonly sourceMapUri?: string,
 		public readonly sourceMapConsumer?: SourceMapConsumer
 	) {}
 
 	public generatedLocationFor(originalLocation: MappedPosition): Position {
-		
+
 		if (!this.sourceMapConsumer) {
 			return { line: originalLocation.line, column: originalLocation.column };
 		}
@@ -44,5 +45,17 @@ export class SourceMappingInfo {
 		}
 
 		return originalLocation;
+	}
+
+	public syncBlackboxFlag(): void {
+
+		if ((this.sources.length === 1) && (this.sources[0] === this.underlyingSource)) {
+			return;
+		}
+
+		let blackboxUnderlyingSource = this.sources.every((source) => source.source.isBlackBoxed);
+		if (this.underlyingSource.source.isBlackBoxed !== blackboxUnderlyingSource) {
+			this.underlyingSource.setBlackbox(blackboxUnderlyingSource);
+		}
 	}
 }

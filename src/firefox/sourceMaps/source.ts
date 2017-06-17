@@ -14,7 +14,6 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 
 	public constructor(
 		public readonly source: FirefoxDebugProtocol.Source,
-		private readonly underlyingSourceActor: ISourceActorProxy,
 		private readonly sourceMappingInfo: SourceMappingInfo
 	) {}
 
@@ -24,7 +23,7 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 			source: this.url, line: location.line, column: location.column || 0
 		});
 
-		let result = await this.underlyingSourceActor.setBreakpoint(generatedLocation, condition);
+		let result = await this.sourceMappingInfo.underlyingSource.setBreakpoint(generatedLocation, condition);
 
 		if (result.actualLocation) {
 
@@ -55,8 +54,8 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 	}
 
 	public async setBlackbox(blackbox: boolean): Promise<void> {
-		//TODO
-		throw new Error('Not implemented yet');
+		this.source.isBlackBoxed = blackbox;
+		this.sourceMappingInfo.syncBlackboxFlag();
 	}
 
 	public dispose(): void {

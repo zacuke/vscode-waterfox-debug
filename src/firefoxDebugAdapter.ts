@@ -1205,7 +1205,6 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 			if (source.isBlackBoxed !== skipThisSource) {
 				sourceActor.setBlackbox(skipThisSource);
-				source.isBlackBoxed = skipThisSource;
 			}
 		}
 

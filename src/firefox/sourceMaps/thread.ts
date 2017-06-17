@@ -71,7 +71,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 
 		let sourceMapUri = source.sourceMapURL;
 		if (!sourceMapUri) {
-			return new SourceMappingInfo([sourceActor]);
+			return new SourceMappingInfo([sourceActor], sourceActor);
 		}
 
 		if (!isAbsoluteUrl(sourceMapUri)) {
@@ -79,7 +79,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 				sourceMapUri = url.resolve(urlDirname(source.url), sourceMapUri);
 			} else {
 				log.warn(`Can't create absolute sourcemap URL from ${sourceMapUri} - giving up`);
-				return new SourceMappingInfo([sourceActor]);
+				return new SourceMappingInfo([sourceActor], sourceActor);
 			}
 		}
 
@@ -88,13 +88,13 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 			rawSourceMap = JSON.parse(await getUri(sourceMapUri));
 		} catch(e) {
 			log.warn(`Failed fetching sourcemap from ${sourceMapUri} - giving up`);
-			return new SourceMappingInfo([sourceActor]);
+			return new SourceMappingInfo([sourceActor], sourceActor);
 		}
 
 		let sourceMapConsumer = new SourceMapConsumer(rawSourceMap);
 		let sourceMappingSourceActors: SourceMappingSourceActorProxy[] = [];
 		let sourceMappingInfo = new SourceMappingInfo(
-			sourceMappingSourceActors, sourceMapUri, sourceMapConsumer);
+			sourceMappingSourceActors, sourceActor, sourceMapUri, sourceMapConsumer);
 		for (let origSource of (<any>sourceMapConsumer).sources) {
 
 			if (rawSourceMap.sourceRoot) {
@@ -104,7 +104,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 			let sourceMappingSource = this.createOriginalSource(source, origSource, sourceMapUri);
 
 			let sourceMappingSourceActor = new SourceMappingSourceActorProxy(
-				sourceMappingSource, sourceActor, sourceMappingInfo);
+				sourceMappingSource, sourceMappingInfo);
 
 			sourceMappingSourceActors.push(sourceMappingSourceActor);
 		}

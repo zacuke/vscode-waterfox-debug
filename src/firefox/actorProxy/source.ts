@@ -62,6 +62,8 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 
 		log.debug(`Setting blackboxing of ${this.url} to ${blackbox}`);
 
+		this.source.isBlackBoxed = blackbox;
+
 		return new Promise<void>((resolve, reject) => {
 			let type = blackbox ? 'blackbox' : 'unblackbox';
 			this.pendingBlackboxRequests.enqueue({ resolve, reject });
