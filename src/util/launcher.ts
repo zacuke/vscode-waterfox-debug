@@ -198,6 +198,7 @@ async function prepareDebugProfile(config: LaunchConfiguration): Promise<Firefox
 	preferences['extensions.autoDisableScopes'] = 10;
 	preferences['xpinstall.signatures.required'] = false;
 	preferences['extensions.sdk.console.logLevel'] = 'all';
+	preferences['toolkit.telemetry.reportingpolicy.firstRun'] = false;
 
 	if (config.preferences !== undefined) {
 		for (let key in config.preferences) {
