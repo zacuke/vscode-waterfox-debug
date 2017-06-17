@@ -45,11 +45,13 @@ declare namespace FirefoxDebugProtocol {
 		actor: string;
 		id: string;
 		name: string;
+		isWebExtension?: boolean;
 		url?: string;
-		consoleActor: string;
-		iconUrl?: string;
+		consoleActor?: string;
+		iconURL?: string;
 		debuggable?: boolean;
-		traits: {
+		temporarilyInstalled?: boolean;
+		traits?: {
 			highlightable: boolean;
 			networkMonitor: boolean;
 		}

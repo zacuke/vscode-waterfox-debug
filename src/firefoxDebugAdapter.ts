@@ -14,7 +14,7 @@ import { delay, accessorExpression } from "./util/misc";
 import { createXpi, buildAddonDir, findAddonId } from './util/addon';
 import { launchFirefox, connect, waitForSocket } from './util/launcher';
 import { DebugAdapterBase } from './debugAdapterBase';
-import { DebugConnection, RootActorProxy, TabActorProxy, WorkerActorProxy, IThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, ISourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
+import { DebugConnection, RootActorProxy, TabActorProxy, WorkerActorProxy, WebExtensionActorProxy, IThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, ISourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, ThreadPauseCoordinator, BreakpointInfo, SourceAdapter, FrameAdapter, VariableAdapter, VariablesProvider, ConsoleAPICallAdapter } from './adapter/index';
 import { CommonConfiguration, LaunchConfiguration, AttachConfiguration, AddonType, ReloadConfiguration, DetailedReloadConfiguration, NormalizedReloadConfiguration } from './adapter/launchConfiguration';
 
@@ -997,10 +997,22 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		addons.forEach((addon) => {
 			if (addon.id === this.addonId) {
 				(async () => {
-					this.addonActor = new TabActorProxy(
-						addon.actor, addon.name, '', this.sourceMaps, this.firefoxDebugConnection);
-					let consoleActor = new ConsoleActorProxy(
-						addon.consoleActor, this.firefoxDebugConnection);
+
+					let consoleActor: ConsoleActorProxy;
+					if (addon.isWebExtension) {
+
+						let webExtensionActor = new WebExtensionActorProxy(
+							addon, this.sourceMaps, this.firefoxDebugConnection);
+						[this.addonActor, consoleActor] = await webExtensionActor.connect();
+
+					} else {
+
+						this.addonActor = new TabActorProxy(
+							addon.actor, addon.name, '', this.sourceMaps, this.firefoxDebugConnection);
+						consoleActor = new ConsoleActorProxy(
+							addon.consoleActor!, this.firefoxDebugConnection);
+					}
+
 					let threadAdapter = await this.attachTabOrAddon(
 						this.addonActor, consoleActor, this.nextTabId++, false, 'Addon');
 					if (threadAdapter !== undefined) {
