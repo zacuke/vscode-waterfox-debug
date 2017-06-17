@@ -58,4 +58,17 @@ export class SourceMappingInfo {
 			this.underlyingSource.setBlackbox(blackboxUnderlyingSource);
 		}
 	}
+
+	public disposeSource(source: ISourceActorProxy): void {
+
+		let sourceIndex = this.sources.indexOf(source);
+		if (sourceIndex >= 0) {
+
+			this.sources.splice(sourceIndex, 1);
+
+			if (this.sources.length === 0) {
+				this.underlyingSource.dispose();
+			}
+		}
+	}
 }

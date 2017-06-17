@@ -59,6 +59,6 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 	}
 
 	public dispose(): void {
-		//TODO
+		this.sourceMappingInfo.disposeSource(this);
 	}
 }
