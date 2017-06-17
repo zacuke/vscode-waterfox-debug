@@ -24,22 +24,17 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 		});
 
 		let result = await this.sourceMappingInfo.underlyingSource.setBreakpoint(generatedLocation, condition);
+		let actualGeneratedLocation = result.actualLocation || generatedLocation;
+		let actualOriginalLocation = this.sourceMappingInfo.originalLocationFor({
+			line: actualGeneratedLocation.line || 1, 
+			column: actualGeneratedLocation.column || 1
+		});
 
-		if (result.actualLocation) {
-
-			result.actualLocation.source = this.source;
-
-			if (result.actualLocation.line) {
-
-				let originalLocation = this.sourceMappingInfo.originalLocationFor({
-					line: result.actualLocation.line, 
-					column: result.actualLocation.column || 0
-				});
-
-				result.actualLocation.line = originalLocation.line;
-				result.actualLocation.column = originalLocation.column;
-			}
-		}
+		result.actualLocation = {
+			source: this.source,
+			line: actualOriginalLocation.line,
+			column: actualOriginalLocation.column
+		};
 
 		return result;
 	}
