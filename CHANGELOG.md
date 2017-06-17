@@ -1,3 +1,7 @@
+### Version 0.14.0
+* fix WebExtension debugging in recent Firefox builds
+* add experimental `sourceMaps` configuration property
+
 ### Version 0.13.1
 * add support for setting variable values in the debug side bar
 * add support for IntelliSense in the debug console
