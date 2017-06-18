@@ -106,6 +106,12 @@ declare namespace FirefoxDebugProtocol {
 		consoleActor: string;
 	}
 
+	interface GetCachedMessagesResponse extends Response {
+		messages:
+			((ConsoleAPICallResponseBody & { _type: 'ConsoleAPI' }) |
+			 (PageErrorResponseBody & { _type: 'PageError' }))[];
+	}
+
 	interface PageErrorResponse extends TypedResponse {
 		pageError: PageErrorResponseBody;
 	}
@@ -129,7 +135,7 @@ declare namespace FirefoxDebugProtocol {
 			functionname: string;
 			line: number;
 			column: number;
-		}[];
+		}[] | null;
 	}
 
 	interface ConsoleAPICallResponse extends TypedResponse {

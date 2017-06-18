@@ -1300,6 +1300,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		});
 
 		consoleActor.startListeners();
+		consoleActor.getCachedMessages();
 	}
 
 	private setActiveThread(threadAdapter: ThreadAdapter): void {

@@ -50,6 +50,14 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 		});
 	}
 
+	public getCachedMessages(): void {
+		log.debug('Getting cached messages');
+
+		this.connection.sendRequest({
+			to: this.name, type: 'getCachedMessages',
+			messageTypes: ConsoleActorProxy.listenFor
+		});
+	}
 	/**
 	 * Evaluate the given expression. This will create 2 PendingRequest objects because we expect
 	 * 2 answers: the first answer gives us a resultID for the evaluation result. The second answer
@@ -106,6 +114,17 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 
 			log.debug('Listeners stopped');
 			this.pendingStartListenersRequests.resolveOne(undefined);
+
+		} else if (response['messages']) {
+
+			log.debug('Received cached messages');
+			for (let message of (<FirefoxDebugProtocol.GetCachedMessagesResponse>response).messages) {
+				if (message._type === 'ConsoleAPI') {
+					this.emit('consoleAPI', message);
+				} else if (message._type === 'PageError') {
+					this.emit('pageError', message);
+				}
+			}
 
 		} else if (response['type'] === 'consoleAPICall') {
 
