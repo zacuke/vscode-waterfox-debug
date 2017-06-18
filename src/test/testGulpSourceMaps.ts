@@ -24,6 +24,8 @@ describe('Firefox debug adapter', function() {
 		}
 	});
 
+	// tests with client-side source-maps disabled until Firefox bug #1373632 is fixed
+	for (let sourceMaps of [ 'server' /*, 'client'*/ ]) {
 	for (let bundleScripts of [false, true]) {
 	for (let embedSourceMap of [false, true]) {
 	for (let separateBuildDir of [false, true]) {
@@ -31,7 +33,7 @@ describe('Firefox debug adapter', function() {
 		let descr = 
 			`should map minified${bundleScripts ? ', bundled' : ''} scripts ` +
 			`to their original sources in ${separateBuildDir ? 'a different' : 'the same'} directory ` +
-			`using an ${embedSourceMap ? 'embedded' : 'external'} source-map`;
+			`using an ${embedSourceMap ? 'embedded' : 'external'} source-map handled by the ${sourceMaps}`;
 
 		it(descr, async function() {
 
@@ -41,11 +43,14 @@ describe('Firefox debug adapter', function() {
 
 			dc = new DebugClient('node', './out/firefoxDebugAdapter.js', 'firefox');
 
-			await sourceMapUtil.testSourcemaps(dc, srcDir, { file: path.join(buildDir, 'index.html') });
+			await sourceMapUtil.testSourcemaps(dc, srcDir, { 
+				file: path.join(buildDir, 'index.html'),
+				sourceMaps
+			});
 
 			fs.removeSync(targetDir);
 		});
-	}}}
+	}}}}
 });
 
 interface TargetPaths {

@@ -19,12 +19,13 @@ describe('Firefox debug adapter', function() {
 		}
 	});
 
+	for (let sourceMaps of [ 'server', 'client' ]) {
 	for (let devtool of [
 		'cheap-eval-source-map', 'cheap-source-map', 'cheap-module-eval-source-map', 'inline-source-map',
 		'cheap-module-source-map' , 'eval-source-map' , 'source-map' , 'nosources-source-map'
 	]) {
 
-		it(`should map webpack-bundled modules with devtool "${devtool}" to their original sources`, async function() {
+		it(`should map webpack-bundled modules with devtool "${devtool}" to their original sources with source-maps handled by the ${sourceMaps}`, async function() {
 
 			let targetDir = prepareTargetDir();
 
@@ -34,12 +35,13 @@ describe('Firefox debug adapter', function() {
 
 			await sourceMapUtil.testSourcemaps(dc, targetDir, { 
 				file: path.join(targetDir, 'index.html'),
-				pathMappings: [{ url: 'webpack:///', path: targetDir + '/' }]
+				pathMappings: [{ url: 'webpack:///', path: targetDir + '/' }],
+				sourceMaps
 			}, 4);
 
 			fs.removeSync(targetDir);
 		});
-	}
+	}}
 });
 
 function prepareTargetDir(): string {
