@@ -21,22 +21,30 @@ export async function initDebugClient(testDataPath: string, waitForPageLoadedEve
 	return dc;
 }
 
-export async function initDebugClientForAddon(testDataPath: string, addonType: AddonType, waitForPageLoadedEvent: boolean): Promise<DebugClient> {
+export async function initDebugClientForAddon(testDataPath: string, addonType: AddonType, delayedNavigation = false): Promise<DebugClient> {
+
+	let dcArgs = { addonType, addonPath: path.join(testDataPath, `${addonType}/addOn`) };
+	if (delayedNavigation) {
+		dcArgs['file'] = path.join(testDataPath, `web/index.html`);
+	} else {
+		dcArgs['file'] = path.join(testDataPath, `${addonType}/index.html`);
+	}
 
 	let dc = new DebugClient('node', './out/firefoxDebugAdapter.js', 'firefox');
 
 	await dc.start();
 	await Promise.all([
-		dc.launch({
-			addonType,
-			addonPath: path.join(testDataPath, `${addonType}/addOn`),
-			file: path.join(testDataPath, `${addonType}/index.html`)
-		}),
+		dc.launch(dcArgs),
 		dc.waitForEvent('initialized', 20000)
 	]);
 	dc.setExceptionBreakpointsRequest({ filters: [] });
 
-	if (waitForPageLoadedEvent) {
+	await receivePageLoadedEvent(dc, (addonType === 'addonSdk'));
+
+	if (delayedNavigation) {
+		await setConsoleThread(dc, await findTabThread(dc));
+		let file = path.join(testDataPath, `${addonType}/index.html`);
+		await evaluate(dc, `location="file://${file}"`);
 		await receivePageLoadedEvent(dc, (addonType === 'addonSdk'));
 	}
 

@@ -15,7 +15,7 @@ describe('Firefox debug adapter', function() {
 
 	it('should debug a WebExtension', async function() {
 
-		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'webExtension', true);
+		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'webExtension');
 
 		let backgroundScriptPath = path.join(TESTDATA_PATH, 'webExtension/addOn/backgroundscript.js');
 		await util.setBreakpoints(dc, backgroundScriptPath, [ 2 ]);
@@ -42,7 +42,7 @@ describe('Firefox debug adapter', function() {
 
 	it('should show log messages from WebExtensions', async function() {
 
-		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'webExtension', true);
+		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'webExtension');
 
 		await util.setConsoleThread(dc, await util.findTabThread(dc));
 		util.evaluate(dc, 'putMessage("bar")');
@@ -55,16 +55,13 @@ describe('Firefox debug adapter', function() {
 
 	it('should debug a Jetpack add-on', async function() {
 
-		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'addonSdk', false);
-		dc.setExceptionBreakpointsRequest({ filters: [] });
+		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'addonSdk', true);
 
 		let contentScriptPath = path.join(TESTDATA_PATH, 'addonSdk/addOn/data/contentscript.js');
 		await util.setBreakpoints(dc, contentScriptPath,  [ 2 ]);
 
 		let backgroundScriptPath = path.join(TESTDATA_PATH, 'addonSdk/addOn/index.js');
 		await util.setBreakpoints(dc, backgroundScriptPath, [ 8 ]);
-
-		await util.receivePageLoadedEvent(dc, true);
 
 		let stoppedEvent = await util.receiveStoppedEvent(dc);
 		let contentThreadId = stoppedEvent.body.threadId!;
@@ -82,7 +79,7 @@ describe('Firefox debug adapter', function() {
 
 	it('should show log messages from a Jetpack add-on', async function() {
 
-		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'addonSdk', true);
+		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'addonSdk');
 		let outputEvent = <DebugProtocol.OutputEvent> await dc.waitForEvent('output');
 
 		assert.equal(outputEvent.body.category, 'stdout');
