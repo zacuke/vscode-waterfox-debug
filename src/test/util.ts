@@ -97,3 +97,19 @@ export function findVariable(variables: DebugProtocol.Variable[], varName: strin
 	}
 	throw new Error(`Variable '${varName}' not found`);
 }
+
+export async function findTabThread(dc: DebugClient): Promise<number> {
+	let threadsPresponse = await dc.threadsRequest();
+	for (let thread of threadsPresponse.body.threads) {
+		if (thread.name.startsWith('Tab')) {
+			return thread.id;
+		}
+	}
+	throw new Error('Couldn\'t find a tab thread');
+}
+
+export async function setConsoleThread(dc: DebugClient, threadId: number): Promise<void> {
+	try {
+		await dc.stackTraceRequest({ threadId });
+	} catch(e) {}
+}

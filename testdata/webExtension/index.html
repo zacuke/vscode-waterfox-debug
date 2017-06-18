@@ -3,11 +3,15 @@
 		<meta charset="UTF-8"/>
 		<script>
 			window.onload = function() {
-				setTimeout(() => console.log('Loaded'), 1000);
+				console.log('Loaded');
+			}
+			function putMessage(message) {
+				document.getElementById('messageBox').textContent = message;
 			}
 		</script>
 	</head>
 	<body>
 		<h1>WebExtension Test</h1>
+		<div id='messageBox' style='display: none'></div>
 	</body>
 </html>

@@ -21,7 +21,10 @@ describe('Firefox debug adapter', function() {
 		await util.setBreakpoints(dc, backgroundScriptPath, [ 2 ]);
 
 		let contentScriptPath = path.join(TESTDATA_PATH, 'webExtension/addOn/contentscript.js');
-		await util.setBreakpoints(dc, contentScriptPath,  [ 2 ]);
+		await util.setBreakpoints(dc, contentScriptPath,  [ 6 ]);
+
+		await util.setConsoleThread(dc, await util.findTabThread(dc));
+		util.evaluate(dc, 'putMessage("bar")');
 
 		let stoppedEvent = await util.receiveStoppedEvent(dc);
 		let contentThreadId = stoppedEvent.body.threadId!;
@@ -40,6 +43,10 @@ describe('Firefox debug adapter', function() {
 	it('should show log messages from WebExtensions', async function() {
 
 		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'webExtension', true);
+
+		await util.setConsoleThread(dc, await util.findTabThread(dc));
+		util.evaluate(dc, 'putMessage("bar")');
+
 		let outputEvent = <DebugProtocol.OutputEvent> await dc.waitForEvent('output');
 
 		assert.equal(outputEvent.body.category, 'stdout');
