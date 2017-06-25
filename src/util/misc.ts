@@ -1,5 +1,6 @@
 import fileUriToPath = require('file-uri-to-path');
 import dataUriToBuffer = require('data-uri-to-buffer');
+import * as os from 'os';
 import * as url from 'url';
 import * as fs from 'fs';
 import * as http from 'http';
@@ -34,6 +35,19 @@ export function delay(timeout: number): Promise<void> {
 	return new Promise<void>((resolve) => {
 		setTimeout(resolve, timeout);
 	});
+}
+
+export function isExecutable(path: string): boolean {
+	try {
+		fs.accessSync(path, fs.constants.X_OK);
+		return true;
+	} catch (e) {
+		return false;
+	}
+}
+
+export function isWindowsPlatform(): boolean {
+	return (os.platform() === 'win32');
 }
 
 export function exceptionGripToString(grip: FirefoxDebugProtocol.Grip | null | undefined) {
