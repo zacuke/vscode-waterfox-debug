@@ -10,7 +10,7 @@ export async function initDebugClient(testDataPath: string, waitForPageLoadedEve
 
 	await dc.start();
 	await Promise.all([
-		dc.launch({ file: path.join(testDataPath, 'web/index.html') }),
+		dc.launch({ request: 'launch', file: path.join(testDataPath, 'web/index.html') }),
 		dc.configurationSequence()
 	]);
 
@@ -23,7 +23,7 @@ export async function initDebugClient(testDataPath: string, waitForPageLoadedEve
 
 export async function initDebugClientForAddon(testDataPath: string, addonType: AddonType, delayedNavigation = false): Promise<DebugClient> {
 
-	let dcArgs = { addonType, addonPath: path.join(testDataPath, `${addonType}/addOn`) };
+	let dcArgs = { request: 'launch', addonType, addonPath: path.join(testDataPath, `${addonType}/addOn`) };
 	if (delayedNavigation) {
 		dcArgs['file'] = path.join(testDataPath, `web/index.html`);
 	} else {

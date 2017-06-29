@@ -72,19 +72,19 @@ export interface ParsedConfiguration {
 	log?: LogConfiguration;
 }
 
-interface ParsedAttachConfiguration {
+export interface ParsedAttachConfiguration {
 	host: string;
 	port: number;
 	reloadTabs: boolean;
 }
 
-interface FirefoxPreferences {
-	[key: string]: boolean | number | string | null;
+export interface FirefoxPreferences {
+	[key: string]: boolean | number | string;
 }
 
 type PathMappings = { url: string | RegExp, path: string }[];
 
-interface ParsedLaunchConfiguration {
+export interface ParsedLaunchConfiguration {
 	firefoxExecutable: string;
 	firefoxArgs: string[];
 	profileDir: string;
@@ -95,9 +95,10 @@ interface ParsedLaunchConfiguration {
 	detached: boolean;
 }
 
-interface ParsedAddonConfiguration {
+export interface ParsedAddonConfiguration {
 	type: AddonType;
 	path: string;
+	id: string;
 	installInProfile: boolean;
 }
 
@@ -290,7 +291,9 @@ function findFirefoxProfileDir(profileName: string): Promise<string> {
 	});
 }
 
-function createFirefoxPreferences(additionalPreferences?: FirefoxPreferences): FirefoxPreferences {
+function createFirefoxPreferences(
+	additionalPreferences?: { [key: string]: boolean | number | string | null }
+): FirefoxPreferences {
 
 	let preferences: FirefoxPreferences = {};
 
@@ -491,6 +494,6 @@ async function parseAddonConfiguration(
 	}
 
 	return {
-		type: addonType, path: addonPath, installInProfile
+		type: addonType, path: addonPath, id: addonId, installInProfile
 	}
 }

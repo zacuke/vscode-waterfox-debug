@@ -1,54 +1,44 @@
-import * as os from 'os';
-import * as path from 'path';
 import * as fs from 'fs-extra';
 import { Socket } from 'net';
 import { ChildProcess } from 'child_process';
-import * as uuid from 'uuid';
-import { Minimatch } from 'minimatch';
 import * as chokidar from 'chokidar';
 import debounce = require('debounce');
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugSession, InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, BreakpointEvent, ContinuedEvent, Thread, Variable, Breakpoint } from 'vscode-debugadapter';
 import { Log } from './util/log';
-import { delay, accessorExpression } from "./util/misc";
-import { createXpi, buildAddonDir, findAddonId } from './util/addon';
+import { delay, accessorExpression } from './util/misc';
+import { AddonManager } from './util/addon';
 import { launchFirefox, connect, waitForSocket } from './util/launcher';
 import { DebugAdapterBase } from './debugAdapterBase';
-import { DebugConnection, RootActorProxy, TabActorProxy, WorkerActorProxy, WebExtensionActorProxy, IThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, ISourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
+import { DebugConnection, TabActorProxy, WorkerActorProxy, IThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, ISourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, ThreadPauseCoordinator, BreakpointInfo, SourceAdapter, FrameAdapter, VariableAdapter, VariablesProvider, ConsoleAPICallAdapter } from './adapter/index';
-import { CommonConfiguration, LaunchConfiguration, AttachConfiguration, AddonType, ReloadConfiguration, DetailedReloadConfiguration, NormalizedReloadConfiguration } from './adapter/launchConfiguration';
+import { LaunchConfiguration, AttachConfiguration, parseConfiguration, ParsedConfiguration } from "./configuration";
+import { PathMapper, urlDetector } from './util/pathMapper';
+import { isWindowsPlatform as detectWindowsPlatform } from './util/misc';
 
 let log = Log.create('FirefoxDebugAdapter');
-let pathConversionLog = Log.create('PathConversion');
 let consoleActorLog = Log.create('ConsoleActor');
+
+let isWindowsPlatform = detectWindowsPlatform();
 
 export class FirefoxDebugAdapter extends DebugAdapterBase {
 
+	private config: ParsedConfiguration;
+
 	private firefoxProc?: ChildProcess;
-	private debugProfileDir?: string;
-	private firefoxDebugConnection: DebugConnection;
+	public firefoxDebugConnection: DebugConnection; //TODO make private again
 	private firefoxDebugSocketClosed: boolean;
 
-	private pathMappings: [string | RegExp, string][] = [];
-	private filesToSkip: RegExp[] = [];
-	private showConsoleCallLocation = false;
-	private addonType?: AddonType;
-	private addonId?: string;
-	private addonPath?: string;
-	private addonBuildPath?: string;
-	private sourceMaps: 'client' | 'server' = 'server';
-	private isWindowsPlatform: boolean;
+	public pathMapper: PathMapper;
+	private addonManager: AddonManager;
 
-	private reloadConfig?: NormalizedReloadConfiguration;
+
 	private reloadWatcher?: chokidar.FSWatcher;
 
 	private reloadTabs = false;
 
-	private nextTabId = 1;
+	public nextTabId = 1; //TODO make private again
 	private tabsById = new Map<number, TabActorProxy>();
-
-	private addonActor: TabActorProxy | undefined = undefined;
-	private addonAttached = false;
 
 	private nextThreadId = 1;
 	private threadsById = new Map<number, ThreadAdapter>();
@@ -72,8 +62,6 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	public constructor(debuggerLinesStartAt1: boolean, isServer: boolean = false) {
 		super(debuggerLinesStartAt1, isServer);
-
-		this.isWindowsPlatform = (os.platform() === 'win32');
 
 		if (!isServer) {
 			Log.consoleLog = (msg: string) => {
@@ -105,98 +93,51 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		};
 	}
 
+	private async parseConfiguration(config: LaunchConfiguration | AttachConfiguration): Promise<void> {
+		this.config = await parseConfiguration(config);
+		this.pathMapper = new PathMapper(this.config.pathMappings, this.config.addon);
+		if (this.config.addon) {
+			this.addonManager = new AddonManager(this.config.addon, this.config.sourceMaps);
+		}
+	}
+
 	protected async launch(args: LaunchConfiguration): Promise<void> {
 
-		await this.readCommonConfiguration(args);
-
-		let installAddonViaRDP = false;
-		if (args.addonType && args.addonPath) {
-			if (args.installAddonInProfile !== undefined) {
-				if (args.installAddonInProfile && args.reAttach) {
-					throw '"installAddonInProfile" is not available with "reAttach"';
-				}
-				installAddonViaRDP = !args.installAddonInProfile;
-			} else {
-				installAddonViaRDP = !!args.reAttach;
-			}
-		}
+		await this.parseConfiguration(args);
 
 		let socket: Socket | undefined = undefined;
 
-		if (args.reAttach) {
-
+		if (this.config.attach) {
 			try {
-
-				socket = await connect(args.port || 6000, 'localhost');
-
-				if (args.reloadOnAttach !== undefined) {
-					this.reloadTabs = args.reloadOnAttach;
-				} else {
-					this.reloadTabs = true;
-				}
-
-				installAddonViaRDP = this.reloadTabs;
-
+				socket = await connect(this.config.attach.port, this.config.attach.host);
+				this.reloadTabs = this.config.attach.reloadTabs;
 			} catch(err) {}
 		}
 
 		if (socket === undefined) {
 
-			let tempXpiDir: string | undefined = undefined;
-			let tempXpiPath: string | undefined = undefined;
-
-			if (args.addonType && args.addonPath) {
-
-				if (installAddonViaRDP && (args.addonType === 'addonSdk')) {
-					this.addonBuildPath = path.join(os.tmpdir(), `vscode-firefox-debug-addon-${uuid.v4()}`);
-				}
-
-				if (!installAddonViaRDP) {
-					tempXpiDir = path.join(os.tmpdir(), `vscode-firefox-debug-${uuid.v4()}`);
-					fs.mkdirSync(tempXpiDir);
-					tempXpiPath = await createXpi(args.addonType, args.addonPath, tempXpiDir);
-				}
-			}
-
 			// send messages from Firefox' stdout to the debug console when debugging an addonSdk extension
 			let sendToConsole: (msg: string) => void = 
-				(this.addonType === 'addonSdk') ? 
+				(this.config.addon && this.config.addon.type === 'addonSdk') ? 
 					(msg) => this.sendEvent(new OutputEvent(msg + '\n', 'stdout')) :
 					(msg) => undefined;
 
-			[this.firefoxProc, this.debugProfileDir] = await launchFirefox(
-				args, tempXpiPath, this.addonBuildPath, sendToConsole);
+			this.firefoxProc = await launchFirefox(this.config.launch!, sendToConsole, this.addonManager);
 
 			socket = await waitForSocket(args.port || 6000);
-
-			if (tempXpiDir !== undefined) {
-				fs.removeSync(tempXpiDir);
-			}
 		}
 
-		this.startSession(socket, installAddonViaRDP);
+		this.startSession(socket);
 	}
 
 	protected async attach(args: AttachConfiguration): Promise<void> {
 
-		await this.readCommonConfiguration(args);
+		await this.parseConfiguration(args);
+		this.reloadTabs = this.config.attach!.reloadTabs;
 
-		if (args.reloadOnAttach !== undefined) {
-			this.reloadTabs = args.reloadOnAttach;
-		}
+		let socket = await connect(this.config.attach!.port, this.config.attach!.host);
 
-		let installAddonViaRDP = false;
-		if (args.addonType && args.addonPath) {
-
-			installAddonViaRDP = true;
-
-			if (args.addonType === 'addonSdk') {
-				throw 'Attach mode is currently not supported for addonType "addonSdk"';
-			}
-		}
-
-		let socket = await connect(args.port || 6000, args.host || 'localhost');
-		this.startSession(socket, installAddonViaRDP);
+		this.startSession(socket);
 	}
 
 	protected setBreakpoints(args: DebugProtocol.SetBreakpointsArguments): Promise<{ breakpoints: DebugProtocol.Breakpoint[] }> {
@@ -542,25 +483,19 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	}
 
 	protected async reloadAddon(): Promise<void> {
-		if (!this.addonPath) {
+		if (!this.addonManager) {
 			throw 'This command is only available when debugging an addon'
-		} else if (!this.addonActor) {
-			throw 'Addon isn\'t attached';
 		}
 
-		if (this.addonBuildPath) {
-			fs.copySync(this.addonPath, this.addonBuildPath);
-		}
-
-		await this.addonActor.reload();
+		await this.addonManager.reloadAddon();
 	}
 
 	protected async rebuildAddon(): Promise<void> {
-		if (!this.addonPath || !this.addonBuildPath) {
+		if (!this.addonManager) {
 			throw 'This command is only available when debugging an addon of type "addonSdk"';
 		}
 
-		await buildAddonDir(this.addonPath, this.addonBuildPath);
+		await this.addonManager.rebuildAddon();
 	}
 
 	protected async disconnect(args: DebugProtocol.DisconnectArguments): Promise<void> {
@@ -614,257 +549,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		return threadAdapter;
 	}
 
-	public convertFirefoxSourceToPath(source: FirefoxDebugProtocol.Source): string | undefined {
-		if (!source) return undefined;
+	private startSession(socket: Socket) {
 
-		if (source.addonID && (source.addonID === this.addonId)) {
-
-			let sourcePath = this.removeQueryString(path.join(this.addonPath!, source.addonPath!));
-			pathConversionLog.debug(`Addon script path: ${sourcePath}`);
-			return sourcePath;
-
-		} else if (source.isSourceMapped && source.generatedUrl && source.url && !this.urlDetector.test(source.url)) {
-
-			let generatedPath = this.convertFirefoxUrlToPath(source.generatedUrl);
-			if (!generatedPath) return undefined;
-
-			let relativePath = source.url;
-
-			let sourcePath = this.removeQueryString(path.join(path.dirname(generatedPath), relativePath));
-			pathConversionLog.debug(`Sourcemapped path: ${sourcePath}`);
-			return sourcePath;
-
-		} else if (source.url) {
-			return this.convertFirefoxUrlToPath(source.url);
-		} else {
-			return undefined;
-		}
-	}
-
-	private urlDetector = /^[a-zA-Z][a-zA-Z0-9\+\-\.]*\:\//;
-
-	private convertFirefoxUrlToPath(url: string): string | undefined {
-
-		for (var i = 0; i < this.pathMappings.length; i++) {
-
-			let [from, to] = this.pathMappings[i];
-
-			if (typeof from === 'string') {
-
-				if (url.substr(0, from.length) === from) {
-
-					let path = this.removeQueryString(to + url.substr(from.length));
-					if (this.isWindowsPlatform) {
-						path = path.replace(/\//g, '\\');
-					}
-
-					pathConversionLog.debug(`Converted url ${url} to path ${path}`);
-					return path;
-				}
-
-			} else {
-
-				let match = from.exec(url);
-				if (match) {
-
-					let path = this.removeQueryString(to + match[1]);
-					if (this.isWindowsPlatform) {
-						path = path.replace(/\//g, '\\');
-					}
-
-					pathConversionLog.debug(`Converted url ${url} to path ${path}`);
-					return path;
-				}
-			}
-		}
-
-		pathConversionLog.info(`Can't convert url ${url} to path`);
-
-		return undefined;
-	}
-
-	private removeQueryString(path: string): string {
-		let queryStringIndex = path.indexOf('?');
-		if (queryStringIndex >= 0) {
-			return path.substr(0, queryStringIndex);
-		} else {
-			return path;
-		}
-	}
-
-	private async readCommonConfiguration(args: CommonConfiguration): Promise<void> {
-
-		if (args.log) {
-			Log.config = args.log;
-		}
-
-		if (args.reloadOnChange) {
-			this.reloadConfig = this.readReloadConfiguration(<ReloadConfiguration>args.reloadOnChange);
-		}
-
-		if (args.pathMappings) {
-			args.pathMappings.forEach((pathMapping) => {
-				this.pathMappings.push([ pathMapping.url, pathMapping.path ]);
-			});
-		}
-
-		if (args.showConsoleCallLocation !== undefined) {
-			this.showConsoleCallLocation = args.showConsoleCallLocation;
-		}
-
-		if (args.addonType) {
-
-			if (!args.addonPath) {
-				throw `If you set "addonType" you also have to set "addonPath" in the ${args.request} configuration`;
-			}
-
-			this.addonType = args.addonType;
-
-			this.addonId = await findAddonId(args.addonPath);
-			this.addonPath = path.normalize(args.addonPath);
-
-			if (this.addonType === 'addonSdk') {
-
-				let rewrittenAddonId = this.addonId.replace("@", "-at-");
-				let sanitizedAddonPath = this.addonPath;
-				if (sanitizedAddonPath[sanitizedAddonPath.length - 1] === '/') {
-					sanitizedAddonPath = sanitizedAddonPath.substr(0, sanitizedAddonPath.length - 1);
-				}
-				this.pathMappings.push([ 'resource://' + rewrittenAddonId, sanitizedAddonPath ]);
-
-			} else if (this.addonType === 'webExtension') {
-
-				let rewrittenAddonId = this.addonId.replace('{', '%7B').replace('}', '%7D');
-				let sanitizedAddonPath = this.addonPath;
-				if (sanitizedAddonPath[sanitizedAddonPath.length - 1] === '/') {
-					sanitizedAddonPath = sanitizedAddonPath.substr(0, sanitizedAddonPath.length - 1);
-				}
-				this.pathMappings.push([ new RegExp('^moz-extension://[0-9a-f-]*(/.*)$'), sanitizedAddonPath]);
-				this.pathMappings.push([ new RegExp(`^jar:file:.*/extensions/${rewrittenAddonId}.xpi!(/.*)$`), sanitizedAddonPath ]);
-
-			}
-
-		} else if (args.addonPath) {
-
-			throw `If you set "addonPath" you also have to set "addonType" in the ${args.request} configuration`;
-
-		} else if (args.url) {
-
-			if (!args.webRoot) {
-				throw `If you set "url" you also have to set "webRoot" in the ${args.request} configuration`;
-			} else if (!path.isAbsolute(args.webRoot)) {
-				throw `The "webRoot" property in the ${args.request} configuration has to be an absolute path`;
-			}
-
-			let webRootUrl = args.url;
-			if (webRootUrl.indexOf('/') >= 0) {
-				webRootUrl = webRootUrl.substr(0, webRootUrl.lastIndexOf('/'));
-			}
-
-			let webRoot = path.normalize(args.webRoot);
-			if (this.isWindowsPlatform) {
-				webRoot = webRoot.replace(/\\/g, '/');
-			}
-			if (webRoot[webRoot.length - 1] === '/') {
-				webRoot = webRoot.substr(0, webRoot.length - 1);
-			}
-
-			this.pathMappings.forEach((pathMapping) => {
-				const to = pathMapping[1];
-				if ((typeof to === 'string') && (to.substr(0, 10) === '${webRoot}')) {
-					pathMapping[1] = webRoot + to.substr(10);
-				}
-			});
-
-			this.pathMappings.push([ webRootUrl, webRoot ]);
-
-		} else if (args.webRoot) {
-
-			throw `If you set "webRoot" you also have to set "url" in the ${args.request} configuration`;
-
-		}
-
-		this.pathMappings.push([(this.isWindowsPlatform ? 'file:///' : 'file://'), '']);
-
-		pathConversionLog.info('Path mappings:');
-		this.pathMappings.forEach(([from, to]) => pathConversionLog.info(`'${from}' => '${to}'`));
-
-		if (args.skipFiles) {
-			args.skipFiles.forEach((glob) => {
-
-				let minimatch = new Minimatch(glob);
-				let regExp = minimatch.makeRe();
-
-				if (regExp) {
-					this.filesToSkip.push(regExp);
-				} else {
-					log.warn(`Invalid glob pattern "${glob}" specified in "skipFiles"`);
-				}
-			})
-		}
-
-		if (args.sourceMaps === 'client') {
-			this.sourceMaps = 'client';
-		}
-
-		return undefined;
-	}
-
-	private readReloadConfiguration(config: ReloadConfiguration): NormalizedReloadConfiguration {
-
-		const defaultDebounce = 100;
-
-		if (typeof config === 'string') {
-
-			return {
-				watch: [ config ],
-				ignore: [],
-				debounce: defaultDebounce
-			};
-
-		} else if (config['watch'] === undefined) {
-
-			return {
-				watch: <string[]>config,
-				ignore: [],
-				debounce: defaultDebounce
-			};
-
-		} else {
-
-			let _config = <DetailedReloadConfiguration>config;
-
-			let watch: string[];
-			if (typeof _config.watch === 'string') {
-				watch = [ _config.watch ];
-			} else {
-				watch = _config.watch;
-			}
-
-			let ignore: string[];
-			if (_config.ignore === undefined) {
-				ignore = [];
-			} else if (typeof _config.ignore === 'string') {
-				ignore = [ _config.ignore ];
-			} else {
-				ignore = _config.ignore;
-			}
-
-			let debounce: number;
-			if (typeof _config.debounce === 'number') {
-				debounce = _config.debounce;
-			} else {
-				debounce = _config.debounce ? defaultDebounce : 0;
-			}
-
-			return { watch, ignore, debounce };
-
-		}
-	}
-
-	private startSession(socket: Socket, installAddon: boolean) {
-
-		this.firefoxDebugConnection = new DebugConnection(this.sourceMaps, socket);
+		this.firefoxDebugConnection = new DebugConnection(this.config.sourceMaps, socket);
 		this.firefoxDebugSocketClosed = false;
 		let rootActor = this.firefoxDebugConnection.rootActor;
 
@@ -887,48 +574,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 			let actors = await rootActor.fetchTabs();
 
-			if (this.addonPath) {
-				switch (this.addonType) {
-
-					case 'legacy':
-						if (installAddon) {
-							await actors.addons.installAddon(this.addonPath);
-						}
-
-						let [addonActor, consoleActor] = await rootActor.fetchProcess();
-						this.attachTabOrAddon(addonActor, consoleActor, this.nextTabId++, true, 'Browser');
-
-						break;
-
-					case 'addonSdk':
-						if (installAddon) {
-
-							if (this.addonBuildPath) {
-								await buildAddonDir(this.addonPath, this.addonBuildPath);
-								await actors.addons.installAddon(this.addonBuildPath);
-								await actors.preference.setCharPref('vscode.debug.temporaryAddonPath', this.addonBuildPath);
-							} else {
-								try {
-									this.addonBuildPath = await actors.preference.getCharPref('vscode.debug.temporaryAddonPath');
-									fs.copySync(this.addonPath, this.addonBuildPath);
-								} catch (err) {
-								}
-							}
-						}
-
-						this.fetchAddonsAndAttach(rootActor);
-
-						break;
-
-					case 'webExtension':
-						if (installAddon) {
-							await actors.addons.installAddon(this.addonPath);
-						}
-
-						this.fetchAddonsAndAttach(rootActor);
-
-						break;
-				}
+			if (this.addonManager) {
+				this.addonManager.sessionStarted(rootActor, actors.addons, actors.preference, this);
 			}
 
 			this.reloadTabs = false;
@@ -940,25 +587,21 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			this.sendEvent(new TerminatedEvent());
 		});
 
-		if (this.reloadConfig !== undefined) {
+		if (this.config.reloadOnChange) {
 
-			this.reloadWatcher = chokidar.watch(this.reloadConfig.watch, { 
-				ignored: this.reloadConfig.ignore,
+			this.reloadWatcher = chokidar.watch(this.config.reloadOnChange.watch, { 
+				ignored: this.config.reloadOnChange.ignore,
 				ignoreInitial: true
 			});
 
 			let reload: () => void;
-			if (this.addonId) {
+			if (this.config.addon) {
 
 				reload = () => {
-					if (this.addonActor !== undefined) {
+					if (this.addonManager) {
 						log.debug('Reloading add-on');
-
-						if (this.addonPath && this.addonBuildPath) {
-							fs.copySync(this.addonPath, this.addonBuildPath);
-						}
-
-						this.addonActor.reload();
+	
+						this.addonManager.reloadAddon();
 					}
 				}
 
@@ -973,8 +616,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				}
 			}
 
-			if (this.reloadConfig.debounce > 0) {
-				reload = debounce(reload, this.reloadConfig.debounce);
+			if (this.config.reloadOnChange.debounce > 0) {
+				reload = debounce(reload, this.config.reloadOnChange.debounce);
 			}
 
 			this.reloadWatcher.on('add', reload);
@@ -986,45 +629,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		this.sendEvent(new InitializedEvent());
 	}
 
-	private async fetchAddonsAndAttach(rootActor: RootActorProxy): Promise<void> {
-
-		if (this.addonAttached) return;
-
-		let addons = await rootActor.fetchAddons();
-
-		if (this.addonAttached) return;
-
-		addons.forEach((addon) => {
-			if (addon.id === this.addonId) {
-				(async () => {
-
-					let consoleActor: ConsoleActorProxy;
-					if (addon.isWebExtension) {
-
-						let webExtensionActor = new WebExtensionActorProxy(
-							addon, this.sourceMaps, this.firefoxDebugConnection);
-						[this.addonActor, consoleActor] = await webExtensionActor.connect();
-
-					} else {
-
-						this.addonActor = new TabActorProxy(
-							addon.actor, addon.name, '', this.sourceMaps, this.firefoxDebugConnection);
-						consoleActor = new ConsoleActorProxy(
-							addon.consoleActor!, this.firefoxDebugConnection);
-					}
-
-					let threadAdapter = await this.attachTabOrAddon(
-						this.addonActor, consoleActor, this.nextTabId++, false, 'Addon');
-					if (threadAdapter !== undefined) {
-						this.attachConsole(consoleActor, threadAdapter);
-					}
-					this.addonAttached = true;
-				})();
-			}
-		});
-	}
-
-	private async attachTabOrAddon(tabActor: TabActorProxy, consoleActor: ConsoleActorProxy, tabId: number, 
+	public async attachTabOrAddon(tabActor: TabActorProxy, consoleActor: ConsoleActorProxy, tabId: number, 
 		isTab: boolean, threadName: string): Promise<ThreadAdapter | undefined> {
 
 		let reload = isTab && this.reloadTabs;
@@ -1177,7 +782,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	private attachSource(sourceActor: ISourceActorProxy, threadAdapter: ThreadAdapter): void {
 
 		const source = sourceActor.source;
-		const sourcePath = this.convertFirefoxSourceToPath(source);
+		const sourcePath = this.pathMapper.convertFirefoxSourceToPath(source);
 		let sourceAdapter = threadAdapter.findCorrespondingSourceAdapter(source);
 
 		if (sourceAdapter !== undefined) {
@@ -1196,10 +801,10 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		let pathToCheck: string | null | undefined = undefined;
 		if (sourcePath !== undefined) {
 			pathToCheck = sourcePath;
-			if (this.isWindowsPlatform) {
+			if (isWindowsPlatform) {
 				pathToCheck = pathToCheck.split('\\').join('/');
 			}
-		} else if (source.generatedUrl && (!source.url || !this.urlDetector.test(source.url))) {
+		} else if (source.generatedUrl && (!source.url || !urlDetector.test(source.url))) {
 			pathToCheck = source.generatedUrl;
 		} else {
 			pathToCheck = source.url;
@@ -1208,7 +813,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		if (pathToCheck) {
 
 			let skipThisSource = false;
-			for (let regExp of this.filesToSkip) {
+			for (let regExp of this.config.filesToSkip) {
 				if (regExp.test(pathToCheck)) {
 					skipThisSource = true;
 					break;
@@ -1249,7 +854,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		}
 	}
 
-	private attachConsole(consoleActor: ConsoleActorProxy, threadAdapter: ThreadAdapter): void {
+	//TODO make private again
+	public attachConsole(consoleActor: ConsoleActorProxy, threadAdapter: ThreadAdapter): void {
 
 		consoleActor.onConsoleAPICall((consoleEvent) => {
 			consoleActorLog.debug(`Console API: ${JSON.stringify(consoleEvent)}`);
@@ -1261,8 +867,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			if ((consoleEvent.arguments.length === 1) && (typeof consoleEvent.arguments[0] !== 'object')) {
 
 				let msg = String(consoleEvent.arguments[0]);
-				if (this.showConsoleCallLocation) {
-					let filename = this.convertFirefoxUrlToPath(consoleEvent.filename);
+				if (this.config.showConsoleCallLocation) {
+					let filename = this.pathMapper.convertFirefoxUrlToPath(consoleEvent.filename);
 					msg += ` (${filename}:${consoleEvent.lineNumber}:${consoleEvent.columnNumber})`;
 				}
 				outputEvent = new OutputEvent(msg + '\n', category);
@@ -1272,8 +878,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				let args = consoleEvent.arguments.map((grip, index) =>
 					VariableAdapter.fromGrip(String(index), undefined, undefined, grip, true, threadAdapter));
 
-				if (this.showConsoleCallLocation) {
-					let filename = this.convertFirefoxUrlToPath(consoleEvent.filename);
+				if (this.config.showConsoleCallLocation) {
+					let filename = this.pathMapper.convertFirefoxUrlToPath(consoleEvent.filename);
 					let locationVar = new VariableAdapter(
 						'location', undefined, undefined,
 						`(${filename}:${consoleEvent.lineNumber}:${consoleEvent.columnNumber})`,
@@ -1336,44 +942,39 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			this.reloadWatcher = undefined;
 		}
 
-		let isFirefoxRunning = this.firefoxDebugConnection && !this.firefoxDebugSocketClosed;
-
-		if (isFirefoxRunning) {
+		if (!this.firefoxDebugSocketClosed) {
 			await this.firefoxDebugConnection.disconnect();
 		}
 
-		if (this.firefoxProc && isFirefoxRunning) {
+		if (this.config.launch) {
+			let launchConfig = this.config.launch;
 
-			if (this.debugProfileDir) {
+			if (this.firefoxProc) {
+				let firefoxProc = this.firefoxProc;
 
-				await new Promise<void>((resolve) => {
+				if (launchConfig.tmpDirs.length > 0) {
 
-					this.firefoxProc!.once('exit', async () => {
-						try {
-							await this.tryRemoveRepeatedly(this.debugProfileDir!);
-						} catch (err) {
-							log.warn(`Failed to remove temporary profile: ${err}`);
-						}
-						resolve();
+					await new Promise<void>((resolve) => {
+
+						this.firefoxProc!.once('exit', async () => {
+							try {
+								await Promise.all(launchConfig.tmpDirs.map(
+									(tmpDir) => this.tryRemoveRepeatedly(tmpDir)));
+							} catch (err) {
+								log.warn(`Failed to remove temporary directory: ${err}`);
+							}
+							resolve();
+						});
+
+						firefoxProc.kill('SIGTERM');
 					});
 
-					this.firefoxProc!.kill('SIGTERM');
-				});
+				} else {
+					firefoxProc.kill('SIGTERM');
+				}
 
-			} else {
-				this.firefoxProc!.kill('SIGTERM');
+				this.firefoxProc = undefined;
 			}
-
-			this.firefoxProc = undefined;
-
-		} else if (this.debugProfileDir) {
-
-			try {
-				await this.tryRemoveRepeatedly(this.debugProfileDir);
-			} catch (err) {
-				log.warn(`Failed to remove temporary profile: ${err}`);
-			}
-
 		}
 	}
 

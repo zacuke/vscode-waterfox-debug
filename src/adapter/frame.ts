@@ -11,13 +11,12 @@ let actorIdRegex = /[0-9]+$/;
 export class FrameAdapter {
 
 	public id: number;
-	public frame: FirefoxDebugProtocol.Frame;
 	public scopeAdapters: ScopeAdapter[];
-	public threadAdapter: ThreadAdapter;
 
-	public constructor(frame: FirefoxDebugProtocol.Frame, threadAdapter: ThreadAdapter) {
-		this.frame = frame;
-		this.threadAdapter = threadAdapter;
+	public constructor(
+		public readonly frame: FirefoxDebugProtocol.Frame,
+		public readonly threadAdapter: ThreadAdapter
+	) {
 		this.threadAdapter.debugSession.registerFrameAdapter(this);
 
 		let environmentAdapter = EnvironmentAdapter.from(this.frame.environment);
@@ -30,7 +29,7 @@ export class FrameAdapter {
 		let firefoxSource = this.frame.where.source;
 		let sourceActorName = firefoxSource.actor;
 
-		let sourcePath = this.threadAdapter.debugSession.convertFirefoxSourceToPath(firefoxSource);
+		let sourcePath = this.threadAdapter.debugSession.pathMapper.convertFirefoxSourceToPath(firefoxSource);
 		let sourceName = '';
 
 		if (firefoxSource.url != null) {

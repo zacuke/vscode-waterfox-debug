@@ -33,7 +33,8 @@ describe('Firefox debug adapter', function() {
 
 			dc = new DebugClient('node', './out/firefoxDebugAdapter.js', 'firefox');
 
-			await sourceMapUtil.testSourcemaps(dc, targetDir, { 
+			await sourceMapUtil.testSourcemaps(dc, targetDir, {
+				request: 'launch',
 				file: path.join(targetDir, 'index.html'),
 				pathMappings: [{ url: 'webpack:///', path: targetDir + '/' }],
 				sourceMaps

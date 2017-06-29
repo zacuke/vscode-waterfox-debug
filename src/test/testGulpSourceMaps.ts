@@ -43,7 +43,8 @@ describe('Firefox debug adapter', function() {
 
 			dc = new DebugClient('node', './out/firefoxDebugAdapter.js', 'firefox');
 
-			await sourceMapUtil.testSourcemaps(dc, srcDir, { 
+			await sourceMapUtil.testSourcemaps(dc, srcDir, {
+				request: 'launch',
 				file: path.join(buildDir, 'index.html'),
 				sourceMaps
 			});
