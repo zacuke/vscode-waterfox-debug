@@ -70,11 +70,11 @@ export function setBreakpoints(dc: DebugClient, sourcePath: string, breakpointLi
 	});
 }
 
-export function receiveBreakpointEvent(dc: DebugClient): Promise<DebugProtocol.BreakpointEvent> {
+export function receiveBreakpointEvent(dc: DebugClient): Promise<DebugProtocol.Event> {
 	return dc.waitForEvent('breakpoint', 10000);
 }
 
-export function receiveStoppedEvent(dc: DebugClient): Promise<DebugProtocol.StoppedEvent> {
+export function receiveStoppedEvent(dc: DebugClient): Promise<DebugProtocol.Event> {
 	return dc.waitForEvent('stopped', 10000);
 }
 
