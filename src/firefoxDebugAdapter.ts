@@ -90,6 +90,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			supportsConditionalBreakpoints: true,
 			supportsSetVariable: true,
 			supportsCompletionsRequest: true,
+			supportsDelayedStackTraceLoading: true,
 			exceptionBreakpointFilters: [
 				{
 					filter: 'all',
