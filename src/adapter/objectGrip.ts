@@ -20,9 +20,9 @@ export class ObjectGripAdapter implements VariablesProvider {
 		objectGrip: FirefoxDebugProtocol.ObjectGrip,
 		public readonly threadLifetime: boolean
 	) {
-		this.actor = this.threadAdapter.debugSession.getOrCreateObjectGripActorProxy(objectGrip);
+		this.actor = this.threadAdapter.debugAdapter.getOrCreateObjectGripActorProxy(objectGrip);
 		this.actor.increaseRefCount();
-		this.variablesProviderId = this.threadAdapter.debugSession.registerVariablesProvider(this);
+		this.variablesProviderId = this.threadAdapter.debugAdapter.variablesProviders.register(this);
 		this.threadAdapter.registerObjectGripAdapter(this);
 	}
 
@@ -67,7 +67,7 @@ export class ObjectGripAdapter implements VariablesProvider {
 
 	public dispose(): void {
 		this.actor.decreaseRefCount();
-		this.threadAdapter.debugSession.unregisterVariablesProvider(this);
+		this.threadAdapter.debugAdapter.variablesProviders.unregister(this.variablesProviderId);
 	}
 }
 

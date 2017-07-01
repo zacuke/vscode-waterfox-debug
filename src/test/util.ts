@@ -1,7 +1,7 @@
 import { delay } from '../util/misc';
 import { DebugClient } from 'vscode-debugadapter-testsupport';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { AddonType } from '../adapter/launchConfiguration';
+import { AddonType } from '../configuration';
 import * as path from 'path';
 
 export async function initDebugClient(testDataPath: string, waitForPageLoadedEvent: boolean): Promise<DebugClient> {

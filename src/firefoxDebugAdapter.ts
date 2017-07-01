@@ -11,7 +11,7 @@ import { AddonManager } from './util/addon';
 import { launchFirefox, connect, waitForSocket } from './util/launcher';
 import { DebugAdapterBase } from './debugAdapterBase';
 import { DebugConnection, TabActorProxy, WorkerActorProxy, IThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, ISourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
-import { ThreadAdapter, ThreadPauseCoordinator, BreakpointInfo, SourceAdapter, FrameAdapter, VariableAdapter, VariablesProvider, ConsoleAPICallAdapter } from './adapter/index';
+import { ThreadAdapter, ThreadPauseCoordinator, BreakpointInfo, FrameAdapter, VariableAdapter, ConsoleAPICallAdapter, VariablesProvider, SourceAdapter, Registry } from './adapter/index';
 import { LaunchConfiguration, AttachConfiguration, parseConfiguration, ParsedConfiguration } from "./configuration";
 import { PathMapper, urlDetector } from './util/pathMapper';
 import { isWindowsPlatform as detectWindowsPlatform } from './util/misc';
@@ -25,38 +25,31 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	private config: ParsedConfiguration;
 
+	public pathMapper: PathMapper;
+	private addonManager?: AddonManager;
+	private reloadWatcher?: chokidar.FSWatcher;
+
 	private firefoxProc?: ChildProcess;
 	public firefoxDebugConnection: DebugConnection; //TODO make private again
 	private firefoxDebugSocketClosed: boolean;
 
-	public pathMapper: PathMapper;
-	private addonManager: AddonManager;
-
-
-	private reloadWatcher?: chokidar.FSWatcher;
+	public readonly threads = new Registry<ThreadAdapter>();
+	public readonly sources = new Registry<SourceAdapter>();
+	public readonly frames = new Registry<FrameAdapter>();
+	public readonly variablesProviders = new Registry<VariablesProvider>();
 
 	private reloadTabs = false;
 
 	public nextTabId = 1; //TODO make private again
 	private tabsById = new Map<number, TabActorProxy>();
 
-	private nextThreadId = 1;
-	private threadsById = new Map<number, ThreadAdapter>();
 	private lastActiveConsoleThreadId: number = 0;
 
 	private nextBreakpointId = 1;
 	private breakpointsBySourcePath = new Map<string, BreakpointInfo[]>();
 	private verifiedBreakpointSources: string[] = [];
+
 	private threadPauseCoordinator = new ThreadPauseCoordinator();
-
-	private nextFrameId = 1;
-	private framesById = new Map<number, FrameAdapter>();
-
-	private nextVariablesProviderId = 1;
-	private variablesProvidersById = new Map<number, VariablesProvider>();
-
-	private nextSourceId = 1;
-	private sourcesById = new Map<number, SourceAdapter>();
 
 	private exceptionBreakpoints: ExceptionBreakpoints = ExceptionBreakpoints.All;
 
@@ -94,7 +87,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		};
 	}
 
-	private async parseConfiguration(config: LaunchConfiguration | AttachConfiguration): Promise<void> {
+	private async configure(config: LaunchConfiguration | AttachConfiguration): Promise<void> {
 		this.config = await parseConfiguration(config);
 		this.pathMapper = new PathMapper(this.config.pathMappings, this.config.addon);
 		if (this.config.addon) {
@@ -104,7 +97,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected async launch(args: LaunchConfiguration): Promise<void> {
 
-		await this.parseConfiguration(args);
+		await this.configure(args);
 
 		let socket: Socket | undefined = undefined;
 
@@ -133,7 +126,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected async attach(args: AttachConfiguration): Promise<void> {
 
-		await this.parseConfiguration(args);
+		await this.configure(args);
 		this.reloadTabs = this.config.attach!.reloadTabs;
 
 		let socket = await connect(this.config.attach!.port, this.config.attach!.host);
@@ -160,10 +153,10 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		return new Promise<{ breakpoints: DebugProtocol.Breakpoint[] }>((resolve, reject) => {
 
-			this.threadsById.forEach((threadAdapter) => {
+			for (let [, threadAdapter] of this.threads) {
 
 				let sourceAdapters = threadAdapter.findSourceAdaptersForPath(sourcePath);
-				sourceAdapters.forEach((sourceAdapter) => {
+				for (let sourceAdapter of sourceAdapters) {
 
 					log.debug(`Found source ${args.source.path} on tab ${threadAdapter.actorName}`);
 
@@ -192,8 +185,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 						//TODO handle undefined sourcePath
 						this.verifiedBreakpointSources.push(sourcePath!);
 					}
-				});
-			});
+				}
+			}
 
 			//TODO handle undefined sourcePath
 			if (this.verifiedBreakpointSources.indexOf(sourcePath!) < 0) {
@@ -222,8 +215,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			this.exceptionBreakpoints = ExceptionBreakpoints.Uncaught;
 		}
 
-		this.threadsById.forEach((threadAdapter) =>
-			threadAdapter.setExceptionBreakpoints(this.exceptionBreakpoints));
+		for (let [, threadAdapter] of this.threads) {
+			threadAdapter.setExceptionBreakpoints(this.exceptionBreakpoints);
+		}
 	}
 
 	protected async pause(args: DebugProtocol.PauseArguments): Promise<void> {
@@ -273,7 +267,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected async getSource(args: DebugProtocol.SourceArguments): Promise<{ content: string, mimeType?: string }> {
 
-		let sourceAdapter = this.sourcesById.get(args.sourceReference);
+		let sourceAdapter = this.sources.find(args.sourceReference);
 		if (!sourceAdapter) {
 			throw new Error('Failed sourceRequest: the requested source reference can\'t be found');
 		}
@@ -296,12 +290,10 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected getThreads(): { threads: DebugProtocol.Thread[] } {
 		
-		log.debug(`${this.threadsById.size} threads`);
+		log.debug(`${this.threads.count} threads`);
 
-		let threads: Thread[] = [];
-		this.threadsById.forEach((threadAdapter) => {
-			threads.push(new Thread(threadAdapter.id, threadAdapter.name));
-		});
+		let threads = this.threads.map(
+			(threadAdapter) => new Thread(threadAdapter.id, threadAdapter.name));
 
 		return { threads };
 	}
@@ -321,7 +313,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected getScopes(args: DebugProtocol.ScopesArguments): { scopes: DebugProtocol.Scope[] } {
 
-		let frameAdapter = this.framesById.get(args.frameId);
+		let frameAdapter = this.frames.find(args.frameId);
 		if (!frameAdapter) {
 			throw new Error('Failed scopesRequest: the requested frame can\'t be found');
 		}
@@ -335,7 +327,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected async getVariables(args: DebugProtocol.VariablesArguments): Promise<{ variables: DebugProtocol.Variable[] }> {
 
-		let variablesProvider = this.variablesProvidersById.get(args.variablesReference);
+		let variablesProvider = this.variablesProviders.find(args.variablesReference);
 		if (!variablesProvider) {
 			throw new Error('Failed variablesRequest: the requested object reference can\'t be found');
 		}
@@ -357,13 +349,13 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				msg = String(err);
 			}
 
-			return { variables: [new Variable('Error from debugger', msg)]};
+			return { variables: [ new Variable('Error from debugger', msg) ]};
 		}
 	}
 
 	protected async setVariable(args: DebugProtocol.SetVariableArguments): Promise<{ value: string, variablesReference?: number }> {
 
-		let variablesProvider = this.variablesProvidersById.get(args.variablesReference);
+		let variablesProvider = this.variablesProviders.find(args.variablesReference);
 		if (variablesProvider === undefined) {
 			throw new Error('Failed setVariableRequest: the requested context can\'t be found')
 		}
@@ -387,7 +379,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 			if (args.frameId !== undefined) {
 
-				let frameAdapter = this.framesById.get(args.frameId);
+				let frameAdapter = this.frames.find(args.frameId);
 				if (frameAdapter !== undefined) {
 
 					this.setActiveThread(frameAdapter.threadAdapter);
@@ -422,7 +414,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 				let frameActorName: string | undefined = undefined;
 				if (args.frameId !== undefined) {
-					let frameAdapter = this.framesById.get(args.frameId);
+					let frameAdapter = this.frames.find(args.frameId);
 					if (frameAdapter !== undefined) {
 						frameActorName = frameAdapter.frame.actor;
 					}
@@ -448,7 +440,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		if (args.frameId !== undefined) {
 
-			let frameAdapter = this.framesById.get(args.frameId);
+			let frameAdapter = this.frames.find(args.frameId);
 
 			if (frameAdapter === undefined) {
 				log.warn(`Couldn\'t find specified frame for auto-completing ${args.text}`);
@@ -503,33 +495,13 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		let detachPromises: Promise<void>[] = [];
 		if (!this.firefoxDebugSocketClosed) {
-			this.threadsById.forEach((threadAdapter) => {
+			for (let [, threadAdapter] of this.threads) {
 				detachPromises.push(threadAdapter.detach());
-			});
+			}
 		}
 		await Promise.all(detachPromises);
 
 		await this.disconnectFirefoxAndCleanup();
-	}
-
-	public registerVariablesProvider(variablesProvider: VariablesProvider): number {
-		let providerId = this.nextVariablesProviderId++;
-		this.variablesProvidersById.set(providerId, variablesProvider);
-		return providerId;
-	}
-
-	public unregisterVariablesProvider(variablesProvider: VariablesProvider) {
-		this.variablesProvidersById.delete(variablesProvider.variablesProviderId);
-	}
-
-	public registerFrameAdapter(frameAdapter: FrameAdapter) {
-		let frameId = this.nextFrameId++;
-		frameAdapter.id = frameId;
-		this.framesById.set(frameAdapter.id, frameAdapter);
-	}
-
-	public unregisterFrameAdapter(frameAdapter: FrameAdapter) {
-		this.framesById.delete(frameAdapter.id);
 	}
 
 	public getOrCreateObjectGripActorProxy(objectGrip: FirefoxDebugProtocol.ObjectGrip): ObjectGripActorProxy {
@@ -543,7 +515,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	}
 
 	private getThreadAdapter(threadId: number): ThreadAdapter {
-		let threadAdapter = this.threadsById.get(threadId);
+		let threadAdapter = this.threads.find(threadId);
 		if (!threadAdapter) {
 			throw new Error(`Unknown threadId ${threadId}`);
 		}
@@ -645,8 +617,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		log.debug(`Attached to tab ${tabActor.name}`);
 
-		let threadId = this.nextThreadId++;
-		let threadAdapter = new ThreadAdapter(threadId, threadActor, consoleActor,
+		let threadAdapter = new ThreadAdapter(threadActor, consoleActor,
 			this.threadPauseCoordinator, threadName, this);
 
 		this.attachThread(threadAdapter, threadActor.name);
@@ -674,9 +645,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 				this.threadPauseCoordinator.threadTerminated(threadAdapter.id, threadAdapter.name);
 
-				if (this.threadsById.has(threadId)) {
-					this.threadsById.delete(threadId);
-					this.sendEvent(new ThreadEvent('exited', threadId));
+				if (this.threads.has(threadAdapter.id)) {
+					this.threads.unregister(threadAdapter.id);
+					this.sendEvent(new ThreadEvent('exited', threadAdapter.id));
 				}
 
 				threadAdapter.dispose(true);
@@ -693,21 +664,12 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 			await threadAdapter.init(this.exceptionBreakpoints, reload);
 
-			this.threadsById.set(threadId, threadAdapter);
-			this.sendEvent(new ThreadEvent('started', threadId));
+			this.sendEvent(new ThreadEvent('started', threadAdapter.id));
 
 			return threadAdapter;
 
 		} catch (err) {
-			// When the user closes a tab, Firefox creates an invisible tab and
-			// immediately closes it again (while we're still trying to attach to it),
-			// so the initialization for this invisible tab fails and we end up here.
-			// Since we never sent the current threadId to VSCode, we can re-use it
-			if (this.nextThreadId == (threadId + 1)) {
-				this.nextThreadId--;
-			}
 			log.info(`Failed attaching to tab: ${err}`);
-
 			return undefined;
 		}
 	}
@@ -719,20 +681,18 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		log.debug(`Attached to worker ${workerActor.name}`);
 
-		let threadId = this.nextThreadId++;
-		let threadAdapter = new ThreadAdapter(threadId, threadActor, undefined,
+		let threadAdapter = new ThreadAdapter(threadActor, undefined,
 			this.threadPauseCoordinator, `Worker ${tabId}/${workerId}`, this);
 
 		this.attachThread(threadAdapter, threadActor.name);
 
 		await threadAdapter.init(this.exceptionBreakpoints, false);
 
-		this.threadsById.set(threadId, threadAdapter);
-		this.sendEvent(new ThreadEvent('started', threadId));
+		this.sendEvent(new ThreadEvent('started', threadAdapter.id));
 
 		workerActor.onClose(() => {
-			this.threadsById.delete(threadId);
-			this.sendEvent(new ThreadEvent('exited', threadId));
+			this.threads.unregister(threadAdapter.id);
+			this.sendEvent(new ThreadEvent('exited', threadAdapter.id));
 		});
 	}
 
@@ -775,7 +735,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		threadAdapter.onExited(() => {
 			log.info(`Thread ${actorName} exited`);
-			this.threadsById.delete(threadAdapter.id);
+			this.threads.unregister(threadAdapter.id);
 			this.sendEvent(new ThreadEvent('exited', threadAdapter.id));
 		});
 	}
@@ -792,9 +752,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		} else {
 
-			let sourceId = this.nextSourceId++;
-			sourceAdapter = threadAdapter.createSourceAdapter(sourceId, sourceActor, sourcePath);
-			this.sourcesById.set(sourceId, sourceAdapter);
+			sourceAdapter = threadAdapter.createSourceAdapter(sourceActor, sourcePath);
 
 		}
 
@@ -918,18 +876,15 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	private findConsoleThread(): ThreadAdapter | undefined {
 
-		let threadAdapter: ThreadAdapter | undefined = this.threadsById.get(this.lastActiveConsoleThreadId);
+		let threadAdapter = this.threads.find(this.lastActiveConsoleThreadId);
 		if (threadAdapter !== undefined) {
 			return threadAdapter;
 		}
 
-		for (let i = 1; i < this.nextThreadId; i++) {
-			if (this.threadsById.has(i)) {
-				threadAdapter = this.threadsById.get(i)!;
-				if (threadAdapter.hasConsole) {
-					this.setActiveThread(threadAdapter);
-					return threadAdapter;
-				}
+		for (let [, threadAdapter] of this.threads) {
+			if (threadAdapter.hasConsole) {
+				this.setActiveThread(threadAdapter);
+				return threadAdapter;
 			}
 		}
 
