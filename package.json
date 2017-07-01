@@ -5,7 +5,7 @@
   "author": "Holger Benl <hbenl@evandor.de>",
   "publisher": "hbenl",
   "description": "Debug your web application or browser extension in Firefox",
-  "icon": "icon.svg",
+  "icon": "icon.png",
   "engines": {
     "vscode": "^1.1.0"
   },
