@@ -1,3 +1,6 @@
+### Version 0.14.1
+* compatibility update for the upcoming VS Code 1.14 release
+ 
 ### Version 0.14.0
 * fix WebExtension debugging in recent Firefox builds
 * add experimental `sourceMaps` configuration property
