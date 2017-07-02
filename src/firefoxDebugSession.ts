@@ -6,13 +6,14 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, ContinuedEvent } from 'vscode-debugadapter';
 import { Log } from './util/log';
 import { AddonManager } from './adapter/addonManager';
-import { launchFirefox, connect, waitForSocket } from './util/launcher';
+import { launchFirefox } from './firefox/launch';
 import { DebugConnection, TabActorProxy, WorkerActorProxy, IThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, ISourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, ThreadPauseCoordinator, FrameAdapter, VariableAdapter, ConsoleAPICallAdapter, VariablesProvider, SourceAdapter, Registry, BreakpointsAdapter } from './adapter/index';
 import { ParsedConfiguration } from "./configuration";
 import { PathMapper, urlDetector } from './util/pathMapper';
 import { isWindowsPlatform as detectWindowsPlatform } from './util/misc';
 import { tryRemoveRepeatedly } from './util/fs';
+import { connect, waitForSocket } from './util/net';
 
 let log = Log.create('FirefoxDebugSession');
 let consoleActorLog = Log.create('ConsoleActor');

@@ -1,7 +1,5 @@
-import { delay } from '../util/misc';
 import * as path from 'path';
 import * as fs from 'fs-extra';
-import * as net from 'net';
 import { spawn, fork, ChildProcess } from 'child_process';
 import * as FirefoxProfile from 'firefox-profile';
 import { ParsedLaunchConfiguration } from '../configuration';
@@ -64,19 +62,6 @@ export async function launchFirefox(
 	return childProc;
 }
 
-export async function waitForSocket(port: number): Promise<net.Socket> {
-	let lastError: any;
-	for (var i = 0; i < 25; i++) {
-		try {
-			return await connect(port);
-		} catch(err) {
-			lastError = err;
-			await delay(200);
-		}
-	}
-	throw lastError;
-}
-
 async function prepareDebugProfile(config: ParsedLaunchConfiguration): Promise<FirefoxProfile> {
 
 	var profile = await createDebugProfile(config);
@@ -114,13 +99,5 @@ function createDebugProfile(config: ParsedLaunchConfiguration): Promise<FirefoxP
 				destinationDirectory: config.profileDir
 			}));
 		}
-	});
-}
-
-export function connect(port: number, host?: string): Promise<net.Socket> {
-	return new Promise<net.Socket>((resolve, reject) => {
-		let socket = net.connect(port, host || 'localhost');
-		socket.on('connect', () => resolve(socket));
-		socket.on('error', reject);
 	});
 }
