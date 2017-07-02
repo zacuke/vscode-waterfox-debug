@@ -30,7 +30,7 @@ export class FrameAdapter {
 		let firefoxSource = this.frame.where.source;
 		let sourceActorName = firefoxSource.actor;
 
-		let sourcePath = this.threadAdapter.debugAdapter.pathMapper.convertFirefoxSourceToPath(firefoxSource);
+		let sourcePath = this.threadAdapter.debugSession.pathMapper.convertFirefoxSourceToPath(firefoxSource);
 		let sourceName = '';
 
 		if (firefoxSource.url != null) {

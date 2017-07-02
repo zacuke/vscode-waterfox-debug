@@ -27,7 +27,7 @@ export abstract class ScopeAdapter implements VariablesProvider {
 		public readonly referenceFrame: FrameAdapter
 	) {
 		this.threadAdapter.registerScopeAdapter(this);
-		this.variablesProviderId = this.threadAdapter.debugAdapter.variablesProviders.register(this);
+		this.variablesProviderId = this.threadAdapter.debugSession.variablesProviders.register(this);
 	}
 
 	public static fromGrip(name: string, grip: FirefoxDebugProtocol.Grip, referenceFrame: FrameAdapter): ScopeAdapter {
@@ -85,7 +85,7 @@ export abstract class ScopeAdapter implements VariablesProvider {
 	protected abstract getObjectGripAdaptersInt(): ObjectGripAdapter[];
 
 	public dispose(): void {
-		this.threadAdapter.debugAdapter.variablesProviders.unregister(this.variablesProviderId);
+		this.threadAdapter.debugSession.variablesProviders.unregister(this.variablesProviderId);
 	}
 }
 

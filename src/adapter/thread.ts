@@ -3,8 +3,8 @@ import { EventEmitter } from 'events';
 import { concatArrays } from '../util/misc';
 import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy, ISourceActorProxy } from '../firefox/index';
 import { ThreadCoordinator, ThreadPauseCoordinator, BreakpointInfo, BreakpointsAdapter, FrameAdapter, ScopeAdapter, SourceAdapter, BreakpointAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
-import { FirefoxDebugAdapter } from '../firefoxDebugAdapter';
 import { Variable } from 'vscode-debugadapter';
+import { FirefoxDebugSession } from "../firefoxDebugSession";
 
 let log = Log.create('ThreadAdapter');
 
@@ -34,11 +34,11 @@ export class ThreadAdapter extends EventEmitter {
 		private readonly consoleActor: ConsoleActorProxy | undefined,
 		private readonly pauseCoordinator: ThreadPauseCoordinator,
 		public readonly name: string,
-		public readonly debugAdapter: FirefoxDebugAdapter
+		public readonly debugSession: FirefoxDebugSession
 	) {
 		super();
 
-		this.id = debugAdapter.threads.register(this);
+		this.id = debugSession.threads.register(this);
 		this.consoleActor = consoleActor;
 
 		this.coordinator = new ThreadCoordinator(this.id, this.name, this.actor, this.consoleActor,
@@ -81,7 +81,7 @@ export class ThreadAdapter extends EventEmitter {
 	}
 
 	public createSourceAdapter(actor: ISourceActorProxy, path?: string): SourceAdapter {
-		let adapter = new SourceAdapter(this.debugAdapter.sources, actor, path);
+		let adapter = new SourceAdapter(this.debugSession.sources, actor, path);
 		this.sources.push(adapter);
 		return adapter;
 	}
@@ -160,7 +160,7 @@ export class ThreadAdapter extends EventEmitter {
 				let frames = await this.actor.fetchStackFrames();
 
 				let frameAdapters = frames.map((frame) => {
-					let frameAdapter = new FrameAdapter(this.debugAdapter.frames, frame, this);
+					let frameAdapter = new FrameAdapter(this.debugSession.frames, frame, this);
 					this.frames.push(frameAdapter);
 					return frameAdapter;
 				});

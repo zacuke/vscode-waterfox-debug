@@ -9,7 +9,7 @@ import * as FirefoxProfile from 'firefox-profile';
 import * as zipdir from 'zip-dir';
 import { Extract } from 'unzip';
 import { RootActorProxy, AddonsActorProxy, PreferenceActorProxy, ConsoleActorProxy, WebExtensionActorProxy, TabActorProxy } from "../firefox/index";
-import { FirefoxDebugAdapter } from "../firefoxDebugAdapter";
+import { FirefoxDebugSession } from "../firefoxDebugSession";
 
 export class AddonManager {
 
@@ -50,7 +50,7 @@ export class AddonManager {
 		rootActor: RootActorProxy,
 		addonsActor: AddonsActorProxy,
 		preferenceActor: PreferenceActorProxy,
-		debugAdapter: FirefoxDebugAdapter
+		debugSession: FirefoxDebugSession
 	): Promise<void> {
 
 		switch (this.config.type) {
@@ -61,8 +61,8 @@ export class AddonManager {
 				}
 
 				let [addonActor, consoleActor] = await rootActor.fetchProcess();
-				let tabId = debugAdapter.tabs.register(addonActor);
-				debugAdapter.attachTabOrAddon(addonActor, consoleActor, 'Browser', tabId);
+				let tabId = debugSession.tabs.register(addonActor);
+				debugSession.attachTabOrAddon(addonActor, consoleActor, 'Browser', tabId);
 
 				break;
 
@@ -82,7 +82,7 @@ export class AddonManager {
 					}
 				}
 
-				this.fetchAddonsAndAttach(rootActor, debugAdapter);
+				this.fetchAddonsAndAttach(rootActor, debugSession);
 
 				break;
 
@@ -91,7 +91,7 @@ export class AddonManager {
 					await addonsActor.installAddon(this.config.path);
 				}
 
-				this.fetchAddonsAndAttach(rootActor, debugAdapter);
+				this.fetchAddonsAndAttach(rootActor, debugSession);
 
 				break;
 		}
@@ -118,7 +118,10 @@ export class AddonManager {
 	}
 
 	//TODO private readonly debugAdapter ?
-	private async fetchAddonsAndAttach(rootActor: RootActorProxy, debugAdapter: FirefoxDebugAdapter): Promise<void> {
+	private async fetchAddonsAndAttach(
+		rootActor: RootActorProxy,
+		debugSession: FirefoxDebugSession
+	): Promise<void> {
 
 		if (this.addonAttached) return;
 
@@ -134,21 +137,21 @@ export class AddonManager {
 					if (addon.isWebExtension) {
 
 						let webExtensionActor = new WebExtensionActorProxy(
-							addon, this.sourceMaps, debugAdapter.firefoxDebugConnection);
+							addon, this.sourceMaps, debugSession.firefoxDebugConnection);
 						[this.addonActor, consoleActor] = await webExtensionActor.connect();
 
 					} else {
 
 						this.addonActor = new TabActorProxy(
-							addon.actor, addon.name, '', this.sourceMaps, debugAdapter.firefoxDebugConnection);
+							addon.actor, addon.name, '', this.sourceMaps, debugSession.firefoxDebugConnection);
 						consoleActor = new ConsoleActorProxy(
-							addon.consoleActor!, debugAdapter.firefoxDebugConnection);
+							addon.consoleActor!, debugSession.firefoxDebugConnection);
 					}
 
-					let threadAdapter = await debugAdapter.attachTabOrAddon(
+					let threadAdapter = await debugSession.attachTabOrAddon(
 						this.addonActor, consoleActor, 'Addon');
 					if (threadAdapter !== undefined) {
-						debugAdapter.attachConsole(consoleActor, threadAdapter);
+						debugSession.attachConsole(consoleActor, threadAdapter);
 					}
 					this.addonAttached = true;
 				})();

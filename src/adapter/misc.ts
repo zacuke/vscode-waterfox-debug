@@ -67,7 +67,7 @@ export class ConsoleAPICallAdapter implements VariablesProvider {
 		private readonly variables: VariableAdapter[],
 		public readonly threadAdapter: ThreadAdapter
 	) {
-		this.variablesProviderId = threadAdapter.debugAdapter.variablesProviders.register(this);
+		this.variablesProviderId = threadAdapter.debugSession.variablesProviders.register(this);
 	}
 
 	public getVariables(): Promise<VariableAdapter[]> {
