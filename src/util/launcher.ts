@@ -5,7 +5,7 @@ import * as net from 'net';
 import { spawn, fork, ChildProcess } from 'child_process';
 import * as FirefoxProfile from 'firefox-profile';
 import { ParsedLaunchConfiguration } from '../configuration';
-import { AddonManager } from "./addon";
+import { AddonManager } from "../adapter/addonManager";
 
 export async function launchFirefox(
 	launch: ParsedLaunchConfiguration,

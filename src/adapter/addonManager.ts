@@ -28,7 +28,7 @@ export class AddonManager {
 
 			let tempXpiDir = path.join(os.tmpdir(), `vscode-firefox-debug-${uuid.v4()}`);
 			fs.mkdirSync(tempXpiDir);
-			let tempXpiPath = await createXpi(this.config.type, this.config.path, tempXpiDir);
+			let tempXpiPath = await this.createXpi(this.config.type, this.config.path, tempXpiDir);
 
 			await new Promise<void>((resolve, reject) => {
 				profile.addExtension(tempXpiPath, (err, addonDetails) => {
@@ -70,7 +70,7 @@ export class AddonManager {
 				if (!this.config.installInProfile) {
 
 					if (this.addonBuildPath) {
-						await buildAddonDir(this.config.path, this.addonBuildPath);
+						await this.buildAddonDir(this.config.path, this.addonBuildPath);
 						await addonsActor.installAddon(this.addonBuildPath);
 						await preferenceActor.setCharPref('vscode.debug.temporaryAddonPath', this.addonBuildPath);
 					} else {
@@ -114,7 +114,7 @@ export class AddonManager {
 			throw 'This command is only available when debugging an addon of type "addonSdk"';
 		}
 
-		await buildAddonDir(this.config.path, this.addonBuildPath);
+		await this.buildAddonDir(this.config.path, this.addonBuildPath);
 	}
 
 	//TODO private readonly debugAdapter ?
@@ -158,71 +158,58 @@ export class AddonManager {
 			}
 		});
 	}
-}
 
-export function createXpi(addonType: AddonType, addonPath: string, destDir: string): Promise<string> {
-	return new Promise<string>((resolve, reject) => {
+	private createXpi(addonType: AddonType, addonPath: string, destDir: string): Promise<string> {
+		return new Promise<string>((resolve, reject) => {
 
-		switch (addonType) {
+			switch (addonType) {
 
-			case 'legacy':
-			case 'webExtension':
-				let destFile = path.join(destDir, 'addon.xpi');
-				zipdir(addonPath, { saveTo: destFile },
-				(err, buffer) => {
-					if (err) {
-						reject(err);
-					} else {
-						resolve(destFile);
+				case 'legacy':
+				case 'webExtension':
+					let destFile = path.join(destDir, 'addon.xpi');
+					zipdir(addonPath, { saveTo: destFile },
+					(err, buffer) => {
+						if (err) {
+							reject(err);
+						} else {
+							resolve(destFile);
+						}
+					});
+					break;
+
+				case 'addonSdk':
+					try {
+						let jpmVersion = execSync('jpm -V', { encoding: 'utf8' });
+						jpmVersion = (<string>jpmVersion).trim();
+						if (semver.lt(jpmVersion, '1.2.0')) {
+							reject(`Please install a newer version of jpm (You have ${jpmVersion}, but 1.2.0 or newer is required)`);
+							return;
+						}
+
+						execSync(`jpm xpi --dest-dir "${destDir}"`, { cwd: addonPath });
+						resolve(path.join(destDir, fs.readdirSync(destDir)[0]));
+
+					} catch (err) {
+						reject(`Couldn't run jpm: ${err.stderr}`);
 					}
-				});
-				break;
-
-			case 'addonSdk':
-				try {
-					let jpmVersion = execSync('jpm -V', { encoding: 'utf8' });
-					jpmVersion = (<string>jpmVersion).trim();
-					if (semver.lt(jpmVersion, '1.2.0')) {
-						reject(`Please install a newer version of jpm (You have ${jpmVersion}, but 1.2.0 or newer is required)`);
-						return;
-					}
-
-					execSync(`jpm xpi --dest-dir "${destDir}"`, { cwd: addonPath });
-					resolve(path.join(destDir, fs.readdirSync(destDir)[0]));
-
-				} catch (err) {
-					reject(`Couldn't run jpm: ${err.stderr}`);
-				}
-				break;
-		}
-	});
-}
-
-async function buildAddonDir(addonPath: string, destDir: string): Promise<void> {
-	fs.mkdirSync(destDir);
-	let xpiPath = await createXpi('addonSdk', addonPath, destDir);
-	await unzip(xpiPath, destDir);
-	fs.unlinkSync(xpiPath);
-}
-
-export function findAddonId(addonPath: string): Promise<string> {
-	return new Promise<string>((resolve, reject) => {
-		var dummyProfile = new FirefoxProfile();
-		(<any>dummyProfile)._addonDetails(addonPath, (addonDetails: { id?: string | null }) => {
-			if (typeof addonDetails.id === 'string') {
-				resolve(addonDetails.id);
-			} else {
-				reject('This debugger currently requires add-ons to specify an ID in their manifest');
+					break;
 			}
 		});
-	});
-}
+	}
 
-function unzip(srcFile: string, destDir: string): Promise<void> {
-	return new Promise<void>((resolve, reject) => {
-		let extractor = Extract({ path: destDir });
-		extractor.on('close', resolve);
-		extractor.on('error', reject);
-		fs.createReadStream(srcFile).pipe(extractor);
-	});
+	private async buildAddonDir(addonPath: string, destDir: string): Promise<void> {
+		fs.mkdirSync(destDir);
+		let xpiPath = await this.createXpi('addonSdk', addonPath, destDir);
+		await this.unzip(xpiPath, destDir);
+		fs.unlinkSync(xpiPath);
+	}
+
+	private unzip(srcFile: string, destDir: string): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			let extractor = Extract({ path: destDir });
+			extractor.on('close', resolve);
+			extractor.on('error', reject);
+			fs.createReadStream(srcFile).pipe(extractor);
+		});
+	}
 }

@@ -5,7 +5,7 @@ import debounce = require('debounce');
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, ContinuedEvent } from 'vscode-debugadapter';
 import { Log } from './util/log';
-import { AddonManager } from './util/addon';
+import { AddonManager } from './adapter/addonManager';
 import { launchFirefox, connect, waitForSocket } from './util/launcher';
 import { DebugConnection, TabActorProxy, WorkerActorProxy, IThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, ISourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, ThreadPauseCoordinator, FrameAdapter, VariableAdapter, ConsoleAPICallAdapter, VariablesProvider, SourceAdapter, Registry, BreakpointsAdapter } from './adapter/index';

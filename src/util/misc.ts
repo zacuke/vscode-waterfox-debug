@@ -1,4 +1,5 @@
 import * as os from 'os';
+import * as FirefoxProfile from 'firefox-profile';
 
 export function concatArrays<T>(arrays: T[][]): T[] {
 	return [].concat.apply([], arrays);
@@ -53,4 +54,17 @@ export function accessorExpression(objectExpression: string | undefined, propert
 		const escapedPropertyName = propertyName.replace('\\', '\\\\').replace('\'', '\\\'');
 		return `${objectExpression}['${escapedPropertyName}']`;
 	}
+}
+
+export function findAddonId(addonPath: string): Promise<string> {
+	return new Promise<string>((resolve, reject) => {
+		var dummyProfile = new FirefoxProfile();
+		(<any>dummyProfile)._addonDetails(addonPath, (addonDetails: { id?: string | null }) => {
+			if (typeof addonDetails.id === 'string') {
+				resolve(addonDetails.id);
+			} else {
+				reject('This debugger currently requires add-ons to specify an ID in their manifest');
+			}
+		});
+	});
 }
