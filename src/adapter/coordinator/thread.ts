@@ -4,7 +4,7 @@ import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy } from '../.
 import { ThreadPauseCoordinator, PauseType } from './threadPause';
 import { VariableAdapter } from '../variable';
 import { DelayedTask } from '../../util/delayedTask';
-import { PendingRequest } from '../../firefox/actorProxy/pendingRequests';
+import { PendingRequest } from '../../util/pendingRequests';
 
 let log = Log.create('ThreadCoordinator');
 

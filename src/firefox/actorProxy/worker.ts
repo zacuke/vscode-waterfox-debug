@@ -1,7 +1,7 @@
 import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { DebugConnection, ActorProxy, IThreadActorProxy, ThreadActorProxy, SourceMappingThreadActorProxy } from '../index';
-import { PendingRequest } from './pendingRequests';
+import { PendingRequest } from '../../util/pendingRequests';
 
 let log = Log.create('WorkerActorProxy');
 

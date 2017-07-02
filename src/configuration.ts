@@ -4,7 +4,8 @@ import * as uuid from 'uuid';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { Log, LogConfiguration } from './util/log';
 import { findAddonId } from './util/addon';
-import { isExecutable, isWindowsPlatform } from './util/misc';
+import { isWindowsPlatform } from './util/misc';
+import { isExecutable } from './util/fs';
 import { Minimatch } from "minimatch";
 
 let log = Log.create('ParseConfiguration');

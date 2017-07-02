@@ -1,6 +1,6 @@
 import { Log } from '../../util/log';
 import { DebugConnection } from '../connection';
-import { PendingRequests, PendingRequest } from './pendingRequests';
+import { PendingRequests, PendingRequest } from '../../util/pendingRequests';
 import { ActorProxy } from './interface';
 
 let log = Log.create('ObjectGripActorProxy');

@@ -1,6 +1,6 @@
 import { Log } from '../../util/log';
 import { DebugConnection } from '../connection';
-import { PendingRequests } from './pendingRequests';
+import { PendingRequests } from '../../util/pendingRequests';
 import { ActorProxy } from './interface';
 
 let log = Log.create('BreakpointActorProxy');

@@ -1,7 +1,7 @@
 import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { DebugConnection } from '../connection';
-import { PendingRequest, PendingRequests } from './pendingRequests';
+import { PendingRequest, PendingRequests } from '../../util/pendingRequests';
 import { ActorProxy } from './interface';
 import { ISourceActorProxy, SourceActorProxy } from './source';
 import { exceptionGripToString } from '../../util/misc';

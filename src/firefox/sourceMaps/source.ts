@@ -1,6 +1,6 @@
 import { ISourceActorProxy, SetBreakpointResult } from '../actorProxy/source';
 import { SourceMappingInfo } from "./info";
-import { getUri } from "../../util/misc";
+import { getUri } from "../../util/net";
 
 export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 

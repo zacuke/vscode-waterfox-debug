@@ -1,7 +1,7 @@
 import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { DebugConnection, ActorProxy, WorkerActorProxy, IThreadActorProxy, ThreadActorProxy, SourceMappingThreadActorProxy } from '../index';
-import { PendingRequests } from './pendingRequests';
+import { PendingRequests } from '../../util/pendingRequests';
 
 let log = Log.create('TabActorProxy');
 

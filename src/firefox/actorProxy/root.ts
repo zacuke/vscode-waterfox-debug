@@ -1,6 +1,6 @@
 import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
-import { PendingRequests } from './pendingRequests';
+import { PendingRequests } from '../../util/pendingRequests';
 import { ActorProxy } from './interface';
 import { TabActorProxy } from './tab';
 import { ConsoleActorProxy } from './console';

@@ -3,7 +3,7 @@ import * as url from 'url';
 import isAbsoluteUrl = require('is-absolute-url');
 import { SourceMapConsumer, RawSourceMap } from 'source-map';
 import { Log } from '../../util/log';
-import { getUri, urlDirname } from '../../util/misc';
+import { getUri, urlDirname } from '../../util/net';
 import { DebugConnection, ISourceActorProxy, SourceActorProxy, SourceMappingSourceActorProxy } from '../index';
 import { IThreadActorProxy, ExceptionBreakpoints } from '../actorProxy/thread';
 import { SourceMappingInfo } from './info';

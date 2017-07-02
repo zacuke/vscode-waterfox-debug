@@ -1,6 +1,6 @@
 import { Log } from '../../util/log';
 import { DebugConnection, ActorProxy } from '../index';
-import { PendingRequests } from './pendingRequests';
+import { PendingRequests } from '../../util/pendingRequests';
 
 let log = Log.create('PreferenceActorProxy');
 

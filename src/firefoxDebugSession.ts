@@ -1,4 +1,3 @@
-import * as fs from 'fs-extra';
 import { Socket } from 'net';
 import { ChildProcess } from 'child_process';
 import * as chokidar from 'chokidar';
@@ -6,7 +5,6 @@ import debounce = require('debounce');
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, ContinuedEvent } from 'vscode-debugadapter';
 import { Log } from './util/log';
-import { delay } from './util/misc';
 import { AddonManager } from './util/addon';
 import { launchFirefox, connect, waitForSocket } from './util/launcher';
 import { DebugConnection, TabActorProxy, WorkerActorProxy, IThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, ISourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
@@ -14,6 +12,7 @@ import { ThreadAdapter, ThreadPauseCoordinator, FrameAdapter, VariableAdapter, C
 import { ParsedConfiguration } from "./configuration";
 import { PathMapper, urlDetector } from './util/pathMapper';
 import { isWindowsPlatform as detectWindowsPlatform } from './util/misc';
+import { tryRemoveRepeatedly } from './util/fs';
 
 let log = Log.create('FirefoxDebugSession');
 let consoleActorLog = Log.create('ConsoleActor');
@@ -249,7 +248,7 @@ export class FirefoxDebugSession {
 						this.firefoxProc!.once('exit', async () => {
 							try {
 								await Promise.all(launchConfig.tmpDirs.map(
-									(tmpDir) => this.tryRemoveRepeatedly(tmpDir)));
+									(tmpDir) => tryRemoveRepeatedly(tmpDir)));
 							} catch (err) {
 								log.warn(`Failed to remove temporary directory: ${err}`);
 							}
@@ -508,35 +507,5 @@ export class FirefoxDebugSession {
 
 		consoleActor.startListeners();
 		consoleActor.getCachedMessages();
-	}
-
-	private async tryRemoveRepeatedly(dir: string): Promise<void> {
-		for (var i = 0; i < 5; i++) {
-			try {
-				await this.tryRemove(dir);
-				log.debug(`Removed ${dir}`);
-				return;
-			} catch (err) {
-				if (i < 4) {
-					log.debug(`Attempt to remove ${dir} failed, will retry in 100ms`);
-					await delay(100);
-				} else {
-					log.debug(`Attempt to remove ${dir} failed, giving up`);
-					throw err;
-				}
-			}
-		}
-	}
-
-	private tryRemove(dir: string): Promise<void> {
-		return new Promise<void>((resolve, reject) => {
-			fs.remove(dir, (err) => {
-				if (!err) {
-					resolve();
-				} else {
-					reject(err);
-				}
-			})
-		})
 	}
 }
