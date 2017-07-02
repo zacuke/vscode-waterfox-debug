@@ -33,15 +33,14 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	public firefoxDebugConnection: DebugConnection; //TODO make private again
 	private firefoxDebugSocketClosed: boolean;
 
+	public readonly tabs = new Registry<TabActorProxy>();
 	public readonly threads = new Registry<ThreadAdapter>();
 	public readonly sources = new Registry<SourceAdapter>();
 	public readonly frames = new Registry<FrameAdapter>();
 	public readonly variablesProviders = new Registry<VariablesProvider>();
 
-	private reloadTabs = false;
 
-	public nextTabId = 1; //TODO make private again
-	private tabsById = new Map<number, TabActorProxy>();
+	private reloadTabs = false;
 
 	private lastActiveConsoleThreadId: number = 0;
 
@@ -531,9 +530,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		// attach to all tabs, register the corresponding threads and inform VSCode about them
 		rootActor.onTabOpened(async ([tabActor, consoleActor]) => {
 			log.info(`Tab opened with url ${tabActor.url}`);
-			let tabId = this.nextTabId++;
-			this.tabsById.set(tabId, tabActor);
-			let threadAdapter = await this.attachTabOrAddon(tabActor, consoleActor, tabId, true, `Tab ${tabId}`);
+			let tabId = this.tabs.register(tabActor);
+			let threadAdapter = await this.attachTabOrAddon(tabActor, consoleActor, `Tab ${tabId}`, tabId);
 			if (threadAdapter !== undefined) {
 				this.attachConsole(consoleActor, threadAdapter);
 			}
@@ -583,7 +581,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				reload = () => {
 					log.debug('Reloading tabs');
 
-					for (let [, tabActor] of this.tabsById) {
+					for (let [, tabActor] of this.tabs) {
 						tabActor.reload();
 					}
 				}
@@ -602,10 +600,14 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		this.sendEvent(new InitializedEvent());
 	}
 
-	public async attachTabOrAddon(tabActor: TabActorProxy, consoleActor: ConsoleActorProxy, tabId: number, 
-		isTab: boolean, threadName: string): Promise<ThreadAdapter | undefined> {
+	public async attachTabOrAddon(
+		tabActor: TabActorProxy,
+		consoleActor: ConsoleActorProxy,
+		threadName: string,
+		tabId?: number
+	): Promise<ThreadAdapter | undefined> {
 
-		let reload = isTab && this.reloadTabs;
+		let reload = (tabId != null) && this.reloadTabs;
 
 		let threadActor: IThreadActorProxy;
 		try {
@@ -622,7 +624,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		this.attachThread(threadAdapter, threadActor.name);
 
-		if (isTab) {
+		if (tabId != null) {
 
 			let nextWorkerId = 1;
 			tabActor.onWorkerStarted(async (workerActor) => {
@@ -652,9 +654,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 				threadAdapter.dispose(true);
 
-				if (this.tabsById.has(tabId)) {
-					this.tabsById.delete(tabId);
-				}
+				this.tabs.unregister(tabId);
 
 				tabActor.dispose();
 			});

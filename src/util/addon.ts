@@ -61,7 +61,8 @@ export class AddonManager {
 				}
 
 				let [addonActor, consoleActor] = await rootActor.fetchProcess();
-				debugAdapter.attachTabOrAddon(addonActor, consoleActor, debugAdapter.nextTabId++, true, 'Browser');
+				let tabId = debugAdapter.tabs.register(addonActor);
+				debugAdapter.attachTabOrAddon(addonActor, consoleActor, 'Browser', tabId);
 
 				break;
 
@@ -145,7 +146,7 @@ export class AddonManager {
 					}
 
 					let threadAdapter = await debugAdapter.attachTabOrAddon(
-						this.addonActor, consoleActor, debugAdapter.nextTabId++, false, 'Addon');
+						this.addonActor, consoleActor, 'Addon');
 					if (threadAdapter !== undefined) {
 						debugAdapter.attachConsole(consoleActor, threadAdapter);
 					}
