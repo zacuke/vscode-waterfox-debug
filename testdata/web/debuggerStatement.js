@@ -1,0 +1,5 @@
+debugger;
+
+function debuggerStatement() {
+	debugger;
+}

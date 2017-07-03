@@ -79,4 +79,21 @@ describe('Firefox debug adapter', function() {
 
 		await util.assertPromiseTimeout(util.receiveStoppedEvent(dc), 1000);
 	});
+
+	it('should break on a debugger statement', async function() {
+
+		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc, 
+			() => util.evaluate(dc, 'loadScript("debuggerStatement.js")'));
+
+		assert.equal(stoppedEvent.body.allThreadsStopped, false);
+		assert.equal(stoppedEvent.body.reason, 'debuggerStatement');
+
+		await dc.continueRequest({ threadId: stoppedEvent.body.threadId });
+
+		stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc, 
+			() => util.evaluate(dc, 'debuggerStatement()'));
+
+		assert.equal(stoppedEvent.body.allThreadsStopped, false);
+		assert.equal(stoppedEvent.body.reason, 'debuggerStatement');
+	});
 });
