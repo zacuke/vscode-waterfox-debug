@@ -29,10 +29,10 @@ function factorial(n) {
 }
 
 function loadScript(url) {
-	var head= document.getElementsByTagName('head')[0];
-	var script= document.createElement('script');
-	script.type= 'text/javascript';
-	script.src= url;
+	var head = document.getElementsByTagName('head')[0];
+	var script = document.createElement('script');
+	script.type = 'text/javascript';
+	script.src = url;
 	head.appendChild(script);
 }
 
@@ -69,4 +69,9 @@ var obj = {
 
 function doEval(expr) {
 	return eval(expr);
+}
+
+function testSkipFiles() {
+	dynTest();
+	throwError();
 }
