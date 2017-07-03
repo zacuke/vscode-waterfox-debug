@@ -78,6 +78,12 @@ export function receiveStoppedEvent(dc: DebugClient): Promise<DebugProtocol.Even
 	return dc.waitForEvent('stopped', 10000);
 }
 
+export async function runCommandAndReceiveStoppedEvent(dc: DebugClient, command: () => void): Promise<DebugProtocol.Event> {
+	let stoppedEventPromise = dc.waitForEvent('stopped', 10000);
+	command();
+	return await stoppedEventPromise;
+}
+
 export function evaluate(dc: DebugClient, js: string): Promise<DebugProtocol.EvaluateResponse> {
 	return dc.evaluateRequest({ context: 'repl', expression: js });
 }
