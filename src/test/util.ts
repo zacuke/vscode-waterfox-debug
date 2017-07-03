@@ -1,7 +1,7 @@
 import { delay } from '../util/misc';
 import { DebugClient } from 'vscode-debugadapter-testsupport';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { AddonType } from '../adapter/launchConfiguration';
+import { AddonType, LaunchConfiguration } from '../adapter/launchConfiguration';
 import * as path from 'path';
 
 export async function initDebugClient(testDataPath: string, waitForPageLoadedEvent: boolean): Promise<DebugClient> {
@@ -21,13 +21,26 @@ export async function initDebugClient(testDataPath: string, waitForPageLoadedEve
 	return dc;
 }
 
-export async function initDebugClientForAddon(testDataPath: string, addonType: AddonType, delayedNavigation = false): Promise<DebugClient> {
+export async function initDebugClientForAddon(
+	testDataPath: string,
+	addonType: AddonType,
+	options?: {
+		installInProfile?: boolean,
+		delayedNavigation?: boolean
+	}
+): Promise<DebugClient> {
 
-	let dcArgs = { addonType, addonPath: path.join(testDataPath, `${addonType}/addOn`) };
-	if (delayedNavigation) {
-		dcArgs['file'] = path.join(testDataPath, `web/index.html`);
+	let dcArgs: LaunchConfiguration = { 
+		request: 'launch',
+		addonType,
+		addonPath: path.join(testDataPath, `${addonType}/addOn`),
+		installAddonInProfile: !!(options && options.installInProfile)
+	};
+
+	if (options && options.delayedNavigation) {
+		dcArgs.file = path.join(testDataPath, `web/index.html`);
 	} else {
-		dcArgs['file'] = path.join(testDataPath, `${addonType}/index.html`);
+		dcArgs.file = path.join(testDataPath, `${addonType}/index.html`);
 	}
 
 	let dc = new DebugClient('node', './out/firefoxDebugAdapter.js', 'firefox');
@@ -41,7 +54,7 @@ export async function initDebugClientForAddon(testDataPath: string, addonType: A
 
 	await receivePageLoadedEvent(dc, (addonType === 'addonSdk'));
 
-	if (delayedNavigation) {
+	if (options && options.delayedNavigation) {
 		await setConsoleThread(dc, await findTabThread(dc));
 		let file = path.join(testDataPath, `${addonType}/index.html`);
 		await evaluate(dc, `location="file://${file}"`);

@@ -13,73 +13,79 @@ describe('Firefox debug adapter', function() {
 		await dc.stop();
 	});
 
-	it('should debug a WebExtension', async function() {
+	for (let installInProfile of [ false, true ]) {
 
-		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'webExtension');
+		let installMethod = installInProfile ? 'in the profile' : 'using RDP';
 
-		let backgroundScriptPath = path.join(TESTDATA_PATH, 'webExtension/addOn/backgroundscript.js');
-		await util.setBreakpoints(dc, backgroundScriptPath, [ 2 ]);
+		it(`should debug a WebExtension installed ${installMethod}`, async function() {
 
-		let contentScriptPath = path.join(TESTDATA_PATH, 'webExtension/addOn/contentscript.js');
-		await util.setBreakpoints(dc, contentScriptPath,  [ 6 ]);
+			dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'webExtension', { installInProfile });
 
-		await util.setConsoleThread(dc, await util.findTabThread(dc));
-		util.evaluate(dc, 'putMessage("bar")');
+			let backgroundScriptPath = path.join(TESTDATA_PATH, 'webExtension/addOn/backgroundscript.js');
+			await util.setBreakpoints(dc, backgroundScriptPath, [ 2 ]);
 
-		let stoppedEvent = await util.receiveStoppedEvent(dc);
-		let contentThreadId = stoppedEvent.body.threadId!;
-		let stackTrace = await dc.stackTraceRequest({ threadId: contentThreadId });
+			let contentScriptPath = path.join(TESTDATA_PATH, 'webExtension/addOn/contentscript.js');
+			await util.setBreakpoints(dc, contentScriptPath,  [ 6 ]);
 
-		assert.equal(stackTrace.body.stackFrames[0].source!.path, contentScriptPath);
+			await util.setConsoleThread(dc, await util.findTabThread(dc));
+			util.evaluate(dc, 'putMessage("bar")');
 
-		dc.continueRequest({ threadId: contentThreadId });
-		stoppedEvent = await util.receiveStoppedEvent(dc);
-		let addOnThreadId = stoppedEvent.body.threadId!;
-		stackTrace = await dc.stackTraceRequest({ threadId: addOnThreadId });
+			let stoppedEvent = await util.receiveStoppedEvent(dc);
+			let contentThreadId = stoppedEvent.body.threadId!;
+			let stackTrace = await dc.stackTraceRequest({ threadId: contentThreadId });
 
-		assert.notEqual(contentThreadId, addOnThreadId);
-	});
+			assert.equal(stackTrace.body.stackFrames[0].source!.path, contentScriptPath);
 
-	it('should show log messages from WebExtensions', async function() {
+			dc.continueRequest({ threadId: contentThreadId });
+			stoppedEvent = await util.receiveStoppedEvent(dc);
+			let addOnThreadId = stoppedEvent.body.threadId!;
+			stackTrace = await dc.stackTraceRequest({ threadId: addOnThreadId });
 
-		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'webExtension');
+			assert.notEqual(contentThreadId, addOnThreadId);
+		});
 
-		await util.setConsoleThread(dc, await util.findTabThread(dc));
-		util.evaluate(dc, 'putMessage("bar")');
+		it(`should show log messages from WebExtensions installed ${installMethod}`, async function() {
 
-		let outputEvent = <DebugProtocol.OutputEvent> await dc.waitForEvent('output');
+			dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'webExtension', { installInProfile });
 
-		assert.equal(outputEvent.body.category, 'stdout');
-		assert.equal(outputEvent.body.output.trim(), 'foo: bar');
-	});
+			await util.setConsoleThread(dc, await util.findTabThread(dc));
+			util.evaluate(dc, 'putMessage("bar")');
 
-	it('should debug a Jetpack add-on', async function() {
+			let outputEvent = <DebugProtocol.OutputEvent> await dc.waitForEvent('output');
 
-		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'addonSdk', true);
+			assert.equal(outputEvent.body.category, 'stdout');
+			assert.equal(outputEvent.body.output.trim(), 'foo: bar');
+		});
 
-		let contentScriptPath = path.join(TESTDATA_PATH, 'addonSdk/addOn/data/contentscript.js');
-		await util.setBreakpoints(dc, contentScriptPath,  [ 2 ]);
+		it(`should debug a Jetpack add-on installed ${installMethod}`, async function() {
 
-		let backgroundScriptPath = path.join(TESTDATA_PATH, 'addonSdk/addOn/index.js');
-		await util.setBreakpoints(dc, backgroundScriptPath, [ 8 ]);
+			dc = await util.initDebugClientForAddon(
+				TESTDATA_PATH, 'addonSdk', { installInProfile, delayedNavigation: true });
 
-		let stoppedEvent = await util.receiveStoppedEvent(dc);
-		let contentThreadId = stoppedEvent.body.threadId!;
-		let stackTrace = await dc.stackTraceRequest({ threadId: contentThreadId });
+			let contentScriptPath = path.join(TESTDATA_PATH, 'addonSdk/addOn/data/contentscript.js');
+			await util.setBreakpoints(dc, contentScriptPath,  [ 2 ]);
 
-		assert.equal(stackTrace.body.stackFrames[0].source!.path, contentScriptPath);
+			let backgroundScriptPath = path.join(TESTDATA_PATH, 'addonSdk/addOn/index.js');
+			await util.setBreakpoints(dc, backgroundScriptPath, [ 8 ]);
 
-		dc.continueRequest({ threadId: contentThreadId });
-		stoppedEvent = await util.receiveStoppedEvent(dc);
-		let addOnThreadId = stoppedEvent.body.threadId!;
-		stackTrace = await dc.stackTraceRequest({ threadId: addOnThreadId });
+			let stoppedEvent = await util.receiveStoppedEvent(dc);
+			let contentThreadId = stoppedEvent.body.threadId!;
+			let stackTrace = await dc.stackTraceRequest({ threadId: contentThreadId });
 
-		assert.notEqual(contentThreadId, addOnThreadId);
-	});
+			assert.equal(stackTrace.body.stackFrames[0].source!.path, contentScriptPath);
 
-	it('should show log messages from a Jetpack add-on', async function() {
+			dc.continueRequest({ threadId: contentThreadId });
+			stoppedEvent = await util.receiveStoppedEvent(dc);
+			let addOnThreadId = stoppedEvent.body.threadId!;
+			stackTrace = await dc.stackTraceRequest({ threadId: addOnThreadId });
 
-		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'addonSdk');
+			assert.notEqual(contentThreadId, addOnThreadId);
+		});
+	}
+
+	it(`should show log messages from a Jetpack add-on installed in the profile`, async function() {
+
+		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'addonSdk', { installInProfile: true });
 		let outputEvent = <DebugProtocol.OutputEvent> await dc.waitForEvent('output');
 
 		assert.equal(outputEvent.body.category, 'stdout');
