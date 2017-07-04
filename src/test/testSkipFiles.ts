@@ -10,19 +10,9 @@ describe('Firefox debug adapter', function() {
 	const TESTDATA_PATH = path.join(__dirname, '../../testdata');
 
 	beforeEach(async function() {
-
-		dc = new DebugClient('node', './out/firefoxDebugAdapter.js', 'firefox');
-
-		await dc.start();
-		await Promise.all([
-			dc.launch({
-				file: path.join(TESTDATA_PATH, 'web/index.html'),
-				skipFiles: [ '**/dlscript.js' ]
-			}),
-			dc.configurationSequence()
-		]);
-
-		await util.receivePageLoadedEvent(dc);
+		dc = await util.initDebugClient(TESTDATA_PATH, true, {
+			skipFiles: [ '**/dlscript.js' ]
+		});
 	});
 
 	afterEach(async function() {

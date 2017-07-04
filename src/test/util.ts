@@ -4,13 +4,22 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { AddonType, LaunchConfiguration } from '../adapter/launchConfiguration';
 import * as path from 'path';
 
-export async function initDebugClient(testDataPath: string, waitForPageLoadedEvent: boolean): Promise<DebugClient> {
+export async function initDebugClient(
+	testDataPath: string,
+	waitForPageLoadedEvent: boolean,
+	extraLaunchArgs?: {}
+): Promise<DebugClient> {
 
 	let dc = new DebugClient('node', './out/firefoxDebugAdapter.js', 'firefox');
 
+	let launchArgs = { request: 'launch', file: path.join(testDataPath, 'web/index.html') };
+	if (extraLaunchArgs !== undefined) {
+		launchArgs = Object.assign(launchArgs, extraLaunchArgs);
+	}
+
 	await dc.start();
 	await Promise.all([
-		dc.launch({ file: path.join(testDataPath, 'web/index.html') }),
+		dc.launch(launchArgs),
 		dc.configurationSequence()
 	]);
 

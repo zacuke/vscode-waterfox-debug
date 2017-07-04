@@ -8,17 +8,8 @@ import * as util from './util';
 export async function testSourcemaps(
 	dc: DebugClient,
 	srcDir: string,
-	launchArgs: any,
 	stepInRepeat = 1
 ): Promise<void> {
-
-	await dc.start();
-	await Promise.all([
-		dc.launch(launchArgs),
-		dc.configurationSequence()
-	]);
-
-	await util.receivePageLoadedEvent(dc);
 
 	let fPath = path.join(srcDir, 'f.js');
 	let gPath = path.join(srcDir, 'g.js');

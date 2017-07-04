@@ -2,6 +2,7 @@ import * as os from 'os';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as uuid from 'uuid';
+import * as util from './util';
 import * as sourceMapUtil from './sourceMapUtil';
 import * as webpack from 'webpack';
 import { DebugClient } from "vscode-debugadapter-testsupport";
@@ -31,13 +32,13 @@ describe('Firefox debug adapter', function() {
 
 			await build(targetDir, <Devtool>devtool);
 
-			dc = new DebugClient('node', './out/firefoxDebugAdapter.js', 'firefox');
-
-			await sourceMapUtil.testSourcemaps(dc, targetDir, { 
+			dc = await util.initDebugClient('', true, {
 				file: path.join(targetDir, 'index.html'),
 				pathMappings: [{ url: 'webpack:///', path: targetDir + '/' }],
 				sourceMaps
-			}, 4);
+			});
+
+			await sourceMapUtil.testSourcemaps(dc, targetDir, 4);
 
 			fs.removeSync(targetDir);
 		});

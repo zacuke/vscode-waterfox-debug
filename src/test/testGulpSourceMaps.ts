@@ -2,6 +2,7 @@ import * as os from 'os';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as uuid from 'uuid';
+import * as util from './util';
 import * as sourceMapUtil from './sourceMapUtil';
 import * as gulp from 'gulp';
 import * as sourcemaps from 'gulp-sourcemaps';
@@ -41,12 +42,12 @@ describe('Firefox debug adapter', function() {
 
 			await build(buildDir, bundleScripts, embedSourceMap, separateBuildDir);
 
-			dc = new DebugClient('node', './out/firefoxDebugAdapter.js', 'firefox');
-
-			await sourceMapUtil.testSourcemaps(dc, srcDir, { 
-				file: path.join(buildDir, 'index.html'),
-				sourceMaps
-			});
+			dc = await util.initDebugClient('', true, {
+ 				file: path.join(buildDir, 'index.html'),
+ 				sourceMaps
+ 			});
+ 
+			await sourceMapUtil.testSourcemaps(dc, srcDir);
 
 			fs.removeSync(targetDir);
 		});
