@@ -132,4 +132,31 @@ describe('Firefox debug adapter', function() {
 		assert.equal(vars.body.variables.length, 2);
 		assert.ok(util.findVariable(vars.body.variables, 'location').value.endsWith('testdata/web/main.js:80:14)'));
 	});
+
+	it('should offer code completions in the debugging console', async function() {
+
+		dc = await util.initDebugClient(TESTDATA_PATH, true);
+
+		let completions = await dc.completionsRequest({ text: 'v', column: 2 });
+
+		assert.equal(completions.body.targets.length, 3);
+		assert.equal(completions.body.targets[0].label, 'valueOf');
+		assert.equal(completions.body.targets[1].label, 'values');
+		assert.equal(completions.body.targets[2].label, 'vars');
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ 12 ]);
+		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc, () => util.evaluate(dc, 'vars()'));
+		let stackTrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId });
+		let frameId = stackTrace.body.stackFrames[0].id;
+		completions = await dc.completionsRequest({ frameId, text: 'n', column: 2 });
+
+		assert.equal(completions.body.targets.length, 6);
+		assert.equal(completions.body.targets[0].label, 'name');
+		assert.equal(completions.body.targets[1].label, 'navigator');
+		assert.equal(completions.body.targets[2].label, 'netscape');
+		assert.equal(completions.body.targets[3].label, 'noop');
+		assert.equal(completions.body.targets[4].label, 'num1');
+		assert.equal(completions.body.targets[5].label, 'num2');
+	});
 });
