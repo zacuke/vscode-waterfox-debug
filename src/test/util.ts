@@ -76,7 +76,7 @@ export async function initDebugClientForAddon(
 export async function receivePageLoadedEvent(dc: DebugClient, lenient: boolean = false): Promise<void> {
 	let ev = await dc.waitForEvent('output', 10000);
 	let outputMsg = ev.body.output.trim();
-	if (outputMsg !== 'Loaded') {
+	if (outputMsg.substr(0, 6) !== 'Loaded') {
 		if (lenient) {
 			await receivePageLoadedEvent(dc, true);
 		} else {

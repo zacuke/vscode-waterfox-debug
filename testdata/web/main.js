@@ -75,3 +75,7 @@ function testSkipFiles() {
 	dynTest();
 	throwError();
 }
+
+function log(...x) {
+	console.log(...x);
+}
