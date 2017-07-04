@@ -19,7 +19,7 @@ describe('Firefox debug adapter', function() {
 		await dc.stop();
 	});
 
-	it.only('should skip exceptions in blackboxed files', async function() {
+	it('should skip exceptions in blackboxed files', async function() {
 
 		await dc.setExceptionBreakpointsRequest({filters: [ 'all' ]});
 
@@ -33,7 +33,7 @@ describe('Firefox debug adapter', function() {
 		assert.equal(stacktrace.body.stackFrames[0].line, 76);
 	});
 
-	it.only('should skip breakpoints in blackboxed files', async function() {
+	it('should skip breakpoints in blackboxed files', async function() {
 
 		await dc.setExceptionBreakpointsRequest({filters: []});
 		await util.setBreakpoints(dc, path.join(TESTDATA_PATH, 'web/dlscript.js'), [ 3 ]);

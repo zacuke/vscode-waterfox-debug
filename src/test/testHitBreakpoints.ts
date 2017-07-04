@@ -96,4 +96,25 @@ describe('Firefox debug adapter', function() {
 		assert.equal(stoppedEvent.body.allThreadsStopped, false);
 		assert.equal(stoppedEvent.body.reason, 'debuggerStatement');
 	});
+
+	it('should not hit a breakpoint after it has been removed', async function() {
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ 8, 10 ]);
+
+		util.evaluateDelayed(dc, 'vars()', 0);
+
+		let stoppedEvent = await util.receiveStoppedEvent(dc);
+		let threadId = stoppedEvent.body.threadId!;
+		let stackTrace = await dc.stackTraceRequest({ threadId });
+
+		assert.equal(stackTrace.body.stackFrames[0].line, 8);
+
+		await util.setBreakpoints(dc, sourcePath, [ 12 ]);
+		await util.runCommandAndReceiveStoppedEvent(dc, () => dc.continueRequest({ threadId }));
+		stackTrace = await dc.stackTraceRequest({ threadId });
+
+		assert.equal(stackTrace.body.stackFrames[0].line, 12);
+
+	});
 });
