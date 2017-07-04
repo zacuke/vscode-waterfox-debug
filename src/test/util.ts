@@ -1,16 +1,25 @@
 import { delay } from '../util/misc';
 import { DebugClient } from 'vscode-debugadapter-testsupport';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { AddonType } from '../configuration';
+import { AddonType, LaunchConfiguration } from '../configuration';
 import * as path from 'path';
 
-export async function initDebugClient(testDataPath: string, waitForPageLoadedEvent: boolean): Promise<DebugClient> {
+export async function initDebugClient(
+	testDataPath: string,
+	waitForPageLoadedEvent: boolean,
+	extraLaunchArgs?: {}
+): Promise<DebugClient> {
 
 	let dc = new DebugClient('node', './out/firefoxDebugAdapter.js', 'firefox');
 
+	let launchArgs = { request: 'launch', file: path.join(testDataPath, 'web/index.html') };
+	if (extraLaunchArgs !== undefined) {
+		launchArgs = Object.assign(launchArgs, extraLaunchArgs);
+	}
+
 	await dc.start();
 	await Promise.all([
-		dc.launch({ request: 'launch', file: path.join(testDataPath, 'web/index.html') }),
+		dc.launch(launchArgs),
 		dc.configurationSequence()
 	]);
 
@@ -21,13 +30,26 @@ export async function initDebugClient(testDataPath: string, waitForPageLoadedEve
 	return dc;
 }
 
-export async function initDebugClientForAddon(testDataPath: string, addonType: AddonType, delayedNavigation = false): Promise<DebugClient> {
+export async function initDebugClientForAddon(
+	testDataPath: string,
+	addonType: AddonType,
+	options?: {
+		installInProfile?: boolean,
+		delayedNavigation?: boolean
+	}
+): Promise<DebugClient> {
 
-	let dcArgs = { request: 'launch', addonType, addonPath: path.join(testDataPath, `${addonType}/addOn`) };
-	if (delayedNavigation) {
-		dcArgs['file'] = path.join(testDataPath, `web/index.html`);
+	let dcArgs: LaunchConfiguration = { 
+		request: 'launch',
+		addonType,
+		addonPath: path.join(testDataPath, `${addonType}/addOn`),
+		installAddonInProfile: !!(options && options.installInProfile)
+	};
+
+	if (options && options.delayedNavigation) {
+		dcArgs.file = path.join(testDataPath, `web/index.html`);
 	} else {
-		dcArgs['file'] = path.join(testDataPath, `${addonType}/index.html`);
+		dcArgs.file = path.join(testDataPath, `${addonType}/index.html`);
 	}
 
 	let dc = new DebugClient('node', './out/firefoxDebugAdapter.js', 'firefox');
@@ -41,7 +63,7 @@ export async function initDebugClientForAddon(testDataPath: string, addonType: A
 
 	await receivePageLoadedEvent(dc, (addonType === 'addonSdk'));
 
-	if (delayedNavigation) {
+	if (options && options.delayedNavigation) {
 		await setConsoleThread(dc, await findTabThread(dc));
 		let file = path.join(testDataPath, `${addonType}/index.html`);
 		await evaluate(dc, `location="file://${file}"`);
@@ -54,7 +76,7 @@ export async function initDebugClientForAddon(testDataPath: string, addonType: A
 export async function receivePageLoadedEvent(dc: DebugClient, lenient: boolean = false): Promise<void> {
 	let ev = await dc.waitForEvent('output', 10000);
 	let outputMsg = ev.body.output.trim();
-	if (outputMsg !== 'Loaded') {
+	if (outputMsg.substr(0, 6) !== 'Loaded') {
 		if (lenient) {
 			await receivePageLoadedEvent(dc, true);
 		} else {
@@ -76,6 +98,12 @@ export function receiveBreakpointEvent(dc: DebugClient): Promise<DebugProtocol.E
 
 export function receiveStoppedEvent(dc: DebugClient): Promise<DebugProtocol.Event> {
 	return dc.waitForEvent('stopped', 10000);
+}
+
+export async function runCommandAndReceiveStoppedEvent(dc: DebugClient, command: () => void): Promise<DebugProtocol.Event> {
+	let stoppedEventPromise = dc.waitForEvent('stopped', 10000);
+	command();
+	return await stoppedEventPromise;
 }
 
 export function evaluate(dc: DebugClient, js: string): Promise<DebugProtocol.EvaluateResponse> {

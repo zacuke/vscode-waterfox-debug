@@ -91,4 +91,19 @@ describe('Firefox debug adapter', function() {
 		assert.equal(ev.body.breakpoint.verified, true);
 		assert.equal(ev.body.breakpoint.line, 3);
 	});
+
+	it('should remove a breakpoint', async function() {
+
+		await util.receivePageLoadedEvent(dc);
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 3 ]);
+
+		assert.equal(setBreakpointsResponse.body.breakpoints.length, 1);
+		assert.equal(setBreakpointsResponse.body.breakpoints[0].verified, true);
+
+		setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, []);
+
+		assert.equal(setBreakpointsResponse.body.breakpoints.length, 0);
+	});
 });

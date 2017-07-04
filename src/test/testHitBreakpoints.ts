@@ -79,4 +79,42 @@ describe('Firefox debug adapter', function() {
 
 		await util.assertPromiseTimeout(util.receiveStoppedEvent(dc), 1000);
 	});
+
+	it('should break on a debugger statement', async function() {
+
+		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc, 
+			() => util.evaluate(dc, 'loadScript("debuggerStatement.js")'));
+
+		assert.equal(stoppedEvent.body.allThreadsStopped, false);
+		assert.equal(stoppedEvent.body.reason, 'debuggerStatement');
+
+		await dc.continueRequest({ threadId: stoppedEvent.body.threadId });
+
+		stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc, 
+			() => util.evaluate(dc, 'debuggerStatement()'));
+
+		assert.equal(stoppedEvent.body.allThreadsStopped, false);
+		assert.equal(stoppedEvent.body.reason, 'debuggerStatement');
+	});
+
+	it('should not hit a breakpoint after it has been removed', async function() {
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ 8, 10 ]);
+
+		util.evaluateDelayed(dc, 'vars()', 0);
+
+		let stoppedEvent = await util.receiveStoppedEvent(dc);
+		let threadId = stoppedEvent.body.threadId!;
+		let stackTrace = await dc.stackTraceRequest({ threadId });
+
+		assert.equal(stackTrace.body.stackFrames[0].line, 8);
+
+		await util.setBreakpoints(dc, sourcePath, [ 12 ]);
+		await util.runCommandAndReceiveStoppedEvent(dc, () => dc.continueRequest({ threadId }));
+		stackTrace = await dc.stackTraceRequest({ threadId });
+
+		assert.equal(stackTrace.body.stackFrames[0].line, 12);
+
+	});
 });

@@ -8,17 +8,8 @@ import * as util from './util';
 export async function testSourcemaps(
 	dc: DebugClient,
 	srcDir: string,
-	launchArgs: any,
 	stepInRepeat = 1
 ): Promise<void> {
-
-	await dc.start();
-	await Promise.all([
-		dc.launch(launchArgs),
-		dc.configurationSequence()
-	]);
-
-	await util.receivePageLoadedEvent(dc);
 
 	let fPath = path.join(srcDir, 'f.js');
 	let gPath = path.join(srcDir, 'g.js');
@@ -32,23 +23,19 @@ export async function testSourcemaps(
 	await checkDebuggeeState(dc, threadId, fPath, 7, 'x', '2');
 
 	for (let i = 0; i < stepInRepeat; i++) {
-		dc.stepInRequest({ threadId });
-		await util.receiveStoppedEvent(dc);
+		await util.runCommandAndReceiveStoppedEvent(dc, () => dc.stepInRequest({ threadId }));
 	}
 
 	await checkDebuggeeState(dc, threadId, gPath, 5, 'y', '2');
 
-	dc.stepOutRequest({ threadId });
-	await util.receiveStoppedEvent(dc);
-	dc.stepOutRequest({ threadId });
-	await util.receiveStoppedEvent(dc);
+	await util.runCommandAndReceiveStoppedEvent(dc, () => dc.stepOutRequest({ threadId }));
+	await util.runCommandAndReceiveStoppedEvent(dc, () => dc.stepOutRequest({ threadId }));
 
 	await checkDebuggeeState(dc, threadId, fPath, 8, 'x', '4');
 
-	util.setBreakpoints(dc, gPath, [ 5 ]);
+	await util.setBreakpoints(dc, gPath, [ 5 ]);
 
-	dc.continueRequest({ threadId });
-	await util.receiveStoppedEvent(dc);
+	await util.runCommandAndReceiveStoppedEvent(dc, () => dc.continueRequest({ threadId }));
 
 	await checkDebuggeeState(dc, threadId, gPath, 5, 'y', '4');
 

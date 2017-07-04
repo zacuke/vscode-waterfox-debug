@@ -34,6 +34,12 @@ describe('Firefox debug adapter', function() {
 		assert.equal(util.findVariable(variables, 'sym1').value, 'Local Symbol');
 		assert.equal(util.findVariable(variables, 'sym2').value, 'Global Symbol');
 
+		variablesResponse = await dc.variablesRequest({
+			variablesReference: util.findVariable(variables, 'this').variablesReference
+		});
+		variables = variablesResponse.body.variables;
+		assert.equal(util.findVariable(variables, 'scrollX').value, '0');
+
 		variablesResponse = await dc.variablesRequest({ variablesReference: scopes.body.scopes[1].variablesReference });
 		variables = variablesResponse.body.variables;
 		assert.equal(util.findVariable(variables, 'bool1').value, 'false');
@@ -82,7 +88,7 @@ describe('Firefox debug adapter', function() {
 			let variables = await dc.variablesRequest({ variablesReference: scopes.body.scopes[0].variablesReference });
 			assert.equal(util.findVariable(variables.body.variables, 'Return value').value, factorial(i + 1));
 		}
-	})
+	});
 });
 
 function factorial(n: number): number {
