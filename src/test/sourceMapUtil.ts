@@ -16,8 +16,8 @@ export async function testSourcemaps(
 
 	util.setBreakpoints(dc, fPath, [ 7 ]);
 
-	util.evaluateDelayed(dc, 'f()', 0);
-	let stoppedEvent = await util.receiveStoppedEvent(dc);
+	let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc, () =>
+		util.evaluateDelayed(dc, 'f()', 0));
 	let threadId = stoppedEvent.body.threadId!;
 
 	await checkDebuggeeState(dc, threadId, fPath, 7, 'x', '2');
