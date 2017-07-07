@@ -18,7 +18,8 @@
 		"src/firefoxDebugAdapter.ts",
 		"src/extension.ts",
 		"src/util/forkedLauncher.ts",
-		"src/**/*.d.ts",
+		"src/firefox/protocol.d.ts",
+		"src/typings/*.d.ts",
 		"src/test/test*.ts"
 	]
 }
