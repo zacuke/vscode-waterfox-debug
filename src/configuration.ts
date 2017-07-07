@@ -106,7 +106,7 @@ export async function parseConfiguration(
 ): Promise<ParsedConfiguration> {
 
 	if (config.log) {
-		Log.config = config.log;
+		Log.setConfig(config.log);
 	}
 
 	let attach: ParsedAttachConfiguration | undefined = undefined;
@@ -126,7 +126,7 @@ export async function parseConfiguration(
 			};
 		}
 
-		let firefoxExecutable = findFirefoxExecutable(config.firefoxExecutable);
+		let firefoxExecutable = await findFirefoxExecutable(config.firefoxExecutable);
 
 		let firefoxArgs: string[] = [ '-start-debugger-server', String(port), '-no-remote' ];
 		if (config.firefoxArgs) {
@@ -200,10 +200,10 @@ export async function parseConfiguration(
 	}
 }
 
-function findFirefoxExecutable(configuredPath?: string): string {
+async function findFirefoxExecutable(configuredPath?: string): Promise<string> {
 
 	if (configuredPath) {
-		if (isExecutable(configuredPath)) {
+		if (await isExecutable(configuredPath)) {
 			return configuredPath;
 		} else {
 			throw 'Couldn\'t find the Firefox executable. Please correct the path given in your launch configuration.';
@@ -240,7 +240,7 @@ function findFirefoxExecutable(configuredPath?: string): string {
 	}
 
 	for (let i = 0; i < candidates.length; i++) {
-		if (isExecutable(candidates[i])) {
+		if (await isExecutable(candidates[i])) {
 			return candidates[i];
 		}
 	}

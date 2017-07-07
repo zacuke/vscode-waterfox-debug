@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+import * as fs from 'fs-extra';
 
 export declare type LogLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
 
@@ -19,16 +19,16 @@ export class Log {
 	private static logs = new Map<string, Log>();
 	private static fileDescriptor?: number;
 
-	public static set config(newConfig: LogConfiguration) {
+	public static async setConfig(newConfig: LogConfiguration) {
 		if (Log.fileDescriptor !== undefined) {
-			fs.closeSync(Log.fileDescriptor);
+			await fs.close(Log.fileDescriptor);
 			Log.fileDescriptor = undefined;
 		}
 
 		Log._config = newConfig;
 		if (Log._config.fileName) {
 			try {
-				Log.fileDescriptor = fs.openSync(Log._config.fileName, 'w');
+				Log.fileDescriptor = await fs.open(Log._config.fileName, 'w');
 			} catch(e) {}
 		}
 

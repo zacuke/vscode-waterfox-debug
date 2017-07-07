@@ -28,7 +28,7 @@ describe('Firefox debug adapter', function() {
 
 		it(`should map webpack-bundled modules with devtool "${devtool}" to their original sources with source-maps handled by the ${sourceMaps}`, async function() {
 
-			let targetDir = prepareTargetDir();
+			let targetDir = await prepareTargetDir();
 
 			await build(targetDir, <Devtool>devtool);
 
@@ -40,16 +40,16 @@ describe('Firefox debug adapter', function() {
 
 			await sourceMapUtil.testSourcemaps(dc, targetDir, 4);
 
-			fs.removeSync(targetDir);
+			await fs.remove(targetDir);
 		});
 	}}
 });
 
-function prepareTargetDir(): string {
+async function prepareTargetDir(): Promise<string> {
 
 	let targetDir = path.join(os.tmpdir(), `vscode-firefox-debug-test-${uuid.v4()}`);
-	fs.mkdirSync(targetDir);
-	sourceMapUtil.copyFiles(TESTDATA_PATH, targetDir, ['index.html', 'f.js', 'g.js']);
+	await fs.mkdir(targetDir);
+	await sourceMapUtil.copyFiles(TESTDATA_PATH, targetDir, ['index.html', 'f.js', 'g.js']);
 
 	return targetDir;
 }

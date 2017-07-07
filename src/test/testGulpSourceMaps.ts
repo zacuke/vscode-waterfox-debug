@@ -38,7 +38,7 @@ describe('Firefox debug adapter', function() {
 
 		it(descr, async function() {
 
-			let { targetDir, srcDir, buildDir } = prepareTargetDir(bundleScripts, separateBuildDir);
+			let { targetDir, srcDir, buildDir } = await prepareTargetDir(bundleScripts, separateBuildDir);
 
 			await build(buildDir, bundleScripts, embedSourceMap, separateBuildDir);
 
@@ -49,7 +49,7 @@ describe('Firefox debug adapter', function() {
  
 			await sourceMapUtil.testSourcemaps(dc, srcDir);
 
-			fs.removeSync(targetDir);
+			await fs.remove(targetDir);
 		});
 	}}}}
 });
@@ -60,32 +60,32 @@ interface TargetPaths {
 	buildDir: string;
 }
 
-function prepareTargetDir(
+async function prepareTargetDir(
 	bundle: boolean,
 	separateBuildDir: boolean
-): TargetPaths {
+): Promise<TargetPaths> {
 
 	let targetDir = path.join(os.tmpdir(), `vscode-firefox-debug-test-${uuid.v4()}`);
-	fs.mkdirSync(targetDir);
+	await fs.mkdir(targetDir);
 	let scriptTags = bundle ? ['bundle.js'] : ['f.min.js', 'g.min.js'];
 
 	if (!separateBuildDir) {
 
-		sourceMapUtil.copyFiles(TESTDATA_PATH, targetDir, ['index.html', 'f.js', 'g.js']);
-		sourceMapUtil.injectScriptTags(targetDir, scriptTags);
+		await sourceMapUtil.copyFiles(TESTDATA_PATH, targetDir, ['index.html', 'f.js', 'g.js']);
+		await sourceMapUtil.injectScriptTags(targetDir, scriptTags);
 
 		return { targetDir, srcDir: targetDir, buildDir: targetDir };
 
 	} else {
 
 		let srcDir = path.join(targetDir, 'src');
-		fs.mkdirSync(srcDir);
+		await fs.mkdir(srcDir);
 		let buildDir = path.join(targetDir, 'build');
-		fs.mkdirSync(buildDir);
+		await fs.mkdir(buildDir);
 
-		sourceMapUtil.copyFiles(TESTDATA_PATH, srcDir, ['f.js', 'g.js']);
-		sourceMapUtil.copyFiles(TESTDATA_PATH, buildDir, ['index.html']);
-		sourceMapUtil.injectScriptTags(buildDir, scriptTags);
+		await sourceMapUtil.copyFiles(TESTDATA_PATH, srcDir, ['f.js', 'g.js']);
+		await sourceMapUtil.copyFiles(TESTDATA_PATH, buildDir, ['index.html']);
+		await sourceMapUtil.injectScriptTags(buildDir, scriptTags);
 
 		return { targetDir, srcDir, buildDir };
 	}

@@ -27,12 +27,12 @@ export class AddonManager {
 		if (this.config.installInProfile) {
 
 			let tempXpiDir = path.join(os.tmpdir(), `vscode-firefox-debug-${uuid.v4()}`);
-			fs.mkdirSync(tempXpiDir);
+			await fs.mkdir(tempXpiDir);
 			let tempXpiPath = await this.createXpi(this.config.type, this.config.path, tempXpiDir);
 
 			await new Promise<void>((resolve, reject) => {
-				profile.addExtension(tempXpiPath, (err, addonDetails) => {
-					fs.removeSync(tempXpiDir);
+				profile.addExtension(tempXpiPath, async (err, addonDetails) => {
+					await fs.remove(tempXpiDir);
 					if (err) {
 						reject(err);
 					} else {
@@ -76,7 +76,7 @@ export class AddonManager {
 					} else {
 						try {
 							this.addonBuildPath = await preferenceActor.getCharPref('vscode.debug.temporaryAddonPath');
-							fs.copySync(this.config.path, this.addonBuildPath);
+							await fs.copy(this.config.path, this.addonBuildPath);
 						} catch (err) {
 						}
 					}
@@ -103,7 +103,7 @@ export class AddonManager {
 		}
 
 		if (this.addonBuildPath) {
-			fs.copySync(this.config.path, this.addonBuildPath);
+			await fs.copy(this.config.path, this.addonBuildPath);
 		}
 
 		await this.addonActor.reload();
@@ -160,7 +160,7 @@ export class AddonManager {
 	}
 
 	private createXpi(addonType: AddonType, addonPath: string, destDir: string): Promise<string> {
-		return new Promise<string>((resolve, reject) => {
+		return new Promise<string>(async (resolve, reject) => {
 
 			switch (addonType) {
 
@@ -187,7 +187,7 @@ export class AddonManager {
 						}
 
 						execSync(`jpm xpi --dest-dir "${destDir}"`, { cwd: addonPath });
-						resolve(path.join(destDir, fs.readdirSync(destDir)[0]));
+						resolve(path.join(destDir, (await fs.readdir(destDir))[0]));
 
 					} catch (err) {
 						reject(`Couldn't run jpm: ${err.stderr}`);
@@ -198,10 +198,10 @@ export class AddonManager {
 	}
 
 	private async buildAddonDir(addonPath: string, destDir: string): Promise<void> {
-		fs.mkdirSync(destDir);
+		await fs.mkdir(destDir);
 		let xpiPath = await this.createXpi('addonSdk', addonPath, destDir);
 		await this.unzip(xpiPath, destDir);
-		fs.unlinkSync(xpiPath);
+		await fs.unlink(xpiPath);
 	}
 
 	private unzip(srcFile: string, destDir: string): Promise<void> {

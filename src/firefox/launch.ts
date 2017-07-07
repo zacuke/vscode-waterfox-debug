@@ -13,7 +13,7 @@ export async function launchFirefox(
 
 	let profile = await prepareDebugProfile(launch);
 	if (addonManager) {
-		addonManager.profilePrepared(profile);
+		await addonManager.profilePrepared(profile);
 	}
 
 	let childProc: ChildProcess | undefined = undefined;
@@ -76,7 +76,7 @@ async function prepareDebugProfile(config: ParsedLaunchConfiguration): Promise<F
 }
 
 function createDebugProfile(config: ParsedLaunchConfiguration): Promise<FirefoxProfile> {
-	return new Promise<FirefoxProfile>((resolve, reject) => {
+	return new Promise<FirefoxProfile>(async (resolve, reject) => {
 
 		if (config.srcProfileDir) {
 
@@ -94,7 +94,7 @@ function createDebugProfile(config: ParsedLaunchConfiguration): Promise<FirefoxP
 
 		} else {
 
-			fs.ensureDirSync(config.profileDir);
+			await fs.ensureDir(config.profileDir);
 			resolve(new FirefoxProfile({
 				destinationDirectory: config.profileDir
 			}));

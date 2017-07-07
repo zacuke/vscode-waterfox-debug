@@ -1,5 +1,5 @@
 import * as url from 'url';
-import * as fs from 'fs';
+import * as fs from 'fs-extra';
 import * as net from 'net';
 import * as http from 'http';
 import * as https from 'https';
@@ -49,25 +49,17 @@ export function urlDirname(url: string): string {
 	}
 }
 
-export function getUri(uri: string): Promise<string> {
+export async function getUri(uri: string): Promise<string> {
 
 	if (uri.startsWith('data:')) {
-		return Promise.resolve(dataUriToBuffer(uri).toString());
+		return dataUriToBuffer(uri).toString();
 	}
 
 	if (uri.startsWith('file:')) {
-		return new Promise((resolve, reject) => {
-			fs.readFile(fileUriToPath(uri), 'utf8', (err, data) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(data);
-				}
-			});
-		});
+		return await fs.readFile(fileUriToPath(uri), 'utf8');
 	}
 
-	return new Promise((resolve, reject) => {
+	return await new Promise<string>((resolve, reject) => {
 		const parsedUrl = url.parse(uri);
 		const get = (parsedUrl.protocol === 'https:') ? https.get : http.get;
 		const options = Object.assign({ rejectUnauthorized: false }, parsedUrl) as https.RequestOptions;

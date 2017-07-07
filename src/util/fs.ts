@@ -4,9 +4,9 @@ import { Log } from './log';
 
 let log = Log.create('fs');
 
-export function isExecutable(path: string): boolean {
+export async function isExecutable(path: string): Promise<boolean> {
 	try {
-		fs.accessSync(path, fs.constants.X_OK);
+		await fs.access(path, fs.constants.X_OK);
 		return true;
 	} catch (e) {
 		return false;
@@ -16,7 +16,7 @@ export function isExecutable(path: string): boolean {
 export async function tryRemoveRepeatedly(dir: string): Promise<void> {
 	for (var i = 0; i < 5; i++) {
 		try {
-			await tryRemove(dir);
+			await fs.remove(dir);
 			log.debug(`Removed ${dir}`);
 			return;
 		} catch (err) {
@@ -29,16 +29,4 @@ export async function tryRemoveRepeatedly(dir: string): Promise<void> {
 			}
 		}
 	}
-}
-
-export function tryRemove(dir: string): Promise<void> {
-	return new Promise<void>((resolve, reject) => {
-		fs.remove(dir, (err) => {
-			if (!err) {
-				resolve();
-			} else {
-				reject(err);
-			}
-		})
-	})
 }
