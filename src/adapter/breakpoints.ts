@@ -20,7 +20,11 @@ export class BreakpointsAdapter {
 		let breakpoints = args.breakpoints || [];
 		log.debug(`Setting ${breakpoints.length} breakpoints for ${args.source.path}`);
 
-		let sourcePath = args.source.path;
+		const sourcePath = args.source.path;
+		if (sourcePath === undefined) {
+			throw 'Couldn\'t set breakpoint: unknown source path';
+		}
+
 		let breakpointInfos = breakpoints.map((breakpoint) => <BreakpointInfo>{
 			id: this.nextBreakpointId++,
 			requestedLine: breakpoint.line,
@@ -28,8 +32,7 @@ export class BreakpointsAdapter {
 			condition: breakpoint.condition
 		});
 
-		//TODO handle undefined sourcePath
-		this.breakpointsBySourcePath.set(sourcePath!, breakpointInfos);
+		this.breakpointsBySourcePath.set(sourcePath, breakpointInfos);
 		this.verifiedBreakpointSources = this.verifiedBreakpointSources.filter(
 			(verifiedSourcePath) => (verifiedSourcePath !== sourcePath));
 
@@ -40,12 +43,12 @@ export class BreakpointsAdapter {
 				let sourceAdapters = threadAdapter.findSourceAdaptersForPath(sourcePath);
 				for (let sourceAdapter of sourceAdapters) {
 
-					log.debug(`Found source ${args.source.path} on tab ${threadAdapter.actorName}`);
+					log.debug(`Found source ${sourcePath} on tab ${threadAdapter.actorName}`);
 
-					let setBreakpointsPromise = threadAdapter.setBreakpoints(breakpointInfos, sourceAdapter);
+					let setBreakpointsPromise = this.setBreakpointsOnSourceActor(
+						breakpointInfos, sourceAdapter, threadAdapter.coordinator);
 
-					//TODO handle undefined sourcePath
-					if (this.verifiedBreakpointSources.indexOf(sourcePath!) < 0) {
+					if (this.verifiedBreakpointSources.indexOf(sourcePath) < 0) {
 
 						setBreakpointsPromise.then(
 							(breakpointAdapters) => {
@@ -64,15 +67,13 @@ export class BreakpointsAdapter {
 								});
 							});
 
-						//TODO handle undefined sourcePath
-						this.verifiedBreakpointSources.push(sourcePath!);
+						this.verifiedBreakpointSources.push(sourcePath);
 					}
 				}
 			}
 
-			//TODO handle undefined sourcePath
-			if (this.verifiedBreakpointSources.indexOf(sourcePath!) < 0) {
-				log.debug (`Replying to setBreakpointsRequest (Source ${args.source.path} not seen yet)`);
+			if (this.verifiedBreakpointSources.indexOf(sourcePath) < 0) {
+				log.debug (`Replying to setBreakpointsRequest (Source ${sourcePath} not seen yet)`);
 
 				resolve({
 					breakpoints: breakpointInfos.map((breakpointInfo) => {
@@ -98,8 +99,8 @@ export class BreakpointsAdapter {
 
 			if (sourceAdapter !== undefined) {
 
-				let setBreakpointsPromise = threadAdapter.setBreakpoints(
-					breakpointInfos, sourceAdapter);
+				let setBreakpointsPromise = this.setBreakpointsOnSourceActor(
+					breakpointInfos, sourceAdapter, threadAdapter.coordinator);
 
 				if (this.verifiedBreakpointSources.indexOf(sourcePath) < 0) {
 
@@ -121,7 +122,7 @@ export class BreakpointsAdapter {
 		}
 	}
 
-	public static setBreakpointsOnSourceActor(
+	private setBreakpointsOnSourceActor(
 		breakpointsToSet: BreakpointInfo[],
 		sourceAdapter: SourceAdapter,
 		threadCoordinator: ThreadCoordinator
@@ -138,7 +139,7 @@ export class BreakpointsAdapter {
 			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter), undefined);
 	}
 
-	private static setBreakpointsOnPausedSourceActor(origBreakpointsToSet: BreakpointInfo[],
+	private setBreakpointsOnPausedSourceActor(origBreakpointsToSet: BreakpointInfo[],
 	sourceAdapter: SourceAdapter): Promise<BreakpointAdapter[]> {
 
 		// we will modify this array, so we make a (shallow) copy and work with that
@@ -230,8 +231,10 @@ export class BreakpointsAdapter {
 		return result;
 	}
 
-	private static breakpointsAreEqual(breakpointsToSet: BreakpointInfo[],
-		currentBreakpoints: BreakpointAdapter[]): boolean {
+	private breakpointsAreEqual(
+		breakpointsToSet: BreakpointInfo[],
+		currentBreakpoints: BreakpointAdapter[]
+	): boolean {
 
 		let breakpointsToSetLines = new Set(breakpointsToSet.map(
 			(breakpointInfo) => breakpointInfo.requestedLine));

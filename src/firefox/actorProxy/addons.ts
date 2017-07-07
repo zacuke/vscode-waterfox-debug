@@ -8,7 +8,10 @@ export class AddonsActorProxy implements ActorProxy {
 
 	private pendingInstallRequests = new PendingRequests<FirefoxDebugProtocol.InstallAddonResponse>();
 
-	constructor(public readonly name: string, private connection: DebugConnection) {
+	constructor(
+		public readonly name: string,
+		private connection: DebugConnection
+	) {
 		this.connection.register(this);
 	}
 
@@ -26,7 +29,7 @@ export class AddonsActorProxy implements ActorProxy {
 		});
 	}
 
-	receiveResponse(response: FirefoxDebugProtocol.Response): void {
+	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 
 		if (response['addon']) {
 

@@ -14,7 +14,7 @@ export class Log {
 
 	private static startTime = Date.now();
 	
-	private static _config: LogConfiguration = {};
+	private static config: LogConfiguration = {};
 	
 	private static logs = new Map<string, Log>();
 	private static fileDescriptor?: number;
@@ -25,10 +25,10 @@ export class Log {
 			Log.fileDescriptor = undefined;
 		}
 
-		Log._config = newConfig;
-		if (Log._config.fileName) {
+		Log.config = newConfig;
+		if (Log.config.fileName) {
 			try {
-				Log.fileDescriptor = await fs.open(Log._config.fileName, 'w');
+				Log.fileDescriptor = await fs.open(Log.config.fileName, 'w');
 			} catch(e) {}
 		}
 
@@ -84,16 +84,16 @@ export class Log {
 
 	private configure() {
 		this.fileLevel = undefined;
-		if (Log._config.fileName && Log._config.fileLevel) {
-			this.fileLevel = this.convertLogLevel(Log._config.fileLevel[this.name]);
+		if (Log.config.fileName && Log.config.fileLevel) {
+			this.fileLevel = this.convertLogLevel(Log.config.fileLevel[this.name]);
 			if (this.fileLevel === undefined) {
-				this.fileLevel = this.convertLogLevel(Log._config.fileLevel['default']);
+				this.fileLevel = this.convertLogLevel(Log.config.fileLevel['default']);
 			}
 		}
-		if (Log._config.consoleLevel) {
-			this.consoleLevel = this.convertLogLevel(Log._config.consoleLevel[this.name]);
+		if (Log.config.consoleLevel) {
+			this.consoleLevel = this.convertLogLevel(Log.config.consoleLevel[this.name]);
 			if (this.consoleLevel === undefined) {
-				this.consoleLevel = this.convertLogLevel(Log._config.consoleLevel['default']);
+				this.consoleLevel = this.convertLogLevel(Log.config.consoleLevel['default']);
 			}
 		}
 

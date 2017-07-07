@@ -8,21 +8,13 @@ let log = Log.create('WorkerActorProxy');
 export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 
 	constructor(
-		public readonly _name: string,
-		public readonly _url: string,
+		public readonly name: string,
+		public readonly url: string,
 		private readonly sourceMaps: 'client' | 'server',
 		private readonly connection: DebugConnection
 	) {
 		super();
 		this.connection.register(this);
-	}
-	
-	public get name() {
-		return this._name;
-	}
-
-	public get url() {
-		return this._url;
 	}
 
 	private pendingAttachRequest?: PendingRequest<string>;

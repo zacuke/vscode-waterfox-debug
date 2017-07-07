@@ -9,7 +9,10 @@ export class LongStringGripActorProxy implements ActorProxy {
 
 	private pendingSubstringRequests = new PendingRequests<string>();
 
-	constructor(private grip: FirefoxDebugProtocol.LongStringGrip, private connection: DebugConnection) {
+	constructor(
+		private grip: FirefoxDebugProtocol.LongStringGrip,
+		private connection: DebugConnection
+	) {
 		this.connection.register(this);
 	}
 

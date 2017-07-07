@@ -9,7 +9,7 @@ let log = Log.create('ConsoleActorProxy');
 
 export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 
-	private static listenFor = ['PageError', 'ConsoleAPI'];
+	private static listenFor = [ 'PageError', 'ConsoleAPI' ];
 
 	private pendingStartListenersRequests = new PendingRequests<void>();
 	private pendingStopListenersRequests = new PendingRequests<void>();
@@ -17,13 +17,12 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 	private pendingEvaluateRequests = new Map<number, PendingRequest<FirefoxDebugProtocol.Grip>>();
 	private pendingAutoCompleteRequests = new PendingRequests<string[]>();
 
-	constructor(private _name: string, private connection: DebugConnection) {
+	constructor(
+		public readonly name: string,
+		private connection: DebugConnection
+	) {
 		super();
 		this.connection.register(this);
-	}
-
-	public get name() {
-		return this._name;
 	}
 
 	public startListeners(): Promise<void> {
@@ -58,6 +57,7 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 			messageTypes: ConsoleActorProxy.listenFor
 		});
 	}
+
 	/**
 	 * Evaluate the given expression. This will create 2 PendingRequest objects because we expect
 	 * 2 answers: the first answer gives us a resultID for the evaluation result. The second answer

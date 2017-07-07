@@ -12,12 +12,14 @@ export class DelayedTask<T> {
 
 	public constructor(
 		private mainTask: () => Promise<T>,
-		private postprocessTask?: (result: T) => Promise<void>) {
+		private postprocessTask?: (result: T) => Promise<void>
+	) {
 
 		this.promise = new Promise<T>((resolve, reject) => {
 			this.resolve = resolve;
 			this.reject = reject;
 		});
+
 		this.state = 'waiting';
 	}
 

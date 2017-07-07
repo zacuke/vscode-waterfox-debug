@@ -105,10 +105,6 @@ export async function parseConfiguration(
 	config: LaunchConfiguration | AttachConfiguration
 ): Promise<ParsedConfiguration> {
 
-	if (config.log) {
-		Log.setConfig(config.log);
-	}
-
 	let attach: ParsedAttachConfiguration | undefined = undefined;
 	let launch: ParsedLaunchConfiguration | undefined = undefined;
 	let addon: ParsedAddonConfiguration | undefined = undefined;

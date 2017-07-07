@@ -9,12 +9,11 @@ export class BreakpointActorProxy implements ActorProxy {
 
 	private pendingDeleteRequests = new PendingRequests<void>();
 
-	constructor(private _name: string, private connection: DebugConnection) {
+	constructor(
+		public readonly name: string,
+		private connection: DebugConnection
+	) {
 		this.connection.register(this);
-	}
-
-	public get name() {
-		return this._name;
 	}
 
 	public delete(): Promise<void> {

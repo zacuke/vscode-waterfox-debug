@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as util from './util';
 import * as assert from 'assert';
 
-describe.only('Firefox debug adapter', function() {
+describe('Firefox debug adapter', function() {
 
 	let dc: DebugClient;
 	const TESTDATA_PATH = path.join(__dirname, '../../testdata');

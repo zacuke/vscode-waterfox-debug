@@ -22,23 +22,25 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 	private pendingFetchSourceRequests = new PendingRequests<FirefoxDebugProtocol.Grip>();
 	private pendingBlackboxRequests = new PendingRequests<void>();
 	
-	constructor(private _source: FirefoxDebugProtocol.Source, private connection: DebugConnection) {
+	constructor(
+		public readonly source: FirefoxDebugProtocol.Source,
+		private connection: DebugConnection
+	) {
 		this.connection.register(this);
 	}
 
 	public get name() {
-		return this._source.actor;
-	}
-
-	public get source() {
-		return this._source;
+		return this.source.actor;
 	}
 
 	public get url() {
-		return this._source.url;
+		return this.source.url;
 	}
 
-	public setBreakpoint(location: { line: number, column?: number }, condition?: string): Promise<SetBreakpointResult> {
+	public setBreakpoint(
+		location: { line: number, column?: number },
+		condition?: string
+	): Promise<SetBreakpointResult> {
 
 		log.debug(`Setting breakpoint at line ${location.line} and column ${location.column} in ${this.url}`);
 
@@ -113,7 +115,6 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 				log.warn("Unknown message from SourceActor: " + JSON.stringify(response));
 
 			}
-
 		}
 	}
 }

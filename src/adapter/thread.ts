@@ -2,7 +2,7 @@ import { Log } from '../util/log';
 import { EventEmitter } from 'events';
 import { concatArrays } from '../util/misc';
 import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy, ISourceActorProxy } from '../firefox/index';
-import { ThreadCoordinator, ThreadPauseCoordinator, BreakpointInfo, BreakpointsAdapter, FrameAdapter, ScopeAdapter, SourceAdapter, BreakpointAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
+import { ThreadCoordinator, ThreadPauseCoordinator, FrameAdapter, ScopeAdapter, SourceAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
 import { Variable } from 'vscode-debugadapter';
 import { FirefoxDebugSession } from "../firefoxDebugSession";
 
@@ -18,7 +18,7 @@ export class ThreadAdapter extends EventEmitter {
 		return this.consoleActor !== undefined;
 	}
 
-	private coordinator: ThreadCoordinator;
+	public readonly coordinator: ThreadCoordinator;
 
 	private sources: SourceAdapter[] = [];
 	private frames: FrameAdapter[] = [];
@@ -142,10 +142,6 @@ export class ThreadAdapter extends EventEmitter {
 
 	public stepOut(): Promise<void> {
 		return this.coordinator.stepOut();
-	}
-
-	public setBreakpoints(breakpointInfos: BreakpointInfo[], sourceAdapter: SourceAdapter): Promise<BreakpointAdapter[]> {
-		return BreakpointsAdapter.setBreakpointsOnSourceActor(breakpointInfos, sourceAdapter, this.coordinator);
 	}
 
 	public setExceptionBreakpoints(exceptionBreakpoints: ExceptionBreakpoints) {

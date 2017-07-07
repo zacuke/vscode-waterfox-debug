@@ -9,7 +9,10 @@ export class PreferenceActorProxy implements ActorProxy {
 	private pendingGetPrefRequests = new PendingRequests<string>();
 	private pendingSetPrefRequests = new PendingRequests<void>();
 
-	constructor(public readonly name: string, private connection: DebugConnection) {
+	constructor(
+		public readonly name: string,
+		private connection: DebugConnection
+	) {
 		this.connection.register(this);
 	}
 
@@ -33,25 +36,28 @@ export class PreferenceActorProxy implements ActorProxy {
 
 	}
 
-	public setBoolPref(pref: string, val: boolean) {
+	public setBoolPref(pref: string, val: boolean): Promise<void> {
 
 		return this.setPref(pref, val, 'Bool');
 
 	}
 
-	public setCharPref(pref: string, val: string) {
+	public setCharPref(pref: string, val: string): Promise<void> {
 
 		return this.setPref(pref, val, 'Char');
 
 	}
 
-	public setIntPref(pref: string, val: number) {
+	public setIntPref(pref: string, val: number): Promise<void> {
 
 		return this.setPref(pref, val, 'Int');
 
 	}
 
-	private getPref(pref: string, type: 'Bool' | 'Char' | 'Int'): Promise<string> {
+	private getPref(
+		pref: string,
+		type: 'Bool' | 'Char' | 'Int'
+	): Promise<string> {
 
 		log.debug(`Getting preference value for ${pref}`);
 
@@ -65,7 +71,11 @@ export class PreferenceActorProxy implements ActorProxy {
 		});
 	}
 
-	private setPref(pref: string, val: boolean | string | number, type: 'Bool' | 'Char' | 'Int') {
+	private setPref(
+		pref: string,
+		val: boolean | string | number,
+		type: 'Bool' | 'Char' | 'Int'
+	): Promise<void> {
 
 		log.debug(`Setting preference value for ${pref} to ${val}`);
 

@@ -13,7 +13,10 @@ export class ObjectGripActorProxy implements ActorProxy {
 	private threadGripPromise: Promise<void> | undefined = undefined;
  	private pendingPrototypeAndPropertiesRequests = new PendingRequests<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>();
 
-	constructor(private grip: FirefoxDebugProtocol.ObjectGrip, private connection: DebugConnection) {
+	constructor(
+		private grip: FirefoxDebugProtocol.ObjectGrip,
+		private connection: DebugConnection
+	) {
 		this.connection.register(this);
 	}
 

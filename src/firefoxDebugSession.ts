@@ -51,7 +51,7 @@ export class FirefoxDebugSession {
 		this.pathMapper = new PathMapper(this.config.pathMappings, this.config.addon);
 		this.breakpointsAdapter = new BreakpointsAdapter(this.threads, this.sendEvent);
 		if (this.config.addon) {
-			this.addonManager = new AddonManager(this.config.addon, this.config.sourceMaps);
+			this.addonManager = new AddonManager(this);
 		}
 	}
 
