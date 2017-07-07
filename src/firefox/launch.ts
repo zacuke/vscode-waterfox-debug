@@ -20,7 +20,7 @@ export async function launchFirefox(
 
 	if (launch.detached) {
 
-		let forkedLauncherPath = path.join(__dirname, 'forkedLauncher.js');
+		let forkedLauncherPath = path.join(__dirname, '../util/forkedLauncher.js');
 		let forkArgs: string[];
 		switch (launch.tmpDirs.length) {
 			case 0:
