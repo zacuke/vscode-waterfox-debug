@@ -2,7 +2,6 @@ import { parseConfiguration, LaunchConfiguration, AttachConfiguration, Normalize
 import * as assert from 'assert';
 import * as path from 'path';
 import { isWindowsPlatform } from '../util/misc';
-import { LogConfiguration } from "../util/log";
 
 describe('The configuration parser', function() {
 
@@ -19,7 +18,6 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.reloadOnChange, undefined);
 		assert.equal(parsedConfiguration.sourceMaps, 'server');
 		assert.equal(parsedConfiguration.showConsoleCallLocation, false);
-		assert.equal(parsedConfiguration.log, undefined);
 
 		assert.ok(parsedConfiguration.launch!.firefoxExecutable);
 		assert.equal([...parsedConfiguration.launch!.firefoxArgs].pop(), 
@@ -46,7 +44,6 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.reloadOnChange, undefined);
 		assert.equal(parsedConfiguration.sourceMaps, 'server');
 		assert.equal(parsedConfiguration.showConsoleCallLocation, false);
-		assert.equal(parsedConfiguration.log, undefined);
 
 		assert.equal(parsedConfiguration.attach!.port, 6000);
 		assert.equal(parsedConfiguration.attach!.host, 'localhost');
@@ -305,26 +302,6 @@ describe('The configuration parser', function() {
 		});
 
 		assert.equal(parsedConfiguration.sourceMaps, 'client');
-	});
-
-	it('should copy a "log" configuration', async function() {
-
-		let log: LogConfiguration = {
-			fileName: '/tmp/log.txt',
-			fileLevel: {
-				default: 'Debug'
-			},
-			consoleLevel: {
-				default: 'Info'
-			}
-		}
-		let parsedConfiguration = await parseConfiguration({
-			request: 'launch',
-			file: '/home/user/project/index.html',
-			log
-		});
-
-		assert.deepEqual(parsedConfiguration.log, log);
 	});
 
 	it('should not allow both "profile" and "profileDir" to be specified', async function() {

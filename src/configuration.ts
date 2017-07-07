@@ -69,7 +69,6 @@ export interface ParsedConfiguration {
 	reloadOnChange?: NormalizedReloadConfiguration,
 	sourceMaps: 'client' | 'server';
 	showConsoleCallLocation: boolean;
-	log?: LogConfiguration;
 }
 
 export interface ParsedAttachConfiguration {
@@ -105,6 +104,10 @@ export interface ParsedAddonConfiguration {
 export async function parseConfiguration(
 	config: LaunchConfiguration | AttachConfiguration
 ): Promise<ParsedConfiguration> {
+
+	if (config.log) {
+		Log.config = config.log;
+	}
 
 	let attach: ParsedAttachConfiguration | undefined = undefined;
 	let launch: ParsedLaunchConfiguration | undefined = undefined;
@@ -190,11 +193,10 @@ export async function parseConfiguration(
 
 	let sourceMaps = config.sourceMaps || 'server';
 	let showConsoleCallLocation = config.showConsoleCallLocation || false;
-	let log = config.log;
 
 	return {
 		attach, launch, addon, pathMappings, filesToSkip, reloadOnChange,
-		sourceMaps, showConsoleCallLocation, log
+		sourceMaps, showConsoleCallLocation
 	}
 }
 
