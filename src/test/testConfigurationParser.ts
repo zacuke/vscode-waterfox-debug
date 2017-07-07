@@ -73,13 +73,21 @@ describe('The configuration parser', function() {
 				url: 'https://mozilla.org/'
 			}), `If you set "url" you also have to set "webRoot" in the ${request} configuration`);
 		});
+
+		it(`should require "webRoot" to be an absolute path in a ${request} configuration`, async function() {
+			await assertPromiseRejects(parseConfiguration(<any>{
+				request,
+				url: 'https://mozilla.org/',
+				webRoot: './project'
+			}), `The "webRoot" property in the ${request} configuration has to be an absolute path`);
+		});
 	}
 
 	it('should require "url" if "webRoot" is specified in an attach configuration', async function() {
 		await assertPromiseRejects(parseConfiguration(<any>{
 			request: 'attach',
 			webRoot: '/home/user/project'
-		}), `If you set "webRoot" you also have to set "url" in the attach configuration`);
+		}), 'If you set "webRoot" you also have to set "url" in the attach configuration');
 	});
 
 	it('should create a pathMapping for mapping "url" to "webRoot"', async function() {
@@ -317,6 +325,23 @@ describe('The configuration parser', function() {
 		});
 
 		assert.deepEqual(parsedConfiguration.log, log);
+	});
+
+	it('should not allow both "profile" and "profileDir" to be specified', async function() {
+		await assertPromiseRejects(parseConfiguration(<any>{
+			request: 'launch',
+			file: '/home/user/project/index.html',
+			profile: 'default',
+			profileDir: '/home/user/firefoxProfile'
+		}), 'You can set either "profile" or "profileDir", but not both');
+	});
+
+	it('should not allow "keepProfileChanges" if neither "profile" nor "profileDir" is set', async function() {
+		await assertPromiseRejects(parseConfiguration(<any>{
+			request: 'launch',
+			file: '/home/user/project/index.html',
+			keepProfileChanges: true,
+		}), 'To enable "keepProfileChanges" you need to set either "profile" or "profileDir"');
 	});
 
 	for (let keepProfileChanges of [ undefined, false ]) {
