@@ -1,7 +1,7 @@
 import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { DebugConnection } from '../connection';
-import { PendingRequest, PendingRequests } from './pendingRequests';
+import { PendingRequest, PendingRequests } from '../../util/pendingRequests';
 import { ActorProxy } from './interface';
 import { ISourceActorProxy, SourceActorProxy } from './source';
 import { exceptionGripToString } from '../../util/misc';
@@ -32,18 +32,17 @@ export enum ExceptionBreakpoints {
 }
 
 /**
- * A ThreadActorProxy is a proxy for a "thread-like actor" (a Tab or a WebWorker) in Firefox. 
+ * A ThreadActorProxy is a proxy for a "thread-like actor" (a Tab, Worker or Addon) in Firefox. 
  */
 export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThreadActorProxy {
 
-	constructor(private _name: string, private connection: DebugConnection) {
+	constructor(
+		public readonly name: string,
+		private connection: DebugConnection
+	) {
 		super();
 		this.connection.register(this);
 		log.debug(`Created thread ${this.name}`);
-	}
-
-	public get name() {
-		return this._name;
 	}
 
 	private pendingAttachRequest?: PendingRequest<void>;
@@ -86,7 +85,11 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	/**
 	 * Resume the thread if it is paused
 	 */
-	public resume(exceptionBreakpoints: ExceptionBreakpoints, resumeLimitType?: 'next' | 'step' | 'finish'): Promise<void> {
+	public resume(
+		exceptionBreakpoints: ExceptionBreakpoints,
+		resumeLimitType?: 'next' | 'step' | 'finish'
+	): Promise<void> {
+
 		if (!this.resumePromise) {
 			log.debug(`Resuming thread ${this.name}`);
 
@@ -122,6 +125,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	 * Interrupt the thread if it is running
 	 */
 	public interrupt(immediately = true): Promise<void> {
+
 		if (!this.interruptPromise) {
 			log.debug(`Interrupting thread ${this.name}`);
 
@@ -143,6 +147,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	 * Detach the thread if it is attached
 	 */
 	public detach(): Promise<void> {
+
 		if (!this.detachPromise) {
 			log.debug(`Detaching thread ${this.name}`);
 
@@ -191,7 +196,10 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	 * Evaluate the given expression on the specified StackFrame. This can only be called while
 	 * the thread is paused and will resume it temporarily.
 	 */
-	public evaluate(expression: string, frameActorName: string): Promise<FirefoxDebugProtocol.Grip> {
+	public evaluate(
+		expression: string,
+		frameActorName: string
+	): Promise<FirefoxDebugProtocol.Grip> {
 		log.debug(`Evaluating '${expression}' on thread ${this.name}`);
 		
 		return new Promise<FirefoxDebugProtocol.Grip>((resolve, reject) => {

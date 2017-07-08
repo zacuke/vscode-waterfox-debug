@@ -12,7 +12,9 @@ export class DebugProtocolTransport extends EventEmitter {
 	private bufferedLength: number;
 	private receivingHeader: boolean;
 
-	constructor(private socket: SocketLike) {
+	constructor(
+		private socket: SocketLike
+	) {
 		super();
 
 		this.buffer = new Buffer(DebugProtocolTransport.initialBufferLength);

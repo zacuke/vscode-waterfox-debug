@@ -16,8 +16,8 @@ export async function testSourcemaps(
 
 	util.setBreakpoints(dc, fPath, [ 7 ]);
 
-	util.evaluateDelayed(dc, 'f()', 0);
-	let stoppedEvent = await util.receiveStoppedEvent(dc);
+	let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc, () =>
+		util.evaluateDelayed(dc, 'f()', 0));
 	let threadId = stoppedEvent.body.threadId!;
 
 	await checkDebuggeeState(dc, threadId, fPath, 7, 'x', '2');
@@ -64,18 +64,17 @@ async function checkDebuggeeState(
 	assert.equal(util.findVariable(variables.body.variables, variable).value, value);
 }
 
-export function copyFiles(sourceDir: string, targetDir: string, files: string[]) {
-	for (let file of files) {
-		fs.copySync(path.join(sourceDir, file), path.join(targetDir, file));
-	}
+export async function copyFiles(sourceDir: string, targetDir: string, files: string[]): Promise<void> {
+	await Promise.all(files.map(
+		(file) => fs.copy(path.join(sourceDir, file), path.join(targetDir, file))));
 }
 
-export function injectScriptTags(targetDir: string, scripts: string[]) {
+export async function injectScriptTags(targetDir: string, scripts: string[]): Promise<void> {
 	let file = path.join(targetDir, 'index.html');
-	let content = fs.readFileSync(file, 'utf8');
+	let content = await fs.readFile(file, 'utf8');
 	let scriptTags = scripts.map((script) => `<script src="${script}"></script>`);
 	content = content.replace('__SCRIPTS__', scriptTags.join(''));
-	fs.writeFileSync(file, content);
+	await fs.writeFile(file, content);
 }
 
 export function waitForStreamEnd(s: Stream): Promise<void> {

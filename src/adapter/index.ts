@@ -1,6 +1,6 @@
 export { SourceAdapter, BreakpointAdapter, ConsoleAPICallAdapter } from './misc';
-export { ThreadCoordinator } from './threadCoordinator';
-export { ThreadPauseCoordinator, PauseType } from './threadPauseCoordinator';
+export { ThreadCoordinator } from './coordinator/thread';
+export { ThreadPauseCoordinator, PauseType } from './coordinator/threadPause';
 export { ThreadAdapter } from './thread';
 export { BreakpointInfo, BreakpointsAdapter } from './breakpoints';
 export { FrameAdapter } from './frame';
@@ -8,3 +8,4 @@ export { EnvironmentAdapter, ObjectEnvironmentAdapter, FunctionEnvironmentAdapte
 export { VariablesProvider, ScopeAdapter, ObjectScopeAdapter, LocalVariablesScopeAdapter, FunctionScopeAdapter } from './scope';
 export { ObjectGripAdapter } from './objectGrip';
 export { VariableAdapter } from './variable';
+export { Registry } from './registry';

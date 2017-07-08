@@ -1,7 +1,7 @@
 import { delay } from '../util/misc';
 import { DebugClient } from 'vscode-debugadapter-testsupport';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { AddonType, LaunchConfiguration } from '../adapter/launchConfiguration';
+import { AddonType, LaunchConfiguration } from '../configuration';
 import * as path from 'path';
 
 export async function initDebugClient(

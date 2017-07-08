@@ -22,7 +22,7 @@ export class ObjectGripAdapter implements VariablesProvider {
 	) {
 		this.actor = this.threadAdapter.debugSession.getOrCreateObjectGripActorProxy(objectGrip);
 		this.actor.increaseRefCount();
-		this.variablesProviderId = this.threadAdapter.debugSession.registerVariablesProvider(this);
+		this.variablesProviderId = this.threadAdapter.debugSession.variablesProviders.register(this);
 		this.threadAdapter.registerObjectGripAdapter(this);
 	}
 
@@ -67,7 +67,7 @@ export class ObjectGripAdapter implements VariablesProvider {
 
 	public dispose(): void {
 		this.actor.decreaseRefCount();
-		this.threadAdapter.debugSession.unregisterVariablesProvider(this);
+		this.threadAdapter.debugSession.variablesProviders.unregister(this.variablesProviderId);
 	}
 }
 

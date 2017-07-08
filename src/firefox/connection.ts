@@ -13,12 +13,17 @@ export class DebugConnection {
 
 	private transport: DebugProtocolTransport;
 	private actors: Map<string, ActorProxy>;
-	private _rootActor: RootActorProxy;
+	public readonly rootActor: RootActorProxy;
 
-	constructor(sourceMaps: 'client' | 'server', socket: Socket) {
+	constructor(
+		sourceMaps: 'client' | 'server',
+		socket: Socket
+	) {
+
 		this.actors = new Map<string, ActorProxy>();
-		this._rootActor = new RootActorProxy(sourceMaps, this);
+		this.rootActor = new RootActorProxy(sourceMaps, this);
 		this.transport = new DebugProtocolTransport(socket);
+
 		this.transport.on('message', (response: FirefoxDebugProtocol.Response) => {
 			if (this.actors.has(response.from)) {
 				if (log.isDebugEnabled()) {
@@ -29,10 +34,6 @@ export class DebugConnection {
 				log.error('Unknown actor: ' + JSON.stringify(response));
 			}
 		});
-	}
-
-	public get rootActor() {
-		return this._rootActor;
 	}
 
 	public sendRequest<T extends FirefoxDebugProtocol.Request>(request: T) {

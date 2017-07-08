@@ -3,7 +3,7 @@ import * as url from 'url';
 import isAbsoluteUrl = require('is-absolute-url');
 import { SourceMapConsumer, RawSourceMap } from 'source-map';
 import { Log } from '../../util/log';
-import { getUri, urlDirname } from '../../util/misc';
+import { getUri, urlDirname } from '../../util/net';
 import { DebugConnection, ISourceActorProxy, SourceActorProxy, SourceMappingSourceActorProxy } from '../index';
 import { IThreadActorProxy, ExceptionBreakpoints } from '../actorProxy/thread';
 import { SourceMappingInfo } from './info';
@@ -13,10 +13,6 @@ let log = Log.create('SourceMappingThreadActorProxy');
 export class SourceMappingThreadActorProxy extends EventEmitter implements IThreadActorProxy {
 
 	private sourceMappingInfos = new Map<string, Promise<SourceMappingInfo>>();
-
-	public get name(): string {
-		return this.underlyingActorProxy.name;
-	}
 
 	public constructor(
 		private readonly underlyingActorProxy: IThreadActorProxy,
@@ -30,6 +26,10 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 				this.emit('newSource', source);
 			}
 		});
+	}
+
+	public get name(): string {
+		return this.underlyingActorProxy.name;
 	}
 
 	public async fetchSources(): Promise<FirefoxDebugProtocol.Source[]> {
@@ -46,7 +46,9 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		return allMappedSources;
 	}
 
-	private getOrCreateSourceMappingInfo(source: FirefoxDebugProtocol.Source): Promise<SourceMappingInfo> {
+	private getOrCreateSourceMappingInfo(
+		source: FirefoxDebugProtocol.Source
+	): Promise<SourceMappingInfo> {
 
 		if (this.sourceMappingInfos.has(source.actor)) {
 
@@ -60,7 +62,9 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		}
 	}
 
-	private async createSourceMappingInfo(source: FirefoxDebugProtocol.Source): Promise<SourceMappingInfo> {
+	private async createSourceMappingInfo(
+		source: FirefoxDebugProtocol.Source
+	): Promise<SourceMappingInfo> {
 
 		if (log.isDebugEnabled) {
 			log.debug(`Trying to sourcemap ${JSON.stringify(source)}`);
@@ -112,7 +116,10 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		return sourceMappingInfo;
 	}
 
-	public async fetchStackFrames(start?: number, count?: number): Promise<FirefoxDebugProtocol.Frame[]> {
+	public async fetchStackFrames(
+		start?: number,
+		count?: number
+	): Promise<FirefoxDebugProtocol.Frame[]> {
 
 		let stackFrames = await this.underlyingActorProxy.fetchStackFrames(start, count);
 
@@ -158,16 +165,21 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		}
 	}
 
-	public async evaluate(expression: string, frameActorName: string): Promise<FirefoxDebugProtocol.Grip> {
-		let result = await this.underlyingActorProxy.evaluate(expression, frameActorName);
-		return result;
+	public evaluate(
+		expression: string,
+		frameActorName: string
+	): Promise<FirefoxDebugProtocol.Grip> {
+		return this.underlyingActorProxy.evaluate(expression, frameActorName);
 	}
 
 	public attach(): Promise<void> {
 		return this.underlyingActorProxy.attach(false);
 	}
 
-	public resume(exceptionBreakpoints: ExceptionBreakpoints, resumeLimitType?: "next" | "step" | "finish" | undefined): Promise<void> {
+	public resume(
+		exceptionBreakpoints: ExceptionBreakpoints,
+		resumeLimitType?: "next" | "step" | "finish" | undefined
+	): Promise<void> {
 		return this.underlyingActorProxy.resume(exceptionBreakpoints, resumeLimitType);
 	}
 

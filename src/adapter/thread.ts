@@ -2,21 +2,15 @@ import { Log } from '../util/log';
 import { EventEmitter } from 'events';
 import { concatArrays } from '../util/misc';
 import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy, ISourceActorProxy } from '../firefox/index';
-import { ThreadCoordinator, ThreadPauseCoordinator, BreakpointInfo, BreakpointsAdapter, FrameAdapter, ScopeAdapter, SourceAdapter, BreakpointAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
-import { FirefoxDebugAdapter } from '../firefoxDebugAdapter';
+import { ThreadCoordinator, ThreadPauseCoordinator, FrameAdapter, ScopeAdapter, SourceAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
 import { Variable } from 'vscode-debugadapter';
+import { FirefoxDebugSession } from "../firefoxDebugSession";
 
 let log = Log.create('ThreadAdapter');
 
 export class ThreadAdapter extends EventEmitter {
 
 	public id: number;
-	public get debugSession() {
-		return this._debugAdapter;
-	}
-	public get name() {
-		return this._name;
-	}
 	public get actorName() {
 		return this.actor.name;
 	}
@@ -24,11 +18,7 @@ export class ThreadAdapter extends EventEmitter {
 		return this.consoleActor !== undefined;
 	}
 
-	private _debugAdapter: FirefoxDebugAdapter;
-	private actor: IThreadActorProxy;
-	private consoleActor?: ConsoleActorProxy;
-	private coordinator: ThreadCoordinator;
-	private _name: string;
+	public readonly coordinator: ThreadCoordinator;
 
 	private sources: SourceAdapter[] = [];
 	private frames: FrameAdapter[] = [];
@@ -39,16 +29,17 @@ export class ThreadAdapter extends EventEmitter {
 
 	private threadPausedReason?: FirefoxDebugProtocol.ThreadPausedReason;
 
-	public constructor(id: number, threadActor: IThreadActorProxy, consoleActor: ConsoleActorProxy | undefined,
-		private pauseCoordinator: ThreadPauseCoordinator, name: string, debugAdapter: FirefoxDebugAdapter) {
-
+	public constructor(
+		public readonly actor: IThreadActorProxy,
+		private readonly consoleActor: ConsoleActorProxy | undefined,
+		private readonly pauseCoordinator: ThreadPauseCoordinator,
+		public readonly name: string,
+		public readonly debugSession: FirefoxDebugSession
+	) {
 		super();
 
-		this.id = id;
-		this.actor = threadActor;
+		this.id = debugSession.threads.register(this);
 		this.consoleActor = consoleActor;
-		this._name = name;
-		this._debugAdapter = debugAdapter;
 
 		this.coordinator = new ThreadCoordinator(this.id, this.name, this.actor, this.consoleActor,
 			this.pauseCoordinator, () => this.disposePauseLifetimeAdapters());
@@ -89,8 +80,8 @@ export class ThreadAdapter extends EventEmitter {
 		}
 	}
 
-	public createSourceAdapter(id: number, actor: ISourceActorProxy, path?: string): SourceAdapter {
-		let adapter = new SourceAdapter(id, actor, path);
+	public createSourceAdapter(actor: ISourceActorProxy, path?: string): SourceAdapter {
+		let adapter = new SourceAdapter(this.debugSession.sources, actor, path);
 		this.sources.push(adapter);
 		return adapter;
 	}
@@ -153,10 +144,6 @@ export class ThreadAdapter extends EventEmitter {
 		return this.coordinator.stepOut();
 	}
 
-	public setBreakpoints(breakpointInfos: BreakpointInfo[], sourceAdapter: SourceAdapter): Promise<BreakpointAdapter[]> {
-		return BreakpointsAdapter.setBreakpointsOnSourceActor(breakpointInfos, sourceAdapter, this.coordinator);
-	}
-
 	public setExceptionBreakpoints(exceptionBreakpoints: ExceptionBreakpoints) {
 		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
 	}
@@ -169,7 +156,7 @@ export class ThreadAdapter extends EventEmitter {
 				let frames = await this.actor.fetchStackFrames();
 
 				let frameAdapters = frames.map((frame) => {
-					let frameAdapter = new FrameAdapter(frame, this);
+					let frameAdapter = new FrameAdapter(this.debugSession.frames, frame, this);
 					this.frames.push(frameAdapter);
 					return frameAdapter;
 				});

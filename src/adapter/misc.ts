@@ -1,21 +1,23 @@
 import { ISourceActorProxy, BreakpointActorProxy } from '../firefox/index';
 import { BreakpointInfo, VariablesProvider, VariableAdapter, ThreadAdapter } from './index';
+import { Registry } from "./registry";
 
 export class SourceAdapter {
 	
-	public id: number;
-	public actor: ISourceActorProxy;
-	public sourcePath?: string;
+	public readonly id: number;
+
 	// this promise will resolve to the list of breakpoints set on this source
 	private breakpointsPromise: Promise<BreakpointAdapter[]>;
 	// the list of breakpoints set on this source, this may be set to undefined if any breakpoints
 	// are in the process of being sent to Firefox, in this case use breakpointsPromise
 	private currentBreakpoints?: BreakpointAdapter[];
 
-	public constructor(id: number, actor: ISourceActorProxy, sourcePath?: string) {
-		this.id = id;
-		this.actor = actor;
-		this.sourcePath = sourcePath;
+	public constructor(
+		sourceRegistry: Registry<SourceAdapter>,
+		public actor: ISourceActorProxy,
+		public readonly sourcePath?: string
+	) {
+		this.id = sourceRegistry.register(this);
 		this.breakpointsPromise = Promise.resolve([]);
 		this.currentBreakpoints = [];
 	}
@@ -61,8 +63,11 @@ export class ConsoleAPICallAdapter implements VariablesProvider {
 	public readonly referenceExpression = undefined;
 	public readonly referenceFrame = undefined;
 
-	public constructor(private variables: VariableAdapter[], public threadAdapter: ThreadAdapter) {
-		this.variablesProviderId = threadAdapter.debugSession.registerVariablesProvider(this);
+	public constructor(
+		private readonly variables: VariableAdapter[],
+		public readonly threadAdapter: ThreadAdapter
+	) {
+		this.variablesProviderId = threadAdapter.debugSession.variablesProviders.register(this);
 	}
 
 	public getVariables(): Promise<VariableAdapter[]> {

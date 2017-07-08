@@ -3,6 +3,7 @@ import { concatArrays } from '../util/misc';
 import { ThreadAdapter, EnvironmentAdapter, ScopeAdapter, ObjectGripAdapter } from '../adapter/index';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { Source, StackFrame } from 'vscode-debugadapter';
+import { Registry } from "./registry";
 
 let log = Log.create('FrameAdapter');
 
@@ -10,16 +11,15 @@ let actorIdRegex = /[0-9]+$/;
 
 export class FrameAdapter {
 
-	public id: number;
-	public frame: FirefoxDebugProtocol.Frame;
-	public scopeAdapters: ScopeAdapter[];
-	public threadAdapter: ThreadAdapter;
+	public readonly id: number;
+	public readonly scopeAdapters: ScopeAdapter[];
 
-	public constructor(frame: FirefoxDebugProtocol.Frame, threadAdapter: ThreadAdapter) {
-		this.frame = frame;
-		this.threadAdapter = threadAdapter;
-		this.threadAdapter.debugSession.registerFrameAdapter(this);
-
+	public constructor(
+		private readonly frameRegistry: Registry<FrameAdapter>,
+		public readonly frame: FirefoxDebugProtocol.Frame,
+		public readonly threadAdapter: ThreadAdapter
+	) {
+		this.id = frameRegistry.register(this);
 		let environmentAdapter = EnvironmentAdapter.from(this.frame.environment);
 		this.scopeAdapters = environmentAdapter.getScopeAdapters(this);
 		this.scopeAdapters[0].addThis(this.frame.this);
@@ -30,7 +30,7 @@ export class FrameAdapter {
 		let firefoxSource = this.frame.where.source;
 		let sourceActorName = firefoxSource.actor;
 
-		let sourcePath = this.threadAdapter.debugSession.convertFirefoxSourceToPath(firefoxSource);
+		let sourcePath = this.threadAdapter.debugSession.pathMapper.convertFirefoxSourceToPath(firefoxSource);
 		let sourceName = '';
 
 		if (firefoxSource.url != null) {
@@ -104,6 +104,6 @@ export class FrameAdapter {
 	}
 	
 	public dispose(): void {
-		this.threadAdapter.debugSession.unregisterFrameAdapter(this);
+		this.frameRegistry.unregister(this.id);
 	}
 }
