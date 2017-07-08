@@ -27,8 +27,6 @@ export class ThreadAdapter extends EventEmitter {
 	private pauseLifetimeObjects: ObjectGripAdapter[] = [];
 	private threadLifetimeObjects: ObjectGripAdapter[] = [];
 
-	private threadPausedReason?: FirefoxDebugProtocol.ThreadPausedReason;
-
 	public constructor(
 		public readonly actor: IThreadActorProxy,
 		private readonly consoleActor: ConsoleActorProxy | undefined,
@@ -45,8 +43,6 @@ export class ThreadAdapter extends EventEmitter {
 			this.pauseCoordinator, () => this.disposePauseLifetimeAdapters());
 
 		this.coordinator.onPaused(async (reason) => {
-
-			this.threadPausedReason = reason;
 
 			await this.fetchAllStackFrames();
 
@@ -172,25 +168,26 @@ export class ThreadAdapter extends EventEmitter {
 					return frameAdapter;
 				});
 
-				if ((this.threadPausedReason !== undefined) && (frameAdapters.length > 0)) {
+				let threadPausedReason = this.coordinator.threadPausedReason;
+				if ((threadPausedReason !== undefined) && (frameAdapters.length > 0)) {
 
-					if (this.threadPausedReason.frameFinished !== undefined) {
+					if (threadPausedReason.frameFinished !== undefined) {
 
-						if (this.threadPausedReason.frameFinished.return !== undefined) {
+						if (threadPausedReason.frameFinished.return !== undefined) {
 
 							frameAdapters[0].scopeAdapters[0].addReturnValue(
-								this.threadPausedReason.frameFinished.return);
+								threadPausedReason.frameFinished.return);
 
-						} else if (this.threadPausedReason.frameFinished.throw !== undefined) {
+						} else if (threadPausedReason.frameFinished.throw !== undefined) {
 
 							frameAdapters[0].scopeAdapters.unshift(ScopeAdapter.fromGrip(
-								'Exception', this.threadPausedReason.frameFinished.throw, frameAdapters[0]));
+								'Exception', threadPausedReason.frameFinished.throw, frameAdapters[0]));
 						}
 
-					} else if (this.threadPausedReason.exception !== undefined) {
+					} else if (threadPausedReason.exception !== undefined) {
 
 							frameAdapters[0].scopeAdapters.unshift(ScopeAdapter.fromGrip(
-								'Exception', this.threadPausedReason.exception, frameAdapters[0]));
+								'Exception', threadPausedReason.exception, frameAdapters[0]));
 					}
 				}
 
@@ -217,6 +214,12 @@ export class ThreadAdapter extends EventEmitter {
 		let requestedFrames = (count > 0) ? frameAdapters.slice(start, start + count) : frameAdapters.slice(start);
 
 		return [requestedFrames, frameAdapters.length];
+	}
+
+	public triggerStackframeRefresh(): void {
+		if (this.coordinator.threadTarget === 'paused') {
+			this.debugSession.sendStoppedEvent(this, this.coordinator.threadPausedReason);
+		}
 	}
 
 	public async fetchVariables(variablesProvider: VariablesProvider): Promise<Variable[]> {

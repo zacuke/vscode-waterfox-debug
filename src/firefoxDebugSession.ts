@@ -373,28 +373,7 @@ export class FirefoxDebugSession {
 
 		threadAdapter.onPaused((reason) => {
 			log.info(`Thread ${actorName} paused , reason: ${reason.type}`);
-
-			let stoppedEvent: DebugProtocol.StoppedEvent = new StoppedEvent(reason.type, threadAdapter.id);
-			stoppedEvent.body.allThreadsStopped = false;
-
-			if (reason.exception) {
-
-				if (typeof reason.exception === 'string') {
-
-					stoppedEvent.body.text = reason.exception;
-
-				} else if ((typeof reason.exception === 'object') && (reason.exception.type === 'object')) {
-
-					let exceptionGrip = <FirefoxDebugProtocol.ObjectGrip>reason.exception;
-					if (exceptionGrip.preview.message) {
-						stoppedEvent.body.text = `${exceptionGrip.class}: ${exceptionGrip.preview.message}`;
-					} else {
-						stoppedEvent.body.text = exceptionGrip.class;
-					}
-				}
-			}
-
-			this.sendEvent(stoppedEvent);
+			this.sendStoppedEvent(threadAdapter, reason);
 		});
 
 		threadAdapter.onResumed(() => {
@@ -502,5 +481,34 @@ export class FirefoxDebugSession {
 
 		consoleActor.startListeners();
 		consoleActor.getCachedMessages();
+	}
+
+	public sendStoppedEvent(
+		threadAdapter: ThreadAdapter,
+		reason?: FirefoxDebugProtocol.ThreadPausedReason
+	): void {
+
+		let pauseType = reason ? reason.type : 'interrupt';
+		let stoppedEvent: DebugProtocol.StoppedEvent = new StoppedEvent(pauseType, threadAdapter.id);
+		stoppedEvent.body.allThreadsStopped = false;
+
+		if (reason && reason.exception) {
+
+			if (typeof reason.exception === 'string') {
+
+				stoppedEvent.body.text = reason.exception;
+
+			} else if ((typeof reason.exception === 'object') && (reason.exception.type === 'object')) {
+
+				let exceptionGrip = <FirefoxDebugProtocol.ObjectGrip>reason.exception;
+				if (exceptionGrip.preview.message) {
+					stoppedEvent.body.text = `${exceptionGrip.class}: ${exceptionGrip.preview.message}`;
+				} else {
+					stoppedEvent.body.text = exceptionGrip.class;
+				}
+			}
+		}
+
+		this.sendEvent(stoppedEvent);
 	}
 }

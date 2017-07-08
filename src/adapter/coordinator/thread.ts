@@ -18,7 +18,15 @@ export class ThreadCoordinator extends EventEmitter {
 
 	private threadState: ThreadState = 'paused';
 
-	private threadTarget: ThreadTarget = 'paused';
+	private _threadTarget: ThreadTarget = 'paused';
+	public get threadTarget(): ThreadTarget {
+		return this._threadTarget;
+	}
+
+	private _threadPausedReason?: FirefoxDebugProtocol.ThreadPausedReason;
+	public get threadPausedReason(): FirefoxDebugProtocol.ThreadPausedReason | undefined {
+		return this._threadPausedReason;
+	}
 
 	private interruptPromise?: Promise<void>;
 	private pendingInterruptRequest?: PendingRequest<void>;
@@ -54,7 +62,8 @@ export class ThreadCoordinator extends EventEmitter {
 
 			} else {
 
-				this.threadTarget = 'paused';
+				this._threadTarget = 'paused';
+				this._threadPausedReason = reason;
 				this.threadPaused('user');
 				this.emit('paused', reason);
 
@@ -63,7 +72,8 @@ export class ThreadCoordinator extends EventEmitter {
 
 		threadActor.onResumed(() => {
 
-			this.threadTarget = 'running';
+			this._threadTarget = 'running';
+			this._threadPausedReason = undefined;
 			this.threadResumed();
 
 			if (this.tasksRunningOnPausedThread > 0) {
@@ -91,7 +101,8 @@ export class ThreadCoordinator extends EventEmitter {
 
 		} else {
 
-			this.threadTarget = 'paused';
+			this._threadTarget = 'paused';
+			this._threadPausedReason = undefined;
 			this.interruptPromise = new Promise<void>((resolve, reject) => {
 				this.pendingInterruptRequest = { resolve, reject };
 			});
@@ -137,7 +148,8 @@ export class ThreadCoordinator extends EventEmitter {
 
 		} else {
 
-			this.threadTarget = target;
+			this._threadTarget = target;
+			this._threadPausedReason = undefined;
 			this.resumePromise = new Promise<void>((resolve, reject) => {
 				this.pendingResumeRequest = { resolve, reject };
 			});

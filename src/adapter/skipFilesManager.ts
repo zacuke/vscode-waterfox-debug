@@ -38,6 +38,8 @@ export class SkipFilesManager {
 					sourceAdapter.actor.setBlackbox(skipFile);
 				}
 			}
+
+			thread.triggerStackframeRefresh();
 		}
 	}
 }
