@@ -9,3 +9,4 @@ export { VariablesProvider, ScopeAdapter, ObjectScopeAdapter, LocalVariablesScop
 export { ObjectGripAdapter } from './objectGrip';
 export { VariableAdapter } from './variable';
 export { Registry } from './registry';
+export { SkipFilesManager } from './skipFilesManager';

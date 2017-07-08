@@ -8,7 +8,7 @@ import { Log } from './util/log';
 import { AddonManager } from './adapter/addonManager';
 import { launchFirefox } from './firefox/launch';
 import { DebugConnection, TabActorProxy, WorkerActorProxy, IThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, ISourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
-import { ThreadAdapter, ThreadPauseCoordinator, FrameAdapter, VariableAdapter, ConsoleAPICallAdapter, VariablesProvider, SourceAdapter, Registry, BreakpointsAdapter } from './adapter/index';
+import { ThreadAdapter, ThreadPauseCoordinator, FrameAdapter, VariableAdapter, ConsoleAPICallAdapter, VariablesProvider, SourceAdapter, Registry, BreakpointsAdapter, SkipFilesManager } from './adapter/index';
 import { ParsedConfiguration } from "./configuration";
 import { PathMapper, urlDetector } from './util/pathMapper';
 import { isWindowsPlatform as detectWindowsPlatform } from './util/misc';
@@ -18,18 +18,18 @@ import { connect, waitForSocket } from './util/net';
 let log = Log.create('FirefoxDebugSession');
 let consoleActorLog = Log.create('ConsoleActor');
 
-let isWindowsPlatform = detectWindowsPlatform();
-
 export class FirefoxDebugSession {
 
+	public readonly isWindowsPlatform = detectWindowsPlatform();
 	public readonly pathMapper: PathMapper;
 	public readonly breakpointsAdapter: BreakpointsAdapter;
+	public readonly skipFilesManager: SkipFilesManager;
 	public readonly addonManager?: AddonManager;
 	private reloadWatcher?: chokidar.FSWatcher;
 	private threadPauseCoordinator = new ThreadPauseCoordinator();
 
 	private firefoxProc?: ChildProcess;
-	public firefoxDebugConnection: DebugConnection; //TODO make private again
+	public firefoxDebugConnection: DebugConnection;
 	private firefoxDebugSocketClosed: boolean;
 
 	public readonly tabs = new Registry<TabActorProxy>();
@@ -50,6 +50,7 @@ export class FirefoxDebugSession {
 	) {
 		this.pathMapper = new PathMapper(this.config.pathMappings, this.config.addon);
 		this.breakpointsAdapter = new BreakpointsAdapter(this.threads, this.sendEvent);
+		this.skipFilesManager = new SkipFilesManager(this.config.filesToSkip, this.threads);
 		if (this.config.addon) {
 			this.addonManager = new AddonManager(this);
 		}
@@ -428,7 +429,7 @@ export class FirefoxDebugSession {
 		let pathToCheck: string | null | undefined = undefined;
 		if (sourcePath !== undefined) {
 			pathToCheck = sourcePath;
-			if (isWindowsPlatform) {
+			if (this.isWindowsPlatform) {
 				pathToCheck = pathToCheck.split('\\').join('/');
 			}
 		} else if (source.generatedUrl && (!source.url || !urlDetector.test(source.url))) {
@@ -439,13 +440,7 @@ export class FirefoxDebugSession {
 
 		if (pathToCheck) {
 
-			let skipThisSource = false;
-			for (let regExp of this.config.filesToSkip) {
-				if (regExp.test(pathToCheck)) {
-					skipThisSource = true;
-					break;
-				}
-			}
+			let skipThisSource = this.skipFilesManager.shouldSkip(pathToCheck);
 
 			if (source.isBlackBoxed !== skipThisSource) {
 				sourceActor.setBlackbox(skipThisSource);
@@ -455,7 +450,6 @@ export class FirefoxDebugSession {
 		this.breakpointsAdapter.setBreakpointsOnNewSource(sourceAdapter, threadAdapter);
 	}
 
-	//TODO make private again
 	public attachConsole(consoleActor: ConsoleActorProxy, threadAdapter: ThreadAdapter): void {
 
 		consoleActor.onConsoleAPICall((consoleEvent) => {

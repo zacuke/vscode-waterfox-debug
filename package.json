@@ -97,7 +97,8 @@
   "main": "./out/extension.js",
   "activationEvents": [
     "onCommand:extension.firefox.reloadAddon",
-    "onCommand:extension.firefox.rebuildAndReloadAddon"
+    "onCommand:extension.firefox.rebuildAndReloadAddon",
+    "onCommand:extension.firefox.toggleSkippingFile"
   ],
   "contributes": {
     "commands": [
@@ -108,8 +109,17 @@
       {
         "command": "extension.firefox.rebuildAndReloadAddon",
         "title": "Firefox: Rebuild and reload add-on"
+      },
+      {
+        "command": "extension.firefox.toggleSkippingFile",
+        "title": "Toggle skipping this file"
       }
     ],
+    "menus": {
+      "debug/callstack/context": [{
+        "command": "extension.firefox.toggleSkippingFile"
+      }]
+    },
     "debuggers": [
       {
         "type": "firefox",

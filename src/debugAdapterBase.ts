@@ -28,6 +28,7 @@ export abstract class DebugAdapterBase extends DebugSession {
 	protected abstract getCompletions(args: DebugProtocol.CompletionsArguments): Promise<{ targets: DebugProtocol.CompletionItem[] }>;
 	protected abstract reloadAddon(): Promise<void>;
 	protected abstract rebuildAddon(): Promise<void>;
+	protected abstract toggleSkippingFile(path: string): Promise<void>;
 
 	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
 		this.handleRequest(response, () => this.initialize(args));
@@ -115,6 +116,9 @@ export abstract class DebugAdapterBase extends DebugSession {
 				case 'rebuildAndReloadAddon':
 				await this.rebuildAddon();
 				return await this.reloadAddon();
+
+				case 'toggleSkippingFile':
+				return await this.toggleSkippingFile(<string>args);
 			}
 		});
 	}

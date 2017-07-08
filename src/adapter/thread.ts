@@ -110,9 +110,20 @@ export class ThreadAdapter extends EventEmitter {
 		return undefined;
 	}
 
-	public findSourceAdaptersForPath(path: string | undefined): SourceAdapter[] {
+	public findSourceAdaptersForPath(
+		path: string | undefined,
+		checkUrl = false
+	): SourceAdapter[] {
+
 		if (!path) return [];
-		return this.sources.filter((sourceAdapter) => (sourceAdapter.sourcePath === path));
+
+		return this.sources.filter((sourceAdapter) => {
+			if (sourceAdapter.sourcePath) {
+				return (sourceAdapter.sourcePath === path);
+			} else {
+				return checkUrl && (sourceAdapter.actor.url === path);
+			}
+		});
 	}
 
 	public findSourceAdapterForActorName(actorName: string): SourceAdapter | undefined {
