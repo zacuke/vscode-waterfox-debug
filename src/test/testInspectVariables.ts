@@ -89,6 +89,30 @@ describe('Firefox debug adapter', function() {
 			assert.equal(util.findVariable(variables.body.variables, 'Return value').value, factorial(i + 1));
 		}
 	});
+
+	it('should set variables', async function() {
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ 11 ]);
+
+		util.evaluate(dc, 'vars()');
+		let stoppedEvent = await util.receiveStoppedEvent(dc);
+		let stackTrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId! });
+		let frameId = stackTrace.body.stackFrames[0].id;
+		let scopes = await dc.scopesRequest({ frameId });
+		let variablesReference = scopes.body.scopes[0].variablesReference;
+		let variables = await dc.variablesRequest({ variablesReference });
+
+		assert.equal(util.findVariable(variables.body.variables, 'num1').value, '0');
+
+		let result = await dc.evaluateRequest({ context: 'repl', frameId, expression: 'num1' });
+		assert.equal(result.body.result, '0');
+
+		await dc.setVariableRequest({ variablesReference, name: 'num1', value: '7' });
+
+		result = await dc.evaluateRequest({ context: 'repl', frameId, expression: 'num1' });
+		assert.equal(result.body.result, '7');
+	});
 });
 
 function factorial(n: number): number {
