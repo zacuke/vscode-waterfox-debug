@@ -72,7 +72,7 @@ function doEval(expr) {
 }
 
 function testSkipFiles() {
-	dynTest();
+	dummyFunc();
 	throwError();
 }
 
