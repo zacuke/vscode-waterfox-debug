@@ -55,13 +55,35 @@ urls to local files:
             "request": "launch",
             "reAttach": true,
             "url": "http://localhost/index.html",
-			"webRoot": "${workspaceRoot}"
+            "webRoot": "${workspaceRoot}"
         }
     ]
 }
 ```
 The `url` property may point to a file or a directory, if it points to a directory it must end with
 a trailing `/` (e.g. `http://localhost/my-app/`).
+You may omit the `webRoot` property if you specify the `pathMappings` manually. For example, the
+above configuration would be equivalent to
+```
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch localhost",
+            "type": "firefox",
+            "request": "launch",
+            "reAttach": true,
+            "url": "http://localhost/index.html",
+            "pathMappings": [{
+                "url": "http://localhost",
+                "path": "${workspaceRoot}"
+            }]
+        }
+    ]
+}
+```
+Setting the `pathMappings` manually becomes necessary if the `url` points to a file or resource in a
+subdirectory of your project, e.g. `http://localhost/login/index.html`.
 
 ### Attach
 To use attach mode, you have to launch Firefox manually from a terminal with remote debugging enabled.
@@ -107,6 +129,26 @@ Navigate to your web application and use this `launch.json` configuration to att
 If your application is running on a Webserver, you need to add the `url` and `webRoot` properties
 to the configuration (as in the second `launch` configuration example above).
 
+### Skipping ("blackboxing") files
+You can tell the debugger to ignore certain files while debugging: When a file is ignored, the
+debugger won't break in that file and will skip it when you're stepping through your code. This is
+the same as "black boxing" scripts in the Firefox Developer Tools.
+
+There are two ways to enable this feature:
+* You can enable/disable this for single files while debugging by choosing "Toggle skipping this file"
+  from the context menu of a frame in the call stack.
+* You can use the `skipFiles` configuration property, which takes an array of glob patterns
+  specifying the files to be ignored.
+  If the URL of a file can't be mapped to a local file path, the URL will be matched against these
+  glob patterns, otherwise the local file path will be matched.
+  Examples for glob patterns:
+  * `"${workspaceRoot}/skipThis.js"` - will skip the file `skipThis.js` in the root folder of your project
+  * `"**/skipThis.js"` - will skip files called `skipThis.js` in any folder
+  * `"${workspaceRoot}/node_modules/**"` - will skip all files under `node_modules`
+  * `"http?(s):/**"` - will skip files that could not be mapped to local files
+  * `"**/google.com/**"` - will skip files containing `/google.com/` in their url, in particular
+    all files from the domain `google.com` (that could not be mapped to local files)
+
 ### Debugging Firefox add-ons
 If you want to debug a Firefox add-on, you have to install the developer edition of Firefox. In
 launch mode, it will automatically be used if it is installed in the default location.
@@ -143,7 +185,7 @@ The add-on will also be reloaded when you restart the debugging session, unless 
 You can also use the `reloadOnChange` property to let VS Code reload your add-on automatically
 whenever you change a file.
 
-### Optional configuration properties
+### Further optional configuration properties
 * `reAttach`: If you set this option to `true` in a `launch` configuration, Firefox won't be 
   terminated at the end of your debugging session and the debugger will re-attach to it at the
   start of your next debugging session. If you're debugging an add-on developed with the add-on SDK,
@@ -175,17 +217,6 @@ whenever you change a file.
   ```
   "reloadOnChange": "${workspaceRoot}/lib/*.js"
   ```
-* `skipFiles`: An array of glob patterns specifying javascript files that should be skipped while
-  debugging: the debugger won't break in or step into these files. This is the same as "black boxing"
-  scripts in the Firefox Developer Tools. If the URL of a file can't be mapped to a local file path,
-  the URL will be matched against these glob patterns, otherwise the local file path will be matched.
-  Examples for glob patterns:
-  * `"${workspaceRoot}/skipThis.js"` - will skip the file `skipThis.js` in the root folder of your project
-  * `"**/skipThis.js"` - will skip files called `skipThis.js` in any folder
-  * `"${workspaceRoot}/node_modules/**"` - will skip all files under `node_modules`
-  * `"http?(s):/**"` - will skip files that could not be mapped to local files
-  * `"**/google.com/**"` - will skip files containing `/google.com/` in their url, in particular
-    all files from the domain `google.com` (that could not be mapped to local files)
 * `pathMappings`: An array of urls and corresponding paths to use for translating the URLs of
   javascript files to local file paths. Use this if the default mapping of URLs to paths is 
   insufficient in your setup. In particular, if you use [webpack](https://webpack.github.io/), you
