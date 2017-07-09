@@ -1,3 +1,7 @@
+### Version 0.15.0
+* add support for toggling the skip flag for single files while debugging
+* make `webRoot` optional if `pathMappings` are specified
+
 ### Version 0.14.1
 * compatibility update for the upcoming VS Code 1.14 release
  
