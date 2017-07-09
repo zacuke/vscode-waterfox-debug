@@ -64,11 +64,11 @@ describe('The configuration parser', function() {
 	});
 
 	for (let request of [ 'launch', 'attach' ]) {
-		it(`should require "webRoot" if "url" is specified in a ${request} configuration`, async function() {
+		it(`should require "webRoot" or "pathMappings" if "url" is specified in a ${request} configuration`, async function() {
 			await assertPromiseRejects(parseConfiguration(<any>{
 				request,
 				url: 'https://mozilla.org/'
-			}), `If you set "url" you also have to set "webRoot" in the ${request} configuration`);
+			}), `If you set "url" you also have to set "webRoot" or "pathMappings" in the ${request} configuration`);
 		});
 
 		it(`should require "webRoot" to be an absolute path in a ${request} configuration`, async function() {
@@ -77,6 +77,17 @@ describe('The configuration parser', function() {
 				url: 'https://mozilla.org/',
 				webRoot: './project'
 			}), `The "webRoot" property in the ${request} configuration has to be an absolute path`);
+		});
+
+		it(`should allow "url" without webRoot" if "pathMappings" are specified in a ${request} configuration`, async function() {
+			await parseConfiguration(<any>{
+				request,
+				url: 'https://mozilla.org/',
+				pathMappings: [{
+					url:'https://mozilla.org/',
+					path: './project'
+				}]
+			});
 		});
 	}
 

@@ -324,7 +324,10 @@ function parseWebRootConfiguration(config: CommonConfiguration, pathMappings: Pa
 
 	if (config.url) {
 		if (!config.webRoot) {
-			throw `If you set "url" you also have to set "webRoot" in the ${config.request} configuration`;
+			if (!config.pathMappings) {
+				throw `If you set "url" you also have to set "webRoot" or "pathMappings" in the ${config.request} configuration`;
+			}
+			return;
 		} else if (!path.isAbsolute(config.webRoot)) {
 			throw `The "webRoot" property in the ${config.request} configuration has to be an absolute path`;
 		}
