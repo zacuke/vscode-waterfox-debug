@@ -5,7 +5,8 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { Log, LogConfiguration } from './util/log';
 import { isWindowsPlatform, findAddonId } from './util/misc';
 import { isExecutable } from './util/fs';
-import { Minimatch } from "minimatch";
+import { Minimatch } from 'minimatch';
+import * as FirefoxProfile from 'firefox-profile';
 
 let log = Log.create('ParseConfiguration');
 
