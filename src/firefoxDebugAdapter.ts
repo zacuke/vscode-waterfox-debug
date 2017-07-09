@@ -354,17 +354,24 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		await this.session.addonManager.rebuildAddon();
 	}
 
-	protected async toggleSkippingFile(path: string): Promise<void> {
+	protected async toggleSkippingFile(url: string): Promise<void> {
 
-		if (path.startsWith('file://')) {
+		if (url.startsWith('file://')) {
+
+			let path: string;
 			if (this.session.isWindowsPlatform) {
-				path = path.substr(8).replace(/\\/g, '/');
+				path = url.substr(8).replace(/\//g, '\\').replace('%3A', ':');
 			} else {
-				path = path.substr(7);
+				path = url.substr(7);
 			}
-		}
 
-		this.session.skipFilesManager.toggleSkipping(path);
+			this.session.skipFilesManager.toggleSkippingPath(path);
+
+		} else {
+
+			this.session.skipFilesManager.toggleSkippingUrl(url);
+
+		}
 	}
 
 	protected async disconnect(args: DebugProtocol.DisconnectArguments): Promise<void> {

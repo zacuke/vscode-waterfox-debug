@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as util from './util';
 import * as assert from 'assert';
 import { delay } from '../util/misc';
+import { isWindowsPlatform } from '../util/misc';
 import "./patchDebugClient";
 
 describe('Firefox debug adapter', function() {
@@ -62,7 +63,10 @@ describe('Firefox debug adapter', function() {
 		let mainFilePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await util.setBreakpoints(dc, mainFilePath, [ 76 ]);
 
-		dc.customRequest('toggleSkippingFile', 'file://' + skipFilePath);
+		let skipFileUrl = isWindowsPlatform() ? 
+			'file:///' + skipFilePath.replace(/\\/g, '/') :
+			'file://' + skipFilePath;
+		dc.customRequest('toggleSkippingFile', skipFileUrl);
 
 		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
 			() => util.evaluate(dc, 'try{ testSkipFiles() }catch(e){}'));
@@ -72,7 +76,7 @@ describe('Firefox debug adapter', function() {
 		assert.equal(stacktrace.body.stackFrames[0].source!.path, mainFilePath);
 		assert.equal(stacktrace.body.stackFrames[0].line, 76);
 
-		dc.customRequest('toggleSkippingFile', 'file://' + skipFilePath);
+		dc.customRequest('toggleSkippingFile', skipFileUrl);
 		await dc.continueRequest({ threadId });
 
 		stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
@@ -95,8 +99,11 @@ describe('Firefox debug adapter', function() {
 		let mainFilePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await util.setBreakpoints(dc, mainFilePath, [ 76 ]);
 
-		dc.customRequest('toggleSkippingFile', 'file://' + skipFilePath);
-
+		let skipFileUrl = isWindowsPlatform() ? 
+			'file:///' + skipFilePath.replace(/\\/g, '/') :
+			'file://' + skipFilePath;
+		dc.customRequest('toggleSkippingFile', skipFileUrl);
+		
 		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
 			() => util.evaluate(dc, 'try{ testSkipFiles() }catch(e){}'));
 		let threadId = stoppedEvent.body.threadId;
@@ -105,7 +112,7 @@ describe('Firefox debug adapter', function() {
 		assert.equal(stacktrace.body.stackFrames[0].source!.path, skipFilePath);
 		assert.equal(stacktrace.body.stackFrames[0].line, 2);
 
-		dc.customRequest('toggleSkippingFile', 'file://' + skipFilePath);
+		dc.customRequest('toggleSkippingFile', skipFileUrl);
 		await dc.continueRequest({ threadId });
 
 		stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
@@ -129,8 +136,11 @@ describe('Firefox debug adapter', function() {
 
 		assert.equal((<StoppedEvent>stoppedEvent).body.reason, 'breakpoint');
 
+		let skipFileUrl = isWindowsPlatform() ? 
+			'file:///' + skipFilePath.replace(/\\/g, '/') :
+			'file://' + skipFilePath;
 		stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
-			() => dc.customRequest('toggleSkippingFile', 'file://' + skipFilePath));
+			() => dc.customRequest('toggleSkippingFile', skipFileUrl));
 
 		assert.equal((<StoppedEvent>stoppedEvent).body.reason, 'breakpoint');
 	})

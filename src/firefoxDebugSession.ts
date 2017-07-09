@@ -405,22 +405,16 @@ export class FirefoxDebugSession {
 		}
 
 		// check if this source should be skipped
-		let pathToCheck: string | null | undefined = undefined;
+		let skipThisSource: boolean | undefined = undefined;
 		if (sourcePath !== undefined) {
-			pathToCheck = sourcePath;
-			if (this.isWindowsPlatform) {
-				pathToCheck = pathToCheck.split('\\').join('/');
-			}
+			skipThisSource = this.skipFilesManager.shouldSkipPath(sourcePath);
 		} else if (source.generatedUrl && (!source.url || !urlDetector.test(source.url))) {
-			pathToCheck = source.generatedUrl;
-		} else {
-			pathToCheck = source.url;
+			skipThisSource = this.skipFilesManager.shouldSkipUrl(source.generatedUrl);
+		} else if (source.url) {
+			skipThisSource = this.skipFilesManager.shouldSkipUrl(source.url);
 		}
 
-		if (pathToCheck) {
-
-			let skipThisSource = this.skipFilesManager.shouldSkip(pathToCheck);
-
+		if (skipThisSource !== undefined) {
 			if (source.isBlackBoxed !== skipThisSource) {
 				sourceActor.setBlackbox(skipThisSource);
 			}
