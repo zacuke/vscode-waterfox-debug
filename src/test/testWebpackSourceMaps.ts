@@ -38,7 +38,7 @@ describe('Firefox debug adapter', function() {
 				sourceMaps
 			});
 
-			await sourceMapUtil.testSourcemaps(dc, targetDir, 4);
+			await sourceMapUtil.testSourcemaps(dc, targetDir, 1);
 
 			await fs.remove(targetDir);
 		});
