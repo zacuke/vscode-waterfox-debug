@@ -48,6 +48,17 @@ export class WebExtensionActorProxy extends EventEmitter implements ActorProxy {
 				new ConsoleActorProxy(connectResponse.form.consoleActor, this.connection)
 			]);
 
+		} else if (response['error']) {
+
+			let msg = response['message'];
+			log.warn(`Error message from WebExtensionActor: ${msg}`);
+
+			if (msg && msg.startsWith('Extension not found')) {
+				setTimeout(() => {
+					this.connection.sendRequest({ to: this.name, type: 'connect' });
+				}, 100);
+			}
+			
 		} else {
 
 			log.warn("Unknown message from WebExtensionActor: " + JSON.stringify(response));
