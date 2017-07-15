@@ -1,3 +1,6 @@
+### Version 0.15.1
+* on Windows the debug adapter sometimes didn't attach to WebExtensions that were installed as temporary add-ons - fixed
+
 ### Version 0.15.0
 * add support for toggling the skip flag for single files while debugging
 * make `webRoot` optional if `pathMappings` are specified
