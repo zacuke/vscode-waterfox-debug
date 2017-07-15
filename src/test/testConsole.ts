@@ -3,6 +3,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import * as path from 'path';
 import * as util from './util';
 import * as assert from 'assert';
+import { isWindowsPlatform } from "../util/misc";
 
 describe('Firefox debug adapter', function() {
 
@@ -106,11 +107,16 @@ describe('Firefox debug adapter', function() {
 			showConsoleCallLocation: true
 		});
 
+		let expectedMessageEnding = 'testdata/web/main.js:80:14)';
+		if (isWindowsPlatform()) {
+			expectedMessageEnding = expectedMessageEnding.replace(/\//g, '\\');
+		}
+
 		util.evaluate(dc, 'log("foo")');
 		let outputEvent = <DebugProtocol.OutputEvent> await dc.waitForEvent('output');
 
 		assert.equal(outputEvent.body.output.substr(0, 5), 'foo (');
-		assert.ok(outputEvent.body.output.endsWith('testdata/web/main.js:80:14)\n'));
+		assert.ok(outputEvent.body.output.endsWith(expectedMessageEnding + '\n'));
 
 		util.evaluate(dc, 'log("foo","bar")');
 		outputEvent = <DebugProtocol.OutputEvent> await dc.waitForEvent('output');
@@ -120,7 +126,7 @@ describe('Firefox debug adapter', function() {
 		let vars = await dc.variablesRequest({ variablesReference: outputEvent.body.variablesReference! });
 
 		assert.equal(vars.body.variables.length, 3);
-		assert.ok(util.findVariable(vars.body.variables, 'location').value.endsWith('testdata/web/main.js:80:14)'));
+		assert.ok(util.findVariable(vars.body.variables, 'location').value.endsWith(expectedMessageEnding));
 
 		util.evaluate(dc, 'log({"foo":"bar"})');
 		outputEvent = <DebugProtocol.OutputEvent> await dc.waitForEvent('output');
@@ -130,7 +136,7 @@ describe('Firefox debug adapter', function() {
 		vars = await dc.variablesRequest({ variablesReference: outputEvent.body.variablesReference! });
 
 		assert.equal(vars.body.variables.length, 2);
-		assert.ok(util.findVariable(vars.body.variables, 'location').value.endsWith('testdata/web/main.js:80:14)'));
+		assert.ok(util.findVariable(vars.body.variables, 'location').value.endsWith(expectedMessageEnding));
 	});
 
 	it('should offer code completions in the debugging console', async function() {

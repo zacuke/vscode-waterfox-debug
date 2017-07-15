@@ -44,7 +44,7 @@ export async function initDebugClientForAddon(
 		addonType,
 		addonPath: path.join(testDataPath, `${addonType}/addOn`),
 		installAddonInProfile: !!(options && options.installInProfile)
-		};
+	};
 
 	if (options && options.delayedNavigation) {
 		dcArgs.file = path.join(testDataPath, `web/index.html`);

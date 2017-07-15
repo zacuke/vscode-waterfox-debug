@@ -7,9 +7,18 @@ describe('The configuration parser', function() {
 
 	it('should create default values for a simple launch configuration', async function() {
 
+		let filePath: string;
+		let fileUrl: string;
+		if (isWindowsPlatform()) {
+			filePath = 'c:\\Users\\user\\project\\index.html';
+			fileUrl = 'file:///c:/Users/user/project/index.html';
+		} else {
+			filePath = '/home/user/project/index.html';
+			fileUrl = 'file:///home/user/project/index.html';
+		}
 		let parsedConfiguration = await parseConfiguration({
 			request: 'launch',
-			file: '/home/user/project/index.html'
+			file: filePath
 		});
 
 		assert.equal(parsedConfiguration.attach, undefined);
@@ -20,8 +29,7 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.showConsoleCallLocation, false);
 
 		assert.ok(parsedConfiguration.launch!.firefoxExecutable);
-		assert.equal([...parsedConfiguration.launch!.firefoxArgs].pop(), 
-			(isWindowsPlatform() ? 'file:/' : 'file://') + '/home/user/project/index.html');
+		assert.equal([...parsedConfiguration.launch!.firefoxArgs].pop(), fileUrl);
 		assert.equal(parsedConfiguration.launch!.port, 6000);
 		assert.equal(parsedConfiguration.launch!.preferences['devtools.debugger.remote-enabled'], true);
 		assert.ok(parsedConfiguration.launch!.profileDir);
@@ -570,15 +578,23 @@ describe('The configuration parser', function() {
 
 	it('should allow setting "file" to define the start page for addon debugging', async function() {
 
+		let filePath: string;
+		let fileUrl: string;
+		if (isWindowsPlatform()) {
+			filePath = 'c:\\Users\\user\\project\\index.html';
+			fileUrl = 'file:///c:/Users/user/project/index.html';
+		} else {
+			filePath = '/home/user/project/index.html';
+			fileUrl = 'file:///home/user/project/index.html';
+		}
 		let parsedConfiguration = await parseConfiguration({
 			request: 'launch',
-			file: '/home/user/project/index.html',
+			file: filePath,
 			addonType: 'webExtension',
 			addonPath: path.join(__dirname, '../../testdata/webExtension/addOn')
 		});
 
-		assert.equal([...parsedConfiguration.launch!.firefoxArgs].pop(), 
-			(isWindowsPlatform() ? 'file:/' : 'file://') + '/home/user/project/index.html');
+		assert.equal([...parsedConfiguration.launch!.firefoxArgs].pop(), fileUrl);
 	});
 
 	it('should allow setting "url" to define the start page for addon debugging', async function() {
