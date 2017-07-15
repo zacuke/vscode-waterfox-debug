@@ -1,4 +1,4 @@
-import { delay } from '../util/misc';
+import { delay, isWindowsPlatform } from '../util/misc';
 import { DebugClient } from 'vscode-debugadapter-testsupport';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { AddonType, LaunchConfiguration } from '../configuration';
@@ -44,7 +44,7 @@ export async function initDebugClientForAddon(
 		addonType,
 		addonPath: path.join(testDataPath, `${addonType}/addOn`),
 		installAddonInProfile: !!(options && options.installInProfile)
-	};
+		};
 
 	if (options && options.delayedNavigation) {
 		dcArgs.file = path.join(testDataPath, `web/index.html`);
@@ -65,8 +65,11 @@ export async function initDebugClientForAddon(
 
 	if (options && options.delayedNavigation) {
 		await setConsoleThread(dc, await findTabThread(dc));
-		let file = path.join(testDataPath, `${addonType}/index.html`);
-		await evaluate(dc, `location="file://${file}"`);
+		let filePath = path.join(testDataPath, `${addonType}/index.html`);
+		let fileUrl = isWindowsPlatform() ? 
+			'file:///' + filePath.replace(/\\/g, '/') :
+			'file://' + filePath;
+		await evaluate(dc, `location="${fileUrl}"`);
 		await receivePageLoadedEvent(dc, (addonType === 'addonSdk'));
 	}
 
