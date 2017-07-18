@@ -7,7 +7,7 @@ let log = Log.create('PathConversion');
 
 let isWindowsPlatform = detectWindowsPlatform();
 
-export let urlDetector = /^[a-zA-Z][a-zA-Z0-9\+\-\.]*\:\//;
+export let urlDetector = /^[a-zA-Z][a-zA-Z0-9\+\-\.]*\:\/\//;
 
 export class PathMapper {
 
@@ -27,14 +27,29 @@ export class PathMapper {
 
 		} else if (source.isSourceMapped && source.generatedUrl && source.url && !urlDetector.test(source.url)) {
 
-			let generatedPath = this.convertFirefoxUrlToPath(source.generatedUrl);
-			if (!generatedPath) return undefined;
+			let originalPath = source.url;
 
-			let relativePath = source.url;
+			if (path.isAbsolute(originalPath)) {
 
-			let sourcePath = this.removeQueryString(path.join(path.dirname(generatedPath), relativePath));
-			log.debug(`Sourcemapped path: ${sourcePath}`);
-			return sourcePath;
+				log.debug(`Sourcemapped absolute path: ${originalPath}`);
+
+				if (isWindowsPlatform) {
+					originalPath = path.normalize(originalPath);
+					originalPath = originalPath[0].toLowerCase() + originalPath.substr(1);
+				}
+
+				return originalPath;
+
+			} else {
+
+				let generatedPath = this.convertFirefoxUrlToPath(source.generatedUrl);
+				if (!generatedPath) return undefined;
+
+				let sourcePath = this.removeQueryString(path.join(path.dirname(generatedPath), originalPath));
+				log.debug(`Sourcemapped path: ${sourcePath}`);
+
+				return sourcePath;
+			}
 
 		} else if (source.url) {
 			return this.convertFirefoxUrlToPath(source.url);
