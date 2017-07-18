@@ -1,3 +1,6 @@
+### Version 0.15.2
+* handle absolute urls in source-maps, including a workaround for webpack weirdness
+
 ### Version 0.15.1
 * on Windows the debug adapter sometimes didn't attach to WebExtensions that were installed as temporary add-ons - fixed
 
