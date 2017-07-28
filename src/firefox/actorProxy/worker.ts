@@ -1,6 +1,6 @@
 import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
-import { DebugConnection, ActorProxy, IThreadActorProxy, ThreadActorProxy, SourceMappingThreadActorProxy } from '../index';
+import { DebugConnection, ActorProxy, IThreadActorProxy, ThreadActorProxy, SourceMappingThreadActorProxy, ConsoleActorProxy } from '../index';
 import { PendingRequest } from '../../util/pendingRequests';
 
 let log = Log.create('WorkerActorProxy');
@@ -19,8 +19,8 @@ export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 
 	private pendingAttachRequest?: PendingRequest<string>;
 	private attachPromise?: Promise<string>;
-	private pendingConnectRequest?: PendingRequest<IThreadActorProxy>;
-	private connectPromise?: Promise<IThreadActorProxy>;
+	private pendingConnectRequest?: PendingRequest<[IThreadActorProxy, ConsoleActorProxy]>;
+	private connectPromise?: Promise<[IThreadActorProxy, ConsoleActorProxy]>;
 
 	public attach(): Promise<string> {
 		if (!this.attachPromise) {
@@ -38,17 +38,19 @@ export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 		return this.attachPromise;
 	}
 
-	public connect(): Promise<IThreadActorProxy> {
+	public connect(): Promise<[IThreadActorProxy, ConsoleActorProxy]> {
 		if (!this.connectPromise) {
 			log.debug(`Attaching worker ${this.name}`);
 
-			this.connectPromise = new Promise<IThreadActorProxy>((resolve, reject) => {
-				this.pendingConnectRequest = { resolve, reject };
-				this.connection.sendRequest({ 
-					to: this.name, type: 'connect',
-					options: { useSourceMaps: true }
-				});
-			});
+			this.connectPromise = new Promise<[IThreadActorProxy, ConsoleActorProxy]>(
+				(resolve, reject) => {
+					this.pendingConnectRequest = { resolve, reject };
+					this.connection.sendRequest({ 
+						to: this.name, type: 'connect',
+						options: { useSourceMaps: true }
+					});
+				}
+			);
 			
 		} else {
 			log.warn('Connecting this worker has already been requested!');
@@ -90,7 +92,11 @@ export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 					threadActor = new SourceMappingThreadActorProxy(threadActor, this.connection);
 				}
 
-				this.pendingConnectRequest.resolve(threadActor);
+				let consoleActor = this.connection.getOrCreate(
+					connectedResponse.consoleActor,
+					() => new ConsoleActorProxy(connectedResponse.consoleActor, this.connection));
+
+				this.pendingConnectRequest.resolve([threadActor, consoleActor]);
 				this.pendingConnectRequest = undefined;
 
 			} else {

@@ -346,11 +346,11 @@ export class FirefoxDebugSession {
 	private async attachWorker(workerActor: WorkerActorProxy, tabId: number, workerId: number): Promise<void> {
 
 		await workerActor.attach();
-		let threadActor = await workerActor.connect();
+		let [threadActor, consoleActor] = await workerActor.connect();
 
 		log.debug(`Attached to worker ${workerActor.name}`);
 
-		let threadAdapter = new ThreadAdapter(threadActor, undefined,
+		let threadAdapter = new ThreadAdapter(threadActor, consoleActor,
 			this.threadPauseCoordinator, `Worker ${tabId}/${workerId}`, this);
 
 		this.attachThread(threadAdapter, threadActor.name);
