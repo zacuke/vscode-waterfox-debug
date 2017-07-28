@@ -66,6 +66,7 @@
     "reinstall": "rimraf node_modules && npm install",
     "clean": "rimraf out coverage .nyc_output vscode-firefox-debug-*.vsix",
     "build": "tsc",
+    "watch": "tsc -w",
     "rebuild": "npm run clean && npm run reinstall && npm run build",
     "test": "mocha --timeout 20000 --slow 6000 out/test/test*.js",
     "cover": "nyc npm test && nyc report --reporter=lcov && nyc report --reporter=html",
