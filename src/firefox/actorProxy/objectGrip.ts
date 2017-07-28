@@ -1,6 +1,6 @@
 import { Log } from '../../util/log';
 import { DebugConnection } from '../connection';
-import { PendingRequests, PendingRequest } from '../../util/pendingRequests';
+import { PendingRequests } from '../../util/pendingRequests';
 import { ActorProxy } from './interface';
 
 let log = Log.create('ObjectGripActorProxy');
@@ -9,8 +9,6 @@ export class ObjectGripActorProxy implements ActorProxy {
 
 	private _refCount = 0;
 
-	private pendingThreadGripRequest: PendingRequest<void> | undefined = undefined;
-	private threadGripPromise: Promise<void> | undefined = undefined;
  	private pendingPrototypeAndPropertiesRequests = new PendingRequests<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>();
 
 	constructor(
@@ -39,22 +37,6 @@ export class ObjectGripActorProxy implements ActorProxy {
 		}
 	}
 
-	public extendLifetime(): Promise<void> {
-		if (this.threadGripPromise) {
-			return this.threadGripPromise;
-		}
-
-		if (log.isDebugEnabled()) {
-			log.debug(`Extending lifetime of ${this.name}`);
-		}
-
-		this.threadGripPromise = new Promise<void>((resolve, reject) => {
-			this.pendingThreadGripRequest = { resolve, reject };
-			this.connection.sendRequest({ to: this.name, type: 'threadGrip' });
-		});
-		return this.threadGripPromise;
-	}
-
 	public fetchPrototypeAndProperties(): Promise<FirefoxDebugProtocol.PrototypeAndPropertiesResponse> {
 
 		if (log.isDebugEnabled()) {
@@ -76,25 +58,10 @@ export class ObjectGripActorProxy implements ActorProxy {
 			}
 			this.pendingPrototypeAndPropertiesRequests.resolveOne(<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>response);
 
-		} else if (Object.keys(response).length === 1) {
-
-			log.debug('Received response to threadGrip request');
-
-			if (this.pendingThreadGripRequest) {
-				this.pendingThreadGripRequest.resolve(undefined);
-				this.pendingThreadGripRequest = undefined;
-			} else {
-				log.warn('Received threadGrip response without pending request');
-			}
-
 		} else if (response['error'] === 'noSuchActor') {
 
 			log.warn(`No such actor ${this.grip.actor} - you will not be able to inspect this value; this is probably due to Firefox bug #1249962`);
 			this.pendingPrototypeAndPropertiesRequests.rejectAll('No such actor');
-			if (this.pendingThreadGripRequest) {
-				this.pendingThreadGripRequest.resolve(undefined);
-				this.pendingThreadGripRequest = undefined;
-			}
 
 		} else {
 

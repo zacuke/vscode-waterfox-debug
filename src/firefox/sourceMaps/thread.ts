@@ -191,14 +191,6 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		return this.underlyingActorProxy.detach();
 	}
 
-	public threadGrips(objectGripActorNames: string[]): Promise<void> {
-		return this.underlyingActorProxy.threadGrips(objectGripActorNames);
-	}
-
-	public releaseMany(objectGripActorNames: string[]): Promise<void> {
-		return this.underlyingActorProxy.releaseMany(objectGripActorNames);
-	}
-
 	public onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void): void {
 		this.underlyingActorProxy.onPaused(cb);
 	}

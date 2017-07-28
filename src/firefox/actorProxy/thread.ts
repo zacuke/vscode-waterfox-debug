@@ -17,8 +17,6 @@ export interface IThreadActorProxy {
 	fetchSources(): Promise<FirefoxDebugProtocol.Source[]>;
 	fetchStackFrames(start?: number, count?: number): Promise<FirefoxDebugProtocol.Frame[]>;
 	evaluate(expression: string, frameActorName: string): Promise<FirefoxDebugProtocol.Grip>;
-	threadGrips(objectGripActorNames: string[]): Promise<void>;
-	releaseMany(objectGripActorNames: string[]): Promise<void>;
 	onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void): void;
 	onResumed(cb: () => void): void;
 	onExited(cb: () => void): void;
@@ -57,7 +55,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	private pendingSourcesRequests = new PendingRequests<FirefoxDebugProtocol.Source[]>();
 	private pendingStackFramesRequests = new PendingRequests<FirefoxDebugProtocol.Frame[]>();
 	private pendingEvaluateRequest?: PendingRequest<FirefoxDebugProtocol.Grip>;
-	private pendingThreadGripsRequests = new PendingRequests<void>();
 	
 	/**
 	 * Attach the thread if it is detached
@@ -228,34 +225,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 		});
 	}
 
-	public threadGrips(objectGripActorNames: string[]): Promise<void> {
-		log.debug(`Extending lifetime of grips on thread ${this.name}`);
-		
-		return new Promise<void>((resolve, reject) => {
-			this.pendingThreadGripsRequests.enqueue({ resolve, reject });
-			this.connection.sendRequest({
-				to: this.name, type: 'threadGrips',
-				actors: objectGripActorNames 
-			});
-		});
-	}
-
-	/**
-	 * Release object grips that were promoted to thread-lifetime grips using 
-	 * ObjectGripActorProxy.extendLifetime(). This can only be called while the thread is paused.
-	 */
-	public releaseMany(objectGripActorNames: string[]): Promise<void> {
-		log.debug(`Releasing grips on thread ${this.name}`);
-		
-		return new Promise<void>((resolve, reject) => {
-			this.pendingThreadGripsRequests.enqueue({ resolve, reject });
-			this.connection.sendRequest({ 
-				to: this.name, type: 'releaseMany',
-				actors: objectGripActorNames 
-			});
-		});
-	}
-
 	public dispose(): void {
 		this.connection.unregister(this);
 	}
@@ -419,12 +388,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 				this.pendingEvaluateRequest.reject('No such actor');
 				this.pendingEvaluateRequest = undefined;
 			}
-			this.pendingThreadGripsRequests.rejectAll('No such actor');
-
-		} else if (response['error'] === 'notReleasable') {
-
-			log.warn('Error releasing threadGrips; this is probably due to Firefox bug #1249962');
-			this.pendingThreadGripsRequests.rejectOne('Not releasable');
 
 		} else if (response['error'] === 'unknownFrame') {
 
@@ -434,11 +397,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 				this.pendingEvaluateRequest.reject(errorMsg);
 				this.pendingEvaluateRequest = undefined;
 			}
-
-		} else if (Object.keys(response).length === 1) {
-
-			log.debug('Received response to threadGrips/releaseMany request');
-			this.pendingThreadGripsRequests.resolveOne(undefined);
 
 		} else {
 

@@ -1,6 +1,5 @@
 import { Log } from '../util/log';
 import { EventEmitter } from 'events';
-import { concatArrays } from '../util/misc';
 import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy, ISourceActorProxy } from '../firefox/index';
 import { ThreadCoordinator, ThreadPauseCoordinator, FrameAdapter, ScopeAdapter, SourceAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
 import { Variable } from 'vscode-debugadapter';
@@ -190,16 +189,7 @@ export class ThreadAdapter extends EventEmitter {
 				return frameAdapters;
 			},
 
-			async (frameAdapters) => {
-
-				let objectGripAdapters = concatArrays(frameAdapters.map(
-					(frameAdapter) => frameAdapter.getObjectGripAdapters()));
-
-				await this.actor.threadGrips(
-					Array.from(new Set(objectGripAdapters.map(
-						objectGripAdapter => objectGripAdapter.actor.name
-				))));
-			}
+			undefined
 		);
 	}
 
@@ -224,20 +214,7 @@ export class ThreadAdapter extends EventEmitter {
 
 			() => variablesProvider.getVariables(),
 
-			async (variableAdapters) => {
-
-				if (!variablesProvider.threadLifetime) {
-
-					let objectGripAdapters = variableAdapters
-						.map((variableAdapter) => variableAdapter.objectGripAdapter)
-						.filter((objectGripAdapter) => (objectGripAdapter !== undefined));
-
-					await this.actor.threadGrips(
-						Array.from(new Set(objectGripAdapters.map(
-							objectGripAdapter => objectGripAdapter!.actor.name
-					))));
-				}
-			}
+			undefined
 		);
 
 		return variableAdapters.map((variableAdapter) => variableAdapter.getVariable());
@@ -254,12 +231,7 @@ export class ThreadAdapter extends EventEmitter {
 
 					(grip) => this.variableFromGrip(grip, false),
 
-					async (variableAdapter) => {
-						let objectGripAdapter = variableAdapter.objectGripAdapter;
-						if (objectGripAdapter !== undefined) {
-							await objectGripAdapter.actor.extendLifetime();
-						}
-					}
+					undefined
 				);
 
 			} else {
@@ -323,19 +295,6 @@ export class ThreadAdapter extends EventEmitter {
 			objectGripAdapter.dispose();
 		});
 
-		if (!threadIsGone) {
-
-			let objectGripActorsToRelease = this.pauseLifetimeObjects
-			.filter((objectGripAdapter) => (objectGripAdapter.actor.refCount === 0))
-			.map((objectGripAdapter) => objectGripAdapter.actor.name);
-
-			if (objectGripActorsToRelease.length > 0) {
-				try {
-					await this.actor.releaseMany(objectGripActorsToRelease);
-				} catch(err) {}
-			}
-		}
-
 		this.pauseLifetimeObjects = [];
 	}
 
@@ -346,19 +305,6 @@ export class ThreadAdapter extends EventEmitter {
 		this.threadLifetimeObjects.forEach((objectGripAdapter) => {
 			objectGripAdapter.dispose();
 		});
-
-		if (!threadIsGone) {
-
-			let objectGripActorsToRelease = this.threadLifetimeObjects
-			.filter((objectGripAdapter) => (objectGripAdapter.actor.refCount === 0))
-			.map((objectGripAdapter) => objectGripAdapter.actor.name);
-
-			if (objectGripActorsToRelease.length > 0) {
-				try {
-					await this.actor.releaseMany(objectGripActorsToRelease);
-				} catch(err) {}
-			}
-		}
 
 		this.sources.forEach((source) => {
 			source.dispose();
