@@ -168,29 +168,12 @@ export class ThreadCoordinator extends EventEmitter {
 		return delayedTask.promise;
 	}
 
-	public evaluate(expr: string, frameActorName: string,
+	public evaluate(expr: string, frameActorName: string | undefined,
 		convert: (grip: FirefoxDebugProtocol.Grip) => VariableAdapter,
 		postprocess?: (result: VariableAdapter) => Promise<void>): Promise<VariableAdapter> {
 
 		let evaluateTask = async () => {
-			let grip = await this.threadActor.evaluate(expr, frameActorName);
-			return convert(grip);
-		};
-
-		let delayedTask = new DelayedTask(evaluateTask, postprocess);
-
-		this.queuedEvaluateTasks.push(delayedTask);
-		this.doNext();
-
-		return delayedTask.promise;
-	}
-
-	public consoleEvaluate(expr: string, frameActorName: string | undefined,
-		convert: (grip: FirefoxDebugProtocol.Grip) => VariableAdapter,
-		postprocess?: (result: VariableAdapter) => Promise<void>): Promise<VariableAdapter> {
-
-		let evaluateTask = async () => {
-			let grip = await this.consoleActor.evaluate(expr);
+			let grip = await this.consoleActor.evaluate(expr, frameActorName);
 			return convert(grip);
 		};
 

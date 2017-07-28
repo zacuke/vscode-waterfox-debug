@@ -68,7 +68,7 @@ export class ThreadAdapter extends EventEmitter {
 		await this.coordinator.resume();
 
 		if (reload) {
-			await this.consoleEvaluate('location.reload(true)');
+			await this.evaluate('location.reload(true)', false);
 		}
 	}
 
@@ -243,40 +243,42 @@ export class ThreadAdapter extends EventEmitter {
 		return variableAdapters.map((variableAdapter) => variableAdapter.getVariable());
 	}
 
-	public async evaluate(expr: string, frameActorName?: string): Promise<Variable> {
+	public async evaluate(expr: string, skipBreakpoints: boolean, frameActorName?: string): Promise<Variable> {
 
-		let variableAdapter: VariableAdapter;
-		if (frameActorName !== undefined) {
+		if (skipBreakpoints) {
 
-			variableAdapter = await this.coordinator.evaluate(expr, frameActorName, 
+			let variableAdapter: VariableAdapter;
+			if (frameActorName !== undefined) {
 
-				(grip) => this.variableFromGrip(grip, false),
+				variableAdapter = await this.coordinator.evaluate(expr, frameActorName, 
 
-				async (variableAdapter) => {
-					let objectGripAdapter = variableAdapter.objectGripAdapter;
-					if (objectGripAdapter !== undefined) {
-						await objectGripAdapter.actor.extendLifetime();
+					(grip) => this.variableFromGrip(grip, false),
+
+					async (variableAdapter) => {
+						let objectGripAdapter = variableAdapter.objectGripAdapter;
+						if (objectGripAdapter !== undefined) {
+							await objectGripAdapter.actor.extendLifetime();
+						}
 					}
-				}
-			);
+				);
+
+			} else {
+
+				variableAdapter = await this.coordinator.evaluate(expr, undefined, 
+					(grip) => this.variableFromGrip(grip, true));
+
+			}
+
+			return variableAdapter.getVariable();
 
 		} else {
 
-			variableAdapter = await this.coordinator.consoleEvaluate(expr, undefined, 
-				(grip) => this.variableFromGrip(grip, true));
+			let grip = await this.consoleActor.evaluate(expr, frameActorName);
 
+			let variableAdapter = this.variableFromGrip(grip, true);
+
+			return variableAdapter.getVariable();
 		}
-
-		return variableAdapter.getVariable();
-	}
-
-	public async consoleEvaluate(expr: string, frameActorName?: string): Promise<Variable> {
-
-		let grip = await this.consoleActor.evaluate(expr, frameActorName);
-
-		let variableAdapter = this.variableFromGrip(grip, true);
-
-		return variableAdapter.getVariable();
 	}
 
 	public async autoComplete(text: string, column: number, frameActorName?: string): Promise<string[]> {

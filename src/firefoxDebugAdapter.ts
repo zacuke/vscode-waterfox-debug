@@ -229,7 +229,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		let referenceExpression = accessorExpression(variablesProvider.referenceExpression, args.name);
 		let setterExpression = `${referenceExpression} = ${args.value}`;
 		let frameActorName = variablesProvider.referenceFrame.frame.actor;
-		let result = await variablesProvider.threadAdapter.consoleEvaluate(setterExpression, frameActorName);
+		let result = await variablesProvider.threadAdapter.evaluate(setterExpression, false, frameActorName);
 
 		return { value: result.value, variablesReference: result.variablesReference };
 	}
@@ -250,7 +250,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 					let threadAdapter = frameAdapter.threadAdapter;
 					let frameActorName = frameAdapter.frame.actor;
 
-					variable = await threadAdapter.evaluate(args.expression, frameActorName);
+					variable = await threadAdapter.evaluate(args.expression, true, frameActorName);
 
 				} else {
 					log.warn(`Couldn\'t find specified frame for evaluating ${args.expression}`);
@@ -262,7 +262,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				let threadAdapter = this.session.getActiveThread();
 				if (threadAdapter !== undefined) {
 
-					variable = await threadAdapter.evaluate(args.expression);
+					variable = await threadAdapter.evaluate(args.expression, true);
 
 				} else {
 					log.info(`Couldn't find a thread for evaluating watch ${args.expression}`);
@@ -283,7 +283,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 					}
 				}
 
-				variable = await threadAdapter.consoleEvaluate(args.expression, frameActorName);
+				variable = await threadAdapter.evaluate(args.expression, false, frameActorName);
 
 			} else {
 				log.info(`Couldn't find a thread for evaluating ${args.expression}`);
