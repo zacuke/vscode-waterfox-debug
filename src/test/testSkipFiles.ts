@@ -5,7 +5,6 @@ import * as util from './util';
 import * as assert from 'assert';
 import { delay } from '../util/misc';
 import { isWindowsPlatform } from '../util/misc';
-import "./patchDebugClient";
 
 describe('Firefox debug adapter', function() {
 
