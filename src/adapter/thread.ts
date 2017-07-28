@@ -14,9 +14,6 @@ export class ThreadAdapter extends EventEmitter {
 	public get actorName() {
 		return this.actor.name;
 	}
-	public get hasConsole() {
-		return this.consoleActor !== undefined;
-	}
 
 	public readonly coordinator: ThreadCoordinator;
 
@@ -29,7 +26,7 @@ export class ThreadAdapter extends EventEmitter {
 
 	public constructor(
 		public readonly actor: IThreadActorProxy,
-		private readonly consoleActor: ConsoleActorProxy | undefined,
+		private readonly consoleActor: ConsoleActorProxy,
 		private readonly pauseCoordinator: ThreadPauseCoordinator,
 		public readonly name: string,
 		public readonly debugSession: FirefoxDebugSession
@@ -37,7 +34,6 @@ export class ThreadAdapter extends EventEmitter {
 		super();
 
 		this.id = debugSession.threads.register(this);
-		this.consoleActor = consoleActor;
 
 		this.coordinator = new ThreadCoordinator(this.id, this.name, this.actor, this.consoleActor,
 			this.pauseCoordinator, () => this.disposePauseLifetimeAdapters());
@@ -276,7 +272,7 @@ export class ThreadAdapter extends EventEmitter {
 
 	public async consoleEvaluate(expr: string, frameActorName?: string): Promise<Variable> {
 
-		let grip = await this.consoleActor!.evaluate(expr, frameActorName);
+		let grip = await this.consoleActor.evaluate(expr, frameActorName);
 
 		let variableAdapter = this.variableFromGrip(grip, true);
 
@@ -284,7 +280,7 @@ export class ThreadAdapter extends EventEmitter {
 	}
 
 	public async autoComplete(text: string, column: number, frameActorName?: string): Promise<string[]> {
-		return await this.consoleActor!.autoComplete(text, column, frameActorName);
+		return await this.consoleActor.autoComplete(text, column, frameActorName);
 	}
 
 	public detach(): Promise<void> {
@@ -367,9 +363,7 @@ export class ThreadAdapter extends EventEmitter {
 		});
 
 		this.actor.dispose();
-		if (this.consoleActor !== undefined) {
-			this.consoleActor.dispose();
-		}
+		this.consoleActor.dispose();
 	}
 
 	public onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void) {

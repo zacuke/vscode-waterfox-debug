@@ -42,7 +42,7 @@ export class FirefoxDebugSession {
 
 	private reloadTabs = false;
 
-	private lastActiveConsoleThreadId: number = 0;
+	private lastActiveThreadId: number = 0;
 
 	public constructor(
 		public readonly config: ParsedConfiguration,
@@ -160,23 +160,20 @@ export class FirefoxDebugSession {
 	}
 
 	public setActiveThread(threadAdapter: ThreadAdapter): void {
-		if (threadAdapter.hasConsole) {
-			this.lastActiveConsoleThreadId = threadAdapter.id;
-		}
+		this.lastActiveThreadId = threadAdapter.id;
 	}
 
-	public findConsoleThread(): ThreadAdapter | undefined {
+	public getActiveThread(): ThreadAdapter | undefined {
 
-		let threadAdapter = this.threads.find(this.lastActiveConsoleThreadId);
+		let threadAdapter = this.threads.find(this.lastActiveThreadId);
 		if (threadAdapter !== undefined) {
 			return threadAdapter;
 		}
 
+		// last active thread not found -> we return the first thread we get from the registry
 		for (let [, threadAdapter] of this.threads) {
-			if (threadAdapter.hasConsole) {
-				this.setActiveThread(threadAdapter);
-				return threadAdapter;
-			}
+			this.setActiveThread(threadAdapter);
+			return threadAdapter;
 		}
 
 		return undefined;

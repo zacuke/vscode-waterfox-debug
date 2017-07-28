@@ -43,7 +43,7 @@ export class ThreadCoordinator extends EventEmitter {
 		private threadId: number,
 		private threadName: string,
 		private threadActor: IThreadActorProxy,
-		private consoleActor: ConsoleActorProxy | undefined,
+		private consoleActor: ConsoleActorProxy,
 		private pauseCoordinator: ThreadPauseCoordinator,
 		private prepareResume: () => Promise<void>) {
 
@@ -189,12 +189,8 @@ export class ThreadCoordinator extends EventEmitter {
 		convert: (grip: FirefoxDebugProtocol.Grip) => VariableAdapter,
 		postprocess?: (result: VariableAdapter) => Promise<void>): Promise<VariableAdapter> {
 
-		if (this.consoleActor === undefined) {
-			throw new Error('This thread has no consoleActor');
-		}
-
 		let evaluateTask = async () => {
-			let grip = await this.consoleActor!.evaluate(expr);
+			let grip = await this.consoleActor.evaluate(expr);
 			return convert(grip);
 		};
 

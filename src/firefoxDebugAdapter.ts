@@ -259,20 +259,20 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 			} else {
 
-				let threadAdapter = this.session.findConsoleThread();
+				let threadAdapter = this.session.getActiveThread();
 				if (threadAdapter !== undefined) {
 
 					variable = await threadAdapter.evaluate(args.expression);
 
 				} else {
-					log.info(`Couldn't find a console for evaluating watch ${args.expression}`);
+					log.info(`Couldn't find a thread for evaluating watch ${args.expression}`);
 					throw 'not available';
 				}
 			}
 
 		} else {
 
-			let threadAdapter = this.session.findConsoleThread();
+			let threadAdapter = this.session.getActiveThread();
 			if (threadAdapter !== undefined) {
 
 				let frameActorName: string | undefined = undefined;
@@ -286,7 +286,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				variable = await threadAdapter.consoleEvaluate(args.expression, frameActorName);
 
 			} else {
-				log.info(`Couldn't find a console for evaluating ${args.expression}`);
+				log.info(`Couldn't find a thread for evaluating ${args.expression}`);
 				throw 'not available';
 			}
 		}
@@ -309,10 +309,6 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				log.warn(`Couldn\'t find specified frame for auto-completing ${args.text}`);
 				throw 'not available';
 			}
-			if (!frameAdapter.threadAdapter.hasConsole) {
-				log.warn(`Specified frame for auto-completing ${args.text} has no console`);
-				throw 'not available';
-			}
 
 			this.session.setActiveThread(frameAdapter.threadAdapter);
 
@@ -323,10 +319,10 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		} else {
 
-			let threadAdapter = this.session.findConsoleThread();
+			let threadAdapter = this.session.getActiveThread();
 
 			if (threadAdapter === undefined) {
-				log.warn(`Couldn't find a console for auto-completing ${args.text}`);
+				log.warn(`Couldn't find a thread for auto-completing ${args.text}`);
 				throw 'not available';
 			}
 
