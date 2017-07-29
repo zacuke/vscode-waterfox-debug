@@ -136,7 +136,7 @@ export class BreakpointsAdapter {
 		}
 
 		return threadCoordinator.runOnPausedThread(() =>
-			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter), undefined);
+			this.setBreakpointsOnPausedSourceActor(breakpointsToSet, sourceAdapter));
 	}
 
 	private setBreakpointsOnPausedSourceActor(origBreakpointsToSet: BreakpointInfo[],

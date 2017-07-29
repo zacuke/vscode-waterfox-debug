@@ -1,4 +1,4 @@
-import { ThreadAdapter, ObjectGripAdapter, VariableAdapter, FrameAdapter } from './index';
+import { ThreadAdapter, VariableAdapter, FrameAdapter } from './index';
 import { Scope } from 'vscode-debugadapter';
 
 export interface VariablesProvider {
@@ -69,21 +69,6 @@ export abstract class ScopeAdapter implements VariablesProvider {
 
 	protected abstract getVariablesInt(): Promise<VariableAdapter[]>;
 
-	public getObjectGripAdapters(): ObjectGripAdapter[] {
-
-		let objectGripadapters = this.getObjectGripAdaptersInt();
-		if (this.thisVariable && this.thisVariable.objectGripAdapter) {
-			objectGripadapters.push(this.thisVariable.objectGripAdapter);
-		}
-		if (this.returnVariable && this.returnVariable.objectGripAdapter) {
-			objectGripadapters.push(this.returnVariable.objectGripAdapter);
-		}
-
-		return objectGripadapters;
-	}
-
-	protected abstract getObjectGripAdaptersInt(): ObjectGripAdapter[];
-
 	public dispose(): void {
 		this.threadAdapter.debugSession.variablesProviders.unregister(this.variablesProviderId);
 	}
@@ -102,11 +87,6 @@ export class SingleValueScopeAdapter extends ScopeAdapter {
 	protected getVariablesInt(): Promise<VariableAdapter[]> {
 		return Promise.resolve([this.variableAdapter]);
 	}
-
-	protected getObjectGripAdaptersInt(): ObjectGripAdapter[] {
-		let objectGripAdapter = this.variableAdapter.objectGripAdapter;
-		return (objectGripAdapter === undefined) ? [] : [objectGripAdapter];
-	}
 }
 
 export class ObjectScopeAdapter extends ScopeAdapter {
@@ -121,10 +101,6 @@ export class ObjectScopeAdapter extends ScopeAdapter {
 
 	protected getVariablesInt(): Promise<VariableAdapter[]> {
 		return this.variableAdapter.objectGripAdapter!.getVariables();
-	}
-
-	protected getObjectGripAdaptersInt(): ObjectGripAdapter[] {
-		return [this.variableAdapter.objectGripAdapter!];
 	}
 }
 
@@ -147,12 +123,6 @@ export class LocalVariablesScopeAdapter extends ScopeAdapter {
 
 	protected getVariablesInt(): Promise<VariableAdapter[]> {
 		return Promise.resolve(this.variables);
-	}
-
-	protected getObjectGripAdaptersInt(): ObjectGripAdapter[] {
-		return <ObjectGripAdapter[]>this.variables
-			.map((variableAdapter) => variableAdapter.objectGripAdapter)
-			.filter((objectGripAdapter) => (objectGripAdapter !== undefined));
 	}
 }
 
@@ -183,11 +153,5 @@ export class FunctionScopeAdapter extends ScopeAdapter {
 
 	protected getVariablesInt(): Promise<VariableAdapter[]> {
 		return Promise.resolve(this.variables);
-	}
-
-	protected getObjectGripAdaptersInt(): ObjectGripAdapter[] {
-		return <ObjectGripAdapter[]>this.variables
-			.map((variableAdapter) => variableAdapter.objectGripAdapter)
-			.filter((objectGripAdapter) => (objectGripAdapter !== undefined));
 	}
 }

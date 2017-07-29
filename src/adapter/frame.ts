@@ -1,6 +1,5 @@
 import { Log } from '../util/log';
-import { concatArrays } from '../util/misc';
-import { ThreadAdapter, EnvironmentAdapter, ScopeAdapter, ObjectGripAdapter } from '../adapter/index';
+import { ThreadAdapter, EnvironmentAdapter, ScopeAdapter } from '../adapter/index';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { Source, StackFrame } from 'vscode-debugadapter';
 import { Registry } from "./registry";
@@ -98,11 +97,6 @@ export class FrameAdapter {
 		return result;
 	}
 
-	public getObjectGripAdapters(): ObjectGripAdapter[] {
-		return concatArrays(this.scopeAdapters.map(
-			(scopeAdapter) => scopeAdapter.getObjectGripAdapters()));
-	}
-	
 	public dispose(): void {
 		this.frameRegistry.unregister(this.id);
 	}

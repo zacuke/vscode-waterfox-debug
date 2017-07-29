@@ -187,9 +187,7 @@ export class ThreadAdapter extends EventEmitter {
 				}
 
 				return frameAdapters;
-			},
-
-			undefined
+			}
 		);
 	}
 
@@ -211,11 +209,7 @@ export class ThreadAdapter extends EventEmitter {
 	public async fetchVariables(variablesProvider: VariablesProvider): Promise<Variable[]> {
 
 		let variableAdapters = await this.coordinator.runOnPausedThread(
-
-			() => variablesProvider.getVariables(),
-
-			undefined
-		);
+			() => variablesProvider.getVariables());
 
 		return variableAdapters.map((variableAdapter) => variableAdapter.getVariable());
 	}
@@ -224,31 +218,14 @@ export class ThreadAdapter extends EventEmitter {
 
 		if (skipBreakpoints) {
 
-			let variableAdapter: VariableAdapter;
-			if (frameActorName !== undefined) {
-
-				variableAdapter = await this.coordinator.evaluate(expr, frameActorName, 
-
-					(grip) => this.variableFromGrip(grip, false),
-
-					undefined
-				);
-
-			} else {
-
-				variableAdapter = await this.coordinator.evaluate(expr, undefined, 
-					(grip) => this.variableFromGrip(grip, true));
-
-			}
-
+			let grip = await this.coordinator.evaluate(expr, frameActorName);
+			let variableAdapter = this.variableFromGrip(grip, (frameActorName === undefined));
 			return variableAdapter.getVariable();
 
 		} else {
 
 			let grip = await this.consoleActor.evaluate(expr, frameActorName);
-
 			let variableAdapter = this.variableFromGrip(grip, true);
-
 			return variableAdapter.getVariable();
 		}
 	}
@@ -279,7 +256,7 @@ export class ThreadAdapter extends EventEmitter {
 		}
 	}
 
-	private async disposePauseLifetimeAdapters(threadIsGone: boolean = false): Promise<void> {
+	private async disposePauseLifetimeAdapters(): Promise<void> {
 
 		this.scopes.forEach((scopeAdapter) => {
 			scopeAdapter.dispose();
@@ -298,9 +275,9 @@ export class ThreadAdapter extends EventEmitter {
 		this.pauseLifetimeObjects = [];
 	}
 
-	public async dispose(threadIsGone: boolean): Promise<void> {
+	public async dispose(): Promise<void> {
 
-		await this.disposePauseLifetimeAdapters(threadIsGone);
+		await this.disposePauseLifetimeAdapters();
 
 		this.threadLifetimeObjects.forEach((objectGripAdapter) => {
 			objectGripAdapter.dispose();

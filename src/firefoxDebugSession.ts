@@ -318,7 +318,7 @@ export class FirefoxDebugSession {
 					this.sendEvent(new ThreadEvent('exited', threadAdapter.id));
 				}
 
-				threadAdapter.dispose(true);
+				threadAdapter.dispose();
 
 				this.tabs.unregister(tabId);
 

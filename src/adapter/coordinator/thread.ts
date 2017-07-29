@@ -2,7 +2,6 @@ import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy } from '../../firefox/index';
 import { ThreadPauseCoordinator, PauseType } from './threadPause';
-import { VariableAdapter } from '../variable';
 import { DelayedTask } from '../../util/delayedTask';
 import { PendingRequest } from '../../util/pendingRequests';
 
@@ -37,7 +36,7 @@ export class ThreadCoordinator extends EventEmitter {
 	private queuedTasksToRunOnPausedThread: DelayedTask<any>[] = [];
 	private tasksRunningOnPausedThread = 0;
 
-	private queuedEvaluateTasks: DelayedTask<VariableAdapter>[] = [];
+	private queuedEvaluateTasks: DelayedTask<FirefoxDebugProtocol.Grip>[] = [];
 
 	constructor(
 		private threadId: number,
@@ -85,7 +84,7 @@ export class ThreadCoordinator extends EventEmitter {
 	public setExceptionBreakpoints(exceptionBreakpoints: ExceptionBreakpoints) {
 		this.exceptionBreakpoints = exceptionBreakpoints;
 		if ((this.threadState === 'resuming') || (this.threadState === 'running')) {
-			this.runOnPausedThread(async () => undefined, undefined);
+			this.runOnPausedThread(async () => undefined);
 		}
 	}
 
@@ -159,25 +158,20 @@ export class ThreadCoordinator extends EventEmitter {
 		}
 	}
 
-	public runOnPausedThread<T>(mainTask: () => Promise<T>,
-		postprocessingTask?: (result: T) => Promise<void>): Promise<T> {
+	public runOnPausedThread<T>(task: () => Promise<T>): Promise<T> {
 
-		let delayedTask = new DelayedTask(mainTask, postprocessingTask);
+		let delayedTask = new DelayedTask(task);
 		this.queuedTasksToRunOnPausedThread.push(delayedTask);
 		this.doNext();
 		return delayedTask.promise;
 	}
 
-	public evaluate(expr: string, frameActorName: string | undefined,
-		convert: (grip: FirefoxDebugProtocol.Grip) => VariableAdapter,
-		postprocess?: (result: VariableAdapter) => Promise<void>): Promise<VariableAdapter> {
+	public evaluate(
+		expr: string,
+		frameActorName: string | undefined
+	): Promise<FirefoxDebugProtocol.Grip> {
 
-		let evaluateTask = async () => {
-			let grip = await this.consoleActor.evaluate(expr, frameActorName);
-			return convert(grip);
-		};
-
-		let delayedTask = new DelayedTask(evaluateTask, postprocess);
+		let delayedTask = new DelayedTask(() => this.consoleActor.evaluate(expr, frameActorName));
 
 		this.queuedEvaluateTasks.push(delayedTask);
 		this.doNext();
@@ -320,7 +314,7 @@ export class ThreadCoordinator extends EventEmitter {
 		}
 	}
 
-	private async executeEvaluateTask(task: DelayedTask<VariableAdapter>): Promise<void> {
+	private async executeEvaluateTask(task: DelayedTask<FirefoxDebugProtocol.Grip>): Promise<void> {
 
 		if (this.threadState !== 'paused') {
 			log.error(`executeEvaluateTask called but threadState is ${this.threadState}`);

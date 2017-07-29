@@ -4,15 +4,14 @@ let log = Log.create('DelayedTask');
 
 export class DelayedTask<T> {
 
-	private state: 'waiting' | 'running' | 'postprocessing' | 'finished';
+	private state: 'waiting' | 'running' | 'finished';
 	private resolve: (result: T) => void;
 	private reject: (reason?: any) => void;
 
 	public readonly promise: Promise<T>;
 
 	public constructor(
-		private mainTask: () => Promise<T>,
-		private postprocessTask?: (result: T) => Promise<void>
+		private task: () => Promise<T>,
 	) {
 
 		this.promise = new Promise<T>((resolve, reject) => {
@@ -33,16 +32,11 @@ export class DelayedTask<T> {
 		let result: T;
 		try {
 			this.state = 'running';
-			result = await this.mainTask();
+			result = await this.task();
 			this.resolve(result);
 		} catch (err) {
 			this.reject(err);
 			throw err;
-		}
-
-		if (this.postprocessTask) {
-			this.state = 'postprocessing';
-			await this.postprocessTask(result);
 		}
 
 		this.state = 'finished';
