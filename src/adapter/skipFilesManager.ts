@@ -22,12 +22,12 @@ export class SkipFilesManager {
 		return this.shouldSkip(url, false);
 	}
 
-	public toggleSkippingPath(path: string): void {
-		this.toggleSkipping(path, true);
+	public toggleSkippingPath(path: string): Promise<void> {
+		return this.toggleSkipping(path, true);
 	}
 
-	public toggleSkippingUrl(url: string): void {
-		this.toggleSkipping(url, false);
+	public toggleSkippingUrl(url: string): Promise<void> {
+		return this.toggleSkipping(url, false);
 	}
 
 	private shouldSkip(pathOrUrl: string, isPath: boolean): boolean {
@@ -66,12 +66,14 @@ export class SkipFilesManager {
 		return false;
 	}
 
-	private toggleSkipping(pathOrUrl: string, isPath: boolean): void {
+	private async toggleSkipping(pathOrUrl: string, isPath: boolean): Promise<void> {
 		
 		const skipFile = !this.shouldSkip(pathOrUrl, isPath);
 		this.dynamicFiles.set(pathOrUrl, skipFile);
 
 		log.info(`Setting skipFile to ${skipFile} for ${pathOrUrl}`);
+
+		let promises: Promise<void>[] = [];
 
 		for (const [, thread] of this.threads) {
 
@@ -79,11 +81,13 @@ export class SkipFilesManager {
 
 			for (const sourceAdapter of sourceAdapters) {
 				if (sourceAdapter.actor.source.isBlackBoxed !== skipFile) {
-					sourceAdapter.actor.setBlackbox(skipFile);
+					promises.push(sourceAdapter.actor.setBlackbox(skipFile));
 				}
 			}
 
 			thread.triggerStackframeRefresh();
 		}
+
+		await Promise.all(promises);
 	}
 }

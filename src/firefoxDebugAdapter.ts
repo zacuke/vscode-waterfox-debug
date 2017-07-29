@@ -361,11 +361,11 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 				path = url.substr(7);
 			}
 
-			this.session.skipFilesManager.toggleSkippingPath(path);
+			await this.session.skipFilesManager.toggleSkippingPath(path);
 
 		} else {
 
-			this.session.skipFilesManager.toggleSkippingUrl(url);
+			await this.session.skipFilesManager.toggleSkippingUrl(url);
 
 		}
 	}

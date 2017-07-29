@@ -102,7 +102,7 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 			this.pendingFetchSourceRequests.rejectAll('No such actor');
 			this.pendingSetBreakpointRequests.rejectAll('No such actor');
 
-		} else if (Object.keys(response).length === 1) {
+		} else {
 
 			let propertyCount = Object.keys(response).length;
 			if ((propertyCount === 1) || ((propertyCount === 2) && (response['pausedInSource'] !== undefined))) {
