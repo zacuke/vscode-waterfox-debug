@@ -4,7 +4,6 @@ import { DebugConnection } from '../connection';
 import { PendingRequest, PendingRequests } from '../../util/pendingRequests';
 import { ActorProxy } from './interface';
 import { ISourceActorProxy, SourceActorProxy } from './source';
-import { exceptionGripToString } from '../../util/misc';
 
 let log = Log.create('ThreadActorProxy');
 
@@ -16,7 +15,6 @@ export interface IThreadActorProxy {
 	detach(): Promise<void>;
 	fetchSources(): Promise<FirefoxDebugProtocol.Source[]>;
 	fetchStackFrames(start?: number, count?: number): Promise<FirefoxDebugProtocol.Frame[]>;
-	evaluate(expression: string, frameActorName: string): Promise<FirefoxDebugProtocol.Grip>;
 	onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void): void;
 	onResumed(cb: () => void): void;
 	onExited(cb: () => void): void;
@@ -54,7 +52,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	
 	private pendingSourcesRequests = new PendingRequests<FirefoxDebugProtocol.Source[]>();
 	private pendingStackFramesRequests = new PendingRequests<FirefoxDebugProtocol.Frame[]>();
-	private pendingEvaluateRequest?: PendingRequest<FirefoxDebugProtocol.Grip>;
 	
 	/**
 	 * Attach the thread if it is detached
@@ -189,42 +186,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 		});
 	}
 
-	/**
-	 * Evaluate the given expression on the specified StackFrame. This can only be called while
-	 * the thread is paused and will resume it temporarily.
-	 */
-	public evaluate(
-		expression: string,
-		frameActorName: string
-	): Promise<FirefoxDebugProtocol.Grip> {
-		log.debug(`Evaluating '${expression}' on thread ${this.name}`);
-		
-		return new Promise<FirefoxDebugProtocol.Grip>((resolve, reject) => {
-			if (this.pendingEvaluateRequest) {
-				let err = 'Another evaluateRequest is already running'; 
-				log.error(err);
-				reject(err);
-				return;
-			}
-			if (!this.interruptPromise) {
-				let err = 'Can\'t evaluate because the thread isn\'t paused';
-				log.error(err);
-				reject(err);
-				return;
-			}
-			
-			this.pendingEvaluateRequest = { resolve, reject };
-			this.resumePromise = new Promise<void>((resolve, reject) => {
-				this.pendingResumeRequest = { resolve, reject };
-			});
-			this.interruptPromise = undefined;
-
-			this.connection.sendRequest({ 
-				to: this.name, type: 'clientEvaluate', expression, frame: frameActorName 
-			});
-		});
-	}
-
 	public dispose(): void {
 		this.connection.unregister(this);
 	}
@@ -276,20 +237,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 					break;
 
 				case 'clientEvaluated':
-					this.interruptPromise = Promise.resolve(undefined);
-					this.resumePromise = undefined;
-					if (this.pendingEvaluateRequest) {
-						//TODO handle undefined frameFinished and return!
-						let completionValue = pausedResponse.why.frameFinished!;
-						if (completionValue.return !== undefined) {
-							this.pendingEvaluateRequest.resolve(completionValue.return!);
-						} else {
-							this.pendingEvaluateRequest.reject(exceptionGripToString(completionValue.throw));
-						}
-						this.pendingEvaluateRequest = undefined;
-					} else {
-						log.warn('Received clientEvaluated message without pending request');
-					}
+					log.warn('Received clientEvaluated message without a request');
 					break;
 
 				default:
@@ -322,10 +270,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 			}
 
 			this.pendingStackFramesRequests.rejectAll('Detached');
-			if (this.pendingEvaluateRequest) {
-				this.pendingEvaluateRequest.reject('Detached');
-				this.pendingEvaluateRequest = undefined;
-			}
 			
 		} else if (response['sources']) {
 
@@ -384,19 +328,11 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 			}
 			this.pendingSourcesRequests.rejectAll('No such actor');
 			this.pendingStackFramesRequests.rejectAll('No such actor');
-			if (this.pendingEvaluateRequest) {
-				this.pendingEvaluateRequest.reject('No such actor');
-				this.pendingEvaluateRequest = undefined;
-			}
 
 		} else if (response['error'] === 'unknownFrame') {
 
 			let errorMsg = response['message']
 			log.error(`Error evaluating expression: ${errorMsg}`);
-			if (this.pendingEvaluateRequest) {
-				this.pendingEvaluateRequest.reject(errorMsg);
-				this.pendingEvaluateRequest = undefined;
-			}
 
 		} else {
 

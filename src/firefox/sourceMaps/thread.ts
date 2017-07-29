@@ -165,13 +165,6 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		}
 	}
 
-	public evaluate(
-		expression: string,
-		frameActorName: string
-	): Promise<FirefoxDebugProtocol.Grip> {
-		return this.underlyingActorProxy.evaluate(expression, frameActorName);
-	}
-
 	public attach(): Promise<void> {
 		return this.underlyingActorProxy.attach(false);
 	}

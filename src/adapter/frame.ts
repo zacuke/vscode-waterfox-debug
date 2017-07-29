@@ -92,9 +92,7 @@ export class FrameAdapter {
 				break;
 		}
 
-		let result = new StackFrame(this.id, name, source, this.frame.where.line, this.frame.where.column);
-		(<DebugProtocol.StackFrame>result).moduleId = 'bla';
-		return result;
+		return new StackFrame(this.id, name, source, this.frame.where.line, this.frame.where.column);
 	}
 
 	public dispose(): void {
