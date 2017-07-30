@@ -32,6 +32,47 @@ describe('Firefox debug adapter', function() {
 		assert.equal(stacktrace.body.stackFrames[0].line, 76);
 	});
 
+	it('should skip exceptions in blackboxed files thrown immediately after loading', async function() {
+
+		dc = await util.initDebugClient(TESTDATA_PATH, true, {
+			skipFiles: [ '**/exception.js' ]
+		});
+
+		await dc.setExceptionBreakpointsRequest({filters: [ 'all' ]});
+		let mainFilePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, mainFilePath, [ 3 ]);
+		await delay(100);
+
+		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
+			() => util.evaluate(dc, 'loadScript("exception.js")'));
+		let stacktrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId });
+
+		assert.equal(stacktrace.body.stackFrames[0].source!.path, path.join(TESTDATA_PATH, 'web/main.js'));
+		assert.equal(stacktrace.body.stackFrames[0].line, 3);
+	});
+
+	for (let sourceMaps of [ 'server', 'client' ]) {
+		it(`should skip exceptions in blackboxed source-mapped files thrown immediately after loading with source-maps handled by the ${sourceMaps}`, async function() {
+
+			dc = await util.initDebugClient(TESTDATA_PATH, true, {
+				skipFiles: [ '**/exception-sourcemap.ts' ],
+				sourceMaps
+			});
+
+			await dc.setExceptionBreakpointsRequest({filters: [ 'all' ]});
+			let mainFilePath = path.join(TESTDATA_PATH, 'web/main.js');
+			await util.setBreakpoints(dc, mainFilePath, [ 3 ]);
+			await delay(100);
+
+			let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
+				() => util.evaluate(dc, 'loadScript("exception-sourcemap.js")'));
+			let stacktrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId });
+
+			assert.equal(stacktrace.body.stackFrames[0].source!.path, path.join(TESTDATA_PATH, 'web/main.js'));
+			assert.equal(stacktrace.body.stackFrames[0].line, 3);
+		});
+	}
+
 	it('should skip breakpoints in blackboxed files', async function() {
 
 		dc = await util.initDebugClient(TESTDATA_PATH, true, {
