@@ -1,3 +1,6 @@
+### Version 0.15.3
+* performance improvements
+
 ### Version 0.15.2
 * handle absolute urls in source-maps, including a workaround for webpack weirdness
 
