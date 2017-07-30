@@ -123,27 +123,29 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 
 		let stackFrames = await this.underlyingActorProxy.fetchStackFrames(start, count);
 
-		for (let frame of stackFrames) {
-
-			let sourceMappingInfo = await this.getOrCreateSourceMappingInfo(frame.where.source);
-			if (sourceMappingInfo.sourceMapUri && sourceMappingInfo.sourceMapConsumer) {
-
-				let originalLocation = sourceMappingInfo.originalLocationFor({
-					line: frame.where.line!, column: frame.where.column!
-				});
-
-				let originalSource = this.createOriginalSource(
-					frame.where.source, originalLocation.source, sourceMappingInfo.sourceMapUri);
-
-				frame.where = {
-					source: originalSource,
-					line: originalLocation.line,
-					column: originalLocation.column
-				}
-			}
-		}
+		await Promise.all(stackFrames.map((frame) => this.applySourceMapToFrame(frame)));
 
 		return stackFrames;
+	}
+
+	private async applySourceMapToFrame(frame: FirefoxDebugProtocol.Frame): Promise<void> {
+
+		let sourceMappingInfo = await this.getOrCreateSourceMappingInfo(frame.where.source);
+		if (sourceMappingInfo.sourceMapUri && sourceMappingInfo.sourceMapConsumer) {
+
+			let originalLocation = sourceMappingInfo.originalLocationFor({
+				line: frame.where.line!, column: frame.where.column!
+			});
+
+			let originalSource = this.createOriginalSource(
+				frame.where.source, originalLocation.source, sourceMappingInfo.sourceMapUri);
+
+			frame.where = {
+				source: originalSource,
+				line: originalLocation.line,
+				column: originalLocation.column
+			}
+		}
 	}
 
 	private createOriginalSource(
@@ -184,8 +186,11 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		return this.underlyingActorProxy.detach();
 	}
 
-	public onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedResponse) => void): void {
-		this.underlyingActorProxy.onPaused(cb);
+	public onPaused(cb: (_event: FirefoxDebugProtocol.ThreadPausedResponse) => void): void {
+		this.underlyingActorProxy.onPaused(async (event) => {
+			await this.applySourceMapToFrame(event.frame);
+			cb(event);
+		});
 	}
 
 	public onResumed(cb: () => void): void {
