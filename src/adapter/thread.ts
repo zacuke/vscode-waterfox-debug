@@ -37,14 +37,14 @@ export class ThreadAdapter extends EventEmitter {
 		this.coordinator = new ThreadCoordinator(this.id, this.name, this.actor, this.consoleActor,
 			this.pauseCoordinator, () => this.disposePauseLifetimeAdapters());
 
-		this.coordinator.onPaused(async (reason) => {
+		this.coordinator.onPaused(async (event) => {
 
 			await this.fetchAllStackFrames();
 
 			if (this.shouldSkip(this.frames[0].frame.where.source)) {
 				this.resume();
 			} else {
-				this.emit('paused', reason);
+				this.emit('paused', event.why);
 			}
 		});
 	}
@@ -291,7 +291,7 @@ export class ThreadAdapter extends EventEmitter {
 		this.consoleActor.dispose();
 	}
 
-	public onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void) {
+	public onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedReason) => void) {
 		this.on('paused', cb);
 	}
 

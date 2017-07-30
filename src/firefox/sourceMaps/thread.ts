@@ -184,7 +184,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		return this.underlyingActorProxy.detach();
 	}
 
-	public onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void): void {
+	public onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedResponse) => void): void {
 		this.underlyingActorProxy.onPaused(cb);
 	}
 

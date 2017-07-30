@@ -48,13 +48,13 @@ export class ThreadCoordinator extends EventEmitter {
 
 		super();
 
-		threadActor.onPaused((reason) => {
+		threadActor.onPaused((event) => {
 
 			if (this.threadState === 'evaluating') {
 
 				threadActor.resume(this.exceptionBreakpoints);
 
-			} else if ((reason.type === 'exception') && 
+			} else if ((event.why.type === 'exception') && 
 						(this.exceptionBreakpoints === ExceptionBreakpoints.None)) {
 
 				threadActor.resume(this.exceptionBreakpoints);
@@ -62,9 +62,9 @@ export class ThreadCoordinator extends EventEmitter {
 			} else {
 
 				this._threadTarget = 'paused';
-				this._threadPausedReason = reason;
+				this._threadPausedReason = event.why;
 				this.threadPaused('user');
-				this.emit('paused', reason);
+				this.emit('paused', event);
 
 			}
 		});
@@ -179,7 +179,7 @@ export class ThreadCoordinator extends EventEmitter {
 		return delayedTask.promise;
 	}
 
-	public onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void) {
+	public onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedResponse) => void) {
 		this.on('paused', cb);
 	}
 

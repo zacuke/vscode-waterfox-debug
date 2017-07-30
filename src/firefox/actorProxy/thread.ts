@@ -15,7 +15,7 @@ export interface IThreadActorProxy {
 	detach(): Promise<void>;
 	fetchSources(): Promise<FirefoxDebugProtocol.Source[]>;
 	fetchStackFrames(start?: number, count?: number): Promise<FirefoxDebugProtocol.Frame[]>;
-	onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void): void;
+	onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedResponse) => void): void;
 	onResumed(cb: () => void): void;
 	onExited(cb: () => void): void;
 	onWrongState(cb: () => void): void;
@@ -233,7 +233,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 						this.pendingResumeRequest = undefined;
 					}
 					this.resumePromise = undefined;
-					this.emit('paused', pausedResponse.why);
+					this.emit('paused', pausedResponse);
 					break;
 
 				case 'clientEvaluated':
@@ -242,7 +242,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 
 				default:
 					log.warn(`Paused event with reason ${pausedResponse.why.type} not handled yet`);
-					this.emit('paused', pausedResponse.why);
+					this.emit('paused', pausedResponse);
 					break;
 			}
 
@@ -353,7 +353,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	 * resumeLimit, but not if it was paused due to an interrupt request or because an evaluate
 	 * request is finished
 	 */	
-	public onPaused(cb: (reason: FirefoxDebugProtocol.ThreadPausedReason) => void) {
+	public onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedResponse) => void) {
 		this.on('paused', cb);
 	}
 
