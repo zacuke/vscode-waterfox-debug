@@ -17,7 +17,7 @@ export class ThreadAdapter extends EventEmitter {
 	public readonly coordinator: ThreadCoordinator;
 
 	private sources: SourceAdapter[] = [];
-	private frames: FrameAdapter[] = [];
+	private framesPromise: Promise<FrameAdapter[]> | undefined = undefined;
 	private scopes: ScopeAdapter[] = [];
 
 	private pauseLifetimeObjects: ObjectGripAdapter[] = [];
@@ -39,9 +39,9 @@ export class ThreadAdapter extends EventEmitter {
 
 		this.coordinator.onPaused(async (event) => {
 
-			await this.fetchAllStackFrames();
+			let frames = await this.fetchAllStackFrames();
 
-			if (this.shouldSkip(this.frames[0].frame.where.source)) {
+			if (this.shouldSkip(frames[0].frame.where.source)) {
 				this.resume();
 			} else {
 				this.emit('paused', event.why);
@@ -151,49 +151,51 @@ export class ThreadAdapter extends EventEmitter {
 	}
 
 	private fetchAllStackFrames(): Promise<FrameAdapter[]> {
-		return this.coordinator.runOnPausedThread(
 
-			async () => {
+		if (!this.framesPromise) {
+			this.framesPromise = this.coordinator.runOnPausedThread(
 
-				let frames = await this.actor.fetchStackFrames();
+				async () => {
 
-				let frameAdapters = frames.map((frame) => {
-					let frameAdapter = new FrameAdapter(this.debugSession.frames, frame, this);
-					this.frames.push(frameAdapter);
-					return frameAdapter;
-				});
+					let frames = await this.actor.fetchStackFrames();
 
-				let threadPausedReason = this.coordinator.threadPausedReason;
-				if ((threadPausedReason !== undefined) && (frameAdapters.length > 0)) {
+					let frameAdapters = frames.map((frame) =>
+						new FrameAdapter(this.debugSession.frames, frame, this));
 
-					if (threadPausedReason.frameFinished !== undefined) {
+					let threadPausedReason = this.coordinator.threadPausedReason;
+					if ((threadPausedReason !== undefined) && (frameAdapters.length > 0)) {
 
-						if (threadPausedReason.frameFinished.return !== undefined) {
+						if (threadPausedReason.frameFinished !== undefined) {
 
-							frameAdapters[0].scopeAdapters[0].addReturnValue(
-								threadPausedReason.frameFinished.return);
+							if (threadPausedReason.frameFinished.return !== undefined) {
 
-						} else if (threadPausedReason.frameFinished.throw !== undefined) {
+								frameAdapters[0].scopeAdapters[0].addReturnValue(
+									threadPausedReason.frameFinished.return);
 
-							frameAdapters[0].scopeAdapters.unshift(ScopeAdapter.fromGrip(
-								'Exception', threadPausedReason.frameFinished.throw, frameAdapters[0]));
+							} else if (threadPausedReason.frameFinished.throw !== undefined) {
+
+								frameAdapters[0].scopeAdapters.unshift(ScopeAdapter.fromGrip(
+									'Exception', threadPausedReason.frameFinished.throw, frameAdapters[0]));
+							}
+
+						} else if (threadPausedReason.exception !== undefined) {
+
+								frameAdapters[0].scopeAdapters.unshift(ScopeAdapter.fromGrip(
+									'Exception', threadPausedReason.exception, frameAdapters[0]));
 						}
-
-					} else if (threadPausedReason.exception !== undefined) {
-
-							frameAdapters[0].scopeAdapters.unshift(ScopeAdapter.fromGrip(
-								'Exception', threadPausedReason.exception, frameAdapters[0]));
 					}
-				}
 
-				return frameAdapters;
-			}
-		);
+					return frameAdapters;
+				}
+			);
+		}
+
+		return this.framesPromise;
 	}
 
 	public async fetchStackFrames(start: number, count: number): Promise<[FrameAdapter[], number]> {
 
-		let frameAdapters = (this.frames.length > 0) ? this.frames : await this.fetchAllStackFrames();
+		let frameAdapters = await this.fetchAllStackFrames();
 
 		let requestedFrames = (count > 0) ? frameAdapters.slice(start, start + count) : frameAdapters.slice(start);
 
@@ -258,15 +260,18 @@ export class ThreadAdapter extends EventEmitter {
 
 	private async disposePauseLifetimeAdapters(): Promise<void> {
 
+		if (this.framesPromise) {
+			let frames = await this.framesPromise;
+			frames.forEach((frameAdapter) => {
+				frameAdapter.dispose();
+			});
+			this.framesPromise = undefined;
+		}
+
 		this.scopes.forEach((scopeAdapter) => {
 			scopeAdapter.dispose();
 		});
 		this.scopes = [];
-
-		this.frames.forEach((frameAdapter) => {
-			frameAdapter.dispose();
-		});
-		this.frames = [];
 
 		this.pauseLifetimeObjects.forEach((objectGripAdapter) => {
 			objectGripAdapter.dispose();
