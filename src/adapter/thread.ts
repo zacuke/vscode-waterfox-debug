@@ -39,12 +39,25 @@ export class ThreadAdapter extends EventEmitter {
 
 		this.coordinator.onPaused(async (event) => {
 
-			let frames = await this.fetchAllStackFrames();
+			// Firefox doesn't apply source-maps to the sources in pausedEvents for exceptions
+			const distrustSourceInPausedEvent =
+				((event.why.type === 'exception') &&
+				 (debugSession.config.sourceMaps === 'server'));
 
-			if (this.shouldSkip(frames[0].frame.where.source)) {
+			let source: FirefoxDebugProtocol.Source;
+			if (!distrustSourceInPausedEvent) {
+				source = event.frame.where.source;
+			} else {
+				let frames = await this.fetchAllStackFrames();
+				source = frames[0].frame.where.source;
+			}
+
+			if (this.shouldSkip(source)) {
 				this.resume();
 			} else {
 				this.emit('paused', event.why);
+				// pre-fetch the stackframes, we're going to need them later
+				this.fetchAllStackFrames();
 			}
 		});
 	}
