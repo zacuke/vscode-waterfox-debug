@@ -113,6 +113,29 @@ describe('Firefox debug adapter', function() {
 		result = await dc.evaluateRequest({ context: 'repl', frameId, expression: 'num1' });
 		assert.equal(result.body.result, '7');
 	});
+
+	it('should inspect variables from the stack after running evaluations', async function() {
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ 8 ]);
+
+		util.evaluate(dc, 'vars({foo:{bar:"baz"}})');
+		let stoppedEvent = await util.receiveStoppedEvent(dc);
+		let stackTrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId! });
+		let frameId = stackTrace.body.stackFrames[0].id;
+		let scopes = await dc.scopesRequest({ frameId });
+
+		await dc.evaluateRequest({ expression: 'obj.x', context: 'watch', frameId });
+		await dc.evaluateRequest({ expression: 'obj.y', context: 'repl', frameId });
+
+		let variables = await dc.variablesRequest({ variablesReference: scopes.body.scopes[1].variablesReference });
+		let arg = util.findVariable(variables.body.variables, 'arg');
+		variables = await dc.variablesRequest({ variablesReference: arg.variablesReference });
+		let foo = util.findVariable(variables.body.variables, 'foo');
+		variables = await dc.variablesRequest({ variablesReference: foo.variablesReference });
+		let bar = util.findVariable(variables.body.variables, 'bar');
+		assert.equal(bar.value, '"baz"');
+	});
 });
 
 function factorial(n: number): number {
