@@ -3,6 +3,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import * as path from 'path';
 import * as util from './util';
 import * as assert from 'assert';
+import { delay } from "../util/misc";
 
 describe('Firefox debug adapter', function() {
 
@@ -26,6 +27,7 @@ describe('Firefox debug adapter', function() {
 
 			let contentScriptPath = path.join(TESTDATA_PATH, 'webExtension/addOn/contentscript.js');
 			await util.setBreakpoints(dc, contentScriptPath,  [ 6 ]);
+			await delay(500);
 
 			await util.setConsoleThread(dc, await util.findTabThread(dc));
 			util.evaluate(dc, 'putMessage("bar")');
