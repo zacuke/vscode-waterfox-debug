@@ -2,6 +2,7 @@ src/**
 typings/**
 **/*.map
 out/test/**
+package-lock.json
 tsconfig.json
 typings.json
 .vscode/**
