@@ -65,6 +65,7 @@ export function findAddonId(addonPath: string): Promise<string> {
 			} else {
 				reject('This debugger currently requires add-ons to specify an ID in their manifest');
 			}
+			dummyProfile.deleteDir(() => {});
 		});
 	});
 }
