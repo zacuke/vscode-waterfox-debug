@@ -85,9 +85,10 @@ function createDebugProfile(config: ParsedLaunchConfiguration): Promise<FirefoxP
 				destinationDirectory: config.profileDir
 			}, 
 			(err, profile) => {
-				if (err) {
+				if (err || !profile) {
 					reject(err);
 				} else {
+					profile.shouldDeleteOnExit(false);
 					resolve(profile);
 				}
 			});
@@ -95,9 +96,11 @@ function createDebugProfile(config: ParsedLaunchConfiguration): Promise<FirefoxP
 		} else {
 
 			await fs.ensureDir(config.profileDir);
-			resolve(new FirefoxProfile({
+			let profile = new FirefoxProfile({
 				destinationDirectory: config.profileDir
-			}));
+			});
+			profile.shouldDeleteOnExit(false);
+			resolve(profile);
 		}
 	});
 }
