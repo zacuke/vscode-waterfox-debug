@@ -15,6 +15,20 @@
 			]
 		},
 		{
+			"type": "extensionHost",
+			"request": "launch",
+			"name": "extension host",
+			"runtimeExecutable": "${execPath}",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceRoot}"
+			],
+			"stopOnEntry": false,
+			"sourceMaps": true,
+			"outFiles": [
+				"${workspaceRoot}/out"
+			]
+		},
+		{
 			"type": "node",
 			"request": "launch",
 			"name": "run tests",
