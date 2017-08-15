@@ -3,29 +3,19 @@ import * as vscode from 'vscode';
 export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.reloadAddon', reloadAddon
+		'extension.firefox.reloadAddon', () => sendCustomRequest('reloadAddon')
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.rebuildAndReloadAddon', rebuildAndReloadAddon
+		'extension.firefox.rebuildAndReloadAddon', () => sendCustomRequest('rebuildAndReloadAddon')
 	));
 	
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.toggleSkippingFile', toggleSkippingFile
+		'extension.firefox.toggleSkippingFile', (path) => sendCustomRequest('toggleSkippingFile', path)
 	));
-	
-}
 
-async function reloadAddon(): Promise<void> {
-	await sendCustomRequest('reloadAddon');
-}
+	context.subscriptions.push(vscode.debug.onDidReceiveDebugSessionCustomEvent(onCustomEvent));
 
-async function rebuildAndReloadAddon() {
-	await sendCustomRequest('rebuildAndReloadAddon');
-}
-
-async function toggleSkippingFile(path: string) {
-	await sendCustomRequest('toggleSkippingFile', path);
 }
 
 async function sendCustomRequest(command: string, args?: any) {
@@ -39,4 +29,49 @@ async function sendCustomRequest(command: string, args?: any) {
 			throw 'There is no active debug session';
 		}
 	}
+}
+
+export interface ThreadStartedEventBody {
+	name: string;
+	id: number;
+}
+
+export interface ThreadExitedEventBody {
+	id: number;
+}
+
+export interface NewSourceEventBody {
+	threadId: number;
+	sourceId: number;
+	url: string | undefined;
+	path: string | undefined;
+}
+
+function onCustomEvent(event: vscode.DebugSessionCustomEvent) {
+	if (event.session.type === 'firefox') {
+
+		switch (event.event) {
+
+			case 'threadStarted':
+				onThreadStarted(<ThreadStartedEventBody>event.body);
+				break;
+
+			case 'threadExited':
+				onThreadExited(<ThreadExitedEventBody>event.body);
+				break;
+
+			case 'newSource':
+				onNewSource(<NewSourceEventBody>event.body);
+				break;
+			}
+	}
+}
+
+function onThreadStarted(body: ThreadStartedEventBody) {
+}
+
+function onThreadExited(body: ThreadExitedEventBody) {
+}
+
+function onNewSource(body: NewSourceEventBody) {
 }
