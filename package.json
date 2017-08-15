@@ -97,6 +97,7 @@
   "homepage": "https://github.com/hbenl/vscode-firefox-debug",
   "main": "./out/extension.js",
   "activationEvents": [
+    "onDebug:firefox",
     "onCommand:extension.firefox.reloadAddon",
     "onCommand:extension.firefox.rebuildAndReloadAddon",
     "onCommand:extension.firefox.toggleSkippingFile"
