@@ -22,20 +22,29 @@ export class LoadedScriptsProvider implements vscode.TreeDataProvider<SourceTree
 		return parent.getChildren();
 	}
 
-	public addThread(threadInfo: ThreadStartedEventBody) {
-		this.root.addThread(threadInfo);
+	public addThread(threadInfo: ThreadStartedEventBody, sessionId: string) {
+		this.root.addThread(threadInfo, sessionId);
 	}
 
-	public removeThread(threadId: number) {
-		this.root.removeThread(threadId);
+	public removeThread(threadId: number, sessionId: string) {
+		this.root.removeThread(threadId, sessionId);
 	}
 
-	public addSource(sourceInfo: NewSourceEventBody) {
-		this.root.addSource(sourceInfo);
+	public addSource(sourceInfo: NewSourceEventBody, sessionId: string) {
+		this.root.addSource(sourceInfo, sessionId);
+	}
+
+	public removeThreads(sessionId: string) {
+		this.root.removeThreads(sessionId);
 	}
 }
 
 abstract class SourceTreeItem extends vscode.TreeItem {
+
+	public constructor(label: string, collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.Collapsed) {
+		super(label, collapsibleState);
+	}
+
 	public abstract getChildren(): SourceTreeItem[];
 }
 
@@ -51,28 +60,32 @@ class RootTreeItem extends SourceTreeItem {
 		return this.children;
 	}
 
-	public addThread(threadInfo: ThreadStartedEventBody) {
+	public addThread(threadInfo: ThreadStartedEventBody, sessionId: string) {
 
 		if (!this.children.some((child) => (child.threadId === threadInfo.id))) {
 
-			this.children.push(new ThreadTreeItem(this.treeDataChanged, threadInfo));
+			this.children.push(new ThreadTreeItem(this.treeDataChanged, threadInfo, sessionId));
 
 			this.treeDataChanged.fire();
 		}
 	}
 
-	public removeThread(threadId: number) {
+	public removeThread(threadId: number, sessionId: string) {
 
-		this.children = this.children.filter((child) => (child.threadId !== threadId));
+		this.children = this.children.filter(
+			(child) => ((child.sessionId !== sessionId) || (child.threadId !== threadId))
+		);
 
 		this.treeDataChanged.fire();
 	}
 
-	public addSource(sourceInfo: NewSourceEventBody) {
+	public addSource(sourceInfo: NewSourceEventBody, sessionId: string) {
 
 		if (!sourceInfo.url) return;
 
-		let threadItem = this.children.find((child) => (child.threadId === sourceInfo.threadId));
+		let threadItem = this.children.find(
+			(child) => ((child.sessionId === sessionId) && (child.threadId === sourceInfo.threadId))
+		);
 
 		if (threadItem) {
 
@@ -81,6 +94,13 @@ class RootTreeItem extends SourceTreeItem {
 
 			threadItem.addSource(filename, path);
 		}
+	}
+
+	public removeThreads(sessionId: string) {
+
+		this.children = this.children.filter((child) => (child.sessionId !== sessionId));
+
+		this.treeDataChanged.fire();
 	}
 }
 
@@ -186,7 +206,8 @@ class ThreadTreeItem extends NonLeafSourceTreeItem {
 
 	public constructor(
 		treeDataChanged: vscode.EventEmitter<SourceTreeItem>,
-		threadInfo: ThreadStartedEventBody
+		threadInfo: ThreadStartedEventBody,
+		public readonly sessionId: string
 	) {
 		super(treeDataChanged, threadInfo.name);
 		this.threadId = threadInfo.id;

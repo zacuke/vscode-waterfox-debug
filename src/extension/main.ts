@@ -21,6 +21,10 @@ export function activate(context: vscode.ExtensionContext) {
 		(event) => onCustomEvent(event, loadedScriptsProvider)
 	));
 
+	context.subscriptions.push(vscode.debug.onDidTerminateDebugSession(
+		(session) => onDidTerminateSession(session, loadedScriptsProvider)
+	));
+
 	context.subscriptions.push(vscode.window.registerTreeDataProvider(
 		'extension.firefox.loadedScripts', loadedScriptsProvider));
 
@@ -64,16 +68,25 @@ function onCustomEvent(
 		switch (event.event) {
 
 			case 'threadStarted':
-				loadedScriptsProvider.addThread(<ThreadStartedEventBody>event.body);
+				loadedScriptsProvider.addThread(<ThreadStartedEventBody>event.body, event.session.id);
 				break;
 
 			case 'threadExited':
-				loadedScriptsProvider.removeThread((<ThreadExitedEventBody>event.body).id);
+				loadedScriptsProvider.removeThread((<ThreadExitedEventBody>event.body).id, event.session.id);
 				break;
 
 			case 'newSource':
-				loadedScriptsProvider.addSource(<NewSourceEventBody>event.body);
+				loadedScriptsProvider.addSource(<NewSourceEventBody>event.body, event.session.id);
 				break;
 			}
+	}
+}
+
+function onDidTerminateSession(
+	session: vscode.DebugSession,
+	loadedScriptsProvider: LoadedScriptsProvider
+) {
+	if (session.type === 'firefox') {
+		loadedScriptsProvider.removeThreads(session.id);
 	}
 }
