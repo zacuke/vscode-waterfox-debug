@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { LoadedScriptsProvider } from './loadedScripts';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -14,7 +15,14 @@ export function activate(context: vscode.ExtensionContext) {
 		'extension.firefox.toggleSkippingFile', (path) => sendCustomRequest('toggleSkippingFile', path)
 	));
 
-	context.subscriptions.push(vscode.debug.onDidReceiveDebugSessionCustomEvent(onCustomEvent));
+	let loadedScriptsProvider = new LoadedScriptsProvider();
+
+	context.subscriptions.push(vscode.debug.onDidReceiveDebugSessionCustomEvent(
+		(event) => onCustomEvent(event, loadedScriptsProvider)
+	));
+
+	context.subscriptions.push(vscode.window.registerTreeDataProvider(
+		'extension.firefox.loadedScripts', loadedScriptsProvider));
 
 }
 
@@ -47,31 +55,25 @@ export interface NewSourceEventBody {
 	path: string | undefined;
 }
 
-function onCustomEvent(event: vscode.DebugSessionCustomEvent) {
+function onCustomEvent(
+	event: vscode.DebugSessionCustomEvent,
+	loadedScriptsProvider: LoadedScriptsProvider
+) {
 	if (event.session.type === 'firefox') {
 
 		switch (event.event) {
 
 			case 'threadStarted':
-				onThreadStarted(<ThreadStartedEventBody>event.body);
+				loadedScriptsProvider.addThread(<ThreadStartedEventBody>event.body);
 				break;
 
 			case 'threadExited':
-				onThreadExited(<ThreadExitedEventBody>event.body);
+				loadedScriptsProvider.removeThread((<ThreadExitedEventBody>event.body).id);
 				break;
 
 			case 'newSource':
-				onNewSource(<NewSourceEventBody>event.body);
+				loadedScriptsProvider.addSource(<NewSourceEventBody>event.body);
 				break;
 			}
 	}
-}
-
-function onThreadStarted(body: ThreadStartedEventBody) {
-}
-
-function onThreadExited(body: ThreadExitedEventBody) {
-}
-
-function onNewSource(body: NewSourceEventBody) {
 }

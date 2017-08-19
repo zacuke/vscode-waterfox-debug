@@ -16,7 +16,7 @@
 	},
 	"include": [
 		"src/firefoxDebugAdapter.ts",
-		"src/extension.ts",
+		"src/extension/main.ts",
 		"src/util/forkedLauncher.ts",
 		"src/firefox/protocol.d.ts",
 		"src/typings/*.d.ts",

@@ -95,7 +95,7 @@
     "url": "https://github.com/hbenl/vscode-firefox-debug/issues"
   },
   "homepage": "https://github.com/hbenl/vscode-firefox-debug",
-  "main": "./out/extension.js",
+  "main": "./out/extension/main.js",
   "activationEvents": [
     "onDebug:firefox",
     "onCommand:extension.firefox.reloadAddon",
@@ -121,6 +121,15 @@
       "debug/callstack/context": [
         {
           "command": "extension.firefox.toggleSkippingFile"
+        }
+      ]
+    },
+    "views":{
+      "debug": [
+        {
+          "id": "extension.firefox.loadedScripts",
+          "name": "Loaded Scripts",
+          "when": "inDebugMode && debugType == 'firefox'"
         }
       ]
     },
