@@ -20,6 +20,7 @@ export interface IThreadActorProxy {
 	onExited(cb: () => void): void;
 	onWrongState(cb: () => void): void;
 	onNewSource(cb: (newSource: ISourceActorProxy) => void): void;
+	onNewGlobal(cb: () => void): void;
 	dispose(): void;
 }
 
@@ -28,7 +29,7 @@ export enum ExceptionBreakpoints {
 }
 
 /**
- * A ThreadActorProxy is a proxy for a "thread-like actor" (a Tab, Worker or Addon) in Firefox. 
+ * A ThreadActorProxy is a proxy for a "thread-like actor" (a Tab, Worker or Addon) in Firefox.
  */
 export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThreadActorProxy {
 
@@ -49,10 +50,10 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	private interruptPromise?: Promise<void>;
 	private pendingDetachRequest?: PendingRequest<void>;
 	private detachPromise?: Promise<void>;
-	
+
 	private pendingSourcesRequests = new PendingRequests<FirefoxDebugProtocol.Source[]>();
 	private pendingStackFramesRequests = new PendingRequests<FirefoxDebugProtocol.Frame[]>();
-	
+
 	/**
 	 * Attach the thread if it is detached
 	 */
@@ -62,20 +63,20 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 
 			this.attachPromise = new Promise<void>((resolve, reject) => {
 				this.pendingAttachRequest = { resolve, reject };
-				this.connection.sendRequest({ 
-					to: this.name, type: 'attach', 
+				this.connection.sendRequest({
+					to: this.name, type: 'attach',
 					options: { useSourceMaps }
 				});
 			});
 			this.detachPromise = undefined;
-			
+
 		} else {
 			log.warn('Attaching this thread has already been requested!');
 		}
-		
+
 		return this.attachPromise;
 	}
-	
+
 	/**
 	 * Resume the thread if it is paused
 	 */
@@ -103,8 +104,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 
 			this.resumePromise = new Promise<void>((resolve, reject) => {
 				this.pendingResumeRequest = { resolve, reject };
-				this.connection.sendRequest({ 
-					to: this.name, type: 'resume', 
+				this.connection.sendRequest({
+					to: this.name, type: 'resume',
 					resumeLimit, pauseOnExceptions, ignoreCaughtExceptions
 				});
 			});
@@ -114,7 +115,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 
 		return this.resumePromise;
 	}
-	
+
 	/**
 	 * Interrupt the thread if it is running
 	 */
@@ -131,12 +132,12 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 				});
 			});
 			this.resumePromise = undefined;
-			
+
 		}
-		
+
 		return this.interruptPromise;
 	}
-	
+
 	/**
 	 * Detach the thread if it is attached
 	 */
@@ -150,11 +151,11 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 				this.connection.sendRequest({ to: this.name, type: 'detach' });
 			});
 			this.attachPromise = undefined;
-			
+
 		} else {
 			log.warn('Detaching this thread has already been requested!');
 		}
-		
+
 		return this.detachPromise;
 	}
 
@@ -179,8 +180,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 
 		return new Promise<FirefoxDebugProtocol.Frame[]>((resolve, reject) => {
 			this.pendingStackFramesRequests.enqueue({ resolve, reject });
-			this.connection.sendRequest({ 
-				to: this.name, type: 'frames', 
+			this.connection.sendRequest({
+				to: this.name, type: 'frames',
 				start, count
 			});
 		});
@@ -191,12 +192,12 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	}
 
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
-		
+
 		if (response['type'] === 'paused') {
 
 			let pausedResponse = <FirefoxDebugProtocol.ThreadPausedResponse>response;
 			log.debug(`Received paused message of type ${pausedResponse.why.type}`);
-			
+
 			switch (pausedResponse.why.type) {
 				case 'attached':
 					if (this.pendingAttachRequest) {
@@ -258,9 +259,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 				this.resumePromise = Promise.resolve(undefined);
 				this.emit('resumed');
 			}
-			
+
 		} else if (response['type'] === 'detached') {
-			
+
 			log.debug(`Thread ${this.name} detached`);
 			if (this.pendingDetachRequest) {
 				this.pendingDetachRequest.resolve(undefined);
@@ -270,7 +271,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 			}
 
 			this.pendingStackFramesRequests.rejectAll('Detached');
-			
+
 		} else if (response['sources']) {
 
 			let sources = <FirefoxDebugProtocol.Source[]>(response['sources']);
@@ -278,31 +279,35 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 			this.pendingSourcesRequests.resolveOne(sources);
 
 		} else if (response['type'] === 'newSource') {
-			
+
 			let source = <FirefoxDebugProtocol.Source>(response['source']);
 			log.debug(`New source ${source.url} on thread ${this.name}`);
-			let sourceActor = this.connection.getOrCreate(source.actor, 
+			let sourceActor = this.connection.getOrCreate(source.actor,
 				() => new SourceActorProxy(source, this.connection));
 			this.emit('newSource', sourceActor);
-			
+
 		} else if (response['frames']) {
 
 			let frames = <FirefoxDebugProtocol.Frame[]>(response['frames']);
 			log.debug(`Received ${frames.length} frames from thread ${this.name}`);
 			this.pendingStackFramesRequests.resolveOne(frames);
-			
+
+		} else if (response['type'] === 'newGlobal') {
+
+			this.emit('newGlobal');
+
 		} else if (response['type'] === 'exited') {
-			
+
 			log.debug(`Thread ${this.name} exited`);
 			this.emit('exited');
 			//TODO send release packet(?)
-			
+
 		} else if (response['error'] === 'wrongState') {
 
 			log.warn(`Thread ${this.name} was in the wrong state for the last request`);
 			//TODO reject last request!
 			this.emit('wrongState');
-			
+
 		} else if (response['error'] === 'wrongOrder') {
 
 			log.warn(`got wrongOrder error: ${response['message']}`);
@@ -312,7 +317,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 			}
 
 		} else if (response['error'] === 'noSuchActor') {
-			
+
 			log.error(`No such actor ${JSON.stringify(this.name)}`);
 			if (this.pendingAttachRequest) {
 				this.pendingAttachRequest.reject('No such actor');
@@ -336,36 +341,34 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 
 		} else {
 
-			if (response['type'] === 'newGlobal') {
-				log.debug(`Received newGlobal event from ${this.name} (ignoring)`);
-			} else if (response['type'] === 'willInterrupt') {
+			if (response['type'] === 'willInterrupt') {
 				log.debug(`Received willInterrupt event from ${this.name} (ignoring)`);
 			} else {
 				log.warn("Unknown message from ThreadActor: " + JSON.stringify(response));
-			}			
+			}
 
 		}
-			
+
 	}
 
 	/**
 	 * The paused event is only sent when the thread is paused because it hit a breakpoint or a
 	 * resumeLimit, but not if it was paused due to an interrupt request or because an evaluate
 	 * request is finished
-	 */	
+	 */
 	public onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedResponse) => void) {
 		this.on('paused', cb);
 	}
 
 	/**
 	 * The resumed event is only sent when the thread is resumed without a corresponding request
-	 * (this happens when a tab in Firefox is reloaded or navigated to a different url while 
+	 * (this happens when a tab in Firefox is reloaded or navigated to a different url while
 	 * the corresponding thread is paused)
 	 */
 	public onResumed(cb: () => void) {
 		this.on('resumed', cb);
 	}
-	
+
 	public onExited(cb: () => void) {
 		this.on('exited', cb);
 	}
@@ -376,5 +379,9 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 
 	public onNewSource(cb: (newSource: ISourceActorProxy) => void) {
 		this.on('newSource', cb);
+	}
+
+	public onNewGlobal(cb: () => void) {
+		this.on('newGlobal', cb);
 	}
 }

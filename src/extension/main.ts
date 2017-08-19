@@ -59,6 +59,10 @@ export interface NewSourceEventBody {
 	path: string | undefined;
 }
 
+export interface RemoveSourcesEventBody {
+	threadId: number;
+}
+
 function onCustomEvent(
 	event: vscode.DebugSessionCustomEvent,
 	loadedScriptsProvider: LoadedScriptsProvider
@@ -78,7 +82,11 @@ function onCustomEvent(
 			case 'newSource':
 				loadedScriptsProvider.addSource(<NewSourceEventBody>event.body, event.session.id);
 				break;
-			}
+
+			case 'removeSources':
+				loadedScriptsProvider.removeSources((<RemoveSourcesEventBody>event.body).threadId, event.session.id);
+				break;
+		}
 	}
 }
 

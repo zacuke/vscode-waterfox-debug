@@ -209,6 +209,10 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		this.on('newSource', cb);
 	}
 
+	public onNewGlobal(cb: () => void): void {
+		this.underlyingActorProxy.onNewGlobal(cb);
+	}
+
 	public dispose(): void {
 		this.underlyingActorProxy.dispose();
 	}

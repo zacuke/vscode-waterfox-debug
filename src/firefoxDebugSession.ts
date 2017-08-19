@@ -14,7 +14,7 @@ import { PathMapper, urlDetector } from './util/pathMapper';
 import { isWindowsPlatform as detectWindowsPlatform } from './util/misc';
 import { tryRemoveRepeatedly } from './util/fs';
 import { connect, waitForSocket } from './util/net';
-import { NewSourceEventBody, ThreadStartedEventBody, ThreadExitedEventBody } from "./extension/main";
+import { NewSourceEventBody, ThreadStartedEventBody, ThreadExitedEventBody, RemoveSourcesEventBody } from "./extension/main";
 
 let log = Log.create('FirefoxDebugSession');
 let consoleActorLog = Log.create('ConsoleActor');
@@ -367,6 +367,12 @@ export class FirefoxDebugSession {
 
 		threadAdapter.onNewSource((sourceActor) => {
 			this.attachSource(sourceActor, threadAdapter);
+		});
+
+		threadAdapter.actor.onNewGlobal(() => {
+			this.sendEvent(new Event('removeSources', <RemoveSourcesEventBody>{
+				threadId: threadAdapter.id
+			}));
 		});
 
 		threadAdapter.onPaused((reason) => {

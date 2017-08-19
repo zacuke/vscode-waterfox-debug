@@ -34,6 +34,10 @@ export class LoadedScriptsProvider implements vscode.TreeDataProvider<SourceTree
 		this.root.addSource(sourceInfo, sessionId);
 	}
 
+	public removeSources(threadId: number, sessionId: string) {
+		this.root.removeSources(threadId, sessionId);
+	}
+
 	public removeThreads(sessionId: string) {
 		this.root.removeThreads(sessionId);
 	}
@@ -93,6 +97,17 @@ class RootTreeItem extends SourceTreeItem {
 			let filename = path.pop()!;
 
 			threadItem.addSource(filename, path);
+		}
+	}
+
+	public removeSources(threadId: number, sessionId: string) {
+
+		let threadItem = this.children.find(
+			(child) => ((child.sessionId === sessionId) && (child.threadId === threadId))
+		);
+
+		if (threadItem) {
+			threadItem.removeSources();
 		}
 	}
 
@@ -211,6 +226,11 @@ class ThreadTreeItem extends NonLeafSourceTreeItem {
 	) {
 		super(treeDataChanged, threadInfo.name);
 		this.threadId = threadInfo.id;
+	}
+
+	public removeSources() {
+		this.children = [];
+		this.treeDataChanged.fire(this);
 	}
 }
 
