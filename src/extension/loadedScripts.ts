@@ -61,6 +61,7 @@ class RootTreeItem extends SourceTreeItem {
 	}
 
 	public getChildren(): SourceTreeItem[] {
+		this.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
 		return this.children;
 	}
 
@@ -194,6 +195,7 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 	}
 
 	public getChildren(): SourceTreeItem[] {
+		this.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
 		return this.children;
 	}
 
