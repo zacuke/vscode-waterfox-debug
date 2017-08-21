@@ -115,6 +115,14 @@
       {
         "command": "extension.firefox.toggleSkippingFile",
         "title": "Toggle skipping this file"
+      },
+      {
+        "command": "extension.firefox.openLocalScript",
+        "title": "Open local script"
+      },
+      {
+        "command": "extension.firefox.openRemoteScript",
+        "title": "Open remote script"
       }
     ],
     "menus": {

@@ -96,7 +96,7 @@ class RootTreeItem extends SourceTreeItem {
 			let path = sourceInfo.url.split('/');
 			let filename = path.pop()!;
 
-			threadItem.addSource(filename, path);
+			threadItem.addSource(filename, path, sourceInfo, sessionId);
 		}
 	}
 
@@ -130,12 +130,17 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 		super(label);
 	}
 
-	public addSource(filename: string, path: string[] = []): void {
+	public addSource(
+		filename: string,
+		path: string[],
+		sourceInfo: NewSourceEventBody,
+		sessionId: string
+	): void {
 
 		if (path.length === 0) {
 
 			// add the source file to this directory (not a subdirectory)
-			this.addChild(new SourceFileTreeItem(filename));
+			this.addChild(new SourceFileTreeItem(filename, sourceInfo, sessionId));
 			this.treeDataChanged.fire(this);
 			return;
 
@@ -152,7 +157,7 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 			// there is no subdirectory that shares an initial path segment with the path to be added,
 			// so we create a SourceDirectoryTreeItem for the path and add the source file to it
 			let directoryItem = new SourceDirectoryTreeItem(this.treeDataChanged, path);
-			directoryItem.addSource(filename);
+			directoryItem.addSource(filename, [], sourceInfo, sessionId);
 			this.addChild(directoryItem);
 			this.treeDataChanged.fire(this);
 			return;
@@ -175,7 +180,7 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 
 			// the entire path of the subdirectory item is contained in the path of the file to be
 			// added, so we add the file with the pathRest to the subdirectory item
-			item.addSource(filename, pathRest);
+			item.addSource(filename, pathRest, sourceInfo, sessionId);
 			return;
 
 		}
@@ -183,7 +188,7 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 		// only a part of the path of the subdirectory item is contained in the path of the file to
 		// be added, so we split the subdirectory item into two and add the file to the first item
 		item.split(pathMatchLength);
-		item.addSource(filename, pathRest);
+		item.addSource(filename, pathRest, sourceInfo, sessionId);
 		this.treeDataChanged.fire(this);
 
 	}
@@ -262,8 +267,29 @@ class SourceDirectoryTreeItem extends NonLeafSourceTreeItem {
 
 class SourceFileTreeItem extends SourceTreeItem {
 
-	public constructor(filename: string) {
+	public constructor(
+		filename: string,
+		sourceInfo: NewSourceEventBody,
+		sessionId: string
+	) {
 		super(filename, vscode.TreeItemCollapsibleState.None);
+
+		if (sourceInfo.path) {
+
+			this.command = {
+				command: 'extension.firefox.openLocalScript',
+				arguments: [ sourceInfo.path, sessionId ],
+				title: ''
+			}
+
+		} else {
+
+			this.command = {
+				command: 'extension.firefox.openRemoteScript',
+				arguments: [ filename, sourceInfo.sourceId, sessionId ],
+				title: ''
+			}
+		}
 	}
 
 	public getChildren(): SourceTreeItem[] {

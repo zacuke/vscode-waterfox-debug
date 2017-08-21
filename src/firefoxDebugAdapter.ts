@@ -130,7 +130,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected async getSource(args: DebugProtocol.SourceArguments): Promise<{ content: string, mimeType?: string }> {
 
-		let sourceAdapter = this.session.sources.find(args.sourceReference);
+		let sourceReference = (args.sourceReference !== undefined) ? args.sourceReference : Number(args.source!.path!.split('/')[0]);
+		let sourceAdapter = this.session.sources.find(sourceReference);
+
 		if (!sourceAdapter) {
 			throw new Error('Failed sourceRequest: the requested source reference can\'t be found');
 		}

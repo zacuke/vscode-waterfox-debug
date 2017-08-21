@@ -10,9 +10,17 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand(
 		'extension.firefox.rebuildAndReloadAddon', () => sendCustomRequest('rebuildAndReloadAddon')
 	));
-	
+
 	context.subscriptions.push(vscode.commands.registerCommand(
 		'extension.firefox.toggleSkippingFile', (path) => sendCustomRequest('toggleSkippingFile', path)
+	));
+
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'extension.firefox.openLocalScript', openLocalScript
+	));
+
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'extension.firefox.openRemoteScript', openRemoteScript
 	));
 
 	let loadedScriptsProvider = new LoadedScriptsProvider();
@@ -97,4 +105,13 @@ function onDidTerminateSession(
 	if (session.type === 'firefox') {
 		loadedScriptsProvider.removeThreads(session.id);
 	}
+}
+
+function openLocalScript(path: string, sessionId: string) {
+	vscode.workspace.openTextDocument(path).then((doc) => vscode.window.showTextDocument(doc));
+}
+
+function openRemoteScript(filename: string, sourceId: number, sessionId: string) {
+	let uri = vscode.Uri.parse(`debug:${sourceId}/${filename.split('?')[0]}?session=${sessionId}`);
+	vscode.workspace.openTextDocument(uri).then((doc) => vscode.window.showTextDocument(doc));
 }
