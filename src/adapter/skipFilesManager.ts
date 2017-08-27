@@ -77,7 +77,7 @@ export class SkipFilesManager {
 
 		for (const [, thread] of this.threads) {
 
-			let sourceAdapters = thread.findSourceAdaptersForPath(pathOrUrl, true);
+			let sourceAdapters = thread.findSourceAdaptersForPathOrUrl(pathOrUrl);
 
 			for (const sourceAdapter of sourceAdapters) {
 				if (sourceAdapter.actor.source.isBlackBoxed !== skipFile) {

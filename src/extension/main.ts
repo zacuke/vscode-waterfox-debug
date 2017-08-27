@@ -12,7 +12,7 @@ export function activate(context: vscode.ExtensionContext) {
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.toggleSkippingFile', (path) => sendCustomRequest('toggleSkippingFile', path)
+		'extension.firefox.toggleSkippingFile', (url) => sendCustomRequest('toggleSkippingFile', url)
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(

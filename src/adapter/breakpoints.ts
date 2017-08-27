@@ -8,7 +8,7 @@ let log = Log.create('BreakpointsAdapter');
 export class BreakpointsAdapter {
 
 	private nextBreakpointId = 1;
-	private breakpointsBySourcePath = new Map<string, BreakpointInfo[]>();
+	private breakpointsBySourcePathOrUrl = new Map<string, BreakpointInfo[]>();
 	private verifiedBreakpointSources: string[] = [];
 
 	public constructor(
@@ -20,8 +20,9 @@ export class BreakpointsAdapter {
 		let breakpoints = args.breakpoints || [];
 		log.debug(`Setting ${breakpoints.length} breakpoints for ${args.source.path}`);
 
-		const sourcePath = args.source.path;
-		if (sourcePath === undefined) {
+		// pathOrUrl is a path for local sources and a url (as seen by Firefox) for remote sources
+		const pathOrUrl = args.source.path;
+		if (pathOrUrl === undefined) {
 			throw 'Couldn\'t set breakpoint: unknown source path';
 		}
 
@@ -32,23 +33,23 @@ export class BreakpointsAdapter {
 			condition: breakpoint.condition
 		});
 
-		this.breakpointsBySourcePath.set(sourcePath, breakpointInfos);
+		this.breakpointsBySourcePathOrUrl.set(pathOrUrl, breakpointInfos);
 		this.verifiedBreakpointSources = this.verifiedBreakpointSources.filter(
-			(verifiedSourcePath) => (verifiedSourcePath !== sourcePath));
+			(verifiedSourcePath) => (verifiedSourcePath !== pathOrUrl));
 
 		return new Promise<{ breakpoints: DebugProtocol.Breakpoint[] }>((resolve, reject) => {
 
 			for (let [, threadAdapter] of this.threads) {
 
-				let sourceAdapters = threadAdapter.findSourceAdaptersForPath(sourcePath);
+				let sourceAdapters = threadAdapter.findSourceAdaptersForPathOrUrl(pathOrUrl);
 				for (let sourceAdapter of sourceAdapters) {
 
-					log.debug(`Found source ${sourcePath} on tab ${threadAdapter.actorName}`);
+					log.debug(`Found source ${pathOrUrl} on tab ${threadAdapter.actorName}`);
 
 					let setBreakpointsPromise = this.setBreakpointsOnSourceActor(
 						breakpointInfos, sourceAdapter, threadAdapter.coordinator);
 
-					if (this.verifiedBreakpointSources.indexOf(sourcePath) < 0) {
+					if (this.verifiedBreakpointSources.indexOf(pathOrUrl) < 0) {
 
 						setBreakpointsPromise.then(
 							(breakpointAdapters) => {
@@ -67,13 +68,13 @@ export class BreakpointsAdapter {
 								});
 							});
 
-						this.verifiedBreakpointSources.push(sourcePath);
+						this.verifiedBreakpointSources.push(pathOrUrl);
 					}
 				}
 			}
 
-			if (this.verifiedBreakpointSources.indexOf(sourcePath) < 0) {
-				log.debug (`Replying to setBreakpointsRequest (Source ${sourcePath} not seen yet)`);
+			if (this.verifiedBreakpointSources.indexOf(pathOrUrl) < 0) {
+				log.debug (`Replying to setBreakpointsRequest (Source ${pathOrUrl} not seen yet)`);
 
 				resolve({
 					breakpoints: breakpointInfos.map((breakpointInfo) => {
@@ -93,9 +94,9 @@ export class BreakpointsAdapter {
 	): void {
 
 		const sourcePath = sourceAdapter.sourcePath;
-		if (sourcePath && this.breakpointsBySourcePath.has(sourcePath)) {
+		if (sourcePath && this.breakpointsBySourcePathOrUrl.has(sourcePath)) {
 
-			let breakpointInfos = this.breakpointsBySourcePath.get(sourcePath) || [];
+			let breakpointInfos = this.breakpointsBySourcePathOrUrl.get(sourcePath) || [];
 
 			if (sourceAdapter !== undefined) {
 

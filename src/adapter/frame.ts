@@ -29,9 +29,7 @@ export class FrameAdapter {
 		let firefoxSource = this.frame.where.source;
 		let sourceActorName = firefoxSource.actor;
 
-		let sourcePath = this.threadAdapter.debugSession.pathMapper.convertFirefoxSourceToPath(firefoxSource);
 		let sourceName = '';
-
 		if (firefoxSource.url != null) {
 			sourceName = firefoxSource.url.split('/').pop()!.split('#')[0];
 		} else if (this.frame.type === 'eval') {
@@ -47,8 +45,8 @@ export class FrameAdapter {
 		}
 
 		let source: Source;
-		if (sourcePath !== undefined) {
-			source = new Source(sourceName, sourcePath);
+		if (sourceAdapter.sourcePath !== undefined) {
+			source = new Source(sourceName, sourceAdapter.sourcePath);
 		} else {
 			source = new Source(sourceName, firefoxSource.url || undefined, sourceAdapter.id);
 		}

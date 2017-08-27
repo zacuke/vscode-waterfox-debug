@@ -395,7 +395,6 @@ export class FirefoxDebugSession {
 	private attachSource(sourceActor: ISourceActorProxy, threadAdapter: ThreadAdapter): void {
 
 		const source = sourceActor.source;
-		const sourcePath = this.pathMapper.convertFirefoxSourceToPath(source);
 		let sourceAdapter = threadAdapter.findCorrespondingSourceAdapter(source);
 
 		if (sourceAdapter !== undefined) {
@@ -404,6 +403,7 @@ export class FirefoxDebugSession {
 
 		} else {
 
+			let sourcePath = this.pathMapper.convertFirefoxSourceToPath(source);
 			sourceAdapter = threadAdapter.createSourceAdapter(sourceActor, sourcePath);
 
 		}
@@ -417,8 +417,8 @@ export class FirefoxDebugSession {
 
 		// check if this source should be skipped
 		let skipThisSource: boolean | undefined = undefined;
-		if (sourcePath !== undefined) {
-			skipThisSource = this.skipFilesManager.shouldSkipPath(sourcePath);
+		if (sourceAdapter.sourcePath !== undefined) {
+			skipThisSource = this.skipFilesManager.shouldSkipPath(sourceAdapter.sourcePath);
 		} else if (source.generatedUrl && (!source.url || !urlDetector.test(source.url))) {
 			skipThisSource = this.skipFilesManager.shouldSkipUrl(source.generatedUrl);
 		} else if (source.url) {

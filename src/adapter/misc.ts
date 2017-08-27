@@ -15,7 +15,7 @@ export class SourceAdapter {
 	public constructor(
 		sourceRegistry: Registry<SourceAdapter>,
 		public actor: ISourceActorProxy,
-		public readonly sourcePath?: string
+		public readonly sourcePath: string | undefined
 	) {
 		this.id = sourceRegistry.register(this);
 		this.breakpointsPromise = Promise.resolve([]);

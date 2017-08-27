@@ -84,7 +84,7 @@ export class ThreadAdapter extends EventEmitter {
 		}
 	}
 
-	public createSourceAdapter(actor: ISourceActorProxy, path?: string): SourceAdapter {
+	public createSourceAdapter(actor: ISourceActorProxy, path: string | undefined): SourceAdapter {
 		let adapter = new SourceAdapter(this.debugSession.sources, actor, path);
 		this.sources.push(adapter);
 		return adapter;
@@ -114,19 +114,12 @@ export class ThreadAdapter extends EventEmitter {
 		return undefined;
 	}
 
-	public findSourceAdaptersForPath(
-		path: string | undefined,
-		checkUrl = false
-	): SourceAdapter[] {
+	public findSourceAdaptersForPathOrUrl(path: string | undefined): SourceAdapter[] {
 
 		if (!path) return [];
 
 		return this.sources.filter((sourceAdapter) => {
-			if (sourceAdapter.sourcePath) {
-				return (sourceAdapter.sourcePath === path);
-			} else {
-				return checkUrl && (sourceAdapter.actor.url === path);
-			}
+			return (sourceAdapter.sourcePath === path) || (sourceAdapter.actor.url === path);
 		});
 	}
 

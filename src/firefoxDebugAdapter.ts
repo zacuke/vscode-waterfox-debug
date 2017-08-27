@@ -352,6 +352,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		await this.session.addonManager.rebuildAddon();
 	}
 
+	// url is a file:// url for local sources and the original url (as seen by Firefox) for remote sources
 	protected async toggleSkippingFile(url: string): Promise<void> {
 
 		if (url.startsWith('file://')) {
