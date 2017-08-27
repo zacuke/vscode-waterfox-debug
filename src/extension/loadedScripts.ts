@@ -3,13 +3,12 @@ import { ThreadStartedEventBody, NewSourceEventBody } from "./main";
 
 export class LoadedScriptsProvider implements vscode.TreeDataProvider<SourceTreeItem> {
 
-	private readonly root: RootTreeItem;
+	private readonly root = new RootTreeItem();
 
 	private readonly treeDataChanged = new vscode.EventEmitter<SourceTreeItem>();
 	public readonly onDidChangeTreeData: vscode.Event<SourceTreeItem>;
 
 	public constructor() {
-		this.root = new RootTreeItem(this.treeDataChanged);
 		this.onDidChangeTreeData = this.treeDataChanged.event;
 	}
 
@@ -23,23 +22,38 @@ export class LoadedScriptsProvider implements vscode.TreeDataProvider<SourceTree
 	}
 
 	public addThread(threadInfo: ThreadStartedEventBody, sessionId: string) {
-		this.root.addThread(threadInfo, sessionId);
+		let changedItem = this.root.addThread(threadInfo, sessionId);
+		this.sendTreeDataChangedEvent(changedItem);
 	}
 
 	public removeThread(threadId: number, sessionId: string) {
-		this.root.removeThread(threadId, sessionId);
+		let changedItem = this.root.removeThread(threadId, sessionId);
+		this.sendTreeDataChangedEvent(changedItem);
 	}
 
 	public addSource(sourceInfo: NewSourceEventBody, sessionId: string) {
-		this.root.addSource(sourceInfo, sessionId);
+		let changedItem = this.root.addSource(sourceInfo, sessionId);
+		this.sendTreeDataChangedEvent(changedItem);
 	}
 
 	public removeSources(threadId: number, sessionId: string) {
-		this.root.removeSources(threadId, sessionId);
+		let changedItem = this.root.removeSources(threadId, sessionId);
+		this.sendTreeDataChangedEvent(changedItem);
 	}
 
 	public removeThreads(sessionId: string) {
-		this.root.removeThreads(sessionId);
+		let changedItem = this.root.removeThreads(sessionId);
+		this.sendTreeDataChangedEvent(changedItem);
+	}
+
+	private sendTreeDataChangedEvent(changedItem: SourceTreeItem | undefined) {
+		if (changedItem) {
+			if (changedItem === this.root) {
+				this.treeDataChanged.fire();
+			} else {
+				this.treeDataChanged.fire(changedItem);
+			}
+		}
 	}
 }
 
@@ -57,7 +71,7 @@ class RootTreeItem extends SourceTreeItem {
 	private children: ThreadTreeItem[] = [];
 	private showThreads = false;
 
-	public constructor(private treeDataChanged: vscode.EventEmitter<SourceTreeItem>) {
+	public constructor() {
 		super('');
 	}
 
@@ -79,31 +93,43 @@ class RootTreeItem extends SourceTreeItem {
 		}
 	}
 
-	public addThread(threadInfo: ThreadStartedEventBody, sessionId: string) {
+	public addThread(
+		threadInfo: ThreadStartedEventBody,
+		sessionId: string
+	): SourceTreeItem | undefined {
 
 		if (!this.children.some((child) => (child.threadId === threadInfo.id))) {
 
 			let index = this.children.findIndex((child) => (child.label > threadInfo.name));
 			if (index < 0) index = this.children.length;
 
-			this.children.splice(index, 0, new ThreadTreeItem(this.treeDataChanged, threadInfo, sessionId));
+			this.children.splice(index, 0, new ThreadTreeItem(threadInfo, sessionId));
 
-			this.treeDataChanged.fire();
+			return this;
+
+		} else {
+			return undefined;
 		}
 	}
 
-	public removeThread(threadId: number, sessionId: string) {
+	public removeThread(
+		threadId: number,
+		sessionId: string
+	): SourceTreeItem | undefined {
 
 		this.children = this.children.filter(
 			(child) => ((child.sessionId !== sessionId) || (child.threadId !== threadId))
 		);
 
-		this.treeDataChanged.fire();
+		return this;
 	}
 
-	public addSource(sourceInfo: NewSourceEventBody, sessionId: string) {
+	public addSource(
+		sourceInfo: NewSourceEventBody,
+		sessionId: string
+	): SourceTreeItem | undefined {
 
-		if (!sourceInfo.url) return;
+		if (!sourceInfo.url) return undefined;
 
 		let threadItem = this.children.find(
 			(child) => ((child.sessionId === sessionId) && (child.threadId === sourceInfo.threadId))
@@ -114,26 +140,36 @@ class RootTreeItem extends SourceTreeItem {
 			let path = sourceInfo.url.split('/');
 			let filename = path.pop()!;
 
-			threadItem.addSource(filename, path, sourceInfo, sessionId);
+			return threadItem.addSource(filename, path, sourceInfo, sessionId);
+
+		} else {
+			return undefined;
 		}
 	}
 
-	public removeSources(threadId: number, sessionId: string) {
+	public removeSources(
+		threadId: number,
+		sessionId: string
+	): SourceTreeItem | undefined {
 
 		let threadItem = this.children.find(
 			(child) => ((child.sessionId === sessionId) && (child.threadId === threadId))
 		);
 
 		if (threadItem) {
-			threadItem.removeSources();
+			return threadItem.removeSources();
+		} else {
+			return undefined;
 		}
 	}
 
-	public removeThreads(sessionId: string) {
+	public removeThreads(
+		sessionId: string
+	): SourceTreeItem | undefined {
 
 		this.children = this.children.filter((child) => (child.sessionId !== sessionId));
 
-		this.treeDataChanged.fire();
+		return this;
 	}
 }
 
@@ -141,10 +177,7 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 
 	protected children: (SourceDirectoryTreeItem | SourceFileTreeItem)[] = [];
 
-	public constructor(
-		protected treeDataChanged: vscode.EventEmitter<SourceTreeItem>,
-		label: string
-	) {
+	public constructor(label: string) {
 		super(label);
 	}
 
@@ -153,14 +186,13 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 		path: string[],
 		sourceInfo: NewSourceEventBody,
 		sessionId: string
-	): void {
+	): SourceTreeItem | undefined {
 
 		if (path.length === 0) {
 
 			// add the source file to this directory (not a subdirectory)
 			this.addChild(new SourceFileTreeItem(filename, sourceInfo, sessionId));
-			this.treeDataChanged.fire(this);
-			return;
+			return this;
 
 		}
 
@@ -174,11 +206,10 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 
 			// there is no subdirectory that shares an initial path segment with the path to be added,
 			// so we create a SourceDirectoryTreeItem for the path and add the source file to it
-			let directoryItem = new SourceDirectoryTreeItem(this.treeDataChanged, path);
+			let directoryItem = new SourceDirectoryTreeItem(path);
 			directoryItem.addSource(filename, [], sourceInfo, sessionId);
 			this.addChild(directoryItem);
-			this.treeDataChanged.fire(this);
-			return;
+			return this;
 
 		}
 
@@ -198,8 +229,7 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 
 			// the entire path of the subdirectory item is contained in the path of the file to be
 			// added, so we add the file with the pathRest to the subdirectory item
-			item.addSource(filename, pathRest, sourceInfo, sessionId);
-			return;
+			return item.addSource(filename, pathRest, sourceInfo, sessionId);
 
 		}
 
@@ -207,7 +237,7 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 		// be added, so we split the subdirectory item into two and add the file to the first item
 		item.split(pathMatchLength);
 		item.addSource(filename, pathRest, sourceInfo, sessionId);
-		this.treeDataChanged.fire(this);
+		return this;
 
 	}
 
@@ -219,7 +249,7 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 	/**
 	 * add a child item, respecting the sort order
 	 */
-	private addChild(newChild: SourceDirectoryTreeItem | SourceFileTreeItem) {
+	private addChild(newChild: SourceDirectoryTreeItem | SourceFileTreeItem): void {
 
 		let index: number;
 
@@ -244,43 +274,37 @@ class ThreadTreeItem extends NonLeafSourceTreeItem {
 	public readonly threadId: number;
 
 	public constructor(
-		treeDataChanged: vscode.EventEmitter<SourceTreeItem>,
 		threadInfo: ThreadStartedEventBody,
 		public readonly sessionId: string
 	) {
-		super(treeDataChanged, threadInfo.name);
+		super(threadInfo.name);
 		this.threadId = threadInfo.id;
 	}
 
-	public removeSources() {
+	public removeSources(): SourceTreeItem | undefined {
 		this.children = [];
-		this.treeDataChanged.fire(this);
+		return this;
 	}
 }
 
 class SourceDirectoryTreeItem extends NonLeafSourceTreeItem {
 
-	public constructor(
-		treeDataChanged: vscode.EventEmitter<SourceTreeItem>,
-		public path: string[]
-	) {
-		super(treeDataChanged, path.join('/'));
+	public constructor(public path: string[]) {
+		super(path.join('/'));
 	}
 
 	/**
 	 * split this item into two items with this item representing the initial path segment of length
 	 * `atIndex` and the new child item representing the rest of the path
 	 */
-	public split(atIndex: number) {
+	public split(atIndex: number): void {
 
-		let newChild = new SourceDirectoryTreeItem(this.treeDataChanged, this.path.slice(atIndex));
+		let newChild = new SourceDirectoryTreeItem(this.path.slice(atIndex));
 		newChild.children = this.children;
 
 		this.path.splice(atIndex);
 		this.children = [ newChild ];
 		this.label = this.path.join('/');
-
-		this.treeDataChanged.fire(this);
 	}
 }
 
