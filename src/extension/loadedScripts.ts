@@ -140,7 +140,13 @@ class RootTreeItem extends SourceTreeItem {
 			let path = sourceInfo.url.split('/');
 			let filename = path.pop()!;
 
-			return threadItem.addSource(filename, path, sourceInfo, sessionId);
+			let changedItem = threadItem.addSource(filename, path, sourceInfo, sessionId);
+
+			if (!this.showThreads && (changedItem === threadItem)) {
+				return this;
+			} else {
+				return changedItem;
+			}
 
 		} else {
 			return undefined;
