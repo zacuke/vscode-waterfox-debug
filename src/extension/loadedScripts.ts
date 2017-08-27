@@ -21,6 +21,16 @@ export class LoadedScriptsProvider implements vscode.TreeDataProvider<SourceTree
 		return parent.getChildren();
 	}
 
+	public addSession(session: vscode.DebugSession) {
+		let changedItem = this.root.addSession(session);
+		this.sendTreeDataChangedEvent(changedItem);
+	}
+
+	public removeSession(sessionId: string) {
+		let changedItem = this.root.removeSession(sessionId);
+		this.sendTreeDataChangedEvent(changedItem);
+	}
+
 	public addThread(threadInfo: ThreadStartedEventBody, sessionId: string) {
 		let changedItem = this.root.addThread(threadInfo, sessionId);
 		this.sendTreeDataChangedEvent(changedItem);
@@ -38,11 +48,6 @@ export class LoadedScriptsProvider implements vscode.TreeDataProvider<SourceTree
 
 	public removeSources(threadId: number, sessionId: string) {
 		let changedItem = this.root.removeSources(threadId, sessionId);
-		this.sendTreeDataChangedEvent(changedItem);
-	}
-
-	public removeThreads(sessionId: string) {
-		let changedItem = this.root.removeThreads(sessionId);
 		this.sendTreeDataChangedEvent(changedItem);
 	}
 
@@ -68,18 +73,180 @@ abstract class SourceTreeItem extends vscode.TreeItem {
 
 class RootTreeItem extends SourceTreeItem {
 
-	private children: ThreadTreeItem[] = [];
-	private showThreads = false;
+	private children: SessionTreeItem[] = [];
+	private showSessions = false;
 
 	public constructor() {
 		super('');
+	}
+
+	public addSession(session: SessionInfo): SourceTreeItem | undefined {
+
+		if (!this.children.some((child) => (child.id === session.id))) {
+
+			let index = this.children.findIndex((child) => (child.label > session.name));
+			if (index < 0) index = this.children.length;
+
+			this.children.splice(index, 0, new SessionTreeItem(session));
+
+			return this;
+
+		} else {
+			return undefined;
+		}
+	}
+
+	public removeSession(sessionId: string): SourceTreeItem | undefined {
+
+		this.children = this.children.filter((child) => (child.id !== sessionId));
+		return this;
+
+	}
+
+	public addThread(
+		threadInfo: ThreadStartedEventBody,
+		sessionId: string
+	): SourceTreeItem | undefined {
+
+		// the extension misses the very first didStartSession event, so we simulate it here
+		if (this.children.length == 0) {
+			this.addSession({ id: sessionId, type: 'firefox', name: 'Debug Session' });
+		}
+
+		let sessionItem = this.children.find((child) => (child.id === sessionId));
+		return sessionItem ? this.fixChangedItem(sessionItem.addThread(threadInfo)) : undefined;
+
+	}
+
+	public removeThread(
+		threadId: number,
+		sessionId: string
+	): SourceTreeItem | undefined {
+
+		let sessionItem = this.children.find((child) => (child.id === sessionId));
+		return sessionItem ? this.fixChangedItem(sessionItem.removeThread(threadId)) : undefined;
+
+	}
+
+	public addSource(
+		sourceInfo: NewSourceEventBody,
+		sessionId: string
+	): SourceTreeItem | undefined {
+
+		let sessionItem = this.children.find((child) => (child.id === sessionId));
+		return sessionItem ? this.fixChangedItem(sessionItem.addSource(sourceInfo)) : undefined;
+
+	}
+
+	public removeSources(threadId: number, sessionId: string): SourceTreeItem | undefined {
+
+		let sessionItem = this.children.find((child) => (child.id === sessionId));
+		return sessionItem ? this.fixChangedItem(sessionItem.removeSources(threadId)) : undefined;
+
 	}
 
 	public getChildren(): SourceTreeItem[] {
 
 		this.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
 
-		if (this.showThreads || this.children.length > 1) {
+		if (this.showSessions || (this.children.length > 1)) {
+
+			this.showSessions = true;
+			return this.children;
+
+		} else if (this.children.length == 1) {
+
+			return this.children[0].getChildren();
+
+		} else {
+			return [];
+		}
+	}
+
+	private fixChangedItem(changedItem: SourceTreeItem | undefined): SourceTreeItem | undefined {
+
+		if (!changedItem) return undefined;
+
+		if (!this.showSessions && (changedItem instanceof SessionTreeItem)) {
+			return this;
+		} else {
+			return changedItem;
+		}
+	}
+}
+
+interface SessionInfo {
+	id: string;
+	type: string;
+	name: string;
+}
+
+class SessionTreeItem extends SourceTreeItem {
+
+	protected children: ThreadTreeItem[] = [];
+	private showThreads = false;
+	
+	public get id() {
+		return this.session.id;
+	}
+
+	public constructor(private session: SessionInfo) {
+		super(session.name);
+	}
+
+	public addThread(threadInfo: ThreadStartedEventBody): SourceTreeItem | undefined {
+
+		if (!this.children.some((child) => (child.id === threadInfo.id))) {
+
+			let index = this.children.findIndex((child) => (child.label > threadInfo.name));
+			if (index < 0) index = this.children.length;
+
+			this.children.splice(index, 0, new ThreadTreeItem(threadInfo));
+
+			return this;
+
+		} else {
+			return undefined;
+		}
+	}
+
+	public removeThread(threadId: number): SourceTreeItem | undefined {
+
+		this.children = this.children.filter((child) => (child.id !== threadId));
+
+		return this;
+	}
+
+	public addSource(sourceInfo: NewSourceEventBody): SourceTreeItem | undefined {
+
+		if (!sourceInfo.url) return undefined;
+
+		let threadItem = this.children.find((child) => (child.id === sourceInfo.threadId));
+
+		if (threadItem) {
+
+			let path = sourceInfo.url.split('/');
+			let filename = path.pop()!;
+
+			return this.fixChangedItem(threadItem.addSource(filename, path, sourceInfo, this.id));
+
+		} else {
+			return undefined;
+		}
+	}
+
+	public removeSources(threadId: number): SourceTreeItem | undefined {
+
+		let threadItem = this.children.find((child) => (child.id === threadId));
+		return threadItem ? threadItem.removeSources() : undefined;
+
+	}
+
+	public getChildren(): SourceTreeItem[] {
+
+		this.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+
+		if (this.showThreads || (this.children.length > 1)) {
 
 			this.showThreads = true;
 			return this.children;
@@ -93,89 +260,15 @@ class RootTreeItem extends SourceTreeItem {
 		}
 	}
 
-	public addThread(
-		threadInfo: ThreadStartedEventBody,
-		sessionId: string
-	): SourceTreeItem | undefined {
+	private fixChangedItem(changedItem: SourceTreeItem | undefined): SourceTreeItem | undefined {
 
-		if (!this.children.some((child) => (child.threadId === threadInfo.id))) {
+		if (!changedItem) return undefined;
 
-			let index = this.children.findIndex((child) => (child.label > threadInfo.name));
-			if (index < 0) index = this.children.length;
-
-			this.children.splice(index, 0, new ThreadTreeItem(threadInfo, sessionId));
-
+		if (!this.showThreads && (changedItem instanceof ThreadTreeItem)) {
 			return this;
-
 		} else {
-			return undefined;
+			return changedItem;
 		}
-	}
-
-	public removeThread(
-		threadId: number,
-		sessionId: string
-	): SourceTreeItem | undefined {
-
-		this.children = this.children.filter(
-			(child) => ((child.sessionId !== sessionId) || (child.threadId !== threadId))
-		);
-
-		return this;
-	}
-
-	public addSource(
-		sourceInfo: NewSourceEventBody,
-		sessionId: string
-	): SourceTreeItem | undefined {
-
-		if (!sourceInfo.url) return undefined;
-
-		let threadItem = this.children.find(
-			(child) => ((child.sessionId === sessionId) && (child.threadId === sourceInfo.threadId))
-		);
-
-		if (threadItem) {
-
-			let path = sourceInfo.url.split('/');
-			let filename = path.pop()!;
-
-			let changedItem = threadItem.addSource(filename, path, sourceInfo, sessionId);
-
-			if (!this.showThreads && (changedItem === threadItem)) {
-				return this;
-			} else {
-				return changedItem;
-			}
-
-		} else {
-			return undefined;
-		}
-	}
-
-	public removeSources(
-		threadId: number,
-		sessionId: string
-	): SourceTreeItem | undefined {
-
-		let threadItem = this.children.find(
-			(child) => ((child.sessionId === sessionId) && (child.threadId === threadId))
-		);
-
-		if (threadItem) {
-			return threadItem.removeSources();
-		} else {
-			return undefined;
-		}
-	}
-
-	public removeThreads(
-		sessionId: string
-	): SourceTreeItem | undefined {
-
-		this.children = this.children.filter((child) => (child.sessionId !== sessionId));
-
-		return this;
 	}
 }
 
@@ -277,14 +370,11 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 
 class ThreadTreeItem extends NonLeafSourceTreeItem {
 
-	public readonly threadId: number;
+	public readonly id: number;
 
-	public constructor(
-		threadInfo: ThreadStartedEventBody,
-		public readonly sessionId: string
-	) {
+	public constructor(threadInfo: ThreadStartedEventBody) {
 		super(threadInfo.name);
-		this.threadId = threadInfo.id;
+		this.id = threadInfo.id;
 	}
 
 	public removeSources(): SourceTreeItem | undefined {

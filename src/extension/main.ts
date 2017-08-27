@@ -29,6 +29,10 @@ export function activate(context: vscode.ExtensionContext) {
 		(event) => onCustomEvent(event, loadedScriptsProvider)
 	));
 
+	context.subscriptions.push(vscode.debug.onDidStartDebugSession(
+		(session) => onDidStartSession(session, loadedScriptsProvider)
+	));
+
 	context.subscriptions.push(vscode.debug.onDidTerminateDebugSession(
 		(session) => onDidTerminateSession(session, loadedScriptsProvider)
 	));
@@ -98,12 +102,21 @@ function onCustomEvent(
 	}
 }
 
+function onDidStartSession(
+	session: vscode.DebugSession,
+	loadedScriptsProvider: LoadedScriptsProvider
+) {
+	if (session.type === 'firefox') {
+		loadedScriptsProvider.addSession(session);
+	}
+}
+
 function onDidTerminateSession(
 	session: vscode.DebugSession,
 	loadedScriptsProvider: LoadedScriptsProvider
 ) {
 	if (session.type === 'firefox') {
-		loadedScriptsProvider.removeThreads(session.id);
+		loadedScriptsProvider.removeSession(session.id);
 	}
 }
 
