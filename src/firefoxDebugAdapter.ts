@@ -141,14 +141,14 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		if (typeof sourceGrip === 'string') {
 
-			return { content: sourceGrip };
+			return { content: sourceGrip, mimeType: 'text/javascript' };
 
 		} else {
 
 			let longStringGrip = <FirefoxDebugProtocol.LongStringGrip>sourceGrip;
 			let longStringActor = this.session.getOrCreateLongStringGripActorProxy(longStringGrip);
 			let content = await longStringActor.fetchContent();
-			return { content };
+			return { content, mimeType: 'text/javascript' };
 
 		}
 	}
