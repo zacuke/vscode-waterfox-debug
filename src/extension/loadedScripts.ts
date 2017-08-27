@@ -55,14 +55,28 @@ abstract class SourceTreeItem extends vscode.TreeItem {
 class RootTreeItem extends SourceTreeItem {
 
 	private children: ThreadTreeItem[] = [];
+	private showThreads = false;
 
 	public constructor(private treeDataChanged: vscode.EventEmitter<SourceTreeItem>) {
 		super('');
 	}
 
 	public getChildren(): SourceTreeItem[] {
+
 		this.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
-		return this.children;
+
+		if (this.showThreads || this.children.length > 1) {
+
+			this.showThreads = true;
+			return this.children;
+
+		} else if (this.children.length == 1) {
+
+			return this.children[0].getChildren();
+
+		} else {
+			return [];
+		}
 	}
 
 	public addThread(threadInfo: ThreadStartedEventBody, sessionId: string) {
