@@ -83,7 +83,10 @@ class RootTreeItem extends SourceTreeItem {
 
 		if (!this.children.some((child) => (child.threadId === threadInfo.id))) {
 
-			this.children.push(new ThreadTreeItem(this.treeDataChanged, threadInfo, sessionId));
+			let index = this.children.findIndex((child) => (child.label > threadInfo.name));
+			if (index < 0) index = this.children.length;
+
+			this.children.splice(index, 0, new ThreadTreeItem(this.treeDataChanged, threadInfo, sessionId));
 
 			this.treeDataChanged.fire();
 		}
