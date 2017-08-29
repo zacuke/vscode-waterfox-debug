@@ -1,3 +1,6 @@
+### Version 0.15.4
+* bugfix: `pathMappings` were ignored in `attach` configurations
+
 ### Version 0.15.3
 * performance improvements
 
