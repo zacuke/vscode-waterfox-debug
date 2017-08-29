@@ -157,10 +157,6 @@ export async function parseConfiguration(
 			throw 'You need to set either "file" or "url" in the launch configuration';
 		}
 
-		if (config.pathMappings) {
-			pathMappings.push(...config.pathMappings);
-		}
-
 		let detached = !!config.reAttach;
 
 		launch = {
@@ -174,6 +170,10 @@ export async function parseConfiguration(
 			host: config.host || 'localhost', port,
 			reloadTabs: !!config.reloadOnAttach
 		};
+	}
+
+	if (config.pathMappings) {
+		pathMappings.push(...config.pathMappings);
 	}
 
 	if (config.addonType || config.addonPath) {

@@ -115,7 +115,7 @@ describe('The configuration parser', function() {
 		});
 
 		assert.equal(parsedConfiguration.pathMappings.find(
-			(mapping) => mapping.url === 'https://mozilla.org')!.path, '/home/user/project');		
+			(mapping) => mapping.url === 'https://mozilla.org')!.path, '/home/user/project');
 	});
 
 	it('should strip a filename from the url and a trailing slash from the webRoot in the pathMapping', async function() {
@@ -127,10 +127,10 @@ describe('The configuration parser', function() {
 		});
 
 		assert.equal(parsedConfiguration.pathMappings.find(
-			(mapping) => mapping.url === 'https://mozilla.org')!.path, '/home/user/project');		
+			(mapping) => mapping.url === 'https://mozilla.org')!.path, '/home/user/project');
 	});
 
-	it('should include a user-specified pathMapping', async function() {
+	it('should include a user-specified pathMapping in a launch configuration', async function() {
 
 		let parsedConfiguration = await parseConfiguration({
 			request: 'launch',
@@ -143,7 +143,21 @@ describe('The configuration parser', function() {
 		});
 
 		assert.equal(parsedConfiguration.pathMappings.find(
-			(mapping) => mapping.url === 'https://static.mozilla.org')!.path, '/home/user/project/static');		
+			(mapping) => mapping.url === 'https://static.mozilla.org')!.path, '/home/user/project/static');
+	});
+
+	it('should include a user-specified pathMapping in an attach configuration', async function() {
+
+		let parsedConfiguration = await parseConfiguration({
+			request: 'attach',
+			pathMappings: [{
+				url: 'https://static.mozilla.org',
+				path: '/home/user/project/static'
+			}]
+		});
+
+		assert.equal(parsedConfiguration.pathMappings.find(
+			(mapping) => mapping.url === 'https://static.mozilla.org')!.path, '/home/user/project/static');
 	});
 
 	it('should replace ${webRoot} in a user-specified pathMapping', async function() {
@@ -159,7 +173,7 @@ describe('The configuration parser', function() {
 		});
 
 		assert.equal(parsedConfiguration.pathMappings.find(
-			(mapping) => mapping.url === 'https://static.mozilla.org')!.path, '/home/user/project/static');		
+			(mapping) => mapping.url === 'https://static.mozilla.org')!.path, '/home/user/project/static');
 	});
 
 	it('should create an attach configuration if "reAttach" is set to true', async function() {
@@ -383,7 +397,7 @@ describe('The configuration parser', function() {
 				'devtools.debugger.remote-enabled': null
 			}
 		});
-		let parsedPreferences = parsedConfiguration.launch!.preferences; 
+		let parsedPreferences = parsedConfiguration.launch!.preferences;
 
 		assert.equal(parsedPreferences['my.boolean'], true);
 		assert.equal(parsedPreferences['my.number'], 17);
