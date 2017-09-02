@@ -4,7 +4,7 @@ import { Log } from './util/log';
 import { accessorExpression } from './util/misc';
 import { DebugAdapterBase } from './debugAdapterBase';
 import { ExceptionBreakpoints } from './firefox/index';
-import { ThreadAdapter } from './adapter/index';
+import { ThreadAdapter, SourceAdapter } from './adapter/index';
 import { LaunchConfiguration, AttachConfiguration, parseConfiguration } from "./configuration";
 import { FirefoxDebugSession } from './firefoxDebugSession';
 
@@ -130,11 +130,20 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected async getSource(args: DebugProtocol.SourceArguments): Promise<{ content: string, mimeType?: string }> {
 
-		let sourceReference = (args.sourceReference !== undefined) ? args.sourceReference : Number(args.source!.path!.split('/')[0]);
-		let sourceAdapter = this.session.sources.find(sourceReference);
+		let sourceAdapter: SourceAdapter | undefined;
+		if (args.sourceReference !== undefined) {
+
+			let sourceReference = args.sourceReference;
+			sourceAdapter = this.session.sources.find(sourceReference);
+
+		} else if (args.source && args.source.path) {
+
+			sourceAdapter = this.findSource(args.source.path);
+
+		}
 
 		if (!sourceAdapter) {
-			throw new Error('Failed sourceRequest: the requested source reference can\'t be found');
+			throw new Error('Failed sourceRequest: the requested source can\'t be found');
 		}
 
 		let sourceGrip = await sourceAdapter.actor.fetchSource();
@@ -151,6 +160,16 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			return { content, mimeType: 'text/javascript' };
 
 		}
+	}
+
+	private findSource(url: string): SourceAdapter | undefined {
+		for (let [, thread] of this.session.threads) {
+			let sources = thread.findSourceAdaptersForPathOrUrl(url);
+			if (sources.length > 0) {
+				return sources[0]!;
+			}
+		}
+		return undefined;
 	}
 
 	protected getThreads(): { threads: DebugProtocol.Thread[] } {

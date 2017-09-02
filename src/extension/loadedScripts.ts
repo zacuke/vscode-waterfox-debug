@@ -420,7 +420,7 @@ class SourceFileTreeItem extends SourceTreeItem {
 
 			this.command = {
 				command: 'extension.firefox.openRemoteScript',
-				arguments: [ filename, sourceInfo.sourceId, sessionId ],
+				arguments: [ sourceInfo.url, sessionId ],
 				title: ''
 			}
 		}

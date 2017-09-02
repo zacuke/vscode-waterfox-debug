@@ -132,7 +132,7 @@ function openLocalScript(path: string, sessionId: string) {
 	vscode.workspace.openTextDocument(path).then((doc) => vscode.window.showTextDocument(doc));
 }
 
-function openRemoteScript(filename: string, sourceId: number, sessionId: string) {
-	let uri = vscode.Uri.parse(`debug:${sourceId}/${filename.split('?')[0]}?session=${sessionId}`);
+function openRemoteScript(url: string, sessionId: string) {
+	let uri = vscode.Uri.parse(`debug:${url}?session=${sessionId}`);
 	vscode.workspace.openTextDocument(uri).then((doc) => vscode.window.showTextDocument(doc));
 }
