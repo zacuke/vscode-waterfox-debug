@@ -132,6 +132,24 @@
         {
           "command": "extension.firefox.toggleSkippingFile"
         }
+      ],
+      "commandPalette": [
+        {
+          "command": "extension.firefox.startDebug",
+          "when": "false"
+        },
+        {
+          "command": "extension.firefox.toggleSkippingFile",
+          "when": "false"
+        },
+        {
+          "command": "extension.firefox.openLocalScript",
+          "when": "false"
+        },
+        {
+          "command": "extension.firefox.openRemoteScript",
+          "when": "false"
+        }
       ]
     },
     "views":{
