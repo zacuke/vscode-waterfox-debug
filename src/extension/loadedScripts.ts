@@ -108,11 +108,6 @@ class RootTreeItem extends SourceTreeItem {
 		sessionId: string
 	): SourceTreeItem | undefined {
 
-		// the extension misses the very first didStartSession event, so we simulate it here
-		if (this.children.length == 0) {
-			this.addSession({ id: sessionId, type: 'firefox', name: 'Debug Session' });
-		}
-
 		let sessionItem = this.children.find((child) => (child.id === sessionId));
 		return sessionItem ? this.fixChangedItem(sessionItem.addThread(threadInfo)) : undefined;
 

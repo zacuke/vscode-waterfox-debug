@@ -4,6 +4,10 @@ import { LoadedScriptsProvider } from './loadedScripts';
 export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand(
+		'extension.firefox.startDebug', startDebug
+	));
+
+	context.subscriptions.push(vscode.commands.registerCommand(
 		'extension.firefox.reloadAddon', () => sendCustomRequest('reloadAddon')
 	));
 
@@ -40,6 +44,10 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.window.registerTreeDataProvider(
 		'extension.firefox.loadedScripts', loadedScriptsProvider));
 
+}
+
+function startDebug(configuration: vscode.DebugConfiguration, workspaceUri: vscode.Uri | null) {
+	vscode.commands.executeCommand('vscode.startDebug', configuration, workspaceUri);
 }
 
 async function sendCustomRequest(command: string, args?: any) {

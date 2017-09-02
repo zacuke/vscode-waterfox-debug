@@ -98,12 +98,14 @@
   "main": "./out/extension/main.js",
   "activationEvents": [
     "onDebug:firefox",
-    "onCommand:extension.firefox.reloadAddon",
-    "onCommand:extension.firefox.rebuildAndReloadAddon",
-    "onCommand:extension.firefox.toggleSkippingFile"
+    "onCommand:extension.firefox.startDebug"
   ],
   "contributes": {
     "commands": [
+      {
+        "command": "extension.firefox.startDebug",
+        "title": "Start Firefox debug session"
+      },
       {
         "command": "extension.firefox.reloadAddon",
         "title": "Firefox: Reload add-on"
@@ -147,6 +149,7 @@
         "label": "Firefox",
         "program": "./out/firefoxDebugAdapter.js",
         "runtime": "node",
+        "startSessionCommand": "extension.firefox.startDebug",
         "initialConfigurations": [
           {
             "name": "Launch index.html",
