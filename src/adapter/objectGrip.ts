@@ -36,6 +36,7 @@ export class ObjectGripAdapter implements VariablesProvider {
 
 		let variables: VariableAdapter[] = [];
 		let safeGetterValues = prototypeAndProperties.safeGetterValues || {};
+		let symbolProperties = prototypeAndProperties.ownSymbols || [];
 
 		for (let varname in prototypeAndProperties.ownProperties) {
 			if (!safeGetterValues[varname]) {
@@ -51,6 +52,12 @@ export class ObjectGripAdapter implements VariablesProvider {
 				varname, this.referenceExpression, this.referenceFrame,
 				safeGetterValues[varname],
 				this.threadLifetime, this.threadAdapter));
+		}
+
+		for (let symbolProperty of symbolProperties) {
+			variables.push(VariableAdapter.fromPropertyDescriptor(
+				symbolProperty.name, undefined, undefined,
+				symbolProperty.descriptor, this.threadLifetime, this.threadAdapter));
 		}
 
 		VariableAdapter.sortVariables(variables);

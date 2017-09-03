@@ -209,6 +209,7 @@ declare namespace FirefoxDebugProtocol {
 		prototype: ObjectGrip | { type: 'null' };
 		ownProperties: PropertyDescriptors;
 		safeGetterValues?: SafeGetterValueDescriptors;
+		ownSymbols?: NamedPropertyDescriptor[];
 	}
 
 	interface CompletionValue {
@@ -299,7 +300,7 @@ declare namespace FirefoxDebugProtocol {
 
 	interface DataPropertyDescriptor extends PropertyDescriptor {
 		value: Grip;
-		writeable: boolean;
+		writable: boolean;
 	}
 
 	interface AccessorPropertyDescriptor extends PropertyDescriptor {
@@ -320,6 +321,11 @@ declare namespace FirefoxDebugProtocol {
 
 	interface SafeGetterValueDescriptors {
 		[name: string]: SafeGetterValueDescriptor;
+	}
+
+	interface NamedPropertyDescriptor {
+		name: string;
+		descriptor: PropertyDescriptor;
 	}
 
 	type Grip = boolean | number | string | ComplexGrip;
