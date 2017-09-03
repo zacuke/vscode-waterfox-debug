@@ -31,9 +31,10 @@ describe('Firefox debug adapter', function() {
 		assert.equal(util.findVariable(variables, 'str2').value, '"foo"');
 		assert.equal(util.findVariable(variables, 'undef').value, 'undefined');
 		assert.equal(util.findVariable(variables, 'nul').value, 'null');
-		assert.equal(util.findVariable(variables, 'sym1').value, 'Local Symbol');
-		assert.equal(util.findVariable(variables, 'sym2').value, 'Global Symbol');
-
+		assert.equal(util.findVariable(variables, 'sym1').value, 'Symbol(Local Symbol)');
+		assert.equal(util.findVariable(variables, 'sym2').value, 'Symbol(Global Symbol)');
+		assert.equal(util.findVariable(variables, 'sym3').value, 'Symbol(Symbol.iterator)');
+		
 		variablesResponse = await dc.variablesRequest({
 			variablesReference: util.findVariable(variables, 'this').variablesReference
 		});
@@ -53,6 +54,8 @@ describe('Firefox debug adapter', function() {
 		assert.equal(variable.value, 'Object');
 		variablesResponse = await dc.variablesRequest({ variablesReference: variable.variablesReference });
 		assert.equal(util.findVariable(variablesResponse.body.variables, 'key').value, '"value"');
+		assert.equal(util.findVariable(variablesResponse.body.variables, 'Symbol(Local Symbol)').value, '"Symbol-keyed property 1"');
+		assert.equal(util.findVariable(variablesResponse.body.variables, 'Symbol(Symbol.iterator)').value, '"Symbol-keyed property 2"');
 	});
 
 	it('should inspect variables in different stackframes', async function() {

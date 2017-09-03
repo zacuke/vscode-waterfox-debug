@@ -14,8 +14,8 @@ function vars(arg) {
 		let str2 = 'foo';
 		let undef = undefined;
 		let nul = null;
-		let sym1 = Symbol('Local Symbol');
-		let sym2 = Symbol.for('Global Symbol');
+		let sym1 = Symbol('Local Symbol'); let sym2 = Symbol.for('Global Symbol'); let sym3 = Symbol.iterator;
+		if (arg) { arg[sym1] = 'Symbol-keyed property 1'; arg[sym3] = 'Symbol-keyed property 2'; }
 		noop();
 	}
 }
