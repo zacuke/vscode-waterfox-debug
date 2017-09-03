@@ -27,7 +27,7 @@ declare namespace FirefoxDebugProtocol {
 		tabs: Tab[];
 		selected: number;
 		preferenceActor: string;
-		addonsActor: string;
+		addonsActor?: string;
 	}
 
 	interface Tab {

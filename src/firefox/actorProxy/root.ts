@@ -13,7 +13,7 @@ let log = Log.create('RootActorProxy');
 export type FetchTabsResult = {
 	tabs: Map<string, [TabActorProxy, ConsoleActorProxy]>,
 	preference: PreferenceActorProxy,
-	addons: AddonsActorProxy
+	addons: AddonsActorProxy | undefined
 };
 
 export class RootActorProxy extends EventEmitter implements ActorProxy {
@@ -126,9 +126,14 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 			let preferenceActor = this.connection.getOrCreate(tabsResponse.preferenceActor,
 				() => new PreferenceActorProxy(tabsResponse.preferenceActor, this.connection));
-			let addonsActor = this.connection.getOrCreate(tabsResponse.addonsActor,
-				() => new AddonsActorProxy(tabsResponse.addonsActor, this.connection));
 
+			let addonsActor: AddonsActorProxy | undefined;
+			const addonsActorName = tabsResponse.addonsActor;
+			if (addonsActorName) {
+				addonsActor = this.connection.getOrCreate(addonsActorName,
+					() => new AddonsActorProxy(addonsActorName, this.connection));
+			}
+	
 			this.pendingTabsRequests.resolveOne({
 				tabs: currentTabs, 
 				preference: preferenceActor, 

@@ -51,7 +51,7 @@ export class AddonManager {
 
 	public async sessionStarted(
 		rootActor: RootActorProxy,
-		addonsActor: AddonsActorProxy,
+		addonsActor: AddonsActorProxy | undefined,
 		preferenceActor: PreferenceActorProxy,
 		debugSession: FirefoxDebugSession
 	): Promise<void> {
@@ -59,7 +59,7 @@ export class AddonManager {
 		switch (this.config.type) {
 
 			case 'legacy':
-				if (!this.config.installInProfile) {
+				if (addonsActor && !this.config.installInProfile) {
 					await addonsActor.installAddon(this.config.path);
 				}
 
@@ -70,7 +70,7 @@ export class AddonManager {
 				break;
 
 			case 'addonSdk':
-				if (!this.config.installInProfile) {
+				if (addonsActor && !this.config.installInProfile) {
 
 					if (this.addonBuildPath) {
 						await this.buildAddonDir(this.config.path, this.addonBuildPath);
@@ -90,7 +90,7 @@ export class AddonManager {
 				break;
 
 			case 'webExtension':
-				if (!this.config.installInProfile) {
+				if (addonsActor && !this.config.installInProfile) {
 					await addonsActor.installAddon(this.config.path);
 				}
 
