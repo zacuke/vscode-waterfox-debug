@@ -388,18 +388,15 @@ export class FirefoxDebugSession {
 	private attachSource(sourceActor: ISourceActorProxy, threadAdapter: ThreadAdapter): void {
 
 		const source = sourceActor.source;
-		const sourcePath = this.pathMapper.convertFirefoxSourceToPath(source);
 		let sourceAdapter = threadAdapter.findCorrespondingSourceAdapter(source);
 
 		if (sourceAdapter !== undefined) {
-
 			sourceAdapter.actor = sourceActor;
-
-		} else {
-
-			sourceAdapter = threadAdapter.createSourceAdapter(sourceActor, sourcePath);
-
+			return;
 		}
+
+		const sourcePath = this.pathMapper.convertFirefoxSourceToPath(source);
+		sourceAdapter = threadAdapter.createSourceAdapter(sourceActor, sourcePath);
 
 		// check if this source should be skipped
 		let skipThisSource: boolean | undefined = undefined;
