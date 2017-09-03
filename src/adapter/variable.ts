@@ -75,9 +75,10 @@ export class VariableAdapter {
 
 				case 'symbol':
 
+					let symbolName = (<FirefoxDebugProtocol.SymbolGrip>grip).name;
 					return new VariableAdapter(
 						varname, referenceExpression, referenceFrame,
-						(<FirefoxDebugProtocol.SymbolGrip>grip).name, threadAdapter);
+						`Symbol(${symbolName})`, threadAdapter);
 
 				case 'object':
 
