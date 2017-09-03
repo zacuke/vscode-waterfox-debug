@@ -293,6 +293,12 @@ export class FirefoxDebugSession {
 
 		this.attachThread(threadAdapter, threadActor.name);
 
+		tabActor.onFramesDestroyed(() => {
+			this.sendEvent(new Event('removeSources', <RemoveSourcesEventBody>{
+				threadId: threadAdapter.id
+			}));
+		});
+
 		if (tabId != null) {
 
 			let nextWorkerId = 1;
@@ -367,12 +373,6 @@ export class FirefoxDebugSession {
 
 		threadAdapter.onNewSource((sourceActor) => {
 			this.attachSource(sourceActor, threadAdapter);
-		});
-
-		threadAdapter.actor.onNewGlobal(() => {
-			this.sendEvent(new Event('removeSources', <RemoveSourcesEventBody>{
-				threadId: threadAdapter.id
-			}));
 		});
 
 		threadAdapter.onPaused((reason) => {

@@ -87,6 +87,19 @@ declare namespace FirefoxDebugProtocol {
 		title: string;
 	}
 
+	interface FramesDestroyedResponse extends TypedResponse {
+		destroyAll: true;
+	}
+
+	interface FrameUpdateResponse extends TypedResponse {
+		frames: {
+			id: string;
+			parentID?: string;
+			url: string;
+			title: string;
+		}[];
+	}
+
 	interface WorkersResponse extends Response {
 		workers: Worker[];
 	}
