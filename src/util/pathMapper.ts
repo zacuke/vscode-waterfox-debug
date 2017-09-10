@@ -34,8 +34,7 @@ export class PathMapper {
 				log.debug(`Sourcemapped absolute path: ${originalPath}`);
 
 				if (isWindowsPlatform) {
-					originalPath = path.normalize(originalPath);
-					originalPath = originalPath[0].toLowerCase() + originalPath.substr(1);
+					originalPath = this.sanitizeWindowsPath(originalPath);
 				}
 
 				return originalPath;
@@ -70,7 +69,7 @@ export class PathMapper {
 
 					let path = this.removeQueryString(to + url.substr(from.length));
 					if (isWindowsPlatform) {
-						path = path.replace(/\//g, '\\');
+						path = this.sanitizeWindowsPath(path);
 					}
 
 					log.debug(`Converted url ${url} to path ${path}`);
@@ -84,7 +83,7 @@ export class PathMapper {
 
 					let path = this.removeQueryString(to + match[1]);
 					if (isWindowsPlatform) {
-						path = path.replace(/\//g, '\\');
+						path = this.sanitizeWindowsPath(path);
 					}
 
 					log.debug(`Converted url ${url} to path ${path}`);
@@ -105,5 +104,11 @@ export class PathMapper {
 		} else {
 			return path;
 		}
+	}
+
+	private sanitizeWindowsPath(aPath: string): string {
+		aPath = path.normalize(aPath);
+		aPath = aPath[0].toLowerCase() + aPath.substr(1);
+		return aPath;
 	}
 }
