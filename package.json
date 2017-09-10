@@ -95,14 +95,17 @@
     "url": "https://github.com/hbenl/vscode-firefox-debug/issues"
   },
   "homepage": "https://github.com/hbenl/vscode-firefox-debug",
-  "main": "./out/extension.js",
+  "main": "./out/extension/main.js",
   "activationEvents": [
-    "onCommand:extension.firefox.reloadAddon",
-    "onCommand:extension.firefox.rebuildAndReloadAddon",
-    "onCommand:extension.firefox.toggleSkippingFile"
+    "onDebug:firefox",
+    "onCommand:extension.firefox.startDebug"
   ],
   "contributes": {
     "commands": [
+      {
+        "command": "extension.firefox.startDebug",
+        "title": "Start Firefox debug session"
+      },
       {
         "command": "extension.firefox.reloadAddon",
         "title": "Firefox: Reload add-on"
@@ -114,12 +117,47 @@
       {
         "command": "extension.firefox.toggleSkippingFile",
         "title": "Toggle skipping this file"
+      },
+      {
+        "command": "extension.firefox.openLocalScript",
+        "title": "Open local script"
+      },
+      {
+        "command": "extension.firefox.openRemoteScript",
+        "title": "Open remote script"
       }
     ],
     "menus": {
       "debug/callstack/context": [
         {
           "command": "extension.firefox.toggleSkippingFile"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "extension.firefox.startDebug",
+          "when": "false"
+        },
+        {
+          "command": "extension.firefox.toggleSkippingFile",
+          "when": "false"
+        },
+        {
+          "command": "extension.firefox.openLocalScript",
+          "when": "false"
+        },
+        {
+          "command": "extension.firefox.openRemoteScript",
+          "when": "false"
+        }
+      ]
+    },
+    "views":{
+      "debug": [
+        {
+          "id": "extension.firefox.loadedScripts",
+          "name": "Loaded Scripts",
+          "when": "inDebugMode && debugType == 'firefox'"
         }
       ]
     },
@@ -129,6 +167,7 @@
         "label": "Firefox",
         "program": "./out/firefoxDebugAdapter.js",
         "runtime": "node",
+        "startSessionCommand": "extension.firefox.startDebug",
         "initialConfigurations": [
           {
             "name": "Launch index.html",

@@ -84,7 +84,7 @@ export class ThreadAdapter extends EventEmitter {
 		}
 	}
 
-	public createSourceAdapter(actor: ISourceActorProxy, path?: string): SourceAdapter {
+	public createSourceAdapter(actor: ISourceActorProxy, path: string | undefined): SourceAdapter {
 		let adapter = new SourceAdapter(this.debugSession.sources, actor, path);
 		this.sources.push(adapter);
 		return adapter;
@@ -114,28 +114,38 @@ export class ThreadAdapter extends EventEmitter {
 		return undefined;
 	}
 
-	public findSourceAdaptersForPath(
-		path: string | undefined,
-		checkUrl = false
-	): SourceAdapter[] {
+	public findSourceAdaptersForPathOrUrl(pathOrUrl: string | undefined): SourceAdapter[] {
+		if (!pathOrUrl) return [];
 
-		if (!path) return [];
+		return this.sources.filter((sourceAdapter) =>
+			(sourceAdapter.sourcePath === pathOrUrl) || (sourceAdapter.actor.url === pathOrUrl)
+		);
+	}
+
+	public findSourceAdaptersForUrlWithoutQuery(url: string): SourceAdapter[] {
 
 		return this.sources.filter((sourceAdapter) => {
-			if (sourceAdapter.sourcePath) {
-				return (sourceAdapter.sourcePath === path);
-			} else {
-				return checkUrl && (sourceAdapter.actor.url === path);
+
+			let sourceUrl = sourceAdapter.actor.url;
+			if (!sourceUrl) return false;
+
+			let queryStringIndex = sourceUrl.indexOf('?');
+			if (queryStringIndex >= 0) {
+				sourceUrl = sourceUrl.substr(0, queryStringIndex);
 			}
+
+			return url === sourceUrl;
 		});
 	}
 
 	public findSourceAdapterForActorName(actorName: string): SourceAdapter | undefined {
+
 		for (let i = 0; i < this.sources.length; i++) {
 			if (this.sources[i].actor.name === actorName) {
 				return this.sources[i];
 			}
 		}
+
 		return undefined;
 	}
 

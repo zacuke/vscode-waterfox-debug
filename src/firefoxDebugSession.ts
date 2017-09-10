@@ -3,7 +3,7 @@ import { ChildProcess } from 'child_process';
 import * as chokidar from 'chokidar';
 import debounce = require('debounce');
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, ContinuedEvent } from 'vscode-debugadapter';
+import { InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, ContinuedEvent, Event } from 'vscode-debugadapter';
 import { Log } from './util/log';
 import { AddonManager } from './adapter/addonManager';
 import { launchFirefox } from './firefox/launch';
@@ -14,6 +14,7 @@ import { PathMapper, urlDetector } from './util/pathMapper';
 import { isWindowsPlatform as detectWindowsPlatform } from './util/misc';
 import { tryRemoveRepeatedly } from './util/fs';
 import { connect, waitForSocket } from './util/net';
+import { NewSourceEventBody, ThreadStartedEventBody, ThreadExitedEventBody, RemoveSourcesEventBody } from "./extension/main";
 
 let log = Log.create('FirefoxDebugSession');
 let consoleActorLog = Log.create('ConsoleActor');
@@ -288,7 +289,15 @@ export class FirefoxDebugSession {
 		let threadAdapter = new ThreadAdapter(threadActor, consoleActor,
 			this.threadPauseCoordinator, threadName, this);
 
+		this.sendThreadStartedEvent(threadAdapter);
+
 		this.attachThread(threadAdapter, threadActor.name);
+
+		tabActor.onFramesDestroyed(() => {
+			this.sendEvent(new Event('removeSources', <RemoveSourcesEventBody>{
+				threadId: threadAdapter.id
+			}));
+		});
 
 		if (tabId != null) {
 
@@ -315,7 +324,7 @@ export class FirefoxDebugSession {
 
 				if (this.threads.has(threadAdapter.id)) {
 					this.threads.unregister(threadAdapter.id);
-					this.sendEvent(new ThreadEvent('exited', threadAdapter.id));
+					this.sendThreadExitedEvent(threadAdapter);
 				}
 
 				threadAdapter.dispose();
@@ -329,8 +338,6 @@ export class FirefoxDebugSession {
 		try {
 
 			await threadAdapter.init(this.exceptionBreakpoints, reload);
-
-			this.sendEvent(new ThreadEvent('started', threadAdapter.id));
 
 			return threadAdapter;
 
@@ -350,15 +357,15 @@ export class FirefoxDebugSession {
 		let threadAdapter = new ThreadAdapter(threadActor, consoleActor,
 			this.threadPauseCoordinator, `Worker ${tabId}/${workerId}`, this);
 
+		this.sendThreadStartedEvent(threadAdapter);
+
 		this.attachThread(threadAdapter, threadActor.name);
 
 		await threadAdapter.init(this.exceptionBreakpoints, false);
 
-		this.sendEvent(new ThreadEvent('started', threadAdapter.id));
-
 		workerActor.onClose(() => {
 			this.threads.unregister(threadAdapter.id);
-			this.sendEvent(new ThreadEvent('exited', threadAdapter.id));
+			this.sendThreadExitedEvent(threadAdapter);
 		});
 	}
 
@@ -381,7 +388,7 @@ export class FirefoxDebugSession {
 		threadAdapter.onExited(() => {
 			log.info(`Thread ${actorName} exited`);
 			this.threads.unregister(threadAdapter.id);
-			this.sendEvent(new ThreadEvent('exited', threadAdapter.id));
+			this.sendThreadExitedEvent(threadAdapter);
 		});
 	}
 
@@ -397,6 +404,13 @@ export class FirefoxDebugSession {
 
 		const sourcePath = this.pathMapper.convertFirefoxSourceToPath(source);
 		sourceAdapter = threadAdapter.createSourceAdapter(sourceActor, sourcePath);
+
+		this.sendEvent(new Event('newSource', <NewSourceEventBody>{
+			threadId: threadAdapter.id,
+			sourceId: sourceAdapter.id,
+			url: sourceActor.url || undefined,
+			path: sourceAdapter.sourcePath
+		}));
 
 		// check if this source should be skipped
 		let skipThisSource: boolean | undefined = undefined;
@@ -498,5 +512,20 @@ export class FirefoxDebugSession {
 		}
 
 		this.sendEvent(stoppedEvent);
+	}
+
+	private sendThreadStartedEvent(threadAdapter: ThreadAdapter): void {
+		this.sendEvent(new ThreadEvent('started', threadAdapter.id));
+		this.sendEvent(new Event('threadStarted', <ThreadStartedEventBody>{
+			name: threadAdapter.name,
+			id: threadAdapter.id
+		}));
+	}
+
+	private sendThreadExitedEvent(threadAdapter: ThreadAdapter): void {
+		this.sendEvent(new ThreadEvent('exited', threadAdapter.id));
+		this.sendEvent(new Event('threadExited', <ThreadExitedEventBody>{
+			id: threadAdapter.id
+		}));
 	}
 }

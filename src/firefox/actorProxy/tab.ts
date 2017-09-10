@@ -133,6 +133,12 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 
 			}
 
+		} else if (response['type'] === 'frameUpdate') {
+
+			if (response['destroyAll']) {
+				this.emit('framesDestroyed');
+			}
+
 		} else if (response['type'] === 'workerListChanged') {
 			
 			log.debug('Received workerListChanged event');
@@ -216,6 +222,10 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 
 	public onDidNavigate(cb: () => void) {
 		this.on('didNavigate', cb);
+	}
+
+	public onFramesDestroyed(cb: () => void) {
+		this.on('framesDestroyed', cb);
 	}
 
 	public onWorkerListChanged(cb: () => void) {

@@ -4,7 +4,7 @@ import { Log } from './util/log';
 import { accessorExpression } from './util/misc';
 import { DebugAdapterBase } from './debugAdapterBase';
 import { ExceptionBreakpoints } from './firefox/index';
-import { ThreadAdapter } from './adapter/index';
+import { ThreadAdapter, SourceAdapter } from './adapter/index';
 import { LaunchConfiguration, AttachConfiguration, parseConfiguration } from "./configuration";
 import { FirefoxDebugSession } from './firefoxDebugSession';
 
@@ -130,25 +130,58 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected async getSource(args: DebugProtocol.SourceArguments): Promise<{ content: string, mimeType?: string }> {
 
-		let sourceAdapter = this.session.sources.find(args.sourceReference);
+		let sourceAdapter: SourceAdapter | undefined;
+		if (args.sourceReference !== undefined) {
+
+			let sourceReference = args.sourceReference;
+			sourceAdapter = this.session.sources.find(sourceReference);
+
+		} else if (args.source && args.source.path) {
+
+			sourceAdapter = this.findSource(args.source.path);
+
+		}
+
 		if (!sourceAdapter) {
-			throw new Error('Failed sourceRequest: the requested source reference can\'t be found');
+			throw new Error('Failed sourceRequest: the requested source can\'t be found');
 		}
 
 		let sourceGrip = await sourceAdapter.actor.fetchSource();
 
 		if (typeof sourceGrip === 'string') {
 
-			return { content: sourceGrip };
+			return { content: sourceGrip, mimeType: 'text/javascript' };
 
 		} else {
 
 			let longStringGrip = <FirefoxDebugProtocol.LongStringGrip>sourceGrip;
 			let longStringActor = this.session.getOrCreateLongStringGripActorProxy(longStringGrip);
 			let content = await longStringActor.fetchContent();
-			return { content };
+			return { content, mimeType: 'text/javascript' };
 
 		}
+	}
+
+	private findSource(url: string): SourceAdapter | undefined {
+		for (let [, thread] of this.session.threads) {
+			let sources = thread.findSourceAdaptersForPathOrUrl(url);
+			if (sources.length > 0) {
+				return sources[0]!;
+			}
+		}
+
+		// workaround for VSCode issue #32845: the url may have contained a query string that got lost,
+		// in this case we look for a Source whose url is the same if the query string is removed
+		if (url.indexOf('?') < 0) {
+			for (let [, thread] of this.session.threads) {
+				let sources = thread.findSourceAdaptersForUrlWithoutQuery(url);
+				if (sources.length > 0) {
+					return sources[0]!;
+				}
+			}
+		}
+
+		return undefined;
 	}
 
 	protected getThreads(): { threads: DebugProtocol.Thread[] } {
@@ -350,6 +383,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		await this.session.addonManager.rebuildAddon();
 	}
 
+	// url is a file:// url for local sources and the original url (as seen by Firefox) for remote sources
 	protected async toggleSkippingFile(url: string): Promise<void> {
 
 		if (url.startsWith('file://')) {

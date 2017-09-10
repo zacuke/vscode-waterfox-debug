@@ -66,5 +66,14 @@
 			"addonPath": "${workspaceRoot}/testdata/webExtension/addOn",
 			"file": "${workspaceRoot}/testdata/webExtension/index.html"
 		}
+	],
+	"compounds": [
+		{
+			"name": "server & extension",
+			"configurations": [
+				"debug server",
+				"extension host"
+			]
+		}
 	]
 }
