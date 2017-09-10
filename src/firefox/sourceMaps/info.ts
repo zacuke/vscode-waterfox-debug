@@ -27,7 +27,7 @@ export class SourceMappingInfo {
 			generatedLocation = this.sourceMapConsumer.generatedPositionFor(consumerArgs);
 		}
 
-		return generatedLocation;
+		return { line: generatedLocation.line || 0, column: generatedLocation.column || 0 };
 	}
 
 	public originalLocationFor(generatedLocation: Position): MappedPosition {
@@ -44,7 +44,11 @@ export class SourceMappingInfo {
 			originalLocation = this.sourceMapConsumer.originalPositionFor(consumerArgs);
 		}
 
-		return originalLocation;
+		return {
+			source: originalLocation.source || this.sources[0]!.url!,
+			line: originalLocation.line || 0,
+			column: originalLocation.column || 0
+		};
 	}
 
 	public syncBlackboxFlag(): void {

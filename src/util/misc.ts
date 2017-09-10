@@ -1,5 +1,5 @@
 import * as os from 'os';
-import * as FirefoxProfile from 'firefox-profile';
+import FirefoxProfile = require('firefox-profile');
 
 export function concatArrays<T>(arrays: T[][]): T[] {
 	return [].concat.apply([], arrays);

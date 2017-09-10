@@ -5,7 +5,7 @@ import * as uuid from 'uuid';
 import { execSync } from 'child_process';
 import * as semver from 'semver';
 import { AddonType, ParsedAddonConfiguration } from '../configuration';
-import * as FirefoxProfile from 'firefox-profile';
+import FirefoxProfile = require('firefox-profile');
 import * as zipdir from 'zip-dir';
 import { Extract } from 'unzip';
 import { RootActorProxy, AddonsActorProxy, PreferenceActorProxy, ConsoleActorProxy, WebExtensionActorProxy, TabActorProxy } from "../firefox/index";

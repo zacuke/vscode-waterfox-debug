@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import { spawn, fork, ChildProcess } from 'child_process';
-import * as FirefoxProfile from 'firefox-profile';
+import FirefoxProfile = require('firefox-profile');
 import { ParsedLaunchConfiguration } from '../configuration';
 import { AddonManager } from "../adapter/addonManager";
 

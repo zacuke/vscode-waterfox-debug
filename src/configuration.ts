@@ -6,7 +6,7 @@ import { Log, LogConfiguration } from './util/log';
 import { isWindowsPlatform, findAddonId } from './util/misc';
 import { isExecutable } from './util/fs';
 import { Minimatch } from 'minimatch';
-import * as FirefoxProfile from 'firefox-profile';
+import FirefoxProfile = require('firefox-profile');
 
 let log = Log.create('ParseConfiguration');
 
