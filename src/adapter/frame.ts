@@ -1,12 +1,9 @@
 import { Log } from '../util/log';
 import { ThreadAdapter, EnvironmentAdapter, ScopeAdapter } from '../adapter/index';
-import { DebugProtocol } from 'vscode-debugprotocol';
-import { Source, StackFrame } from 'vscode-debugadapter';
+import { StackFrame } from 'vscode-debugadapter';
 import { Registry } from "./registry";
 
 let log = Log.create('FrameAdapter');
-
-let actorIdRegex = /[0-9]+$/;
 
 export class FrameAdapter {
 
@@ -26,33 +23,10 @@ export class FrameAdapter {
 
 	public getStackframe(): StackFrame {
 
-		let firefoxSource = this.frame.where.source;
-		let sourceActorName = firefoxSource.actor;
-
-		let sourceName = '';
-		if (firefoxSource.url != null) {
-			sourceName = firefoxSource.url.split('/').pop()!.split('#')[0];
-		} else if (this.frame.type === 'eval') {
-			let match = actorIdRegex.exec(sourceActorName);
-			if (match) {
-				sourceName = `eval ${match[0]}`;
-			}
-		}
-
+		let sourceActorName = this.frame.where.source.actor;
 		let sourceAdapter = this.threadAdapter.findSourceAdapterForActorName(sourceActorName);
 		if (!sourceAdapter) {
 			throw new Error(`Couldn't find source adapter for ${sourceActorName}`);
-		}
-
-		let source: Source;
-		if (sourceAdapter.sourcePath !== undefined) {
-			source = new Source(sourceName, sourceAdapter.sourcePath);
-		} else {
-			source = new Source(sourceName, firefoxSource.url || undefined, sourceAdapter.id);
-		}
-
-		if (sourceAdapter.actor.source.isBlackBoxed) {
-			(<DebugProtocol.Source>source).presentationHint = 'deemphasize';
 		}
 
 		let name: string;
@@ -90,7 +64,7 @@ export class FrameAdapter {
 				break;
 		}
 
-		return new StackFrame(this.id, name, source, this.frame.where.line, this.frame.where.column);
+		return new StackFrame(this.id, name, sourceAdapter.source, this.frame.where.line, this.frame.where.column);
 	}
 
 	public dispose(): void {

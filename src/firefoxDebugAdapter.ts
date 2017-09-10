@@ -138,7 +138,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		} else if (args.source && args.source.path) {
 
-			sourceAdapter = this.findSource(args.source.path);
+			sourceAdapter = this.session.findSourceAdapter(args.source.path, true);
 
 		}
 
@@ -160,28 +160,6 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			return { content, mimeType: 'text/javascript' };
 
 		}
-	}
-
-	private findSource(url: string): SourceAdapter | undefined {
-		for (let [, thread] of this.session.threads) {
-			let sources = thread.findSourceAdaptersForPathOrUrl(url);
-			if (sources.length > 0) {
-				return sources[0]!;
-			}
-		}
-
-		// workaround for VSCode issue #32845: the url may have contained a query string that got lost,
-		// in this case we look for a Source whose url is the same if the query string is removed
-		if (url.indexOf('?') < 0) {
-			for (let [, thread] of this.session.threads) {
-				let sources = thread.findSourceAdaptersForUrlWithoutQuery(url);
-				if (sources.length > 0) {
-					return sources[0]!;
-				}
-			}
-		}
-
-		return undefined;
 	}
 
 	protected getThreads(): { threads: DebugProtocol.Thread[] } {

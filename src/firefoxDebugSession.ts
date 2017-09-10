@@ -449,6 +449,7 @@ export class FirefoxDebugSession {
 					let filename = this.pathMapper.convertFirefoxUrlToPath(consoleEvent.filename);
 					msg += ` (${filename}:${consoleEvent.lineNumber}:${consoleEvent.columnNumber})`;
 				}
+
 				outputEvent = new OutputEvent(msg + '\n', category);
 
 			} else {
@@ -471,6 +472,8 @@ export class FirefoxDebugSession {
 				outputEvent.body.variablesReference = argsAdapter.variablesProviderId;
 			}
 
+			this.addLocation(outputEvent, consoleEvent.filename, consoleEvent.lineNumber, consoleEvent.columnNumber);
+
 			this.sendEvent(outputEvent);
 		});
 
@@ -478,13 +481,33 @@ export class FirefoxDebugSession {
 			consoleActorLog.debug(`Page Error: ${JSON.stringify(err)}`);
 
 			if (err.category === 'content javascript') {
+				
 				let category = err.exception ? 'stderr' : 'stdout';
-				this.sendEvent(new OutputEvent(err.errorMessage + '\n', category));
+				let outputEvent = new OutputEvent(err.errorMessage + '\n', category);
+				this.addLocation(outputEvent, err.sourceName, err.lineNumber, err.columnNumber);
+
+				this.sendEvent(outputEvent);
 			}
 		});
 
 		consoleActor.startListeners();
 		consoleActor.getCachedMessages();
+	}
+
+	private addLocation(
+		outputEvent: DebugProtocol.OutputEvent,
+		url: string,
+		line: number,
+		column: number
+	) {
+
+		let sourceAdapter = this.findSourceAdapter(url);
+
+		if (sourceAdapter) {
+			outputEvent.body.source = sourceAdapter.source;
+			outputEvent.body.line = line;
+			outputEvent.body.column = column;
+		}
 	}
 
 	public sendStoppedEvent(
@@ -514,6 +537,29 @@ export class FirefoxDebugSession {
 		}
 
 		this.sendEvent(stoppedEvent);
+	}
+
+	public findSourceAdapter(url: string, tryWithoutQueryString = false): SourceAdapter | undefined {
+
+		for (let [, thread] of this.threads) {
+			let sources = thread.findSourceAdaptersForPathOrUrl(url);
+			if (sources.length > 0) {
+				return sources[0]!;
+			}
+		}
+
+		// workaround for VSCode issue #32845: the url may have contained a query string that got lost,
+		// in this case we look for a Source whose url is the same if the query string is removed
+		if (tryWithoutQueryString && (url.indexOf('?') < 0)) {
+			for (let [, thread] of this.threads) {
+				let sources = thread.findSourceAdaptersForUrlWithoutQuery(url);
+				if (sources.length > 0) {
+					return sources[0]!;
+				}
+			}
+		}
+
+		return undefined;
 	}
 
 	private sendThreadStartedEvent(threadAdapter: ThreadAdapter): void {

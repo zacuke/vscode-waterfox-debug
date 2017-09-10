@@ -1,10 +1,15 @@
 import { ISourceActorProxy, BreakpointActorProxy } from '../firefox/index';
 import { BreakpointInfo, VariablesProvider, VariableAdapter, ThreadAdapter } from './index';
-import { Registry } from "./registry";
+import { Registry } from './registry';
+import { Source } from 'vscode-debugadapter';
+import { DebugProtocol } from 'vscode-debugprotocol';
+
+let actorIdRegex = /[0-9]+$/;
 
 export class SourceAdapter {
-	
+
 	public readonly id: number;
+	public readonly source: Source;
 
 	// this promise will resolve to the list of breakpoints set on this source
 	private breakpointsPromise: Promise<BreakpointAdapter[]>;
@@ -20,6 +25,37 @@ export class SourceAdapter {
 		this.id = sourceRegistry.register(this);
 		this.breakpointsPromise = Promise.resolve([]);
 		this.currentBreakpoints = [];
+		this.source = SourceAdapter.createSource(actor, sourcePath, this.id);
+	}
+
+	private static createSource(
+		actor: ISourceActorProxy,
+		sourcePath: string | undefined,
+		id: number
+	): Source {
+
+		let sourceName = '';
+		if (actor.url != null) {
+			sourceName = actor.url.split('/').pop()!.split('#')[0];
+		} else if (actor.source.introductionType === 'eval') {
+			let match = actorIdRegex.exec(actor.name);
+			if (match) {
+				sourceName = `eval ${match[0]}`;
+			}
+		}
+
+		let source: Source;
+		if (sourcePath !== undefined) {
+			source = new Source(sourceName, sourcePath);
+		} else {
+			source = new Source(sourceName, actor.url || undefined, id);
+		}
+
+		if (actor.source.isBlackBoxed) {
+			(<DebugProtocol.Source>source).presentationHint = 'deemphasize';
+		}
+
+		return source;
 	}
 
 	public getBreakpointsPromise(): Promise<BreakpointAdapter[]> {
