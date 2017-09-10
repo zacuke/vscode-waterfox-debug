@@ -220,7 +220,7 @@ class SessionTreeItem extends SourceTreeItem {
 
 		if (threadItem) {
 
-			let path = sourceInfo.url.split('/');
+			let path = splitURL(sourceInfo.url);
 			let filename = path.pop()!;
 
 			return this.fixChangedItem(threadItem.addSource(filename, path, sourceInfo, this.id));
@@ -429,4 +429,36 @@ class SourceFileTreeItem extends SourceTreeItem {
 	public getChildren(): SourceTreeItem[] {
 		return [];
 	}
+}
+
+/**
+ * Split a URL with '/' as the separator, without splitting the origin or the search portion
+ */
+function splitURL(urlString: string): string[] {
+
+	let originLength: number;
+	let i = urlString.indexOf(':');
+	if (i >= 0) {
+		i++;
+		if (urlString[i] === '/') i++;
+		if (urlString[i] === '/') i++;
+		originLength = urlString.indexOf('/', i);
+	} else {
+		originLength = 0;
+	}
+
+	let searchStartIndex = urlString.indexOf('?', originLength);
+	if (searchStartIndex < 0) {
+		searchStartIndex = urlString.length;
+	}
+
+	let origin = urlString.substr(0, originLength);
+	let search = urlString.substr(searchStartIndex);
+	let path = urlString.substring(originLength, searchStartIndex);
+
+	let result = path.split('/');
+	result[0] = origin + result[0];
+	result[result.length - 1] += search;
+
+	return result;
 }
