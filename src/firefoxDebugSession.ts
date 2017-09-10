@@ -405,12 +405,14 @@ export class FirefoxDebugSession {
 		const sourcePath = this.pathMapper.convertFirefoxSourceToPath(source);
 		sourceAdapter = threadAdapter.createSourceAdapter(sourceActor, sourcePath);
 
-		this.sendEvent(new Event('newSource', <NewSourceEventBody>{
-			threadId: threadAdapter.id,
-			sourceId: sourceAdapter.id,
-			url: sourceActor.url || undefined,
-			path: sourceAdapter.sourcePath
-		}));
+		if (sourceActor.url && !sourceActor.url.startsWith('javascript:')) {
+			this.sendEvent(new Event('newSource', <NewSourceEventBody>{
+				threadId: threadAdapter.id,
+				sourceId: sourceAdapter.id,
+				url: sourceActor.url,
+				path: sourceAdapter.sourcePath
+			}));
+		}
 
 		// check if this source should be skipped
 		let skipThisSource: boolean | undefined = undefined;

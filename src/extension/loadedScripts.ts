@@ -406,7 +406,7 @@ class SourceFileTreeItem extends SourceTreeItem {
 		sourceInfo: NewSourceEventBody,
 		sessionId: string
 	) {
-		super(filename, vscode.TreeItemCollapsibleState.None);
+		super((filename.length > 0) ? filename : '(index)', vscode.TreeItemCollapsibleState.None);
 
 		if (sourceInfo.path) {
 
