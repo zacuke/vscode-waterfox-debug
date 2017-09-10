@@ -1,3 +1,7 @@
+### Version 0.16.0
+* add Loaded Scripts Explorer
+* add support for Symbol-keyed properties (Firefox 56+)
+
 ### Version 0.15.4
 * bugfix: `pathMappings` were ignored in `attach` configurations
 
