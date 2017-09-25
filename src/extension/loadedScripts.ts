@@ -412,7 +412,11 @@ class SourceFileTreeItem extends SourceTreeItem {
 		if (sourceInfo.path) {
 			pathOrUri = sourceInfo.path;
 		} else {
-			pathOrUri = `debug:${sourceInfo.url}?session=${sessionId}`;
+			if (vscode.version.startsWith('1.16')) {
+				pathOrUri = `debug:${sourceInfo.url}?session=${sessionId}`;
+			} else {
+				pathOrUri = `debug:${encodeURIComponent(sourceInfo.url!)}?session=${encodeURIComponent(sessionId)}&ref=${sourceInfo.sourceId}`;
+			}
 		}
 
 		this.command = {
