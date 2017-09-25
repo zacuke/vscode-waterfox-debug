@@ -408,21 +408,17 @@ class SourceFileTreeItem extends SourceTreeItem {
 	) {
 		super((filename.length > 0) ? filename : '(index)', vscode.TreeItemCollapsibleState.None);
 
+		let pathOrUri: string;
 		if (sourceInfo.path) {
-
-			this.command = {
-				command: 'extension.firefox.openLocalScript',
-				arguments: [ sourceInfo.path, sessionId ],
-				title: ''
-			}
-
+			pathOrUri = sourceInfo.path;
 		} else {
+			pathOrUri = `debug:${sourceInfo.url}?session=${sessionId}`;
+		}
 
-			this.command = {
-				command: 'extension.firefox.openRemoteScript',
-				arguments: [ sourceInfo.url, sessionId ],
-				title: ''
-			}
+		this.command = {
+			command: 'extension.firefox.openScript',
+			arguments: [ pathOrUri ],
+			title: ''
 		}
 	}
 

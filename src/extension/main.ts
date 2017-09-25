@@ -20,11 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.openLocalScript', openLocalScript
-	));
-
-	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.openRemoteScript', openRemoteScript
+		'extension.firefox.openScript', openScript
 	));
 
 	let loadedScriptsProvider = new LoadedScriptsProvider();
@@ -128,11 +124,16 @@ function onDidTerminateSession(
 	}
 }
 
-function openLocalScript(path: string, sessionId: string) {
-	vscode.workspace.openTextDocument(path).then((doc) => vscode.window.showTextDocument(doc));
-}
+async function openScript(pathOrUri: string) {
 
-function openRemoteScript(url: string, sessionId: string) {
-	let uri = vscode.Uri.parse(`debug:${url}?session=${sessionId}`);
-	vscode.workspace.openTextDocument(uri).then((doc) => vscode.window.showTextDocument(doc));
+	let uri: vscode.Uri;
+	if (pathOrUri.startsWith('debug:')) {
+		uri = vscode.Uri.parse(pathOrUri);
+	} else {
+		uri = vscode.Uri.file(pathOrUri);
+	}
+
+	const doc = await vscode.workspace.openTextDocument(uri);
+
+	vscode.window.showTextDocument(doc);
 }
