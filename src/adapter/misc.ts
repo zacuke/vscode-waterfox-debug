@@ -37,10 +37,10 @@ export class SourceAdapter {
 		let sourceName = '';
 		if (actor.url != null) {
 			sourceName = actor.url.split('/').pop()!.split('#')[0];
-		} else if (actor.source.introductionType === 'eval') {
+		} else {
 			let match = actorIdRegex.exec(actor.name);
 			if (match) {
-				sourceName = `eval ${match[0]}`;
+				sourceName = `${actor.source.introductionType || 'Script'} ${match[0]}`;
 			}
 		}
 
