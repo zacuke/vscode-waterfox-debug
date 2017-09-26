@@ -97,15 +97,10 @@
   "homepage": "https://github.com/hbenl/vscode-firefox-debug",
   "main": "./out/extension/main.js",
   "activationEvents": [
-    "onDebug:firefox",
-    "onCommand:extension.firefox.startDebug"
+    "onDebug"
   ],
   "contributes": {
     "commands": [
-      {
-        "command": "extension.firefox.startDebug",
-        "title": "Start Firefox debug session"
-      },
       {
         "command": "extension.firefox.reloadAddon",
         "title": "Firefox: Reload add-on"
@@ -131,10 +126,6 @@
       ],
       "commandPalette": [
         {
-          "command": "extension.firefox.startDebug",
-          "when": "false"
-        },
-        {
           "command": "extension.firefox.toggleSkippingFile",
           "when": "false"
         },
@@ -159,7 +150,6 @@
         "label": "Firefox",
         "program": "./out/firefoxDebugAdapter.js",
         "runtime": "node",
-        "startSessionCommand": "extension.firefox.startDebug",
         "initialConfigurations": [
           {
             "name": "Launch index.html",
