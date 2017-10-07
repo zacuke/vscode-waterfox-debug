@@ -35,7 +35,7 @@ in the root directory of your project:
             "type": "firefox",
             "request": "launch",
             "reAttach": true,
-            "file": "${workspaceRoot}/index.html"
+            "file": "${workspaceFolder}/index.html"
         }
     ]
 }
@@ -55,7 +55,7 @@ urls to local files:
             "request": "launch",
             "reAttach": true,
             "url": "http://localhost/index.html",
-            "webRoot": "${workspaceRoot}"
+            "webRoot": "${workspaceFolder}"
         }
     ]
 }
@@ -76,7 +76,7 @@ above configuration would be equivalent to
             "url": "http://localhost/index.html",
             "pathMappings": [{
                 "url": "http://localhost",
-                "path": "${workspaceRoot}"
+                "path": "${workspaceFolder}"
             }]
         }
     ]
@@ -142,9 +142,9 @@ There are two ways to enable this feature:
   If the URL of a file can't be mapped to a local file path, the URL will be matched against these
   glob patterns, otherwise the local file path will be matched.
   Examples for glob patterns:
-  * `"${workspaceRoot}/skipThis.js"` - will skip the file `skipThis.js` in the root folder of your project
+  * `"${workspaceFolder}/skipThis.js"` - will skip the file `skipThis.js` in the root folder of your project
   * `"**/skipThis.js"` - will skip files called `skipThis.js` in any folder
-  * `"${workspaceRoot}/node_modules/**"` - will skip all files under `node_modules`
+  * `"${workspaceFolder}/node_modules/**"` - will skip all files under `node_modules`
   * `"http?(s):/**"` - will skip files that could not be mapped to local files
   * `"**/google.com/**"` - will skip files containing `/google.com/` in their url, in particular
     all files from the domain `google.com` (that could not be mapped to local files)
@@ -166,7 +166,7 @@ Here's an example configuration for add-on debugging:
             "request": "launch",
             "reAttach": true,
             "addonType": "addonSdk",
-            "addonPath": "${workspaceRoot}"
+            "addonPath": "${workspaceFolder}"
         }
     ]
 }
@@ -202,8 +202,8 @@ whenever you change a file.
   `node_modules`:
   ```
     "reloadOnChange": {
-        "watch": [ "${workspaceRoot}/**/*.js" ],
-        "ignore": [ "${workspaceRoot}/node_modules/**" ]
+        "watch": [ "${workspaceFolder}/**/*.js" ],
+        "ignore": [ "${workspaceFolder}/node_modules/**" ]
     }
   ```
   By default, the reloading will be "debounced": the debug adapter will wait until the last file
@@ -215,7 +215,7 @@ whenever you change a file.
   Instead of string arrays, you can also use a single string for `watch` and `ignore` and if you
   don't need to specify `ignore` or `debounce`, you can specify the `watch` value directly, e.g.
   ```
-  "reloadOnChange": "${workspaceRoot}/lib/*.js"
+  "reloadOnChange": "${workspaceFolder}/lib/*.js"
   ```
 * `pathMappings`: An array of urls and corresponding paths to use for translating the URLs of
   javascript files to local file paths. Use this if the default mapping of URLs to paths is 
@@ -272,7 +272,7 @@ your workspace:
 ```
 ...
     "log": {
-        "fileName": "${workspaceRoot}/log.txt",
+        "fileName": "${workspaceFolder}/log.txt",
         "fileLevel": {
             "default": "Debug"
         }

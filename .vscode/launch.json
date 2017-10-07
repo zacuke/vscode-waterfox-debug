@@ -5,13 +5,13 @@
 			"type": "node",
 			"request": "launch",
 			"name": "debug server",
-			"program": "${workspaceRoot}/out/firefoxDebugAdapter.js",
+			"program": "${workspaceFolder}/out/firefoxDebugAdapter.js",
 			"args": [ "--server=4711" ],
-			"cwd": "${workspaceRoot}",
+			"cwd": "${workspaceFolder}",
 			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outFiles": [
-				"${workspaceRoot}/out"
+				"${workspaceFolder}/out"
 			]
 		},
 		{
@@ -20,25 +20,25 @@
 			"name": "extension host",
 			"runtimeExecutable": "${execPath}",
 			"args": [
-				"--extensionDevelopmentPath=${workspaceRoot}"
+				"--extensionDevelopmentPath=${workspaceFolder}"
 			],
 			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outFiles": [
-				"${workspaceRoot}/out"
+				"${workspaceFolder}/out"
 			]
 		},
 		{
 			"type": "node",
 			"request": "launch",
 			"name": "run tests",
-			"program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
+			"program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
 			"args": [ "--no-timeouts", "--colors", "out/test/test*.js" ],
-			"cwd": "${workspaceRoot}",
+			"cwd": "${workspaceFolder}",
 			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outFiles": [
-				"${workspaceRoot}/out"
+				"${workspaceFolder}/out"
 			]
 		},
 		{
@@ -46,7 +46,7 @@
 			"request": "launch",
 			"name": "web test",
 			"debugServer": 4711,
-			"file": "${workspaceRoot}/testdata/web/index.html"
+			"file": "${workspaceFolder}/testdata/web/index.html"
 		},
 		{
 			"type": "firefox",
@@ -54,8 +54,8 @@
 			"name": "jetpack test",
 			"debugServer": 4711,
 			"addonType": "addonSdk",
-			"addonPath": "${workspaceRoot}/testdata/addonSdk/addOn",
-			"file": "${workspaceRoot}/testdata/addonSdk/index.html"
+			"addonPath": "${workspaceFolder}/testdata/addonSdk/addOn",
+			"file": "${workspaceFolder}/testdata/addonSdk/index.html"
 		},
 		{
 			"type": "firefox",
@@ -63,8 +63,8 @@
 			"name": "webextension test",
 			"debugServer": 4711,
 			"addonType": "webExtension",
-			"addonPath": "${workspaceRoot}/testdata/webExtension/addOn",
-			"file": "${workspaceRoot}/testdata/webExtension/index.html"
+			"addonPath": "${workspaceFolder}/testdata/webExtension/addOn",
+			"file": "${workspaceFolder}/testdata/webExtension/index.html"
 		}
 	],
 	"compounds": [

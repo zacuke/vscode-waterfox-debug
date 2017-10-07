@@ -156,7 +156,7 @@
             "type": "firefox",
             "request": "launch",
             "reAttach": true,
-            "file": "${workspaceRoot}/index.html"
+            "file": "${workspaceFolder}/index.html"
           },
           {
             "name": "Launch localhost",
@@ -164,7 +164,7 @@
             "request": "launch",
             "reAttach": true,
             "url": "http://localhost/index.html",
-            "webRoot": "${workspaceRoot}"
+            "webRoot": "${workspaceFolder}"
           },
           {
             "name": "Attach",
@@ -177,7 +177,7 @@
             "request": "launch",
             "reAttach": true,
             "addonType": "addonSdk",
-            "addonPath": "${workspaceRoot}"
+            "addonPath": "${workspaceFolder}"
           }
         ],
         "configurationSnippets": [
@@ -189,7 +189,7 @@
               "request": "launch",
               "reAttach": true,
               "name": "${1:Launch index.html}",
-              "file": "^\"\\${workspaceRoot}/${2:index.html}\""
+              "file": "^\"\\${workspaceFolder}/${2:index.html}\""
             }
           },
           {
@@ -201,7 +201,7 @@
               "reAttach": true,
               "name": "${1:Launch localhost}",
               "url": "${2:http://localhost/index.html}",
-              "webRoot": "^\"\\${workspaceRoot}${3:}\""
+              "webRoot": "^\"\\${workspaceFolder}${3:}\""
             }
           },
           {
@@ -222,7 +222,7 @@
               "reAttach": true,
               "name": "${1:Launch add-on}",
               "addonType": "${2:addonSdk}",
-              "addonPath": "^\"\\${workspaceRoot}${3:}\""
+              "addonPath": "^\"\\${workspaceFolder}${3:}\""
             }
           }
         ],
@@ -233,7 +233,7 @@
               "file": {
                 "type": "string",
                 "description": "The file to open in the browser",
-                "default": "${workspaceRoot}/index.html"
+                "default": "${workspaceFolder}/index.html"
               },
               "url": {
                 "type": "string",
@@ -242,7 +242,7 @@
               "webRoot": {
                 "type": "string",
                 "description": "If the 'url' property is specified, this property specifies the workspace absolute path corresponding to the path of the url",
-                "default": "${workspaceRoot}"
+                "default": "${workspaceFolder}"
               },
               "firefoxExecutable": {
                 "type": "string",
@@ -304,7 +304,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "default": "${workspaceRoot}/**/*.js"
+                    "default": "${workspaceFolder}/**/*.js"
                   },
                   "ignore": {
                     "description": "Files, directories or glob patterns to be ignored",
@@ -326,7 +326,7 @@
                   }
                 },
                 "default": {
-                  "watch": "${workspaceRoot}/**/*.js",
+                  "watch": "${workspaceFolder}/**/*.js",
                   "ignore": "**/node_modules/**"
                 }
               },
@@ -384,7 +384,7 @@
               "addonPath": {
                 "type": "string",
                 "description": "The path of the directory containing the addon",
-                "default": "${workspaceRoot}"
+                "default": "${workspaceFolder}"
               },
               "installAddonInProfile": {
                 "type": "boolean",
@@ -407,7 +407,7 @@
                   "fileName": {
                     "type": "string",
                     "description": "The name of the logfile",
-                    "default": "${workspaceRoot}/vscode-firefox-debug.log"
+                    "default": "${workspaceFolder}/vscode-firefox-debug.log"
                   },
                   "fileLevel": {
                     "type": "object",
@@ -467,7 +467,7 @@
                   }
                 },
                 "default": {
-                  "fileName": "${workspaceRoot}/vscode-firefox-debug.log",
+                  "fileName": "${workspaceFolder}/vscode-firefox-debug.log",
                   "fileLevel": {
                     "default": "Debug"
                   },
@@ -488,7 +488,7 @@
               "webRoot": {
                 "type": "string",
                 "description": "If the 'url' property is specified, this property specifies the workspace absolute path corresponding to the path of the url",
-                "default": "${workspaceRoot}"
+                "default": "${workspaceFolder}"
               },
               "port": {
                 "type": "number",
@@ -525,7 +525,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "default": "${workspaceRoot}/**/*.js"
+                    "default": "${workspaceFolder}/**/*.js"
                   },
                   "ignore": {
                     "description": "Files, directories or glob patterns to be ignored",
@@ -547,7 +547,7 @@
                   }
                 },
                 "default": {
-                  "watch": "${workspaceRoot}/**/*.js",
+                  "watch": "${workspaceFolder}/**/*.js",
                   "ignore": "**/node_modules/**"
                 }
               },
@@ -575,7 +575,7 @@
                   "type": "string"
                 },
                 "default": [
-                  "${workspaceRoot}/node_modules/**/*"
+                  "${workspaceFolder}/node_modules/**/*"
                 ]
               },
               "showConsoleCallLocation": {
@@ -596,7 +596,7 @@
               "addonPath": {
                 "type": "string",
                 "description": "The path of the directory containing the addon",
-                "default": "${workspaceRoot}"
+                "default": "${workspaceFolder}"
               },
               "sourceMaps": {
                 "type": "string",
@@ -614,7 +614,7 @@
                   "fileName": {
                     "type": "string",
                     "description": "The name of the logfile",
-                    "default": "${workspaceRoot}/vscode-firefox-debug.log"
+                    "default": "${workspaceFolder}/vscode-firefox-debug.log"
                   },
                   "fileLevel": {
                     "type": "object",
@@ -674,7 +674,7 @@
                   }
                 },
                 "default": {
-                  "fileName": "${workspaceRoot}/vscode-firefox-debug.log",
+                  "fileName": "${workspaceFolder}/vscode-firefox-debug.log",
                   "fileLevel": {
                     "default": "Debug"
                   },
