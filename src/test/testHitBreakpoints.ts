@@ -21,7 +21,7 @@ describe('Firefox debug adapter', function() {
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await util.setBreakpoints(dc, sourcePath, [ 3 ]);
 
-		util.evaluateDelayed(dc, 'noop()', 0);
+		util.evaluateCloaked(dc, 'noop()');
 
 		let stoppedEvent = await util.receiveStoppedEvent(dc);
 		assert.equal(stoppedEvent.body.allThreadsStopped, false);
@@ -44,18 +44,27 @@ describe('Firefox debug adapter', function() {
 
 		await dc.setExceptionBreakpointsRequest({filters: [ 'uncaught' ]});
 
-		util.evaluateDelayed(dc, 'throwException()', 0);
+		util.evaluateCloaked(dc, 'throwException()');
 
 		let stoppedEvent = await util.receiveStoppedEvent(dc);
 		assert.equal(stoppedEvent.body.allThreadsStopped, false);
 		assert.equal(stoppedEvent.body.reason, 'exception');
 	});
 
-	it('should not hit an uncaught exception breakpoint', async function() {
+	it('should not hit an uncaught exception breakpoint triggered by a debugger eval', async function() {
+
+		await dc.setExceptionBreakpointsRequest({filters: [ 'uncaught' ]});
+		
+		util.evaluate(dc, 'throwException()');
+
+		await util.assertPromiseTimeout(util.receiveStoppedEvent(dc), 1000);
+	});
+
+	it('should not hit an uncaught exception breakpoint when those are disabled', async function() {
 
 		await dc.setExceptionBreakpointsRequest({filters: []});
 
-		util.evaluateDelayed(dc, 'throwException()', 0);
+		util.evaluateCloaked(dc, 'throwException()');
 
 		await util.assertPromiseTimeout(util.receiveStoppedEvent(dc), 1000);
 	});
@@ -64,18 +73,27 @@ describe('Firefox debug adapter', function() {
 
 		await dc.setExceptionBreakpointsRequest({filters: [ 'all' ]});
 
-		util.evaluateDelayed(dc, 'throwAndCatchException()', 0);
+		util.evaluateCloaked(dc, 'throwAndCatchException()');
 
 		let stoppedEvent = await util.receiveStoppedEvent(dc);
 		assert.equal(stoppedEvent.body.allThreadsStopped, false);
 		assert.equal(stoppedEvent.body.reason, 'exception');
 	});
 
-	it('should not hit a caught exception breakpoint', async function() {
+	it('should not hit a caught exception breakpoint triggered by a debugger eval', async function() {
+
+		await dc.setExceptionBreakpointsRequest({filters: [ 'all' ]});
+		
+		util.evaluate(dc, 'throwAndCatchException()');
+
+		await util.assertPromiseTimeout(util.receiveStoppedEvent(dc), 1000);
+	});
+
+	it('should not hit a caught exception breakpoint when those are disabled', async function() {
 
 		await dc.setExceptionBreakpointsRequest({filters: [ 'uncaught' ]});
 
-		util.evaluateDelayed(dc, 'throwAndCatchException()', 0);
+		util.evaluateCloaked(dc, 'throwAndCatchException()');
 
 		await util.assertPromiseTimeout(util.receiveStoppedEvent(dc), 1000);
 	});
@@ -102,7 +120,7 @@ describe('Firefox debug adapter', function() {
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await util.setBreakpoints(dc, sourcePath, [ 8, 10 ]);
 
-		util.evaluateDelayed(dc, 'vars()', 0);
+		util.evaluateCloaked(dc, 'vars()');
 
 		let stoppedEvent = await util.receiveStoppedEvent(dc);
 		let threadId = stoppedEvent.body.threadId!;

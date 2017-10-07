@@ -25,7 +25,7 @@ describe('Firefox debug adapter', function() {
 		await delay(100);
 
 		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
-			() => util.evaluate(dc, 'try{ testSkipFiles() }catch(e){}'));
+			() => util.evaluateCloaked(dc, 'try{ testSkipFiles() }catch(e){}'));
 		let stacktrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId });
 
 		assert.equal(stacktrace.body.stackFrames[0].source!.path, path.join(TESTDATA_PATH, 'web/main.js'));
@@ -44,7 +44,7 @@ describe('Firefox debug adapter', function() {
 		await delay(100);
 
 		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
-			() => util.evaluate(dc, 'loadScript("exception.js")'));
+			() => util.evaluateCloaked(dc, 'loadScript("exception.js")'));
 		let stacktrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId });
 
 		assert.equal(stacktrace.body.stackFrames[0].source!.path, path.join(TESTDATA_PATH, 'web/main.js'));
@@ -65,7 +65,7 @@ describe('Firefox debug adapter', function() {
 			await delay(100);
 
 			let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
-				() => util.evaluate(dc, 'loadScript("exception-sourcemap.js")'));
+				() => util.evaluateCloaked(dc, 'loadScript("exception-sourcemap.js")'));
 			let stacktrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId });
 
 			assert.equal(stacktrace.body.stackFrames[0].source!.path, path.join(TESTDATA_PATH, 'web/main.js'));
@@ -86,7 +86,7 @@ describe('Firefox debug adapter', function() {
 		await util.setBreakpoints(dc, mainFilePath, [ 76 ]);
 
 		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
-			() => util.evaluate(dc, 'try{ testSkipFiles() }catch(e){}'));
+			() => util.evaluateCloaked(dc, 'try{ testSkipFiles() }catch(e){}'));
 		let stacktrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId });
 
 		assert.equal(stacktrace.body.stackFrames[0].source!.path, mainFilePath);
@@ -109,7 +109,7 @@ describe('Firefox debug adapter', function() {
 		await dc.customRequest('toggleSkippingFile', skipFileUrl);
 
 		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
-			() => util.evaluate(dc, 'try{ testSkipFiles() }catch(e){}'));
+			() => util.evaluateCloaked(dc, 'try{ testSkipFiles() }catch(e){}'));
 		let threadId = stoppedEvent.body.threadId;
 		let stacktrace = await dc.stackTraceRequest({ threadId });
 
@@ -120,7 +120,7 @@ describe('Firefox debug adapter', function() {
 		await dc.continueRequest({ threadId });
 
 		stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
-			() => util.evaluate(dc, 'try{ testSkipFiles() }catch(e){}'));
+			() => util.evaluateCloaked(dc, 'try{ testSkipFiles() }catch(e){}'));
 		stacktrace = await dc.stackTraceRequest({ threadId });
 
 		assert.equal(stacktrace.body.stackFrames[0].source!.path, skipFilePath);
@@ -145,7 +145,7 @@ describe('Firefox debug adapter', function() {
 		await dc.customRequest('toggleSkippingFile', skipFileUrl);
 		
 		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
-			() => util.evaluate(dc, 'try{ testSkipFiles() }catch(e){}'));
+			() => util.evaluateCloaked(dc, 'try{ testSkipFiles() }catch(e){}'));
 		let threadId = stoppedEvent.body.threadId;
 		let stacktrace = await dc.stackTraceRequest({ threadId });
 
@@ -156,7 +156,7 @@ describe('Firefox debug adapter', function() {
 		await dc.continueRequest({ threadId });
 
 		stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
-			() => util.evaluate(dc, 'try{ testSkipFiles() }catch(e){}'));
+			() => util.evaluateCloaked(dc, 'try{ testSkipFiles() }catch(e){}'));
 		stacktrace = await dc.stackTraceRequest({ threadId });
 
 		assert.equal(stacktrace.body.stackFrames[0].source!.path, mainFilePath);
@@ -172,7 +172,7 @@ describe('Firefox debug adapter', function() {
 		await util.setBreakpoints(dc, mainFilePath, [ 75 ]);
 
 		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc,
-			() => util.evaluate(dc, 'try{ testSkipFiles() }catch(e){}'));
+			() => util.evaluateCloaked(dc, 'try{ testSkipFiles() }catch(e){}'));
 
 		assert.equal((<StoppedEvent>stoppedEvent).body.reason, 'breakpoint');
 

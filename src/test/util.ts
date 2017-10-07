@@ -118,6 +118,12 @@ export function evaluateDelayed(dc: DebugClient, js: string, delay: number): Pro
 	return evaluate(dc, js);
 }
 
+export function evaluateCloaked(dc: DebugClient, js: string): Promise<DebugProtocol.EvaluateResponse> {
+	js = js.replace("'", "\\'");
+	js = `eval('setTimeout(function() { ${js} }, 0)')`;
+	return dc.evaluateRequest({ context: 'repl', expression: js });
+}
+
 export async function assertPromiseTimeout(promise: Promise<any>, timeout: number): Promise<void> {
 	let promiseResolved = await Promise.race([
 		promise.then(() => true),
