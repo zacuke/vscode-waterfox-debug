@@ -237,6 +237,13 @@ whenever you change a file.
   being used, how URLs are mapped to paths and which URLs couldn't be mapped.
   If you specify more than one mapping, the first mappings in the list will take precedence over 
   subsequent ones and all of them will take precedence over the default mappings.
+
+  You can also set the `path` argument to `null` to prevent some URLs from being mapped to local
+  files. This can be useful for URLs that generate their content on the server (e.g. PHP scripts)
+  or if the content on the server is different from the local file content.
+  For these URLs the debugger will show the content fetched from the server instead of the local
+  file content.
+
 * `profileDir`, `profile`: You can specify a Firefox profile directory or the name of a profile
   created with the Firefox profile manager. The extension will create a copy of this profile in the
   system's temporary directory and modify the settings in this copy to allow remote debugging.
