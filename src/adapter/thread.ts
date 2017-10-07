@@ -53,12 +53,25 @@ export class ThreadAdapter extends EventEmitter {
 			}
 
 			if (this.shouldSkip(source)) {
+
 				this.resume();
-			} else {
-				this.emit('paused', event.why);
-				// pre-fetch the stackframes, we're going to need them later
-				this.fetchAllStackFrames();
+				return;
+
+			} else if (event.why.type === 'exception') {
+
+				let frames = await this.fetchAllStackFrames();
+				let startFrame = (frames.length > 0) ? frames[frames.length - 1] : undefined;
+				if (startFrame && (startFrame.frame.where.source.introductionType === 'debugger eval')) {
+
+					this.resume();
+					return;
+
+				}
 			}
+
+			this.emit('paused', event.why);
+			// pre-fetch the stackframes, we're going to need them later
+			this.fetchAllStackFrames();
 		});
 	}
 
