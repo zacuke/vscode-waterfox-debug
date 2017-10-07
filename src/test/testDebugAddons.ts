@@ -59,7 +59,7 @@ describe('Firefox debug adapter', function() {
 			assert.equal(outputEvent.body.output.trim(), 'foo: bar');
 		});
 
-		it(`should debug a Jetpack add-on installed ${installMethod}`, async function() {
+		it.skip(`should debug a Jetpack add-on installed ${installMethod}`, async function() {
 
 			dc = await util.initDebugClientForAddon(
 				TESTDATA_PATH, 'addonSdk', { installInProfile, delayedNavigation: true });
@@ -85,7 +85,7 @@ describe('Firefox debug adapter', function() {
 		});
 	}
 
-	it(`should show log messages from a Jetpack add-on installed in the profile`, async function() {
+	it.skip(`should show log messages from a Jetpack add-on installed in the profile`, async function() {
 
 		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'addonSdk', { installInProfile: true });
 		let outputEvent = <DebugProtocol.OutputEvent> await dc.waitForEvent('output');
