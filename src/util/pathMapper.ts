@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { Log } from './log';
-import { ParsedAddonConfiguration } from '../configuration';
+import { PathMappings, ParsedAddonConfiguration } from '../configuration';
 import { isWindowsPlatform as detectWindowsPlatform } from './misc';
 
 let log = Log.create('PathConversion');
@@ -12,7 +12,7 @@ export let urlDetector = /^[a-zA-Z][a-zA-Z0-9\+\-\.]*\:\/\//;
 export class PathMapper {
 
 	constructor(
-		private readonly pathMappings: { url: string | RegExp, path: string }[],
+		private readonly pathMappings: PathMappings,
 		private readonly addonConfig?: ParsedAddonConfiguration
 	) {}
 
@@ -67,6 +67,11 @@ export class PathMapper {
 
 				if (url.substr(0, from.length) === from) {
 
+					if (to === null) {
+						log.debug(`Url ${url} not converted to path`);
+						return undefined;
+					}
+
 					let path = this.removeQueryString(to + url.substr(from.length));
 					if (isWindowsPlatform) {
 						path = this.sanitizeWindowsPath(path);
@@ -80,6 +85,11 @@ export class PathMapper {
 
 				let match = from.exec(url);
 				if (match) {
+
+					if (to === null) {
+						log.debug(`Url ${url} not converted to path`);
+						return undefined;
+					}
 
 					let path = this.removeQueryString(to + match[1]);
 					if (isWindowsPlatform) {

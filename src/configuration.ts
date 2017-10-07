@@ -18,7 +18,7 @@ export interface CommonConfiguration {
 	webRoot?: string;
 	reloadOnAttach?: boolean;
 	reloadOnChange?: ReloadConfiguration;
-	pathMappings?: { url: string, path: string }[];
+	pathMappings?: { url: string, path: string | null }[];
 	skipFiles?: string[];
 	showConsoleCallLocation?: boolean;
 	log?: LogConfiguration;
@@ -65,7 +65,7 @@ export interface ParsedConfiguration {
 	attach?: ParsedAttachConfiguration;
 	launch?: ParsedLaunchConfiguration;
 	addon?: ParsedAddonConfiguration;
-	pathMappings: { url: string | RegExp, path: string }[];
+	pathMappings: PathMappings;
 	filesToSkip: RegExp[];
 	reloadOnChange?: NormalizedReloadConfiguration,
 	sourceMaps: 'client' | 'server';
@@ -82,7 +82,7 @@ export interface FirefoxPreferences {
 	[key: string]: boolean | number | string;
 }
 
-type PathMappings = { url: string | RegExp, path: string }[];
+export type PathMappings = { url: string | RegExp, path: string | null }[];
 
 export interface ParsedLaunchConfiguration {
 	firefoxExecutable: string;

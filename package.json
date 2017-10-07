@@ -341,7 +341,10 @@
                       "description": "The URL as seen by Firefox"
                     },
                     "path": {
-                      "type": "string",
+                      "type": [
+                        "string",
+                        "null"
+                      ],
                       "description": "The corresponding filesystem path as seen by VS Code"
                     }
                   }
@@ -562,7 +565,10 @@
                       "description": "The URL as seen by Firefox"
                     },
                     "path": {
-                      "type": "string",
+                      "type": [
+                        "string",
+                        "null"
+                      ],
                       "description": "The corresponding filesystem path as seen by VS Code"
                     }
                   }
