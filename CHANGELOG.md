@@ -1,3 +1,9 @@
+### Version 0.16.1
+* fix opening remote scripts from the Loaded Scripts Explorer
+* skip exceptions triggered from the debug console
+* add the ability to configure URLs that should not be mapped to local paths
+* remove deprecated VS Code APIs
+
 ### Version 0.16.0
 * add Loaded Scripts Explorer
 * add support for Symbol-keyed properties (Firefox 56+)
