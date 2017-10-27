@@ -20,7 +20,7 @@ export function exceptionGripToString(grip: FirefoxDebugProtocol.Grip | null | u
 	if ((typeof grip === 'object') && (grip !== null) && (grip.type === 'object')) {
 
 		let preview = (<FirefoxDebugProtocol.ObjectGrip>grip).preview;
-		if (preview !== undefined) {
+		if (preview && (preview.kind === 'Error')) {
 
 			if (preview.name === 'ReferenceError') {
 				return 'not available';

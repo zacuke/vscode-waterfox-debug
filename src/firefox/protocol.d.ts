@@ -341,6 +341,11 @@ declare namespace FirefoxDebugProtocol {
 		descriptor: PropertyDescriptor;
 	}
 
+	interface NamedDataPropertyDescriptor {
+		name: string;
+		descriptor: DataPropertyDescriptor;
+	}
+
 	type Grip = boolean | number | string | ComplexGrip;
 
 	interface ComplexGrip {
@@ -348,9 +353,79 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface ObjectGrip extends ComplexGrip {
+		type: 'object';
 		class: string;
 		actor: string;
-		preview?: any; //TODO
+		preview?: Preview;
+	}
+
+	type Preview = ObjectPreview | DatePreview | ObjectWithURLPreview | DOMNodePreview |
+		DOMEventPreview | ArrayLikePreview | ErrorPreview;
+
+	interface ObjectPreview {
+		kind: 'Object';
+		ownProperties: { [name: string]: PropertyPreview };
+		ownPropertiesLength: number;
+		ownSymbols: NamedDataPropertyDescriptor[];
+		ownSymbolsLength: number;
+		safeGetterValues: { [name: string]: SafeGetterValuePreview };
+	}
+
+	interface PropertyPreview {
+		configurable: boolean;
+		enumerable: boolean;
+		writable: boolean;
+		value: Grip;
+	}
+
+	interface DatePreview {
+		kind: undefined;
+		timestamp: number;
+	}
+
+	interface ObjectWithURLPreview {
+		kind: 'ObjectWithURL';
+		url: string;
+	}
+
+	interface DOMNodePreview {
+		kind: 'DOMNode';
+		nodeType: number;
+		nodeName: string;
+		isConnected: boolean;
+		location?: string;
+		attributes?: { [name: string]: string };
+		attributesLength?: number;
+	}
+
+	interface DOMEventPreview {
+		kind: 'DOMEvent';
+		type: string;
+		properties: Object;
+		target?: ObjectGrip;
+	}
+
+	interface ArrayLikePreview {
+		kind: 'ArrayLike';
+		length: number;
+		items?: Grip[];
+	}
+
+	interface SafeGetterValuePreview {
+		getterValue: Grip;
+		getterPrototypeLevel: number;
+		enumerable: boolean;
+		writable: boolean;
+	}
+
+	interface ErrorPreview {
+		kind: 'Error';
+		name: string;
+		message: string;
+		fileName: string;
+		lineNumber: number;
+		columnNumber: number;
+		stack: string;
 	}
 
 	interface FunctionGrip extends ObjectGrip {

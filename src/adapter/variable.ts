@@ -1,8 +1,9 @@
 import { Log } from '../util/log';
 import { ThreadAdapter, ObjectGripAdapter, FrameAdapter } from './index';
 import { Variable } from 'vscode-debugadapter';
-import { DebugProtocol } from "vscode-debugprotocol";
-import { accessorExpression } from "../util/misc";
+import { DebugProtocol } from 'vscode-debugprotocol';
+import { accessorExpression } from '../util/misc';
+import { renderPreview } from './preview';
 
 let log = Log.create('VariableAdapter');
 
@@ -83,9 +84,9 @@ export class VariableAdapter {
 				case 'object':
 
 					let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
-					let vartype = objectGrip.class;
+					let displayValue = renderPreview(objectGrip);
 					return new VariableAdapter(
-						varname, referenceExpression, referenceFrame, vartype, threadAdapter,
+						varname, referenceExpression, referenceFrame, displayValue, threadAdapter,
 						objectGrip, threadLifetime);
 
 				default:

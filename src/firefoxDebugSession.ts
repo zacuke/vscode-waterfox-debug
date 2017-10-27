@@ -522,7 +522,7 @@ export class FirefoxDebugSession {
 			} else if ((typeof reason.exception === 'object') && (reason.exception.type === 'object')) {
 
 				let exceptionGrip = <FirefoxDebugProtocol.ObjectGrip>reason.exception;
-				if (exceptionGrip.preview.message) {
+				if (exceptionGrip.preview && (exceptionGrip.preview.kind === 'Error')) {
 					stoppedEvent.body.text = `${exceptionGrip.class}: ${exceptionGrip.preview.message}`;
 				} else {
 					stoppedEvent.body.text = exceptionGrip.class;
