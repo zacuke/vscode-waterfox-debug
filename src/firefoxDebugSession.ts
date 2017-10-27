@@ -399,20 +399,14 @@ export class FirefoxDebugSession {
 
 		if (sourceAdapter !== undefined) {
 			sourceAdapter.actor = sourceActor;
+			this.sendNewSourceEvent(threadAdapter, sourceAdapter);
 			return;
 		}
 
 		const sourcePath = this.pathMapper.convertFirefoxSourceToPath(source);
 		sourceAdapter = threadAdapter.createSourceAdapter(sourceActor, sourcePath);
 
-		if (sourceActor.url && !sourceActor.url.startsWith('javascript:')) {
-			this.sendEvent(new Event('newSource', <NewSourceEventBody>{
-				threadId: threadAdapter.id,
-				sourceId: sourceAdapter.id,
-				url: sourceActor.url,
-				path: sourceAdapter.sourcePath
-			}));
-		}
+		this.sendNewSourceEvent(threadAdapter, sourceAdapter);
 
 		// check if this source should be skipped
 		let skipThisSource: boolean | undefined = undefined;
@@ -575,5 +569,19 @@ export class FirefoxDebugSession {
 		this.sendEvent(new Event('threadExited', <ThreadExitedEventBody>{
 			id: threadAdapter.id
 		}));
+	}
+
+	private sendNewSourceEvent(threadAdapter: ThreadAdapter, sourceAdapter: SourceAdapter): void {
+
+		const sourceUrl = sourceAdapter.actor.url;
+
+		if (sourceUrl && !sourceUrl.startsWith('javascript:')) {
+			this.sendEvent(new Event('newSource', <NewSourceEventBody>{
+				threadId: threadAdapter.id,
+				sourceId: sourceAdapter.id,
+				url: sourceUrl,
+				path: sourceAdapter.sourcePath
+			}));
+		}
 	}
 }

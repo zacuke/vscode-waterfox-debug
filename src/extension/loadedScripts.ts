@@ -349,17 +349,25 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 
 		if (newChild instanceof SourceDirectoryTreeItem) {
 			index = this.children.findIndex(
-				(child) => !((child instanceof SourceDirectoryTreeItem) && (child.label <= newChild.label))
+				(child) => !((child instanceof SourceDirectoryTreeItem) && (child.label < newChild.label))
 			);
 		} else {
 			index = this.children.findIndex(
-				(child) => (child instanceof SourceFileTreeItem) && (child.label > newChild.label)
+				(child) => (child instanceof SourceFileTreeItem) && (child.label >= newChild.label)
 			);
 		}
 
-		if (index < 0) index = this.children.length;
+		if (index >= 0) {
 
-		this.children.splice(index, 0, newChild);
+			if (this.children[index].label !== newChild.label) {
+				this.children.splice(index, 0, newChild);
+			}
+
+		} else {
+
+			this.children.push(newChild);
+
+		}
 	}
 }
 
