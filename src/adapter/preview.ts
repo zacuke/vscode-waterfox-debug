@@ -62,7 +62,7 @@ function renderObjectPreview(preview: FirefoxDebugProtocol.ObjectPreview, classN
 		renderedProperties.push(`${property}: ${renderedValue}`);
 
 		if (++i >= maxProperties) {
-			renderedProperties.push('...');
+			renderedProperties.push('\u2026');
 			break;
 		}
 	}
@@ -87,10 +87,10 @@ function renderDOMNodePreview(preview: FirefoxDebugProtocol.DOMNodePreview): str
 	for (const attribute in preview.attributes) {
 
 		const renderedValue = renderGrip(preview.attributes[attribute]);
-		renderedAttributes.push(`${attribute}="${renderedValue}"`);
+		renderedAttributes.push(`${attribute}=${renderedValue}`);
 
 		if (++i >= maxAttributes) {
-			renderedAttributes.push('...');
+			renderedAttributes.push('\u2026');
 			break;
 		}
 	}
@@ -113,7 +113,7 @@ function renderArrayLikePreview(preview: FirefoxDebugProtocol.ArrayLikePreview):
 		const renderedItems = itemsToRender.map(item => renderGrip(item));
 
 		if (renderCount < preview.items.length) {
-			renderedItems.push('...');
+			renderedItems.push('\u2026');
 		}
 
 		result += ` [${renderedItems.join(', ')}]`;
@@ -132,7 +132,7 @@ function renderGrip(grip: FirefoxDebugProtocol.Grip): string {
 	} else if (typeof grip === 'string') {
 
 		if (grip.length > maxStringChars) {
-			return `"${grip.substr(0, maxStringChars)}..."`;
+			return `"${grip.substr(0, maxStringChars)}\u2026"`;
 		} else {
 			return `"${grip}"`;
 		}
@@ -154,7 +154,7 @@ function renderGrip(grip: FirefoxDebugProtocol.Grip): string {
 
 				const initial = (<FirefoxDebugProtocol.LongStringGrip>grip).initial;
 				if (initial.length > maxStringChars) {
-					return `${initial.substr(0, maxStringChars)}...`;
+					return `${initial.substr(0, maxStringChars)}\u2026`;
 				} else {
 					return initial;
 				}
