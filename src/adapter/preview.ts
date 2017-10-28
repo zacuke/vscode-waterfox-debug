@@ -6,9 +6,17 @@ const maxProperties = 5;
 const maxArrayItems = 5;
 const maxStringChars = 20;
 const maxAttributes = 5;
+const maxParameters = 5;
 
 export function renderPreview(objectGrip: FirefoxDebugProtocol.ObjectGrip): string {
 	try {
+
+		if ((objectGrip.class === 'Function') || objectGrip['parameterNames']) {
+			if (objectGrip.class !== 'Function') {
+				log.info(JSON.stringify(objectGrip));
+			}
+			return renderFunctionGrip(<FirefoxDebugProtocol.FunctionGrip>objectGrip);
+		}
 
 		const preview = objectGrip.preview;
 		if (!preview) {
@@ -126,6 +134,26 @@ function renderArrayLikePreview(preview: FirefoxDebugProtocol.ArrayLikePreview):
 	}
 
 	return result;
+}
+
+function renderFunctionGrip(functionGrip: FirefoxDebugProtocol.FunctionGrip): string {
+
+	let parameters = '';
+
+	if (functionGrip.parameterNames &&
+		functionGrip.parameterNames.every(parameterName => typeof parameterName === 'string')) {
+
+		let parameterNames = functionGrip.parameterNames;
+		if (parameterNames.length > maxParameters) {
+			parameterNames = parameterNames.slice(0, maxParameters);
+			parameterNames.push('\u2026');
+		}
+
+		parameters = parameterNames.join(', ');
+	}
+
+	const functionName = functionGrip.displayName || functionGrip.name || 'function';
+	return `${functionName}(${parameters}) {\u2026}`;
 }
 
 function renderGrip(grip: FirefoxDebugProtocol.Grip): string {
