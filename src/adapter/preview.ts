@@ -32,9 +32,9 @@ export function renderPreview(objectGrip: FirefoxDebugProtocol.ObjectGrip): stri
 
 			return `${objectGrip.class} ${preview.url}`;
 
-		} else if (preview.kind === 'DOMNode') {
+		} else if ((preview.kind === 'DOMNode') && (preview.nodeType === 1)) {
 
-			return renderDOMNodePreview(preview);
+			return renderDOMElementPreview(preview);
 
 		} else if (preview.kind === 'Error') {
 
@@ -81,7 +81,7 @@ function renderObjectPreview(preview: FirefoxDebugProtocol.ObjectPreview, classN
 	}
 }
 
-function renderDOMNodePreview(preview: FirefoxDebugProtocol.DOMNodePreview): string {
+function renderDOMElementPreview(preview: FirefoxDebugProtocol.DOMNodePreview): string {
 
 	if (!preview.attributes) {
 		return `<${preview.nodeName}>`;
