@@ -51,7 +51,7 @@ describe('Firefox debug adapter', function() {
 
 		variablesResponse = await dc.variablesRequest({ variablesReference: scopes.body.scopes[2].variablesReference });
 		let variable = util.findVariable(variablesResponse.body.variables, 'arg')!;
-		assert.equal(variable.value, 'Object');
+		assert.equal(variable.value, '{key: "value"}');
 		variablesResponse = await dc.variablesRequest({ variablesReference: variable.variablesReference });
 		assert.equal(util.findVariable(variablesResponse.body.variables, 'key').value, '"value"');
 		assert.equal(util.findVariable(variablesResponse.body.variables, 'Symbol(Local Symbol)').value, '"Symbol-keyed property 1"');
