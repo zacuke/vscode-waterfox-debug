@@ -374,8 +374,10 @@ declare namespace FirefoxDebugProtocol {
 	interface PropertyPreview {
 		configurable: boolean;
 		enumerable: boolean;
-		writable: boolean;
-		value: Grip;
+		writable?: boolean;
+		value?: Grip;
+		get?: FunctionGrip;
+		set?: FunctionGrip;
 	}
 
 	interface DatePreview {
@@ -432,9 +434,12 @@ declare namespace FirefoxDebugProtocol {
 		name?: string;
 		displayName?: string;
 		userDisplayName?: string;
-		url?: string;
-		line?: number;
-		column?: number;
+		parameterNames?: string[];
+		location?: {
+			url: string;
+			line?: number;
+			column?: number;
+		};
 	}
 
 	interface LongStringGrip extends ComplexGrip {

@@ -58,7 +58,12 @@ function renderObjectPreview(preview: FirefoxDebugProtocol.ObjectPreview, classN
 	let i = 0;
 	for (const property in preview.ownProperties) {
 
-		const renderedValue = renderGrip(preview.ownProperties[property].value);
+		var valueGrip = preview.ownProperties[property].value;
+		if (!valueGrip) {
+			continue;
+		}
+
+		const renderedValue = renderGrip(valueGrip);
 		renderedProperties.push(`${property}: ${renderedValue}`);
 
 		if (++i >= maxProperties) {
