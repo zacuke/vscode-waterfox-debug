@@ -1,3 +1,7 @@
+### Version 0.17.0
+* show object previews in the Variables and Watch sections of the Debug view
+* fix the Loaded Scripts Explorer when navigating in Firefox
+
 ### Version 0.16.1
 * fix opening remote scripts from the Loaded Scripts Explorer
 * skip exceptions triggered from the debug console
