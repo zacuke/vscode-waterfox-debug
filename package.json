@@ -116,12 +116,21 @@
       {
         "command": "extension.firefox.openScript",
         "title": "Open script"
+      },
+      {
+        "command": "extension.firefox.addPathMapping",
+        "title": "Map to local folder"
       }
     ],
     "menus": {
       "debug/callstack/context": [
         {
           "command": "extension.firefox.toggleSkippingFile"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "extension.firefox.addPathMapping"
         }
       ],
       "commandPalette": [
@@ -131,6 +140,10 @@
         },
         {
           "command": "extension.firefox.openScript",
+          "when": "false"
+        },
+        {
+          "command": "extension.firefox.addPathMapping",
           "when": "false"
         }
       ]

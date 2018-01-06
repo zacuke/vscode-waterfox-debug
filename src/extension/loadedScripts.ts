@@ -62,7 +62,7 @@ export class LoadedScriptsProvider implements vscode.TreeDataProvider<TreeNode> 
 	}
 }
 
-abstract class TreeNode {
+export abstract class TreeNode {
 
 	public readonly treeItem: vscode.TreeItem;
 
