@@ -1,3 +1,9 @@
+### Version 1.0.0
+* add default `pathMappings` for webpack
+* harmonize trailing slashes in user-specified `pathMappings`
+* Linux: search the Firefox executable in all directories in the user's `PATH` (thanks @agathver)
+* `addonType` now defaults to `webExtension`
+
 ### Version 0.17.0
 * show object previews in the Variables and Watch sections of the Debug view
 * fix the Loaded Scripts Explorer when navigating in Firefox
