@@ -273,7 +273,7 @@ async function findFirefoxExecutable(configuredPath?: string): Promise<string> {
 		}
 	}
 	
-	throw 'Couldn\'t find the Firefox executable. Please specify the path in your launch configuration.';
+	throw 'Couldn\'t find the Firefox executable. Please specify the path by setting "firefoxExecutable" in your launch configuration.';
 }
 
 async function parseProfileConfiguration(config: LaunchConfiguration, tmpDirs: string[])
