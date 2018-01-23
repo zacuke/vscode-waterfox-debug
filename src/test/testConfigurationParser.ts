@@ -198,6 +198,39 @@ describe('The configuration parser', function() {
 			(mapping) => mapping.url === 'https://api.mozilla.org/')!.path, '/home/user/project/api/');
 	});
 
+	it('should add default pathMappings for webpack if webRoot is defined', async function() {
+
+		let parsedConfiguration = await parseConfiguration({
+			request: 'launch',
+			url: 'https://mozilla.org/index.html',
+			webRoot: '/home/user/project/'
+		});
+
+		assert.equal(parsedConfiguration.pathMappings.find(
+			(mapping) => mapping.url === 'webpack:///~/')!.path, '/home/user/project/node_modules/');
+
+		assert.equal(parsedConfiguration.pathMappings.find(
+			(mapping) => mapping.url === 'webpack:///./~/')!.path, '/home/user/project/node_modules/');
+
+		assert.equal(parsedConfiguration.pathMappings.find(
+			(mapping) => mapping.url === 'webpack:///./')!.path, '/home/user/project/');
+
+		assert.equal(parsedConfiguration.pathMappings.find(
+			(mapping) => mapping.url === 'webpack:///')!.path, '/home/user/project/');
+	});
+
+	it('should not add default pathMappings for webpack if webRoot is not defined', async function() {
+
+		let parsedConfiguration = await parseConfiguration({
+			request: 'launch',
+			file: '/home/user/project/index.html',
+		});
+
+		assert.equal(parsedConfiguration.pathMappings.find(
+			(mapping) => ((typeof mapping.url === 'string') && mapping.url.startsWith('webpack'))),
+			undefined);
+	});
+
 	it('should create an attach configuration if "reAttach" is set to true', async function() {
 
 		let parsedConfiguration = await parseConfiguration({

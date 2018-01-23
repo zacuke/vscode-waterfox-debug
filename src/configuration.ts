@@ -181,7 +181,14 @@ export async function parseConfiguration(
 		addon = await parseAddonConfiguration(config, pathMappings);
 	}
 
-	parseWebRootConfiguration(config, pathMappings);
+	const webRoot = parseWebRootConfiguration(config, pathMappings);
+
+	if (webRoot) {
+		pathMappings.push({ url: 'webpack:///~/', path: webRoot + '/node_modules/' });
+		pathMappings.push({ url: 'webpack:///./~/', path: webRoot + '/node_modules/' });
+		pathMappings.push({ url: 'webpack:///./', path: webRoot + '/' });
+		pathMappings.push({ url: 'webpack:///', path: webRoot + '/' });
+	}
 
 	pathMappings.push({ url: (isWindowsPlatform() ? 'file:///' : 'file://'), path: ''});
 
@@ -344,14 +351,14 @@ function createFirefoxPreferences(
 	return preferences;
 }
 
-function parseWebRootConfiguration(config: CommonConfiguration, pathMappings: PathMappings): void {
+function parseWebRootConfiguration(config: CommonConfiguration, pathMappings: PathMappings): string | undefined {
 
 	if (config.url) {
 		if (!config.webRoot) {
 			if (!config.pathMappings) {
 				throw `If you set "url" you also have to set "webRoot" or "pathMappings" in the ${config.request} configuration`;
 			}
-			return;
+			return undefined;
 		} else if (!path.isAbsolute(config.webRoot)) {
 			throw `The "webRoot" property in the ${config.request} configuration has to be an absolute path`;
 		}
@@ -378,9 +385,13 @@ function parseWebRootConfiguration(config: CommonConfiguration, pathMappings: Pa
 
 		pathMappings.push({ url: webRootUrl, path: webRoot });
 
+		return webRoot;
+
 	} else if (config.webRoot) {
 		throw `If you set "webRoot" you also have to set "url" in the ${config.request} configuration`;
 	}
+
+	return undefined;
 }
 
 function parseSkipFilesConfiguration(config: CommonConfiguration): RegExp[] {

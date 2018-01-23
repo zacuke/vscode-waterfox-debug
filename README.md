@@ -217,20 +217,23 @@ whenever you change a file.
   ```
   "reloadOnChange": "${workspaceFolder}/lib/*.js"
   ```
-* `pathMappings`: An array of urls and corresponding paths to use for translating the URLs of
+* `pathMappings`: An array of URLs and corresponding paths to use for translating the URLs of
   javascript files to local file paths. Use this if the default mapping of URLs to paths is 
-  insufficient in your setup. In particular, if you use [webpack](https://webpack.github.io/), you
-  may need to use one of the following mappings:
+  insufficient in your setup (i.e. if breakpoints don't work).
+
+  If your configuration contains a `webroot` property, the following mappings will be added by
+  default in order to support [webpack](https://webpack.github.io/):
   ```
-  { "url": "webpack:///", "path": "${webRoot}" }
+  { "url": "webpack:///~/", "path": "${webRoot}/node_modules/" }
+  { "url": "webpack:///./~/", "path": "${webRoot}/node_modules/" }
+  { "url": "webpack:///./", "path": "${webRoot}/" }
+  { "url": "webpack:///", "path": "${webRoot}/" }
   ```
-  or
+  These should work in most webpack projects. However, since webpack is highly configurable, you
+  may need to override them. If, for example, the webpack URLs in your project contain absolute
+  paths (e.g. `webpack:///home/user/project/index.js`) you may need this mapping:
   ```
-  { url": "webpack:///./", "path": "${webRoot}" }
-  ```
-  or
-  ```
-  { "url": "webpack:///", "path": "" }
+  { "url": "webpack:///", "path": "/" }
   ```
   To figure out the correct mappings for your project, you can use the `PathConversion` logger
   (see the [Diagnostic logging](#diagnostic-logging) section below) to see all mappings that are
