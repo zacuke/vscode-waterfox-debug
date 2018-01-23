@@ -87,7 +87,7 @@ describe('The configuration parser', function() {
 			}), `The "webRoot" property in the ${request} configuration has to be an absolute path`);
 		});
 
-		it(`should allow "url" without webRoot" if "pathMappings" are specified in a ${request} configuration`, async function() {
+		it(`should allow "url" without "webRoot" if "pathMappings" are specified in a ${request} configuration`, async function() {
 			await parseConfiguration(<any>{
 				request,
 				url: 'https://mozilla.org/',
@@ -174,6 +174,28 @@ describe('The configuration parser', function() {
 
 		assert.equal(parsedConfiguration.pathMappings.find(
 			(mapping) => mapping.url === 'https://static.mozilla.org')!.path, '/home/user/project/static');
+	});
+
+	it('should harmonize trailing slashes in user-specified pathMappings', async function() {
+
+		let parsedConfiguration = await parseConfiguration({
+			request: 'launch',
+			url: 'https://mozilla.org/index.html',
+			webRoot: '/home/user/project/',
+			pathMappings: [{
+				url: 'https://static.mozilla.org',
+				path: '${webRoot}/static/'
+			}, {
+				url: 'https://api.mozilla.org/',
+				path: '${webRoot}/api'
+			}]
+		});
+
+		assert.equal(parsedConfiguration.pathMappings.find(
+			(mapping) => mapping.url === 'https://static.mozilla.org/')!.path, '/home/user/project/static/');
+
+		assert.equal(parsedConfiguration.pathMappings.find(
+			(mapping) => mapping.url === 'https://api.mozilla.org/')!.path, '/home/user/project/api/');
 	});
 
 	it('should create an attach configuration if "reAttach" is set to true', async function() {

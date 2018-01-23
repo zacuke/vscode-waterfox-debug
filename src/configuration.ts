@@ -82,7 +82,8 @@ export interface FirefoxPreferences {
 	[key: string]: boolean | number | string;
 }
 
-export type PathMappings = { url: string | RegExp, path: string | null }[];
+type PathMapping = { url: string | RegExp, path: string | null };
+export type PathMappings = PathMapping[];
 
 export interface ParsedLaunchConfiguration {
 	firefoxExecutable: string;
@@ -173,7 +174,7 @@ export async function parseConfiguration(
 	}
 
 	if (config.pathMappings) {
-		pathMappings.push(...config.pathMappings);
+		pathMappings.push(...config.pathMappings.map(harmonizeTrailingSlashes));
 	}
 
 	if (config.addonType || config.addonPath) {
@@ -194,6 +195,29 @@ export async function parseConfiguration(
 	return {
 		attach, launch, addon, pathMappings, filesToSkip, reloadOnChange,
 		sourceMaps, showConsoleCallLocation
+	}
+}
+
+function harmonizeTrailingSlashes(pathMapping: PathMapping): PathMapping {
+
+	if ((typeof pathMapping.url === 'string') && (typeof pathMapping.path === 'string')) {
+
+		if (pathMapping.url.endsWith('/')) {
+			if (pathMapping.path.endsWith('/')) {
+				return pathMapping;
+			} else {
+				return { url: pathMapping.url, path: pathMapping.path + '/' };
+			}
+		} else {
+			if (pathMapping.path.endsWith('/')) {
+				return { url: pathMapping.url + '/', path: pathMapping.path };
+			} else {
+				return pathMapping;
+			}
+		}
+
+	} else {
+		return pathMapping;
 	}
 }
 
