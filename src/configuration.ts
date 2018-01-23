@@ -244,9 +244,10 @@ async function findFirefoxExecutable(configuredPath?: string): Promise<string> {
 		case 'linux':
 		case 'freebsd':
 		case 'sunos':
+			const paths = process.env.PATH!.split(':');
 			candidates = [
-				'/usr/bin/firefox-developer',
-				'/usr/bin/firefox'
+				...paths.map(dir => path.join(dir, 'firefox-developer')),
+				...paths.map(dir => path.join(dir, 'firefox')),
 			]
 			break;
 
