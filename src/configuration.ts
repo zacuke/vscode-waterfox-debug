@@ -478,12 +478,9 @@ async function parseAddonConfiguration(
 	pathMappings: PathMappings
 ): Promise<ParsedAddonConfiguration> {
 
-	let addonType = config.addonType;
+	let addonType = config.addonType || 'webExtension';
 	let addonPath = config.addonPath;
 
-	if (!addonType) {
-		throw `If you set "addonPath" you also have to set "addonType" in the ${config.request} configuration`;
-	}
 	if (!addonPath) {
 		throw `If you set "addonType" you also have to set "addonPath" in the ${config.request} configuration`;
 	}

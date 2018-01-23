@@ -496,11 +496,14 @@ describe('The configuration parser', function() {
 	}
 
 	for (let request of [ 'launch', 'attach' ]) {
-		it(`should require "addonType" if "addonPath" is set in a ${request} configuration`, async function() {
-			await assertPromiseRejects(parseConfiguration(<any>{
+		it(`should set "addonType" to "webExtension" by default if "addonPath" is set in a ${request} configuration`, async function() {
+
+			let parsedConfiguration = await parseConfiguration(<any>{
 				request,
-				addonPath: '/home/user/project'
-			}), `If you set "addonPath" you also have to set "addonType" in the ${request} configuration`);
+				addonPath: path.join(__dirname, '../../testdata/webExtension/addOn')
+			});
+
+			assert.equal(parsedConfiguration.addon!.type, 'webExtension');
 		});
 	}
 

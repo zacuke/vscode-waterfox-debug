@@ -171,10 +171,10 @@ Here's an example configuration for add-on debugging:
     ]
 }
 ```
-The `addonType` property must be set to `addonSdk`, `webExtension` or `legacy`, depending on the
-type of your add-on. The `addonPath` must be the absolute path to the directory containing the
-add-on manifest (`package.json` for `addonSdk` add-ons, `manifest.json` for `webExtension` add-ons
-or `install.rdf` for `legacy` add-ons).
+The `addonType` property can be set to `webExtension` (the default), `addonSdk` or `legacy`,
+depending on the type of your add-on. The `addonPath` must be the absolute path to the directory
+containing the add-on manifest (`manifest.json` for `webExtension` add-ons, `package.json` for 
+`addonSdk` add-ons or `install.rdf` for `legacy` add-ons).
 
 You can reload your add-on using the command "Firefox: Reload add-on" (`extension.firefox.reloadAddon`)
 from the VS Code command palette. If you're using the add-on SDK, you can also use the command
