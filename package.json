@@ -176,7 +176,7 @@
             "type": "firefox",
             "request": "launch",
             "reAttach": true,
-            "addonType": "addonSdk",
+            "addonType": "webExtension",
             "addonPath": "${workspaceFolder}"
           }
         ],
@@ -221,7 +221,7 @@
               "request": "launch",
               "reAttach": true,
               "name": "${1:Launch add-on}",
-              "addonType": "${2:addonSdk}",
+              "addonType": "${2:webExtension}",
               "addonPath": "^\"\\${workspaceFolder}${3:}\""
             }
           }
@@ -382,7 +382,7 @@
                   "webExtension"
                 ],
                 "description": "The type of this Firefox addon (legacy, addonSdk or webExtension)",
-                "default": "addonSdk"
+                "default": "webExtension"
               },
               "addonPath": {
                 "type": "string",
@@ -597,7 +597,7 @@
                   "webExtension"
                 ],
                 "description": "The type of this Firefox addon (legacy, addonSdk or webExtension)",
-                "default": "addonSdk"
+                "default": "webExtension"
               },
               "addonPath": {
                 "type": "string",

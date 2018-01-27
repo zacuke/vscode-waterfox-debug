@@ -165,7 +165,7 @@ Here's an example configuration for add-on debugging:
             "type": "firefox",
             "request": "launch",
             "reAttach": true,
-            "addonType": "addonSdk",
+            "addonType": "webExtension",
             "addonPath": "${workspaceFolder}"
         }
     ]
