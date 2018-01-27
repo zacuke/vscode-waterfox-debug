@@ -68,7 +68,7 @@ export abstract class TreeNode {
 
 	public constructor(
 		label: string,
-		public readonly parent?: TreeNode,
+		public parent?: TreeNode,
 		collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.Collapsed
 	) {
 		this.treeItem = new vscode.TreeItem(label, collapsibleState);
@@ -412,6 +412,7 @@ class DirectoryNode extends NonLeafNode {
 
 		let newChild = new DirectoryNode(this.path.slice(atIndex), this);
 		newChild.children = this.children;
+		newChild.children.map(grandChild => grandChild.parent = newChild);
 
 		this.path.splice(atIndex);
 		this.children = [ newChild ];
