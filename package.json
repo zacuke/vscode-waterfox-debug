@@ -125,12 +125,14 @@
     "menus": {
       "debug/callstack/context": [
         {
-          "command": "extension.firefox.toggleSkippingFile"
+          "command": "extension.firefox.toggleSkippingFile",
+          "when": "inDebugMode && debugType == 'firefox'"
         }
       ],
       "view/item/context": [
         {
-          "command": "extension.firefox.addPathMapping"
+          "command": "extension.firefox.addPathMapping",
+          "when": "view == extension.firefox.loadedScripts && viewItem == directory"
         }
       ],
       "commandPalette": [

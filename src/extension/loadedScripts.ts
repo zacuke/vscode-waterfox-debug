@@ -88,6 +88,7 @@ class RootNode extends TreeNode {
 
 	public constructor() {
 		super('');
+		this.treeItem.contextValue = 'root';
 	}
 
 	public addSession(session: SessionInfo): TreeNode | undefined {
@@ -197,6 +198,7 @@ class SessionNode extends TreeNode {
 
 	public constructor(private session: SessionInfo, parent: RootNode) {
 		super(session.name, parent);
+		this.treeItem.contextValue = 'session';
 	}
 
 	public addThread(threadInfo: ThreadStartedEventBody): TreeNode | undefined {
@@ -390,6 +392,7 @@ class ThreadNode extends NonLeafNode {
 	public constructor(threadInfo: ThreadStartedEventBody, parent: SessionNode) {
 		super(threadInfo.name, parent);
 		this.id = threadInfo.id;
+		this.treeItem.contextValue = 'thread';
 	}
 
 	public removeSources(): TreeNode | undefined {
@@ -402,6 +405,7 @@ class DirectoryNode extends NonLeafNode {
 
 	public constructor(public path: string[], parent: TreeNode) {
 		super(path.join('/'), parent);
+		this.treeItem.contextValue = 'directory';
 	}
 
 	/**
@@ -433,6 +437,7 @@ class FileNode extends TreeNode {
 		sessionId: string
 	) {
 		super((filename.length > 0) ? filename : '(index)', parent, vscode.TreeItemCollapsibleState.None);
+		this.treeItem.contextValue = 'file';
 
 		let pathOrUri: string;
 		if (sourceInfo.path) {
