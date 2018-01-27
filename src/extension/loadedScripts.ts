@@ -12,8 +12,8 @@ export class LoadedScriptsProvider implements vscode.TreeDataProvider<SourceTree
 		this.onDidChangeTreeData = this.treeDataChanged.event;
 	}
 
-	public getTreeItem(node: SourceTreeItem): SourceTreeItem {
-		return node;
+	public getTreeItem(node: SourceTreeItem): vscode.TreeItem {
+		return node.treeItem;
 	}
 
 	public getChildren(node?: SourceTreeItem): vscode.ProviderResult<SourceTreeItem[]> {
@@ -62,10 +62,16 @@ export class LoadedScriptsProvider implements vscode.TreeDataProvider<SourceTree
 	}
 }
 
-abstract class SourceTreeItem extends vscode.TreeItem {
+abstract class SourceTreeItem {
 
-	public constructor(label: string, collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.Collapsed) {
-		super(label, collapsibleState);
+	public readonly treeItem: vscode.TreeItem;
+
+	public constructor(
+		label: string,
+		public readonly parent?: SourceTreeItem,
+		collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.Collapsed
+	) {
+		this.treeItem = new vscode.TreeItem(label, collapsibleState);
 	}
 
 	public abstract getChildren(): SourceTreeItem[];
@@ -84,10 +90,10 @@ class RootTreeItem extends SourceTreeItem {
 
 		if (!this.children.some((child) => (child.id === session.id))) {
 
-			let index = this.children.findIndex((child) => (child.label > session.name));
+			let index = this.children.findIndex((child) => (child.treeItem.label > session.name));
 			if (index < 0) index = this.children.length;
 
-			this.children.splice(index, 0, new SessionTreeItem(session));
+			this.children.splice(index, 0, new SessionTreeItem(session, this));
 
 			return this;
 
@@ -142,7 +148,7 @@ class RootTreeItem extends SourceTreeItem {
 
 	public getChildren(): SourceTreeItem[] {
 
-		this.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+		this.treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
 
 		if (this.showSessions || (this.children.length > 1)) {
 
@@ -185,18 +191,18 @@ class SessionTreeItem extends SourceTreeItem {
 		return this.session.id;
 	}
 
-	public constructor(private session: SessionInfo) {
-		super(session.name);
+	public constructor(private session: SessionInfo, parent: RootTreeItem) {
+		super(session.name, parent);
 	}
 
 	public addThread(threadInfo: ThreadStartedEventBody): SourceTreeItem | undefined {
 
 		if (!this.children.some((child) => (child.id === threadInfo.id))) {
 
-			let index = this.children.findIndex((child) => (child.label > threadInfo.name));
+			let index = this.children.findIndex((child) => (child.treeItem.label > threadInfo.name));
 			if (index < 0) index = this.children.length;
 
-			this.children.splice(index, 0, new ThreadTreeItem(threadInfo));
+			this.children.splice(index, 0, new ThreadTreeItem(threadInfo, this));
 
 			return this;
 
@@ -239,7 +245,7 @@ class SessionTreeItem extends SourceTreeItem {
 
 	public getChildren(): SourceTreeItem[] {
 
-		this.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+		this.treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
 
 		if (this.showThreads || (this.children.length > 1)) {
 
@@ -271,8 +277,8 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 
 	protected children: (SourceDirectoryTreeItem | SourceFileTreeItem)[] = [];
 
-	public constructor(label: string) {
-		super(label);
+	public constructor(label: string, parent: SourceTreeItem) {
+		super(label, parent);
 	}
 
 	public addSource(
@@ -285,7 +291,7 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 		if (path.length === 0) {
 
 			// add the source file to this directory (not a subdirectory)
-			this.addChild(new SourceFileTreeItem(filename, sourceInfo, sessionId));
+			this.addChild(new SourceFileTreeItem(filename, sourceInfo, this, sessionId));
 			return this;
 
 		}
@@ -300,7 +306,7 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 
 			// there is no subdirectory that shares an initial path segment with the path to be added,
 			// so we create a SourceDirectoryTreeItem for the path and add the source file to it
-			let directoryItem = new SourceDirectoryTreeItem(path);
+			let directoryItem = new SourceDirectoryTreeItem(path, this);
 			directoryItem.addSource(filename, [], sourceInfo, sessionId);
 			this.addChild(directoryItem);
 			return this;
@@ -336,7 +342,7 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 	}
 
 	public getChildren(): SourceTreeItem[] {
-		this.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+		this.treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
 		return this.children;
 	}
 
@@ -349,17 +355,19 @@ abstract class NonLeafSourceTreeItem extends SourceTreeItem {
 
 		if (newChild instanceof SourceDirectoryTreeItem) {
 			index = this.children.findIndex(
-				(child) => !((child instanceof SourceDirectoryTreeItem) && (child.label < newChild.label))
+				(child) => !((child instanceof SourceDirectoryTreeItem) && 
+							 (child.treeItem.label < newChild.treeItem.label))
 			);
 		} else {
 			index = this.children.findIndex(
-				(child) => (child instanceof SourceFileTreeItem) && (child.label >= newChild.label)
+				(child) => ((child instanceof SourceFileTreeItem) &&
+							(child.treeItem.label >= newChild.treeItem.label))
 			);
 		}
 
 		if (index >= 0) {
 
-			if (this.children[index].label !== newChild.label) {
+			if (this.children[index].treeItem.label !== newChild.treeItem.label) {
 				this.children.splice(index, 0, newChild);
 			}
 
@@ -375,8 +383,8 @@ class ThreadTreeItem extends NonLeafSourceTreeItem {
 
 	public readonly id: number;
 
-	public constructor(threadInfo: ThreadStartedEventBody) {
-		super(threadInfo.name);
+	public constructor(threadInfo: ThreadStartedEventBody, parent: SessionTreeItem) {
+		super(threadInfo.name, parent);
 		this.id = threadInfo.id;
 	}
 
@@ -388,8 +396,8 @@ class ThreadTreeItem extends NonLeafSourceTreeItem {
 
 class SourceDirectoryTreeItem extends NonLeafSourceTreeItem {
 
-	public constructor(public path: string[]) {
-		super(path.join('/'));
+	public constructor(public path: string[], parent: SourceTreeItem) {
+		super(path.join('/'), parent);
 	}
 
 	/**
@@ -398,12 +406,12 @@ class SourceDirectoryTreeItem extends NonLeafSourceTreeItem {
 	 */
 	public split(atIndex: number): void {
 
-		let newChild = new SourceDirectoryTreeItem(this.path.slice(atIndex));
+		let newChild = new SourceDirectoryTreeItem(this.path.slice(atIndex), this);
 		newChild.children = this.children;
 
 		this.path.splice(atIndex);
 		this.children = [ newChild ];
-		this.label = this.path.join('/');
+		this.treeItem.label = this.path.join('/');
 	}
 }
 
@@ -412,9 +420,10 @@ class SourceFileTreeItem extends SourceTreeItem {
 	public constructor(
 		filename: string,
 		sourceInfo: NewSourceEventBody,
+		parent: NonLeafSourceTreeItem,
 		sessionId: string
 	) {
-		super((filename.length > 0) ? filename : '(index)', vscode.TreeItemCollapsibleState.None);
+		super((filename.length > 0) ? filename : '(index)', parent, vscode.TreeItemCollapsibleState.None);
 
 		let pathOrUri: string;
 		if (sourceInfo.path) {
@@ -423,7 +432,7 @@ class SourceFileTreeItem extends SourceTreeItem {
 			pathOrUri = `debug:${encodeURIComponent(sourceInfo.url!)}?session=${encodeURIComponent(sessionId)}&ref=${sourceInfo.sourceId}`;
 		}
 
-		this.command = {
+		this.treeItem.command = {
 			command: 'extension.firefox.openScript',
 			arguments: [ pathOrUri ],
 			title: ''
