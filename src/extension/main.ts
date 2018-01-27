@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { LoadedScriptsProvider } from './loadedScripts';
+import { LoadedScriptsProvider } from './loadedScripts/provider';
 import { onCustomEvent } from './customEvents';
 import { addPathMapping } from './addPathMapping';
 

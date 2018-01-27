@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { TreeNode } from './loadedScripts';
+import { TreeNode } from './loadedScripts/treeNode';
 
 interface LaunchConfig {
 	type: string;
