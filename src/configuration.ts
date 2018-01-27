@@ -485,7 +485,7 @@ async function parseAddonConfiguration(
 		throw `If you set "addonType" you also have to set "addonPath" in the ${config.request} configuration`;
 	}
 
-	let addonId = await findAddonId(addonPath);
+	let addonId = await findAddonId(addonPath, addonType);
 
 	let installInProfile = false;
 	if (config.request === 'launch') {

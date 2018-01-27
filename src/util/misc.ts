@@ -1,5 +1,8 @@
 import * as os from 'os';
+import * as path from 'path';
+import * as fs from 'fs-extra';
 import FirefoxProfile = require('firefox-profile');
+import { AddonType } from '../configuration';
 
 export function concatArrays<T>(arrays: T[][]): T[] {
 	return [].concat.apply([], arrays);
@@ -56,16 +59,30 @@ export function accessorExpression(objectExpression: string | undefined, propert
 	}
 }
 
-export function findAddonId(addonPath: string): Promise<string> {
-	return new Promise<string>((resolve, reject) => {
-		var dummyProfile = new FirefoxProfile();
-		(<any>dummyProfile)._addonDetails(addonPath, (addonDetails: { id?: string | null }) => {
-			if (typeof addonDetails.id === 'string') {
-				resolve(addonDetails.id);
-			} else {
-				reject('This debugger currently requires add-ons to specify an ID in their manifest');
-			}
-			dummyProfile.deleteDir(() => {});
+export function findAddonId(addonPath: string, addonType: AddonType): Promise<string> {
+	if (addonType === 'webExtension') {
+		return findWebExtensionId(addonPath);
+	} else {
+		return new Promise<string>((resolve, reject) => {
+			var dummyProfile = new FirefoxProfile();
+			(<any>dummyProfile)._addonDetails(addonPath, (addonDetails: { id?: string | null }) => {
+				if (typeof addonDetails.id === 'string') {
+					resolve(addonDetails.id);
+				} else {
+					reject('This debugger currently requires add-ons to specify an ID in their manifest');
+				}
+				dummyProfile.deleteDir(() => {});
+			});
 		});
-	});
+	}
+}
+
+async function findWebExtensionId(addonPath: string): Promise<string> {
+	const manifest = await fs.readJson(path.join(addonPath, 'manifest.json'));
+	const id = ((manifest.applications || {}).gecko || {}).id;
+	if (typeof id === 'string') {
+		return id;
+	} else {
+		throw 'This debugger currently requires add-ons to specify an ID in their manifest';
+	}
 }
