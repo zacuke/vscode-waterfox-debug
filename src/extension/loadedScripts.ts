@@ -74,6 +74,10 @@ abstract class TreeNode {
 		this.treeItem = new vscode.TreeItem(label, collapsibleState);
 	}
 
+	public getFullPath(): string {
+		return '';
+	}
+
 	public abstract getChildren(): TreeNode[];
 }
 
@@ -413,6 +417,10 @@ class DirectoryNode extends NonLeafNode {
 		this.children = [ newChild ];
 		this.treeItem.label = this.path.join('/');
 	}
+
+	public getFullPath(): string {
+		return this.parent!.getFullPath() + this.treeItem.label + '/';
+	}
 }
 
 class FileNode extends TreeNode {
@@ -441,6 +449,10 @@ class FileNode extends TreeNode {
 
 	public getChildren(): TreeNode[] {
 		return [];
+	}
+
+	public getFullPath(): string {
+		return this.parent!.getFullPath() + this.treeItem.label;
 	}
 }
 
