@@ -337,7 +337,7 @@ abstract class NonLeafNode extends TreeNode {
 		// be added, so we split the subdirectory item into two and add the file to the first item
 		item.split(pathMatchLength);
 		item.addSource(filename, pathRest, sourceInfo, sessionId);
-		return this;
+		return item;
 
 	}
 
