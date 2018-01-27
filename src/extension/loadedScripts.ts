@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ThreadStartedEventBody, NewSourceEventBody } from "./main";
+import { ThreadStartedEventBody, NewSourceEventBody } from "./customEvents";
 
 export class LoadedScriptsProvider implements vscode.TreeDataProvider<TreeNode> {
 
