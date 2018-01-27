@@ -1,3 +1,7 @@
+### Version 1.0.1
+* fix debugging of WebExtensions that contain a `package.json` file
+* set the default `addonType` to `webExtension` in configuration snippets and documentation
+
 ### Version 1.0.0
 * add default `pathMappings` for webpack
 * harmonize trailing slashes in user-specified `pathMappings`
