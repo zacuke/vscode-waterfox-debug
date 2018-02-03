@@ -337,7 +337,11 @@ export class FirefoxDebugSession {
 
 		try {
 
-			await threadAdapter.init(this.exceptionBreakpoints, reload);
+			await threadAdapter.init(this.exceptionBreakpoints);
+
+			if (reload) {
+				await tabActor.reload();
+			}
 
 			return threadAdapter;
 
@@ -361,7 +365,7 @@ export class FirefoxDebugSession {
 
 		this.attachThread(threadAdapter, threadActor.name);
 
-		await threadAdapter.init(this.exceptionBreakpoints, false);
+		await threadAdapter.init(this.exceptionBreakpoints);
 
 		workerActor.onClose(() => {
 			this.threads.unregister(threadAdapter.id);

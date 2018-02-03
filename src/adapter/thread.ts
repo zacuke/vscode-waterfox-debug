@@ -75,7 +75,7 @@ export class ThreadAdapter extends EventEmitter {
 		});
 	}
 
-	public async init(exceptionBreakpoints: ExceptionBreakpoints, reload: boolean): Promise<void> {
+	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
 
 		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
 
@@ -91,10 +91,6 @@ export class ThreadAdapter extends EventEmitter {
 		await this.actor.fetchSources();
 
 		await this.coordinator.resume();
-
-		if (reload) {
-			await this.evaluate('location.reload(true)', false);
-		}
 	}
 
 	public createSourceAdapter(actor: ISourceActorProxy, path: string | undefined): SourceAdapter {
