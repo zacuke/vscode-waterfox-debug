@@ -113,7 +113,7 @@ export class BreakpointsAdapter {
 							let breakpoint: DebugProtocol.Breakpoint =
 								new Breakpoint(true, breakpointAdapter.breakpointInfo.actualLine);
 							breakpoint.id = breakpointAdapter.breakpointInfo.id;
-							this.sendEvent(new BreakpointEvent('update', breakpoint));
+							this.sendEvent(new BreakpointEvent('changed', breakpoint));
 						})
 
 						this.verifiedBreakpointSources.push(sourcePath);

@@ -50,7 +50,7 @@ describe('Firefox debug adapter', function() {
 		let breakpointId = setBreakpointsResponse.body.breakpoints[0].id;
 
 		let ev = await util.receiveBreakpointEvent(dc);
-		assert.equal(ev.body.reason, 'update');
+		assert.equal(ev.body.reason, 'changed');
 		assert.equal(ev.body.breakpoint.id, breakpointId);
 		assert.equal(ev.body.breakpoint.verified, true);
 		assert.equal(ev.body.breakpoint.line, 3);
@@ -66,7 +66,7 @@ describe('Firefox debug adapter', function() {
 		let breakpointId = setBreakpointsResponse.body.breakpoints[0].id;
 
 		let ev = await util.receiveBreakpointEvent(dc);
-		assert.equal(ev.body.reason, 'update');
+		assert.equal(ev.body.reason, 'changed');
 		assert.equal(ev.body.breakpoint.id, breakpointId);
 		assert.equal(ev.body.breakpoint.verified, true);
 		assert.equal(ev.body.breakpoint.line, 3);
@@ -86,7 +86,7 @@ describe('Firefox debug adapter', function() {
 		util.evaluate(dc, 'loadScript("dlscript.js")');
 
 		let ev = await util.receiveBreakpointEvent(dc);
-		assert.equal(ev.body.reason, 'update');
+		assert.equal(ev.body.reason, 'changed');
 		assert.equal(ev.body.breakpoint.id, breakpointId);
 		assert.equal(ev.body.breakpoint.verified, true);
 		assert.equal(ev.body.breakpoint.line, 3);
