@@ -1,3 +1,4 @@
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { TreeNode } from './loadedScripts/treeNode';
 
@@ -46,6 +47,8 @@ export async function addPathMapping(treeNode: TreeNode): Promise<void> {
 	const path = openDialogResult[0].fsPath;
 
 	addPathMappingToLaunchConfig(launchConfigReference, treeNode.getFullPath(), path + '/');
+
+	await showLaunchConfig(launchConfigReference.workspaceFolder);
 }
 
 function findLaunchConfig(
@@ -91,4 +94,10 @@ function addPathMappingToLaunchConfig(
 	pathMappings.unshift({ url, path });
 
 	launchConfigReference.launchConfigFile.update('configurations', configurations, vscode.ConfigurationTarget.WorkspaceFolder);
+}
+
+async function showLaunchConfig(workspaceFolder: vscode.WorkspaceFolder): Promise<void> {
+	const file = path.join(workspaceFolder.uri.fsPath, '.vscode/launch.json');
+	const document = await vscode.workspace.openTextDocument(file);
+	await vscode.window.showTextDocument(document);
 }
