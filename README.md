@@ -149,6 +149,42 @@ There are two ways to enable this feature:
   * `"**/google.com/**"` - will skip files containing `/google.com/` in their url, in particular
     all files from the domain `google.com` (that could not be mapped to local files)
 
+### Path mapping
+The debug adapter needs to map the URLs of javascript files (as seen by Firefox) to local file paths
+(as seen by VS Code). It creates a set of default path mappings from the configuration that work
+for most projects. However, depending on the setup of your project, they may not work for you,
+resulting in breakpoints being shown in gray (and Firefox not breaking on them) even after Firefox
+has loaded the corresponding file.
+In this case, you will have to define them manually using the `pathMappings` configuration property.
+The easiest way to do this is through the Loaded Scripts Explorer shown in the side bar of VS Code
+while debugging. By choosing "Map to local folder" from the context menu of a folder, you can
+pick the corresponding local folder and a path mapping will automatically be added to your 
+configuration. After this, you have to restart the debugging session in order for the path mapping
+to come into effect. If you specify more than one mapping, the first mappings in the list will take
+precedence over subsequent ones and all of them will take precedence over the default mappings.
+
+The most common source of path mapping problems is webpack because the URLs that it generates
+depend on its configuration and different URL styles are in use. If your configuration contains a
+`webroot` property, the following mappings will be added by default in order to support most webpack
+setups:
+```
+{ "url": "webpack:///~/", "path": "${webRoot}/node_modules/" }
+{ "url": "webpack:///./~/", "path": "${webRoot}/node_modules/" }
+{ "url": "webpack:///./", "path": "${webRoot}/" }
+{ "url": "webpack:///src/", "path": "${webRoot}/src/" }
+{ "url": "webpack:///", "path": "" }
+```
+
+In order to track down path mapping problems, you can use the `PathConversion` logger
+(see the [Diagnostic logging](#diagnostic-logging) section below) to see all mappings that are
+in effect, how URLs are mapped to paths and which URLs couldn't be mapped.
+
+You can also set the `path` argument of a mapping to `null` to prevent some URLs from being mapped
+to local files. This can be useful for URLs that generate their content on the server
+(e.g. PHP scripts) or if the content on the server is different from the local file content.
+For these URLs the debugger will show the content fetched from the server instead of the local
+file content.
+
 ### Debugging Firefox add-ons
 If you want to debug a Firefox add-on, you have to install the developer edition of Firefox. In
 launch mode, it will automatically be used if it is installed in the default location.
@@ -217,36 +253,6 @@ whenever you change a file.
   ```
   "reloadOnChange": "${workspaceFolder}/lib/*.js"
   ```
-* `pathMappings`: An array of URLs and corresponding paths to use for translating the URLs of
-  javascript files to local file paths. Use this if the default mapping of URLs to paths is 
-  insufficient in your setup (i.e. if breakpoints don't work).
-
-  If your configuration contains a `webroot` property, the following mappings will be added by
-  default in order to support [webpack](https://webpack.github.io/):
-  ```
-  { "url": "webpack:///~/", "path": "${webRoot}/node_modules/" }
-  { "url": "webpack:///./~/", "path": "${webRoot}/node_modules/" }
-  { "url": "webpack:///./", "path": "${webRoot}/" }
-  { "url": "webpack:///", "path": "${webRoot}/" }
-  ```
-  These should work in most webpack projects. However, since webpack is highly configurable, you
-  may need to override them. If, for example, the webpack URLs in your project contain absolute
-  paths (e.g. `webpack:///home/user/project/index.js`) you may need this mapping:
-  ```
-  { "url": "webpack:///", "path": "/" }
-  ```
-  To figure out the correct mappings for your project, you can use the `PathConversion` logger
-  (see the [Diagnostic logging](#diagnostic-logging) section below) to see all mappings that are
-  being used, how URLs are mapped to paths and which URLs couldn't be mapped.
-  If you specify more than one mapping, the first mappings in the list will take precedence over 
-  subsequent ones and all of them will take precedence over the default mappings.
-
-  You can also set the `path` argument to `null` to prevent some URLs from being mapped to local
-  files. This can be useful for URLs that generate their content on the server (e.g. PHP scripts)
-  or if the content on the server is different from the local file content.
-  For these URLs the debugger will show the content fetched from the server instead of the local
-  file content.
-
 * `profileDir`, `profile`: You can specify a Firefox profile directory or the name of a profile
   created with the Firefox profile manager. The extension will create a copy of this profile in the
   system's temporary directory and modify the settings in this copy to allow remote debugging.
