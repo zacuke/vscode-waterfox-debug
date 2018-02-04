@@ -39,7 +39,7 @@ export async function addPathMapping(treeNode: TreeNode): Promise<void> {
 		canSelectFolders: true,
 		canSelectMany: false,
 		defaultUri: launchConfigReference.workspaceFolder.uri,
-		openLabel: 'Map to this folder'
+		openLabel: 'Map to this directory'
 	});
 	if (!openDialogResult || (openDialogResult.length === 0)) {
 		return;

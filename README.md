@@ -157,8 +157,8 @@ resulting in breakpoints being shown in gray (and Firefox not breaking on them) 
 has loaded the corresponding file.
 In this case, you will have to define them manually using the `pathMappings` configuration property.
 The easiest way to do this is through the Loaded Scripts Explorer shown in the side bar of VS Code
-while debugging. By choosing "Map to local folder" from the context menu of a folder, you can
-pick the corresponding local folder and a path mapping will automatically be added to your 
+while debugging. By choosing "Map to local directory" from the context menu of a folder, you can
+pick the corresponding local directory and a path mapping will automatically be added to your 
 configuration. After this, you have to restart the debugging session in order for the path mapping
 to come into effect. If you specify more than one mapping, the first mappings in the list will take
 precedence over subsequent ones and all of them will take precedence over the default mappings.
