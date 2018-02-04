@@ -1,3 +1,8 @@
+### Version 1.1.0
+* add support for creating `pathMappings` from the Loaded Scripts Explorer
+* bugfix for breakpoints being shown unverified (gray) even when they were successfully set
+* change default `pathMappings` for webpack to support Angular CLI projects
+
 ### Version 1.0.1
 * fix debugging of WebExtensions that contain a `package.json` file
 * set the default `addonType` to `webExtension` in configuration snippets and documentation
