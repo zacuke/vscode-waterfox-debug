@@ -49,6 +49,8 @@ export async function addPathMapping(treeNode: TreeNode): Promise<void> {
 	addPathMappingToLaunchConfig(launchConfigReference, treeNode.getFullPath(), path + '/');
 
 	await showLaunchConfig(launchConfigReference.workspaceFolder);
+
+	vscode.window.showWarningMessage('Configuration was modified - please restart your debug session for the changes to take effect');
 }
 
 function findLaunchConfig(
