@@ -187,8 +187,9 @@ export async function parseConfiguration(
 		pathMappings.push({ url: 'webpack:///~/', path: webRoot + '/node_modules/' });
 		pathMappings.push({ url: 'webpack:///./~/', path: webRoot + '/node_modules/' });
 		pathMappings.push({ url: 'webpack:///./', path: webRoot + '/' });
-		pathMappings.push({ url: 'webpack:///', path: webRoot + '/' });
+		pathMappings.push({ url: 'webpack:///src/', path: webRoot + '/src/' });
 	}
+	pathMappings.push({ url: (isWindowsPlatform() ? 'webpack:///' : 'webpack://'), path: '' });
 
 	pathMappings.push({ url: (isWindowsPlatform() ? 'file:///' : 'file://'), path: ''});
 

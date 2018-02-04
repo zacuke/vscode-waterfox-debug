@@ -216,10 +216,13 @@ describe('The configuration parser', function() {
 			(mapping) => mapping.url === 'webpack:///./')!.path, '/home/user/project/');
 
 		assert.equal(parsedConfiguration.pathMappings.find(
-			(mapping) => mapping.url === 'webpack:///')!.path, '/home/user/project/');
+			(mapping) => mapping.url === 'webpack:///src/')!.path, '/home/user/project/src/');
+
+		assert.equal(parsedConfiguration.pathMappings.find(
+			(mapping) => mapping.url === (isWindowsPlatform() ? 'webpack:///' : 'webpack://'))!.path, '');
 	});
 
-	it('should not add default pathMappings for webpack if webRoot is not defined', async function() {
+	it('should add only one default pathMapping for webpack if webRoot is not defined', async function() {
 
 		let parsedConfiguration = await parseConfiguration({
 			request: 'launch',
@@ -227,7 +230,10 @@ describe('The configuration parser', function() {
 		});
 
 		assert.equal(parsedConfiguration.pathMappings.find(
-			(mapping) => ((typeof mapping.url === 'string') && mapping.url.startsWith('webpack'))),
+			(mapping) => mapping.url === (isWindowsPlatform() ? 'webpack:///' : 'webpack://'))!.path, '');
+
+		assert.equal(parsedConfiguration.pathMappings.find(
+			(mapping) => ((typeof mapping.url === 'string') && mapping.url.startsWith('webpack') && (mapping.url.length > 11))),
 			undefined);
 	});
 
