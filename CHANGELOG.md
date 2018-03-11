@@ -1,3 +1,6 @@
+### Version 1.1.1
+* experimental support for WebAssembly debugging
+
 ### Version 1.1.0
 * add support for creating `pathMappings` from the Loaded Scripts Explorer
 * bugfix for breakpoints being shown unverified (gray) even when they were successfully set
