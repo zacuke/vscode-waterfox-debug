@@ -119,7 +119,7 @@ export class VariableAdapter {
 
 			let referenceExpression = accessorExpression(parentReferenceExpression, varname);
 			return new VariableAdapter(
-				varname, referenceExpression, referenceFrame, 'undefined', threadAdapter);
+				varname, referenceExpression, referenceFrame, 'Getter & Setter', threadAdapter);
 
 		}
 	}
