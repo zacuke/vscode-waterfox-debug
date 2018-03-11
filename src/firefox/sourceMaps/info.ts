@@ -27,7 +27,11 @@ export class SourceMappingInfo {
 			generatedLocation = this.sourceMapConsumer.generatedPositionFor(consumerArgs);
 		}
 
-		return { line: generatedLocation.line || 0, column: generatedLocation.column || 0 };
+		if (this.underlyingSource.source.introductionType === 'wasm') {
+			return { line: generatedLocation.column, column: 0 };
+		}
+
+		return generatedLocation;
 	}
 
 	public originalLocationFor(generatedLocation: Position): MappedPosition {
@@ -37,6 +41,12 @@ export class SourceMappingInfo {
 		}
 
 		let consumerArgs = Object.assign({ bias: LEAST_UPPER_BOUND }, generatedLocation);
+
+		if (this.underlyingSource.source.introductionType === 'wasm') {
+			consumerArgs.column = consumerArgs.line;
+			consumerArgs.line = 1;
+		}
+
 		let originalLocation = this.sourceMapConsumer.originalPositionFor(consumerArgs);
 
 		if (originalLocation.line === null) {
@@ -44,11 +54,11 @@ export class SourceMappingInfo {
 			originalLocation = this.sourceMapConsumer.originalPositionFor(consumerArgs);
 		}
 
-		return {
-			source: originalLocation.source || this.sources[0]!.url!,
-			line: originalLocation.line || 0,
-			column: originalLocation.column || 0
-		};
+		if (this.underlyingSource.source.introductionType === 'wasm') {
+			originalLocation.line--;
+		}
+
+		return originalLocation;
 	}
 
 	public syncBlackboxFlag(): void {

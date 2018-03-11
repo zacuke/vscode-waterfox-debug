@@ -10,10 +10,22 @@ export interface ISourceActorProxy {
 	name: string;
 	source: FirefoxDebugProtocol.Source;
 	url: string | null;
-	setBreakpoint(location: { line: number, column?: number }, condition?: string): Promise<SetBreakpointResult>;
+	setBreakpoint(location: Location, condition?: string): Promise<SetBreakpointResult>;
 	fetchSource(): Promise<FirefoxDebugProtocol.Grip>;
 	setBlackbox(blackbox: boolean): Promise<void>;
 	dispose(): void;
+}
+
+export interface Location {
+	line: number,
+	column?: number
+}
+
+export class SetBreakpointResult {
+	constructor(
+		public breakpointActor: BreakpointActorProxy,
+		public actualLocation?: FirefoxDebugProtocol.SourceLocation
+	) {}
 }
 
 export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
@@ -38,7 +50,7 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 	}
 
 	public setBreakpoint(
-		location: { line: number, column?: number },
+		location: Location,
 		condition?: string
 	): Promise<SetBreakpointResult> {
 
@@ -117,11 +129,4 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 			}
 		}
 	}
-}
-
-export class SetBreakpointResult {
-	constructor(
-		public breakpointActor: BreakpointActorProxy,
-		public actualLocation?: FirefoxDebugProtocol.SourceLocation
-	) {}
 }

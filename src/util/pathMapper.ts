@@ -41,7 +41,11 @@ export class PathMapper {
 
 			} else {
 
-				let generatedPath = this.convertFirefoxUrlToPath(source.generatedUrl);
+				let generatedUrl = source.generatedUrl;
+				if ((source.introductionType === 'wasm') && generatedUrl.startsWith('wasm:')) {
+					generatedUrl = generatedUrl.substr(5);
+				}
+				let generatedPath = this.convertFirefoxUrlToPath(generatedUrl);
 				if (!generatedPath) return undefined;
 
 				let sourcePath = this.removeQueryString(path.join(path.dirname(generatedPath), originalPath));

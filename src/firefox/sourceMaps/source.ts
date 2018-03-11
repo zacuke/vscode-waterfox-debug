@@ -1,4 +1,4 @@
-import { ISourceActorProxy, SetBreakpointResult } from '../actorProxy/source';
+import { ISourceActorProxy, SetBreakpointResult, Location } from '../actorProxy/source';
 import { SourceMappingInfo } from "./info";
 import { getUri } from "../../util/net";
 
@@ -17,7 +17,7 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 		private readonly sourceMappingInfo: SourceMappingInfo
 	) {}
 
-	public async setBreakpoint(location: { line: number, column?: number }, condition: string): Promise<SetBreakpointResult> {
+	public async setBreakpoint(location: Location, condition: string): Promise<SetBreakpointResult> {
 
 		let generatedLocation = this.sourceMappingInfo.generatedLocationFor({
 			source: this.url, line: location.line, column: location.column || 0
@@ -26,7 +26,7 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 		let result = await this.sourceMappingInfo.underlyingSource.setBreakpoint(generatedLocation, condition);
 		let actualGeneratedLocation = result.actualLocation || generatedLocation;
 		let actualOriginalLocation = this.sourceMappingInfo.originalLocationFor({
-			line: actualGeneratedLocation.line || 1, 
+			line: actualGeneratedLocation.line || 1,
 			column: actualGeneratedLocation.column || 1
 		});
 

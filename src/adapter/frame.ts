@@ -18,7 +18,9 @@ export class FrameAdapter {
 		this.id = frameRegistry.register(this);
 		let environmentAdapter = EnvironmentAdapter.from(this.frame.environment);
 		this.scopeAdapters = environmentAdapter.getScopeAdapters(this);
-		this.scopeAdapters[0].addThis(this.frame.this);
+		if (this.frame.this !== undefined) {
+			this.scopeAdapters[0].addThis(this.frame.this);
+		}
 	}
 
 	public getStackframe(): StackFrame {

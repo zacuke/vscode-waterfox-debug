@@ -232,10 +232,10 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface Frame {
-		type: 'global' | 'call' | 'eval' | 'clientEvaluate';
+		type: 'global' | 'call' | 'eval' | 'clientEvaluate' | 'wasmcall';
 		actor: string;
 		depth: number;
-		this: Grip;
+		this?: Grip;
 		where: SourceLocation;
 		environment: Environment;
 	}
@@ -264,7 +264,7 @@ declare namespace FirefoxDebugProtocol {
 	interface Source {
 		actor: string;
 		url: string | null;
-		introductionType?: 'scriptElement' | 'eval' | 'Function' | 'debugger eval' | null;
+		introductionType?: 'scriptElement' | 'eval' | 'Function' | 'debugger eval' | 'wasm' | null;
 		introductionUrl: string | null;
 		isBlackBoxed: boolean;
 		isPrettyPrinted: boolean;
