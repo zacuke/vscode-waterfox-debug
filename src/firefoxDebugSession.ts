@@ -11,7 +11,7 @@ import { DebugConnection, TabActorProxy, WorkerActorProxy, IThreadActorProxy, Co
 import { ThreadAdapter, ThreadPauseCoordinator, FrameAdapter, VariableAdapter, ConsoleAPICallAdapter, VariablesProvider, SourceAdapter, Registry, BreakpointsAdapter, SkipFilesManager } from './adapter/index';
 import { ParsedConfiguration } from "./configuration";
 import { PathMapper, urlDetector } from './util/pathMapper';
-import { isWindowsPlatform as detectWindowsPlatform } from './util/misc';
+import { isWindowsPlatform as detectWindowsPlatform, delay } from './util/misc';
 import { tryRemoveRepeatedly } from './util/fs';
 import { connect, waitForSocket } from './util/net';
 import { NewSourceEventBody, ThreadStartedEventBody, ThreadExitedEventBody, RemoveSourcesEventBody } from "./extension/customEvents";
@@ -80,6 +80,9 @@ export class FirefoxDebugSession {
 		});
 
 		rootActor.onInit(async () => {
+
+			// early beta versions of Firefox 60 sometimes stop working when we fetch the tabs too early
+			await delay(200);
 
 			let actors = await rootActor.fetchTabs();
 
