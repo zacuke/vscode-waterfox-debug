@@ -60,6 +60,10 @@ export class FrameAdapter {
 				name = '[eval]';
 				break;
 
+			case 'wasmcall':
+				name = '[wasm]';
+				break;
+
 			default:
 				name = `[${this.frame.type}]`;
 				log.error(`Unexpected frame type ${this.frame.type}`);
