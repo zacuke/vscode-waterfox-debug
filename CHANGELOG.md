@@ -1,6 +1,9 @@
+### Version 1.1.3
+* path mapping bugfixes
+
 ### Version 1.1.2
 * workaround for a timing issue with early beta versions of Firefox 60
-* improve  WebAssembly debugging support
+* improve WebAssembly debugging support
 
 ### Version 1.1.1
 * experimental support for WebAssembly debugging
