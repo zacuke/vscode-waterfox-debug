@@ -18,6 +18,15 @@ export function isWindowsPlatform(): boolean {
 	return (os.platform() === 'win32');
 }
 
+export function pathsAreEqual(path1: string, path2: string | undefined) {
+	if (path2 === undefined) return false;
+	if (isWindowsPlatform()) {
+		return path1.toUpperCase() === path2.toUpperCase();
+	} else {
+		return path1 === path2;
+	}
+}
+
 export function exceptionGripToString(grip: FirefoxDebugProtocol.Grip | null | undefined) {
 
 	if ((typeof grip === 'object') && (grip !== null) && (grip.type === 'object')) {

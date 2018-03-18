@@ -4,6 +4,7 @@ import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy, ISourceActo
 import { ThreadCoordinator, ThreadPauseCoordinator, FrameAdapter, ScopeAdapter, SourceAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
 import { Variable } from 'vscode-debugadapter';
 import { FirefoxDebugSession } from "../firefoxDebugSession";
+import { pathsAreEqual } from '../util/misc';
 
 let log = Log.create('ThreadAdapter');
 
@@ -123,11 +124,11 @@ export class ThreadAdapter extends EventEmitter {
 		return undefined;
 	}
 
-	public findSourceAdaptersForPathOrUrl(pathOrUrl: string | undefined): SourceAdapter[] {
+	public findSourceAdaptersForPathOrUrl(pathOrUrl: string): SourceAdapter[] {
 		if (!pathOrUrl) return [];
 
 		return this.sources.filter((sourceAdapter) =>
-			(sourceAdapter.sourcePath === pathOrUrl) || (sourceAdapter.actor.url === pathOrUrl)
+			pathsAreEqual(pathOrUrl, sourceAdapter.sourcePath) || (sourceAdapter.actor.url === pathOrUrl)
 		);
 	}
 

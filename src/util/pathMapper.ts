@@ -34,7 +34,7 @@ export class PathMapper {
 				log.debug(`Sourcemapped absolute path: ${originalPath}`);
 
 				if (isWindowsPlatform) {
-					originalPath = this.sanitizeWindowsPath(originalPath);
+					originalPath = path.normalize(originalPath);
 				}
 
 				return originalPath;
@@ -76,13 +76,13 @@ export class PathMapper {
 						return undefined;
 					}
 
-					let path = this.removeQueryString(to + url.substr(from.length));
+					let thePath = this.removeQueryString(to + url.substr(from.length));
 					if (isWindowsPlatform) {
-						path = this.sanitizeWindowsPath(path);
+						thePath = path.normalize(thePath);
 					}
 
-					log.debug(`Converted url ${url} to path ${path}`);
-					return path;
+					log.debug(`Converted url ${url} to path ${thePath}`);
+					return thePath;
 				}
 
 			} else {
@@ -95,13 +95,13 @@ export class PathMapper {
 						return undefined;
 					}
 
-					let path = this.removeQueryString(to + match[1]);
+					let thePath = this.removeQueryString(to + match[1]);
 					if (isWindowsPlatform) {
-						path = this.sanitizeWindowsPath(path);
+						thePath = path.normalize(thePath);
 					}
 
-					log.debug(`Converted url ${url} to path ${path}`);
-					return path;
+					log.debug(`Converted url ${url} to path ${thePath}`);
+					return thePath;
 				}
 			}
 		}
@@ -118,11 +118,5 @@ export class PathMapper {
 		} else {
 			return path;
 		}
-	}
-
-	private sanitizeWindowsPath(aPath: string): string {
-		aPath = path.normalize(aPath);
-		aPath = aPath[0].toLowerCase() + aPath.substr(1);
-		return aPath;
 	}
 }
