@@ -1,7 +1,9 @@
 import * as path from 'path';
+import * as url from 'url';
 import { Log } from './log';
 import { PathMappings, ParsedAddonConfiguration } from '../configuration';
 import { isWindowsPlatform as detectWindowsPlatform } from './misc';
+import { urlDirname } from './net';
 
 let log = Log.create('PathConversion');
 
@@ -27,17 +29,17 @@ export class PathMapper {
 
 		} else if (source.isSourceMapped && source.generatedUrl && source.url && !urlDetector.test(source.url)) {
 
-			let originalPath = source.url;
+			let originalPathOrUrl = source.url;
 
-			if (path.isAbsolute(originalPath)) {
+			if (path.isAbsolute(originalPathOrUrl)) {
 
-				log.debug(`Sourcemapped absolute path: ${originalPath}`);
+				log.debug(`Sourcemapped absolute path: ${originalPathOrUrl}`);
 
 				if (isWindowsPlatform) {
-					originalPath = path.normalize(originalPath);
+					originalPathOrUrl = path.normalize(originalPathOrUrl);
 				}
 
-				return originalPath;
+				return originalPathOrUrl;
 
 			} else {
 
@@ -45,10 +47,24 @@ export class PathMapper {
 				if ((source.introductionType === 'wasm') && generatedUrl.startsWith('wasm:')) {
 					generatedUrl = generatedUrl.substr(5);
 				}
-				let generatedPath = this.convertFirefoxUrlToPath(generatedUrl);
-				if (!generatedPath) return undefined;
 
-				let sourcePath = this.removeQueryString(path.join(path.dirname(generatedPath), originalPath));
+				let sourcePath: string | undefined;
+				if (originalPathOrUrl.startsWith('../')) {
+
+					let generatedPath = this.convertFirefoxUrlToPath(generatedUrl);
+					if (!generatedPath) return undefined;
+					sourcePath = path.join(path.dirname(generatedPath), originalPathOrUrl);
+
+				} else {
+
+					let sourceUrl = url.resolve(urlDirname(generatedUrl), originalPathOrUrl);
+					sourcePath = this.convertFirefoxUrlToPath(sourceUrl);
+					if (!sourcePath) return undefined;
+
+				}
+
+				sourcePath = this.removeQueryString(sourcePath);
+
 				log.debug(`Sourcemapped path: ${sourcePath}`);
 
 				return sourcePath;
