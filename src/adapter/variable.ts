@@ -5,6 +5,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { accessorExpression } from '../util/misc';
 import { renderPreview } from './preview';
 import { VariablesProvider } from './scope';
+import { GetterValueAdapter } from './getterValue';
 
 let log = Log.create('VariableAdapter');
 
@@ -12,7 +13,7 @@ export class VariableAdapter {
 
 	private _variablesProvider: VariablesProvider | undefined;
 
-	public get variablesProvider(): VariablesProvider | undefined { 
+	public get variablesProvider(): VariablesProvider | undefined {
 		return this._variablesProvider;
 	}
 
@@ -40,10 +41,14 @@ export class VariableAdapter {
 		referenceFrame: FrameAdapter | undefined,
 		grip: FirefoxDebugProtocol.Grip,
 		threadLifetime: boolean,
-		threadAdapter: ThreadAdapter
+		threadAdapter: ThreadAdapter,
+		useParentReferenceExpression?: boolean
 	): VariableAdapter {
 
-		let referenceExpression = accessorExpression(parentReferenceExpression, varname);
+		let referenceExpression =
+			useParentReferenceExpression ?
+			parentReferenceExpression :
+			accessorExpression(parentReferenceExpression, varname);
 
 		if ((typeof grip === 'boolean') || (typeof grip === 'number')) {
 
@@ -119,8 +124,32 @@ export class VariableAdapter {
 		} else {
 
 			let referenceExpression = accessorExpression(parentReferenceExpression, varname);
-			return new VariableAdapter(
-				varname, referenceExpression, referenceFrame, 'Getter & Setter', threadAdapter);
+
+			let accessorPropertyDescriptor = <FirefoxDebugProtocol.AccessorPropertyDescriptor>propertyDescriptor;
+			let hasGetter = VariableAdapter.isFunctionGrip(accessorPropertyDescriptor.get);
+			let hasSetter = VariableAdapter.isFunctionGrip(accessorPropertyDescriptor.set);
+			let displayValue: string;
+			if (hasGetter) {
+				displayValue = 'Getter';
+				if (hasSetter) {
+					displayValue += ' & Setter';
+				}
+				displayValue += ' - expand to execute Getter';
+			} else if (hasSetter) {
+				displayValue = 'Setter';
+			} else {
+				log.error(`${referenceExpression} is neither a data property nor does it have a getter or setter`);
+				displayValue = 'Error';
+			}
+
+			let variableAdapter = new VariableAdapter(
+				varname, referenceExpression, referenceFrame, displayValue, threadAdapter);
+
+			if (hasGetter) {
+				variableAdapter._variablesProvider = new GetterValueAdapter(variableAdapter);
+			}
+
+			return variableAdapter;
 
 		}
 	}
@@ -135,7 +164,7 @@ export class VariableAdapter {
 	): VariableAdapter {
 
 		return VariableAdapter.fromGrip(
-			varname, parentReferenceExpression, referenceFrame, 
+			varname, parentReferenceExpression, referenceFrame,
 			safeGetterValueDescriptor.getterValue, threadLifetime, threadAdapter);
 	}
 
@@ -151,5 +180,13 @@ export class VariableAdapter {
 		} else {
 			return 1;
 		}
+	}
+
+	private static isFunctionGrip(grip: FirefoxDebugProtocol.Grip) {
+		return (
+			(typeof grip === 'object') &&
+			(grip.type === 'object') &&
+			((<FirefoxDebugProtocol.ObjectGrip>grip).class === 'Function')
+		);
 	}
 }
