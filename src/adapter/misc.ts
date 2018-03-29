@@ -95,7 +95,6 @@ export class BreakpointAdapter {
 export class ConsoleAPICallAdapter implements VariablesProvider {
 
 	public readonly variablesProviderId: number;
-	public readonly threadLifetime = true;
 	public readonly referenceExpression = undefined;
 	public readonly referenceFrame = undefined;
 

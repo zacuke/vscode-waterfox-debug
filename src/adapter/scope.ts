@@ -4,7 +4,6 @@ import { Scope } from 'vscode-debugadapter';
 export interface VariablesProvider {
 	readonly variablesProviderId: number;
 	readonly threadAdapter: ThreadAdapter;
-	readonly threadLifetime: boolean;
 	readonly referenceFrame: FrameAdapter | undefined;
 	readonly referenceExpression: string | undefined;
 	getVariables(): Promise<VariableAdapter[]>;
@@ -20,7 +19,6 @@ export abstract class ScopeAdapter implements VariablesProvider {
 
 	public thisVariable: VariableAdapter;
 	public returnVariable: VariableAdapter;
-	public readonly threadLifetime = false;
 
 	protected constructor(
 		public readonly name: string,
