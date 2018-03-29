@@ -243,8 +243,7 @@ export class ThreadAdapter extends EventEmitter {
 
 	public async fetchVariables(variablesProvider: VariablesProvider): Promise<Variable[]> {
 
-		let variableAdapters = await this.coordinator.runOnPausedThread(
-			() => variablesProvider.getVariables());
+		let variableAdapters = await variablesProvider.getVariables();
 
 		return variableAdapters.map((variableAdapter) => variableAdapter.getVariable());
 	}
