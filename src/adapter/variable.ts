@@ -4,31 +4,30 @@ import { Variable } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { accessorExpression } from '../util/misc';
 import { renderPreview } from './preview';
+import { VariablesProvider } from './scope';
 
 let log = Log.create('VariableAdapter');
 
 export class VariableAdapter {
 
-	public readonly objectGripAdapter?: ObjectGripAdapter;
+	private _variablesProvider: VariablesProvider | undefined;
+
+	public get variablesProvider(): VariablesProvider | undefined { 
+		return this._variablesProvider;
+	}
 
 	public constructor(
 		public readonly varname: string,
 		public readonly referenceExpression: string | undefined,
 		public readonly referenceFrame: FrameAdapter | undefined,
 		public readonly displayValue: string,
-		public readonly threadAdapter: ThreadAdapter,
-		objectGrip?: FirefoxDebugProtocol.ObjectGrip,
-		threadLifetime?: boolean
-	) {
-		if (objectGrip && (threadLifetime !== undefined)) {
-			this.objectGripAdapter = new ObjectGripAdapter(this, objectGrip, threadLifetime);
-		}
-	}
+		public readonly threadAdapter: ThreadAdapter
+	) {}
 
 	public getVariable(): Variable {
 
 		let variable = new Variable(this.varname, this.displayValue,
-			this.objectGripAdapter ? this.objectGripAdapter.variablesProviderId : undefined);
+			this.variablesProvider ? this.variablesProvider.variablesProviderId : undefined);
 
 		(<DebugProtocol.Variable>variable).evaluateName = this.referenceExpression;
 
@@ -85,9 +84,11 @@ export class VariableAdapter {
 
 					let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
 					let displayValue = renderPreview(objectGrip);
-					return new VariableAdapter(
-						varname, referenceExpression, referenceFrame, displayValue, threadAdapter,
-						objectGrip, threadLifetime);
+					let variableAdapter = new VariableAdapter(
+						varname, referenceExpression, referenceFrame, displayValue, threadAdapter);
+					variableAdapter._variablesProvider = new ObjectGripAdapter(
+						variableAdapter, objectGrip, threadLifetime);
+					return variableAdapter;
 
 				default:
 

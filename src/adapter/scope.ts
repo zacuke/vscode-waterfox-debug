@@ -100,7 +100,7 @@ export class ObjectScopeAdapter extends ScopeAdapter {
 	}
 
 	protected getVariablesInt(): Promise<VariableAdapter[]> {
-		return this.variableAdapter.objectGripAdapter!.getVariables();
+		return this.variableAdapter.variablesProvider!.getVariables();
 	}
 }
 
