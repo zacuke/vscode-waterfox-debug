@@ -79,3 +79,17 @@ function testSkipFiles() {
 function log(...x) {
 	console.log(...x);
 }
+
+function getterAndSetter() {
+	let y = {
+		get z() { return 'foo'; }
+	};
+	let x = {
+		get getterProperty() { return 17; },
+		set setterProperty(val) {},
+		get getterAndSetterProperty() { return 23; },
+		set getterAndSetterProperty(val) {},
+		get nested() { return y; }
+	};
+	return x;
+}
