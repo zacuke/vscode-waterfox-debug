@@ -92,7 +92,7 @@ export class PathMapper {
 						return undefined;
 					}
 
-					let thePath = this.removeQueryString(to + url.substr(from.length));
+					let thePath = this.removeQueryString(to + decodeURIComponent(url.substr(from.length)));
 					if (isWindowsPlatform) {
 						thePath = path.normalize(thePath);
 					}
@@ -111,7 +111,7 @@ export class PathMapper {
 						return undefined;
 					}
 
-					let thePath = this.removeQueryString(to + match[1]);
+					let thePath = this.removeQueryString(to + decodeURIComponent(match[1]));
 					if (isWindowsPlatform) {
 						thePath = path.normalize(thePath);
 					}
