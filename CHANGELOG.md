@@ -1,3 +1,7 @@
+### Version 1.1.4
+* add support for evaluating getter functions
+* fix path mapping of URLs that contain encoded characters
+
 ### Version 1.1.3
 * path mapping bugfixes
 
