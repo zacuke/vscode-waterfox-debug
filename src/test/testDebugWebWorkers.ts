@@ -22,7 +22,7 @@ describe('Firefox debug adapter', function() {
 		await util.setBreakpoints(dc, mainSourcePath, [ 55 ]);
 
 		let workerSourcePath = path.join(TESTDATA_PATH, 'web/worker.js');
-		let workerBreakpointsResponse = await util.setBreakpoints(dc, workerSourcePath,  [ 2 ]);
+		let workerBreakpointsResponse = await util.setBreakpoints(dc, workerSourcePath,  [ 2 ], false);
 		let workerBreakpoint = workerBreakpointsResponse.body.breakpoints[0];
 
 		assert.equal(workerBreakpoint.verified, false);

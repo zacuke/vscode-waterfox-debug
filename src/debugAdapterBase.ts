@@ -11,7 +11,7 @@ export abstract class DebugAdapterBase extends DebugSession {
 	protected abstract launch(args: DebugProtocol.LaunchRequestArguments): Promise<void>;
 	protected abstract attach(args: DebugProtocol.AttachRequestArguments): Promise<void>;
 	protected abstract disconnect(args: DebugProtocol.DisconnectArguments): Promise<void>;
-	protected abstract setBreakpoints(args: DebugProtocol.SetBreakpointsArguments): Promise<{ breakpoints: DebugProtocol.Breakpoint[] }>;
+	protected abstract setBreakpoints(args: DebugProtocol.SetBreakpointsArguments): { breakpoints: DebugProtocol.Breakpoint[] };
 	protected abstract setExceptionBreakpoints(args: DebugProtocol.SetExceptionBreakpointsArguments): void;
 	protected abstract pause(args: DebugProtocol.PauseArguments): Promise<void>;
 	protected abstract next(args: DebugProtocol.NextArguments): Promise<void>;
@@ -47,7 +47,7 @@ export abstract class DebugAdapterBase extends DebugSession {
 	}
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
-		this.handleRequestAsync(response, () => this.setBreakpoints(args));
+		this.handleRequest(response, () => this.setBreakpoints(args));
 	}
 
 	protected setExceptionBreakPointsRequest(response: DebugProtocol.SetExceptionBreakpointsResponse, args: DebugProtocol.SetExceptionBreakpointsArguments): void {

@@ -1,83 +1,26 @@
-import { ISourceActorProxy, BreakpointActorProxy } from '../firefox/index';
-import { BreakpointInfo, VariablesProvider, VariableAdapter, ThreadAdapter } from './index';
-import { Registry } from './registry';
-import { Source } from 'vscode-debugadapter';
+import { BreakpointActorProxy } from '../firefox/index';
+import { VariablesProvider, VariableAdapter, ThreadAdapter } from './index';
 import { DebugProtocol } from 'vscode-debugprotocol';
 
-let actorIdRegex = /[0-9]+$/;
+export class BreakpointInfo {
 
-export class SourceAdapter {
-
-	public readonly id: number;
-	public readonly source: Source;
-
-	// this promise will resolve to the list of breakpoints set on this source
-	private breakpointsPromise: Promise<BreakpointAdapter[]>;
-	// the list of breakpoints set on this source, this may be set to undefined if any breakpoints
-	// are in the process of being sent to Firefox, in this case use breakpointsPromise
-	private currentBreakpoints?: BreakpointAdapter[];
+	public actualLine: number | undefined;
+	public actualColumn: number | undefined;
+	public verified: boolean;
 
 	public constructor(
-		sourceRegistry: Registry<SourceAdapter>,
-		public actor: ISourceActorProxy,
-		public readonly sourcePath: string | undefined
+		public readonly id: number,
+		public readonly requestedBreakpoint: DebugProtocol.SourceBreakpoint
 	) {
-		this.id = sourceRegistry.register(this);
-		this.breakpointsPromise = Promise.resolve([]);
-		this.currentBreakpoints = [];
-		this.source = SourceAdapter.createSource(actor, sourcePath, this.id);
+		this.verified = false;
 	}
 
-	private static createSource(
-		actor: ISourceActorProxy,
-		sourcePath: string | undefined,
-		id: number
-	): Source {
+	public isEquivalent(other: BreakpointInfo | DebugProtocol.SourceBreakpoint): boolean {
 
-		let sourceName = '';
-		if (actor.url != null) {
-			sourceName = actor.url.split('/').pop()!.split('#')[0];
-		} else {
-			let match = actorIdRegex.exec(actor.name);
-			if (match) {
-				sourceName = `${actor.source.introductionType || 'Script'} ${match[0]}`;
-			}
-		}
+		const bp1 = this.requestedBreakpoint;
+		const bp2 = (other instanceof BreakpointInfo) ? other.requestedBreakpoint : other;
 
-		let source: Source;
-		if (sourcePath !== undefined) {
-			source = new Source(sourceName, sourcePath);
-		} else {
-			source = new Source(sourceName, actor.url || undefined, id);
-		}
-
-		if (actor.source.isBlackBoxed) {
-			(<DebugProtocol.Source>source).presentationHint = 'deemphasize';
-		}
-
-		return source;
-	}
-
-	public getBreakpointsPromise(): Promise<BreakpointAdapter[]> {
-		return this.breakpointsPromise;
-	}
-
-	public hasCurrentBreakpoints(): boolean {
-		return this.currentBreakpoints !== undefined;
-	}
-
-	public getCurrentBreakpoints(): BreakpointAdapter[] | undefined {
-		return this.currentBreakpoints;
-	}
-
-	public setBreakpointsPromise(promise: Promise<BreakpointAdapter[]>) {
-		this.breakpointsPromise = promise;
-		this.currentBreakpoints = undefined;
-		this.breakpointsPromise.then((breakpoints) => this.currentBreakpoints = breakpoints);
-	}
-
-	public dispose(): void {
-		this.actor.dispose();
+		return (bp1.line === bp2.line) && (bp1.column === bp2.column) && (bp1.condition === bp2.condition);
 	}
 }
 

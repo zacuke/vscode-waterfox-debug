@@ -1,5 +1,5 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { DebugSession, StoppedEvent, OutputEvent, Thread, Variable } from 'vscode-debugadapter';
+import { DebugSession, StoppedEvent, OutputEvent, Thread, Variable, Breakpoint } from 'vscode-debugadapter';
 import { Log } from './util/log';
 import { accessorExpression } from './util/misc';
 import { DebugAdapterBase } from './debugAdapterBase';
@@ -65,8 +65,33 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		await this.session.start();
 	}
 
-	protected setBreakpoints(args: DebugProtocol.SetBreakpointsArguments): Promise<{ breakpoints: DebugProtocol.Breakpoint[] }> {
-		return this.session.breakpointsAdapter.setBreakpoints(args);
+	protected setBreakpoints(args: DebugProtocol.SetBreakpointsArguments): { breakpoints: DebugProtocol.Breakpoint[] } {
+		
+		const requestedBreakpoints = args.breakpoints;
+		if (requestedBreakpoints === undefined) {
+			log.error('setBreakpoints request without any breakpoints');
+			return { breakpoints: [] };
+		}
+
+		// a path for local sources and a url (as seen by Firefox) for remote sources
+		const sourcePathOrUrl = args.source.path;
+		if (sourcePathOrUrl === undefined) {
+			throw 'Couldn\'t set breakpoint: unknown source path';
+		}
+
+		const breakpointInfos = this.session.breakpointsManager.setBreakpoints(requestedBreakpoints, sourcePathOrUrl);
+
+		const breakpoints = breakpointInfos.map(breakpointInfo => {
+			const breakpoint: DebugProtocol.Breakpoint = new Breakpoint(
+				breakpointInfo.verified,
+				breakpointInfo.requestedBreakpoint.line,
+				breakpointInfo.requestedBreakpoint.column
+			);
+			breakpoint.id = breakpointInfo.id;
+			return breakpoint;
+		});
+
+		return { breakpoints };
 	}
 
 	protected setExceptionBreakpoints(args: DebugProtocol.SetExceptionBreakpointsArguments): void {

@@ -8,7 +8,7 @@ import { Log } from './util/log';
 import { AddonManager } from './adapter/addonManager';
 import { launchFirefox } from './firefox/launch';
 import { DebugConnection, TabActorProxy, WorkerActorProxy, IThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, ISourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
-import { ThreadAdapter, ThreadPauseCoordinator, FrameAdapter, VariableAdapter, ConsoleAPICallAdapter, VariablesProvider, SourceAdapter, Registry, BreakpointsAdapter, SkipFilesManager } from './adapter/index';
+import { ThreadAdapter, ThreadPauseCoordinator, FrameAdapter, VariableAdapter, ConsoleAPICallAdapter, VariablesProvider, SourceAdapter, Registry, BreakpointsManager, SkipFilesManager } from './adapter/index';
 import { ParsedConfiguration } from "./configuration";
 import { PathMapper, urlDetector } from './util/pathMapper';
 import { isWindowsPlatform as detectWindowsPlatform, delay } from './util/misc';
@@ -23,7 +23,7 @@ export class FirefoxDebugSession {
 
 	public readonly isWindowsPlatform = detectWindowsPlatform();
 	public readonly pathMapper: PathMapper;
-	public readonly breakpointsAdapter: BreakpointsAdapter;
+	public readonly breakpointsManager: BreakpointsManager;
 	public readonly skipFilesManager: SkipFilesManager;
 	public readonly addonManager?: AddonManager;
 	private reloadWatcher?: chokidar.FSWatcher;
@@ -50,7 +50,7 @@ export class FirefoxDebugSession {
 		private readonly sendEvent: (ev: DebugProtocol.Event) => void
 	) {
 		this.pathMapper = new PathMapper(this.config.pathMappings, this.config.addon);
-		this.breakpointsAdapter = new BreakpointsAdapter(this.threads, this.sendEvent);
+		this.breakpointsManager = new BreakpointsManager(this.threads, this.sendEvent);
 		this.skipFilesManager = new SkipFilesManager(this.config.filesToSkip, this.threads);
 		if (this.config.addon) {
 			this.addonManager = new AddonManager(this);
@@ -431,7 +431,7 @@ export class FirefoxDebugSession {
 			}
 		}
 
-		this.breakpointsAdapter.setBreakpointsOnNewSource(sourceAdapter, threadAdapter);
+		this.breakpointsManager.onNewSource(sourceAdapter);
 	}
 
 	public attachConsole(consoleActor: ConsoleActorProxy, threadAdapter: ThreadAdapter): void {

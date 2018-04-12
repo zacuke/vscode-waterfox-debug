@@ -16,34 +16,48 @@ describe('Firefox debug adapter', function() {
 		await dc.stop();
 	});
 
-	it('should immediately verify a breakpoint set on a loaded file', async function() {
+	it('should eventually verify a breakpoint set on a loaded file', async function() {
 
 		await util.receivePageLoadedEvent(dc);
 
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
-		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 3 ]);
+		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 3 ], false);
+		let breakpointId = setBreakpointsResponse.body.breakpoints[0].id;
 
 		assert.equal(setBreakpointsResponse.body.breakpoints.length, 1);
-		assert.equal(setBreakpointsResponse.body.breakpoints[0].verified, true);
+		assert.equal(setBreakpointsResponse.body.breakpoints[0].verified, false);
 		assert.equal(setBreakpointsResponse.body.breakpoints[0].line, 3);
+
+		let ev = await util.receiveBreakpointEvent(dc);
+		assert.equal(ev.body.reason, 'changed');
+		assert.equal(ev.body.breakpoint.id, breakpointId);
+		assert.equal(ev.body.breakpoint.verified, true);
+		assert.equal(ev.body.breakpoint.line, 3);
 	});
 
-	it('should immediately move and verify a breakpoint set on a loaded file', async function() {
+	it('should eventually move and verify a breakpoint set on a loaded file', async function() {
 
 		await util.receivePageLoadedEvent(dc);
 
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
-		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 2 ]);
+		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 2 ], false);
+		let breakpointId = setBreakpointsResponse.body.breakpoints[0].id;
 
 		assert.equal(setBreakpointsResponse.body.breakpoints.length, 1);
-		assert.equal(setBreakpointsResponse.body.breakpoints[0].verified, true);
-		assert.equal(setBreakpointsResponse.body.breakpoints[0].line, 3);
+		assert.equal(setBreakpointsResponse.body.breakpoints[0].verified, false);
+		assert.equal(setBreakpointsResponse.body.breakpoints[0].line, 2);
+
+		let ev = await util.receiveBreakpointEvent(dc);
+		assert.equal(ev.body.reason, 'changed');
+		assert.equal(ev.body.breakpoint.id, breakpointId);
+		assert.equal(ev.body.breakpoint.verified, true);
+		assert.equal(ev.body.breakpoint.line, 3);
 	});
 
 	it('should eventually verify a breakpoint set before the page is loaded', async function() {
 
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
-		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 3 ]);
+		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 3 ], false);
 
 		assert.equal(setBreakpointsResponse.body.breakpoints.length, 1);
 		assert.equal(setBreakpointsResponse.body.breakpoints[0].verified, false);
@@ -59,7 +73,7 @@ describe('Firefox debug adapter', function() {
 	it('should eventually move and verify a breakpoint set before the page is loaded', async function() {
 
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
-		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 2 ]);
+		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 2 ], false);
 
 		assert.equal(setBreakpointsResponse.body.breakpoints.length, 1);
 		assert.equal(setBreakpointsResponse.body.breakpoints[0].verified, false);
@@ -77,7 +91,7 @@ describe('Firefox debug adapter', function() {
 		await util.receivePageLoadedEvent(dc);
 
 		let sourcePath = path.join(TESTDATA_PATH, 'web/dlscript.js');
-		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 3 ]);
+		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 3 ], false);
 
 		assert.equal(setBreakpointsResponse.body.breakpoints.length, 1);
 		assert.equal(setBreakpointsResponse.body.breakpoints[0].verified, false);
@@ -97,12 +111,12 @@ describe('Firefox debug adapter', function() {
 		await util.receivePageLoadedEvent(dc);
 
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
-		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 3 ]);
+		let setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [ 3 ], false);
 
 		assert.equal(setBreakpointsResponse.body.breakpoints.length, 1);
-		assert.equal(setBreakpointsResponse.body.breakpoints[0].verified, true);
+		assert.equal(setBreakpointsResponse.body.breakpoints[0].verified, false);
 
-		setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, []);
+		setBreakpointsResponse = await util.setBreakpoints(dc, sourcePath, [], false);
 
 		assert.equal(setBreakpointsResponse.body.breakpoints.length, 0);
 	});

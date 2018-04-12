@@ -88,11 +88,27 @@ export async function receivePageLoadedEvent(dc: DebugClient, lenient: boolean =
 	}
 }
 
-export function setBreakpoints(dc: DebugClient, sourcePath: string, breakpointLines: number[]): Promise<DebugProtocol.SetBreakpointsResponse> {
-	return dc.setBreakpointsRequest({
+export async function setBreakpoints(
+	dc: DebugClient,
+	sourcePath: string,
+	breakpointLines: number[],
+	waitForVerification = true
+): Promise<DebugProtocol.SetBreakpointsResponse> {
+
+	const result = await dc.setBreakpointsRequest({
 		source: { path: sourcePath },
 		breakpoints: breakpointLines.map((line) => { return { line }; })
 	});
+
+	if (waitForVerification) {
+		let unverified = result.body.breakpoints.filter(breakpoint => !breakpoint.verified).length;
+		while (unverified > 0) {
+			await receiveBreakpointEvent(dc);
+			unverified--;
+		}
+	}
+
+	return result;
 }
 
 export function receiveBreakpointEvent(dc: DebugClient): Promise<DebugProtocol.Event> {
