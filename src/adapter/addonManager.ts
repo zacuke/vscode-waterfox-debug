@@ -7,7 +7,7 @@ import * as semver from 'semver';
 import { AddonType, ParsedAddonConfiguration } from '../configuration';
 import FirefoxProfile = require('firefox-profile');
 import * as zipdir from 'zip-dir';
-import { Extract } from 'unzip';
+import { Extract } from 'unzipper';
 import { RootActorProxy, AddonsActorProxy, PreferenceActorProxy, ConsoleActorProxy, WebExtensionActorProxy, TabActorProxy } from "../firefox/index";
 import { FirefoxDebugSession } from "../firefoxDebugSession";
 

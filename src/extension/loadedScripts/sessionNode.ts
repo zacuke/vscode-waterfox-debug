@@ -28,7 +28,7 @@ export class SessionNode extends TreeNode {
 
 		if (!this.children.some((child) => (child.id === threadInfo.id))) {
 
-			let index = this.children.findIndex((child) => (child.treeItem.label > threadInfo.name));
+			let index = this.children.findIndex((child) => (child.treeItem.label! > threadInfo.name));
 			if (index < 0) index = this.children.length;
 
 			this.children.splice(index, 0, new ThreadNode(threadInfo, this));

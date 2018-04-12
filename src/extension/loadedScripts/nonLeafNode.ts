@@ -87,12 +87,12 @@ export abstract class NonLeafNode extends TreeNode {
 		if (newChild instanceof DirectoryNode) {
 			index = this.children.findIndex(
 				(child) => !((child instanceof DirectoryNode) && 
-							 (child.treeItem.label < newChild.treeItem.label))
+							 (child.treeItem.label! < newChild.treeItem.label!))
 			);
 		} else {
 			index = this.children.findIndex(
 				(child) => ((child instanceof FileNode) &&
-							(child.treeItem.label >= newChild.treeItem.label))
+							(child.treeItem.label! >= newChild.treeItem.label!))
 			);
 		}
 
