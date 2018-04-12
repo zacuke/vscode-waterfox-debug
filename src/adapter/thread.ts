@@ -1,12 +1,9 @@
-import { Log } from '../util/log';
 import { EventEmitter } from 'events';
 import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy, ISourceActorProxy } from '../firefox/index';
 import { ThreadCoordinator, ThreadPauseCoordinator, FrameAdapter, ScopeAdapter, SourceAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
 import { Variable } from 'vscode-debugadapter';
 import { FirefoxDebugSession } from "../firefoxDebugSession";
 import { pathsAreEqual } from '../util/misc';
-
-let log = Log.create('ThreadAdapter');
 
 export class ThreadAdapter extends EventEmitter {
 
@@ -53,12 +50,35 @@ export class ThreadAdapter extends EventEmitter {
 				source = frames[0].frame.where.source;
 			}
 
-			if (this.shouldSkip(source)) {
+			const sourceAdapter = this.findSourceAdapterForActorName(source.actor);
 
-				this.resume();
-				return;
+			if (sourceAdapter) {
 
-			} else if (event.why.type === 'exception') {
+				if (sourceAdapter.actor.source.isBlackBoxed) {
+
+					this.resume();
+					return;
+	
+				}
+
+				if ((event.why.type === 'breakpoint') &&
+					event.why.actors && (event.why.actors.length > 0)) {
+
+					const breakpointAdapter = sourceAdapter.findBreakpointAdapterForActorName(event.why.actors[0]);
+					if (breakpointAdapter && breakpointAdapter.breakpointInfo.hitCount) {
+
+						breakpointAdapter.hitCount++;
+						if (breakpointAdapter.hitCount < breakpointAdapter.breakpointInfo.hitCount) {
+
+							this.resume();
+							return;
+			
+						}
+					}
+				}
+			}
+
+			if (event.why.type === 'exception') {
 
 				let frames = await this.fetchAllStackFrames();
 				let startFrame = (frames.length > 0) ? frames[frames.length - 1] : undefined;
@@ -277,16 +297,6 @@ export class ThreadAdapter extends EventEmitter {
 			return VariableAdapter.fromGrip('', undefined, undefined, grip, threadLifetime, this);
 		} else {
 			return new VariableAdapter('', undefined, undefined, 'undefined', this);
-		}
-	}
-
-	private shouldSkip(source: FirefoxDebugProtocol.Source) {
-		let sourceAdapter = this.findSourceAdapterForActorName(source.actor);
-		if (sourceAdapter !== undefined) {
-			return sourceAdapter.actor.source.isBlackBoxed;
-		} else {
-			log.warn(`No adapter found for sourceActor ${source.actor}`);
-			return false;
 		}
 	}
 

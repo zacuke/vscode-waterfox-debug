@@ -59,6 +59,12 @@ export class SourceAdapter {
 		this.checkAndSyncBreakpoints();
 	}
 
+	public findBreakpointAdapterForActorName(actorName: string): BreakpointAdapter | undefined {
+		return this.currentBreakpoints.find(
+			breakpointAdapter => (breakpointAdapter.actor.name === actorName)
+		);
+	}
+
 	private checkAndSyncBreakpoints(): void {
 		if ((this.desiredBreakpoints !== undefined) && !this.isSyncingBreakpoints) {
 			this.threadAdapter.coordinator.runOnPausedThread(() => this.syncBreakpoints());

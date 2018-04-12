@@ -7,12 +7,14 @@ export class BreakpointInfo {
 	public actualLine: number | undefined;
 	public actualColumn: number | undefined;
 	public verified: boolean;
+	public readonly hitCount: number;
 
 	public constructor(
 		public readonly id: number,
 		public readonly requestedBreakpoint: DebugProtocol.SourceBreakpoint
 	) {
 		this.verified = false;
+		this.hitCount = parseInt(requestedBreakpoint.hitCondition || '') || 0;
 	}
 
 	public isEquivalent(other: BreakpointInfo | DebugProtocol.SourceBreakpoint): boolean {
@@ -28,10 +30,12 @@ export class BreakpointAdapter {
 	
 	public breakpointInfo: BreakpointInfo;
 	public actor: BreakpointActorProxy;
-	
+	public hitCount: number;
+
 	public constructor(requestedBreakpoint: BreakpointInfo, actor: BreakpointActorProxy) {
 		this.breakpointInfo = requestedBreakpoint;
 		this.actor = actor;
+		this.hitCount = 0;
 	}
 }
 
