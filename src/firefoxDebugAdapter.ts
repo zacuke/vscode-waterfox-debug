@@ -34,6 +34,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			supportsCompletionsRequest: true,
 			supportsDelayedStackTraceLoading: true,
 			supportsHitConditionalBreakpoints: true,
+			supportsLogPoints: true,
 			exceptionBreakpointFilters: [
 				{
 					filter: 'all',

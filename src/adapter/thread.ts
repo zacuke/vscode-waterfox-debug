@@ -65,14 +65,30 @@ export class ThreadAdapter extends EventEmitter {
 					event.why.actors && (event.why.actors.length > 0)) {
 
 					const breakpointAdapter = sourceAdapter.findBreakpointAdapterForActorName(event.why.actors[0]);
-					if (breakpointAdapter && breakpointAdapter.breakpointInfo.hitCount) {
+					if (breakpointAdapter) {
 
-						breakpointAdapter.hitCount++;
-						if (breakpointAdapter.hitCount < breakpointAdapter.breakpointInfo.hitCount) {
+						if (breakpointAdapter.breakpointInfo.hitCount) {
+
+							breakpointAdapter.hitCount++;
+							if (breakpointAdapter.hitCount < breakpointAdapter.breakpointInfo.hitCount) {
+
+								this.resume();
+								return;
+				
+							}
+						}
+
+						const logMessage = breakpointAdapter.breakpointInfo.requestedBreakpoint.logMessage;
+						if (logMessage) {
+
+							const frames = await this.fetchAllStackFrames();
+							const frameActor = (frames.length > 0) ? frames[0].frame.actor : undefined;
+
+							this.evaluate(`console.log(\`${logMessage.replace('{', '${')}\`)`, false, frameActor);
 
 							this.resume();
 							return;
-			
+
 						}
 					}
 				}
