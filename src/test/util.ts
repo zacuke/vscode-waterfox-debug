@@ -91,13 +91,20 @@ export async function receivePageLoadedEvent(dc: DebugClient, lenient: boolean =
 export async function setBreakpoints(
 	dc: DebugClient,
 	sourcePath: string,
-	breakpointLines: number[],
+	breakpoints: number[] | DebugProtocol.SourceBreakpoint[],
 	waitForVerification = true
 ): Promise<DebugProtocol.SetBreakpointsResponse> {
 
+	let sourceBreakpoints: DebugProtocol.SourceBreakpoint[];
+	if ((breakpoints.length > 0) && (typeof breakpoints[0] === 'number')) {
+		sourceBreakpoints = (<number[]>breakpoints).map(line => { return { line }; })
+	} else {
+		sourceBreakpoints = <DebugProtocol.SourceBreakpoint[]>breakpoints;
+	}
+
 	const result = await dc.setBreakpointsRequest({
 		source: { path: sourcePath },
-		breakpoints: breakpointLines.map((line) => { return { line }; })
+		breakpoints: sourceBreakpoints
 	});
 
 	if (waitForVerification) {

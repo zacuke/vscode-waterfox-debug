@@ -1,3 +1,4 @@
+import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugClient } from 'vscode-debugadapter-testsupport';
 import * as path from 'path';
 import * as util from './util';
@@ -134,5 +135,39 @@ describe('Firefox debug adapter', function() {
 
 		assert.equal(stackTrace.body.stackFrames[0].line, 12);
 
+	});
+
+	it('should skip a breakpoint until its hit count is reached', async function() {
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ { line: 24, hitCondition: '4' } ]);
+
+		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc, 
+			() => util.evaluate(dc, 'factorial(5)')
+		);
+
+		let threadId = stoppedEvent.body.threadId!;
+		let stackTrace = await dc.stackTraceRequest({ threadId });
+		let scopes = await dc.scopesRequest({ frameId: stackTrace.body.stackFrames[0].id });
+
+		let variablesResponse = await dc.variablesRequest({ variablesReference: scopes.body.scopes[0].variablesReference });
+		let variables = variablesResponse.body.variables;
+		assert.equal(util.findVariable(variables, 'n').value, '2');
+	});
+
+	it('should show the output from logpoints', async function() {
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ { line: 24, logMessage: 'factorial({n})' } ]);
+
+		const outputEvents: DebugProtocol.OutputEvent[] = [];
+		util.evaluate(dc, 'factorial(3)');
+		for (let i = 0; i < 3; i++) {
+			outputEvents.push(<DebugProtocol.OutputEvent> await dc.waitForEvent('output'));
+		}
+
+		assert.equal(outputEvents[0].body.output.trimRight(), 'factorial(3)');
+		assert.equal(outputEvents[1].body.output.trimRight(), 'factorial(2)');
+		assert.equal(outputEvents[2].body.output.trimRight(), 'factorial(1)');
 	});
 });
