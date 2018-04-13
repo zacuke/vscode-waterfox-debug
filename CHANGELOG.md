@@ -1,3 +1,7 @@
+### Version 1.2.0
+* add support for breakpoints with hit counts
+* add support for log points
+
 ### Version 1.1.4
 * add support for evaluating getter functions
 * fix path mapping of URLs that contain encoded characters
