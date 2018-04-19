@@ -424,7 +424,7 @@ function parseReloadConfiguration(
 	if (typeof reloadConfig === 'string') {
 
 		return {
-			watch: [ reloadConfig ],
+			watch: [ normalizePath(reloadConfig) ],
 			ignore: [],
 			debounce: defaultDebounce
 		};
@@ -432,7 +432,7 @@ function parseReloadConfiguration(
 	} else if (Array.isArray(reloadConfig)) {
 
 		return {
-			watch: reloadConfig,
+			watch: reloadConfig.map(path => normalizePath(path)),
 			ignore: [],
 			debounce: defaultDebounce
 		};
