@@ -365,6 +365,46 @@ describe('The configuration parser', function() {
 		assert.deepEqual(parsedConfiguration.reloadOnChange, reloadOnChange);
 	});
 
+	it('should convert windows-style directory separators for all files provided to "reloadOnChange"', async function () {
+		if (isWindowsPlatform()) {
+			let reloadOnChangeNormalized: NormalizedReloadConfiguration = {
+				watch: ['C:/Users/WinUser/Projects/project/scripts/**/*.js', '!C:/Users/WinUser/Projects/project/scripts/composer.js'],
+				ignore: ['C:/Users/WinUser/Projects/project/scripts/cache/**/*.js'],
+				debounce: 200
+			}
+
+			let parsedConfiguration = await parseConfiguration({
+				request: 'launch',
+				file: 'C:\\Users\\WinUser\\Projects\\project/index.html',
+				reloadOnChange: {
+					watch: ['C:\\Users\\WinUser\\Projects\\project/scripts/**/*.js', '!C:\\Users\\WinUser\\Projects\\project/scripts/composer.js'],
+					ignore: ['C:\\Users\\WinUser\\Projects\\project/scripts/cache/**/*.js'],
+					debounce: 200
+				}
+			});
+
+			assert.deepEqual(parsedConfiguration.reloadOnChange, reloadOnChangeNormalized);
+		} else {
+			let reloadOnChangeNormalized: NormalizedReloadConfiguration = {
+				watch: ['/home/user/project/scripts/**/*.js', '!/home/user/project/scripts/composer.js'],
+				ignore: ['/home/user/project/scripts/cache/**/*.js'],
+				debounce: 200
+			}
+
+			let parsedConfiguration = await parseConfiguration({
+				request: 'launch',
+				file: '/home/user/project/index.html',
+				reloadOnChange: {
+					watch: ['/home/user/project/scripts/**/*.js', '!/home/user/project/scripts/composer.js'],
+					ignore: ['/home/user/project/scripts/cache/**/*.js'],
+					debounce: 200
+				}
+			});
+
+			assert.deepEqual(parsedConfiguration.reloadOnChange, reloadOnChangeNormalized);
+		}
+	});
+
 	it('should parse "skipFiles"', async function() {
 
 		let parsedConfiguration = await parseConfiguration({

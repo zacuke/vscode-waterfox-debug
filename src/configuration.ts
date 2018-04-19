@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as uuid from 'uuid';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { Log, LogConfiguration } from './util/log';
-import { isWindowsPlatform, findAddonId } from './util/misc';
+import { isWindowsPlatform, findAddonId, normalizePath } from './util/misc';
 import { isExecutable } from './util/fs';
 import { Minimatch } from 'minimatch';
 import FirefoxProfile = require('firefox-profile');
@@ -370,13 +370,7 @@ function parseWebRootConfiguration(config: CommonConfiguration, pathMappings: Pa
 			webRootUrl = webRootUrl.substr(0, webRootUrl.lastIndexOf('/'));
 		}
 
-		let webRoot = path.normalize(config.webRoot);
-		if (isWindowsPlatform()) {
-			webRoot = webRoot.replace(/\\/g, '/');
-		}
-		if (webRoot[webRoot.length - 1] === '/') {
-			webRoot = webRoot.substr(0, webRoot.length - 1);
-		}
+		let webRoot = normalizePath(config.webRoot);
 
 		pathMappings.forEach((pathMapping) => {
 			const to = pathMapping.path;
@@ -454,6 +448,8 @@ function parseReloadConfiguration(
 			watch = _config.watch;
 		}
 
+		watch = watch.map((path) => normalizePath(path));
+
 		let ignore: string[];
 		if (_config.ignore === undefined) {
 			ignore = [];
@@ -462,6 +458,8 @@ function parseReloadConfiguration(
 		} else {
 			ignore = _config.ignore;
 		}
+
+		ignore = ignore.map((path) => normalizePath(path));
 
 		let debounce: number;
 		if (typeof _config.debounce === 'number') {

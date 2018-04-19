@@ -27,6 +27,18 @@ export function pathsAreEqual(path1: string, path2: string | undefined) {
 	}
 }
 
+export function normalizePath(rawPath: string) {
+	let normalized = path.normalize(rawPath);
+	if (isWindowsPlatform()) {
+		normalized = normalized.replace(/\\/g, '/');
+	}
+	if (normalized[normalized.length - 1] === '/') {
+		normalized = normalized.substr(0, normalized.length - 1);
+	}
+
+	return normalized;
+}
+
 export function exceptionGripToString(grip: FirefoxDebugProtocol.Grip | null | undefined) {
 
 	if ((typeof grip === 'object') && (grip !== null) && (grip.type === 'object')) {
