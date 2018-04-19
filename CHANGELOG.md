@@ -1,3 +1,6 @@
+### Version 1.2.1
+* fix `reloadOnChange` on Windows (thanks @Misiur)
+
 ### Version 1.2.0
 * add support for breakpoints with hit counts
 * add support for log points
