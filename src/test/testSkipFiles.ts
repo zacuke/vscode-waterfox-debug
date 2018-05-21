@@ -6,7 +6,7 @@ import * as assert from 'assert';
 import { delay } from '../util/misc';
 import { isWindowsPlatform } from '../util/misc';
 
-describe('Firefox debug adapter', function() {
+describe('Skipping files: The debugger', function() {
 
 	let dc: DebugClient;
 	const TESTDATA_PATH = path.join(__dirname, '../../testdata');

@@ -14,7 +14,7 @@ import { DebugClient } from "vscode-debugadapter-testsupport";
 
 const TESTDATA_PATH = path.join(__dirname, '../../testdata/web/sourceMaps/scripts');
 
-describe('Firefox debug adapter', function() {
+describe('Gulp sourcemaps: The debugger', function() {
 
 	let dc: DebugClient | undefined;
 

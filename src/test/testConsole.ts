@@ -5,7 +5,7 @@ import * as util from './util';
 import * as assert from 'assert';
 import { isWindowsPlatform } from "../util/misc";
 
-describe('Firefox debug adapter', function() {
+describe('Debug console: The debugger', function() {
 
 	let dc: DebugClient;
 	const TESTDATA_PATH = path.join(__dirname, '../../testdata');

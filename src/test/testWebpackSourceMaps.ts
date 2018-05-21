@@ -9,7 +9,7 @@ import { DebugClient } from "vscode-debugadapter-testsupport";
 
 const TESTDATA_PATH = path.join(__dirname, '../../testdata/web/sourceMaps/modules');
 
-describe('Firefox debug adapter', function() {
+describe('Webpack sourcemaps: The debugger', function() {
 
 	let dc: DebugClient | undefined;
 

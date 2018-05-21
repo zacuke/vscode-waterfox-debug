@@ -2,7 +2,7 @@ import { ThreadPauseCoordinator } from '../adapter/index';
 import { delay } from '../util/misc';
 import * as assert from 'assert';
 
-describe('ThreadPauseCoordinator', function() {
+describe('The ThreadPauseCoordinator', function() {
 
 	let pauseCoordinator: ThreadPauseCoordinator;
 

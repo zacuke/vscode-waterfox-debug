@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as util from './util';
 import * as assert from 'assert';
 
-describe('Firefox debug adapter', function() {
+describe('Webworkers: The debugger', function() {
 
 	let dc: DebugClient;
 	const TESTDATA_PATH = path.join(__dirname, '../../testdata');
