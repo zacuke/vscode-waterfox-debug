@@ -1,3 +1,7 @@
+### Version 1.3.0
+* allow WebExtensions without an ID if they're installed via RDP
+* install WebExtensions via RDP by default
+
 ### Version 1.2.1
 * fix `reloadOnChange` on Windows (thanks @Misiur)
 
