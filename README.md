@@ -276,7 +276,8 @@ whenever you change a file.
 * `installAddonInProfile`: Install the add-on by building an xpi file and placing it in the temporary
   profile that is created for the debugging session. This installation method is incompatible with
   the `reAttach` option and won't allow reloading the add-on while debugging, but it is necessary
-  for debugging XUL overlays. By default, it is only used if `reAttach` isn't set to `true`.
+  for debugging XUL overlays. By default, it is only used if `reAttach` isn't set to `true` and the
+  `addonType` is set to `addonSdk` or `legacy`.
 * `sourceMaps`: The Firefox developers are moving the handling of source-maps to the client side of
   the debugging protocol. You can test the new source-mapping code by setting this property to `client`.
   Note that this is still experimental and there is a known issue when debugging minified code
