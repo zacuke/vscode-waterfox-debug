@@ -1,0 +1,17 @@
+{
+
+	"description": "A WebExtension used for testing vscode-firefox-debug",
+	"manifest_version": 2,
+	"name": "Test",
+	"version": "1.0",
+	"homepage_url": "https://github.com/hbenl/vscode-firefox-debug",
+	"background": {
+		"scripts": [ "backgroundscript.js" ]
+	},
+	"content_scripts": [
+		{
+			"matches": [ "file:///*" ], 
+			"js": [ "contentscript.js" ]
+		}
+	]
+}

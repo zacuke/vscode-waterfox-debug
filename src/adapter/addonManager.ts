@@ -91,7 +91,10 @@ export class AddonManager {
 
 			case 'webExtension':
 				if (addonsActor && !this.config.installInProfile) {
-					await addonsActor.installAddon(this.config.path);
+					let result = await addonsActor.installAddon(this.config.path);
+					if (!this.config.id) {
+						this.config.id = result.addon.id;
+					}
 				}
 
 				this.fetchAddonsAndAttach(rootActor);

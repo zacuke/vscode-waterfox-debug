@@ -1,0 +1,17 @@
+<html>
+	<head>
+		<meta charset="UTF-8"/>
+		<script>
+			window.onload = function() {
+				console.log('Loaded');
+			}
+			function putMessage(message) {
+				document.getElementById('messageBox').textContent = message;
+			}
+		</script>
+	</head>
+	<body>
+		<h1>WebExtension Test</h1>
+		<div id='messageBox' style='display: none'></div>
+	</body>
+</html>

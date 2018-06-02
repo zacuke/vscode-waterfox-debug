@@ -99,7 +99,7 @@ export interface ParsedLaunchConfiguration {
 export interface ParsedAddonConfiguration {
 	type: AddonType;
 	path: string;
-	id: string;
+	id: string | undefined;
 	installInProfile: boolean;
 }
 
@@ -500,7 +500,7 @@ async function parseAddonConfiguration(
 
 	if (config.addonType === 'addonSdk') {
 
-		let rewrittenAddonId = addonId.replace("@", "-at-");
+		let rewrittenAddonId = addonId!.replace("@", "-at-");
 		let sanitizedAddonPath = addonPath;
 		if (sanitizedAddonPath[sanitizedAddonPath.length - 1] === '/') {
 			sanitizedAddonPath = sanitizedAddonPath.substr(0, sanitizedAddonPath.length - 1);
@@ -512,7 +512,6 @@ async function parseAddonConfiguration(
 
 	} else if (config.addonType === 'webExtension') {
 
-		let rewrittenAddonId = addonId.replace('{', '%7B').replace('}', '%7D');
 		let sanitizedAddonPath = addonPath;
 		if (sanitizedAddonPath[sanitizedAddonPath.length - 1] === '/') {
 			sanitizedAddonPath = sanitizedAddonPath.substr(0, sanitizedAddonPath.length - 1);
@@ -521,10 +520,17 @@ async function parseAddonConfiguration(
 			url: new RegExp('^moz-extension://[0-9a-f-]*(/.*)$'),
 			path: sanitizedAddonPath
 		});
-		pathMappings.push({ 
-			url: new RegExp(`^jar:file:.*/extensions/${rewrittenAddonId}.xpi!(/.*)$`),
-			path: sanitizedAddonPath
-		});
+
+		if (addonId) {
+			// this pathMapping may no longer be necessary, I haven't seen this kind of URL recently...
+			let rewrittenAddonId = addonId.replace('{', '%7B').replace('}', '%7D');
+			pathMappings.push({ 
+				url: new RegExp(`^jar:file:.*/extensions/${rewrittenAddonId}.xpi!(/.*)$`),
+				path: sanitizedAddonPath
+			});
+		} else if (installInProfile) {
+			throw `You need to specify an ID for your add-on in the manifest or set "installAddonInProfile" to false in the ${config.request} configuration`;
+		}
 	}
 
 	return {

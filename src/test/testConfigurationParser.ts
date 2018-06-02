@@ -714,6 +714,24 @@ describe('The configuration parser', function() {
 		}), '"installAddonInProfile" is not available with "reAttach"');
 	});
 
+	it('should refuse installing WebExtensions in the profile if they don\'t specify an ID in their manifest', async function() {
+		await assertPromiseRejects(parseConfiguration(<any>{
+			request: 'launch',
+			addonType: 'webExtension',
+			addonPath: path.join(__dirname, '../../testdata/webExtension2/addOn'),
+			installAddonInProfile: true
+		}), 'You need to specify an ID for your add-on in the manifest or set "installAddonInProfile" to false in the launch configuration');
+	});
+
+	it('should allow installing WebExtensions that don\'t specify an ID in their manifest via RDP', async function() {
+		await parseConfiguration(<any>{
+			request: 'launch',
+			addonType: 'webExtension',
+			addonPath: path.join(__dirname, '../../testdata/webExtension2/addOn'),
+			installAddonInProfile: false
+		});
+	});
+
 	it('should add pathMappings for WebExtension debugging', async function() {
 
 		let addonPath = path.join(__dirname, '../../testdata/webExtension/addOn');

@@ -80,7 +80,7 @@ export function accessorExpression(objectExpression: string | undefined, propert
 	}
 }
 
-export function findAddonId(addonPath: string, addonType: AddonType): Promise<string> {
+export function findAddonId(addonPath: string, addonType: AddonType): Promise<string | undefined> {
 	if (addonType === 'webExtension') {
 		return findWebExtensionId(addonPath);
 	} else {
@@ -98,12 +98,8 @@ export function findAddonId(addonPath: string, addonType: AddonType): Promise<st
 	}
 }
 
-async function findWebExtensionId(addonPath: string): Promise<string> {
+async function findWebExtensionId(addonPath: string): Promise<string | undefined> {
 	const manifest = await fs.readJson(path.join(addonPath, 'manifest.json'));
 	const id = ((manifest.applications || {}).gecko || {}).id;
-	if (typeof id === 'string') {
-		return id;
-	} else {
-		throw 'This debugger currently requires add-ons to specify an ID in their manifest';
-	}
+	return id;
 }

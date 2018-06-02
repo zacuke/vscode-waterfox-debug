@@ -35,14 +35,22 @@ export async function initDebugClientForAddon(
 	addonType: AddonType,
 	options?: {
 		installInProfile?: boolean,
-		delayedNavigation?: boolean
+		delayedNavigation?: boolean,
+		addonDirectory?: string
 	}
 ): Promise<DebugClient> {
+
+	let addonPath: string;
+	if (options && options.addonDirectory) {
+		addonPath = path.join(testDataPath, `${options.addonDirectory}/addOn`);
+	} else {
+		addonPath = path.join(testDataPath, `${addonType}/addOn`);
+	}
 
 	let dcArgs: LaunchConfiguration = { 
 		request: 'launch',
 		addonType,
-		addonPath: path.join(testDataPath, `${addonType}/addOn`),
+		addonPath,
 		installAddonInProfile: !!(options && options.installInProfile)
 	};
 
