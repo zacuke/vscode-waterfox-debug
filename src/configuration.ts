@@ -494,7 +494,7 @@ async function parseAddonConfiguration(
 			}
 			installInProfile = config.installAddonInProfile;
 		} else {
-			installInProfile = !config.reAttach;
+			installInProfile = (addonType !== 'webExtension') && !config.reAttach;
 		}
 	}
 

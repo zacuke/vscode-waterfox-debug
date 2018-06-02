@@ -619,7 +619,7 @@ describe('The configuration parser', function() {
 
 	for (let reAttach of [ undefined, false ]) {
 
-		it(`should default to installing WebExtensions in the profile if "reAttach" is ${reAttach}`, async function() {
+		it(`should default to installing WebExtensions via RDP if "reAttach" is ${reAttach}`, async function() {
 
 			let parsedConfiguration = await parseConfiguration({
 				request: 'launch',
@@ -628,10 +628,10 @@ describe('The configuration parser', function() {
 				addonPath: path.join(__dirname, '../../testdata/webExtension/addOn')
 			});
 
-			assert.equal(parsedConfiguration.addon!.installInProfile, true);
+			assert.equal(parsedConfiguration.addon!.installInProfile, false);
 		});
 
-		it(`should default to installing Jetpack addons via RDP if "reAttach" is ${reAttach}`, async function() {
+		it(`should default to installing Jetpack addons in the profile if "reAttach" is ${reAttach}`, async function() {
 
 			let parsedConfiguration = await parseConfiguration({
 				request: 'launch',
@@ -643,17 +643,17 @@ describe('The configuration parser', function() {
 			assert.equal(parsedConfiguration.addon!.installInProfile, true);
 		});
 
-		it(`should allow installing WebExtensions via RDP if "reAttach" is ${reAttach}`, async function() {
+		it(`should allow installing WebExtensions in the profile if "reAttach" is ${reAttach}`, async function() {
 
 			let parsedConfiguration = await parseConfiguration({
 				request: 'launch',
 				reAttach,
 				addonType: 'webExtension',
 				addonPath: path.join(__dirname, '../../testdata/webExtension/addOn'),
-				installAddonInProfile: false
+				installAddonInProfile: true
 			});
 
-			assert.equal(parsedConfiguration.addon!.installInProfile, false);
+			assert.equal(parsedConfiguration.addon!.installInProfile, true);
 		});
 
 		it(`should allow installing Jetpack addons via RDP if "reAttach" is ${reAttach}`, async function() {
