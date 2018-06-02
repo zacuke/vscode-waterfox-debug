@@ -45,7 +45,7 @@ describe('Hitting breakpoints: The debugger', function() {
 
 		await dc.setExceptionBreakpointsRequest({filters: [ 'uncaught' ]});
 
-		util.evaluateCloaked(dc, 'throwException()');
+		util.evaluateCloaked(dc, 'throwUncaughtException()');
 
 		let stoppedEvent = await util.receiveStoppedEvent(dc);
 		assert.equal(stoppedEvent.body.allThreadsStopped, false);
@@ -56,7 +56,7 @@ describe('Hitting breakpoints: The debugger', function() {
 
 		await dc.setExceptionBreakpointsRequest({filters: [ 'uncaught' ]});
 		
-		util.evaluate(dc, 'throwException()');
+		util.evaluate(dc, 'throwUncaughtException()');
 
 		await util.assertPromiseTimeout(util.receiveStoppedEvent(dc), 1000);
 	});
@@ -65,7 +65,7 @@ describe('Hitting breakpoints: The debugger', function() {
 
 		await dc.setExceptionBreakpointsRequest({filters: []});
 
-		util.evaluateCloaked(dc, 'throwException()');
+		util.evaluateCloaked(dc, 'throwUncaughtException()');
 
 		await util.assertPromiseTimeout(util.receiveStoppedEvent(dc), 1000);
 	});
