@@ -92,7 +92,7 @@ export class VariableAdapter {
 					let variableAdapter = new VariableAdapter(
 						varname, referenceExpression, referenceFrame, displayValue, threadAdapter);
 					variableAdapter._variablesProvider = new ObjectGripAdapter(
-						variableAdapter, objectGrip, threadLifetime);
+						variableAdapter, objectGrip, threadLifetime, (varname === '__proto__'));
 					return variableAdapter;
 
 				default:

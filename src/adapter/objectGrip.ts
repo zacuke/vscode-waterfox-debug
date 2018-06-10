@@ -18,7 +18,8 @@ export class ObjectGripAdapter implements VariablesProvider {
 	public constructor(
 		private readonly variableAdapter: VariableAdapter,
 		objectGrip: FirefoxDebugProtocol.ObjectGrip,
-		public readonly threadLifetime: boolean
+		public readonly threadLifetime: boolean,
+		private readonly isPrototype: boolean
 	) {
 		this.actor = this.threadAdapter.debugSession.getOrCreateObjectGripActorProxy(objectGrip);
 		this.actor.increaseRefCount();
@@ -71,9 +72,11 @@ export class ObjectGripAdapter implements VariablesProvider {
 				this.threadLifetime, this.threadAdapter
 			);
 
-			const prototypeLevels = this.threadAdapter.debugSession.config.liftAccessorsFromPrototypes;
-			if (prototypeLevels > 0) {
-				accessorsFromPrototypes = await this.fetchAccessorsFromPrototypes(prototypeVariable, prototypeLevels);
+			if (!this.isPrototype) {
+				const prototypeLevels = this.threadAdapter.debugSession.config.liftAccessorsFromPrototypes;
+				if (prototypeLevels > 0) {
+					accessorsFromPrototypes = await this.fetchAccessorsFromPrototypes(prototypeVariable, prototypeLevels);
+				}
 			}
 		}
 
