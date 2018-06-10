@@ -82,14 +82,18 @@ function log(...x) {
 
 function getterAndSetter() {
 	let y = {
-		get z() { return 'foo'; }
+		_z: 'foo',
+		get z() { return this._z; }
 	};
 	let x = {
-		get getterProperty() { return 17; },
+		gp: 17,
+		gsp: 23,
+		_y: y,
+		get getterProperty() { return this.gp; },
 		set setterProperty(val) {},
-		get getterAndSetterProperty() { return 23; },
+		get getterAndSetterProperty() { return this.gsp; },
 		set getterAndSetterProperty(val) {},
-		get nested() { return y; }
+		get nested() { return this._y; }
 	};
 	return x;
 }

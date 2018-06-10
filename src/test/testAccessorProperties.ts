@@ -63,7 +63,7 @@ describe('Accessor properties: The debugger', function() {
 
 async function startAndGetProperties(dc: DebugClient, sourcePath: string): Promise<DebugProtocol.Variable[]> {
 
-	await util.setBreakpoints(dc, sourcePath, [ 94 ]);
+	await util.setBreakpoints(dc, sourcePath, [ 98 ]);
 
 	util.evaluate(dc, 'getterAndSetter()');
 	let stoppedEvent = await util.receiveStoppedEvent(dc);
