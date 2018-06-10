@@ -97,3 +97,21 @@ function getterAndSetter() {
 	};
 	return x;
 }
+
+class ProtoGetterBase {
+	constructor() {
+		this._z = 'bar';
+	}
+	get z() { return this._z; }
+}
+class ProtoGetter extends ProtoGetterBase {
+	constructor() {
+		super();
+		this._y = 'foo';
+	}
+	get y() { return this._y; }
+}
+function protoGetter() {
+	var x = new ProtoGetter();
+	return x;
+}

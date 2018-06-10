@@ -62,15 +62,67 @@ export class ObjectGripAdapter implements VariablesProvider {
 				symbolProperty.descriptor, this.threadLifetime, this.threadAdapter));
 		}
 
-		VariableAdapter.sortVariables(variables);
-		VariableAdapter.sortVariables(symbolVariables);
-		variables.push(...symbolVariables);
-
+		let prototypeVariable: VariableAdapter | undefined = undefined;
+		let accessorsFromPrototypes: VariableAdapter[] = [];
 		if (prototypeAndProperties.prototype.type !== 'null') {
-			variables.push(VariableAdapter.fromGrip(
+			prototypeVariable = VariableAdapter.fromGrip(
 				'__proto__', this.referenceExpression, this.referenceFrame,
 				prototypeAndProperties.prototype,
-				this.threadLifetime, this.threadAdapter));
+				this.threadLifetime, this.threadAdapter
+			);
+
+			const prototypeLevels = this.threadAdapter.debugSession.config.liftAccessorsFromPrototypes;
+			if (prototypeLevels > 0) {
+				accessorsFromPrototypes = await this.fetchAccessorsFromPrototypes(prototypeVariable, prototypeLevels);
+			}
+		}
+
+		VariableAdapter.sortVariables(variables);
+		VariableAdapter.sortVariables(symbolVariables);
+		VariableAdapter.sortVariables(accessorsFromPrototypes);
+		variables.push(...symbolVariables);
+		variables.push(...accessorsFromPrototypes);
+
+		if (prototypeVariable) {
+			variables.push(prototypeVariable);
+		}
+
+		return variables;
+	}
+
+	private async fetchAccessorsFromPrototypes(
+		prototypeVariable: VariableAdapter,
+		levels: number
+	): Promise<VariableAdapter[]> {
+
+		let objectGripAdapter: ObjectGripAdapter | undefined = <any>prototypeVariable.variablesProvider;
+		let variables: VariableAdapter[] = [];
+		let level = 0;
+		while ((level < levels) && objectGripAdapter) {
+
+			let prototypeAndProperties = await objectGripAdapter.actor.fetchPrototypeAndProperties();
+
+			for (const varname in prototypeAndProperties.ownProperties) {
+
+				const propertyDescriptor = prototypeAndProperties.ownProperties[varname];
+				if ((varname !== '__proto__') && 
+					(<FirefoxDebugProtocol.AccessorPropertyDescriptor>propertyDescriptor).get) {
+
+					variables.push(VariableAdapter.fromPropertyDescriptor(
+						varname, this.referenceExpression, this.referenceFrame,
+						propertyDescriptor, this.threadLifetime, this.threadAdapter
+					));
+				}
+			}
+
+			prototypeVariable = VariableAdapter.fromGrip(
+				'__proto__', this.referenceExpression, this.referenceFrame,
+				prototypeAndProperties.prototype,
+				this.threadLifetime, this.threadAdapter
+			);
+			objectGripAdapter = <any>prototypeVariable.variablesProvider;
+
+			level++;
 		}
 
 		return variables;
