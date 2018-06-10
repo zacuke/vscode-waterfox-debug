@@ -27,6 +27,7 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.reloadOnChange, undefined);
 		assert.equal(parsedConfiguration.sourceMaps, 'server');
 		assert.equal(parsedConfiguration.showConsoleCallLocation, false);
+		assert.equal(parsedConfiguration.liftAccessorsFromPrototypes, 0);
 
 		assert.ok(parsedConfiguration.launch!.firefoxExecutable);
 		assert.equal([...parsedConfiguration.launch!.firefoxArgs].pop(), fileUrl);
@@ -52,6 +53,7 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.reloadOnChange, undefined);
 		assert.equal(parsedConfiguration.sourceMaps, 'server');
 		assert.equal(parsedConfiguration.showConsoleCallLocation, false);
+		assert.equal(parsedConfiguration.liftAccessorsFromPrototypes, 0);
 
 		assert.equal(parsedConfiguration.attach!.port, 6000);
 		assert.equal(parsedConfiguration.attach!.host, 'localhost');
@@ -500,6 +502,17 @@ describe('The configuration parser', function() {
 		});
 
 		assert.equal(parsedConfiguration.sourceMaps, 'client');
+	});
+
+	it('should copy the "liftAccessorsFromPrototypes" value', async function() {
+
+		let parsedConfiguration = await parseConfiguration({
+			request: 'launch',
+			file: '/home/user/project/index.html',
+			liftAccessorsFromPrototypes: 1
+		});
+
+		assert.equal(parsedConfiguration.liftAccessorsFromPrototypes, 1);
 	});
 
 	it('should not allow both "profile" and "profileDir" to be specified', async function() {

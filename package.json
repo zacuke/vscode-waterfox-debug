@@ -419,6 +419,11 @@
                 "description": "Set to \"server\" for sourcemaps to be handled by Firefox, or \"client\" for them to be handled by this debug adapter",
                 "default": "server"
               },
+              "liftAccessorsFromPrototypes": {
+                "type": "number",
+                "description": "The number of prototype levels that should be scanned for accessor properties",
+                "default": 0
+              },
               "log": {
                 "type": "object",
                 "description": "Configuration for diagnostic logging of the debug adapter",
@@ -628,6 +633,11 @@
                 ],
                 "description": "Set to \"server\" for source-maps to be handled by Firefox, or \"client\" for them to be handled by this debug adapter",
                 "default": "server"
+              },
+              "liftAccessorsFromPrototypes": {
+                "type": "number",
+                "description": "The number of prototype levels that should be scanned for accessor properties",
+                "default": 0
               },
               "log": {
                 "type": "object",

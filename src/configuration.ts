@@ -25,6 +25,7 @@ export interface CommonConfiguration {
 	addonType?: AddonType;
 	addonPath?: string;
 	sourceMaps?: 'client' | 'server';
+	liftAccessorsFromPrototypes?: number;
 }
 
 export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.LaunchRequestArguments {
@@ -70,6 +71,7 @@ export interface ParsedConfiguration {
 	reloadOnChange?: NormalizedReloadConfiguration,
 	sourceMaps: 'client' | 'server';
 	showConsoleCallLocation: boolean;
+	liftAccessorsFromPrototypes: number;
 }
 
 export interface ParsedAttachConfiguration {
@@ -199,10 +201,11 @@ export async function parseConfiguration(
 
 	let sourceMaps = config.sourceMaps || 'server';
 	let showConsoleCallLocation = config.showConsoleCallLocation || false;
+	let liftAccessorsFromPrototypes = config.liftAccessorsFromPrototypes || 0;
 
 	return {
 		attach, launch, addon, pathMappings, filesToSkip, reloadOnChange,
-		sourceMaps, showConsoleCallLocation
+		sourceMaps, showConsoleCallLocation, liftAccessorsFromPrototypes
 	}
 }
 
