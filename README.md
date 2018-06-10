@@ -282,6 +282,12 @@ whenever you change a file.
   the debugging protocol. You can test the new source-mapping code by setting this property to `client`.
   Note that this is still experimental and there is a known issue when debugging minified code
   (see [this bug report](https://bugzilla.mozilla.org/show_bug.cgi?id=1373632)).
+* `liftAccessorsFromPrototypes`: If there are accessor properties (getters and setters) defined
+  on an object's prototype chain, you can "lift" them so they are displayed on the object itself.
+  This is usually necessary in order to execute the getters, because otherwise they would be
+  executed with `this` set to the object's prototype instead of the object itself. This property
+  lets you set the number of prototype levels that should be scanned for accessor properties to lift.
+  Note that this will slow the debugger down, so it's set to `0` by default.
 
 ### Diagnostic logging
 The following example for the `log` property will write all log messages to the file `log.txt` in
