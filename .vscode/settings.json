@@ -9,5 +9,8 @@
 	},
 	"editor.rulers": [100],
 	"typescript.tsdk": "./node_modules/typescript/lib",
-	"lcov.path": "coverage/lcov.info"
+	"mochaExplorer.files": "src/test/*.ts",
+	"mochaExplorer.require": "ts-node/register",
+	"mochaExplorer.timeout": 20000,
+	"mochaExplorer.exit": true
 }
