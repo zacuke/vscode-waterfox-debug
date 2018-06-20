@@ -1,3 +1,6 @@
+### Version 1.4.1
+* also look for `firefox-developer-edition` when searching the Firefox executable on Linux
+
 ### Version 1.4.0
 * add `liftAccessorsFromPrototypes` configuration property
 

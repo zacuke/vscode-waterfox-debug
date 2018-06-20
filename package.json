@@ -1,7 +1,7 @@
 {
   "name": "vscode-firefox-debug",
   "displayName": "Debugger for Firefox",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "author": "Holger Benl <hbenl@evandor.de>",
   "publisher": "hbenl",
   "description": "Debug your web application or browser extension in Firefox",
@@ -19,7 +19,7 @@
     "build": "tsc",
     "watch": "tsc -w",
     "rebuild": "npm run clean && npm run build",
-    "test": "mocha --timeout 20000 --slow 6000 --require ts-node/register \"src/test/testPause*.ts\"",
+    "test": "mocha --timeout 20000 --slow 6000 --require ts-node/register \"src/test/test*.ts\"",
     "cover": "nyc npm test && nyc report --reporter=lcov && nyc report --reporter=html",
     "package": "vsce package",
     "publish": "vsce publish"
