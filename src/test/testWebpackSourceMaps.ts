@@ -26,7 +26,15 @@ describe('Webpack sourcemaps: The debugger', function() {
 		'cheap-module-source-map' , 'eval-source-map' , 'source-map' , 'nosources-source-map'
 	]) {
 
-		it(`should map webpack-bundled modules with devtool "${devtool}" to their original sources with source-maps handled by the ${sourceMaps}`, async function() {
+		const description = `should map webpack-bundled modules with devtool "${devtool}" to their original sources with source-maps handled by the ${sourceMaps}`;
+
+		// disable tests with webpack devtools that are known to be broken (webpack bug #5491)
+		if (devtool.indexOf('eval') < 0) {
+			it.skip(description);
+			continue;
+		}
+
+		it(description, async function() {
 
 			let targetDir = await prepareTargetDir();
 
