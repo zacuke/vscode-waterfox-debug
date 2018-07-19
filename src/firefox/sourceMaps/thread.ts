@@ -97,12 +97,18 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 
 		let sourceMapConsumer = new SourceMapConsumer(rawSourceMap);
 		let sourceMappingSourceActors: SourceMappingSourceActorProxy[] = [];
+		let sourceRoot = rawSourceMap.sourceRoot;
+		if (!sourceRoot && source.url) {
+			sourceRoot = urlDirname(source.url);
+		}
+
 		let sourceMappingInfo = new SourceMappingInfo(
-			sourceMappingSourceActors, sourceActor, sourceMapUri, sourceMapConsumer);
+			sourceMappingSourceActors, sourceActor, sourceMapUri, sourceMapConsumer, sourceRoot);
+
 		for (let origSource of (<any>sourceMapConsumer).sources) {
 
-			if (rawSourceMap.sourceRoot) {
-				origSource = url.resolve(rawSourceMap.sourceRoot, origSource);
+			if (sourceRoot) {
+				origSource = url.resolve(sourceRoot, origSource);
 			}
 
 			let sourceMappingSource = this.createOriginalSource(source, origSource, sourceMapUri);

@@ -1,3 +1,4 @@
+import * as url from 'url';
 import { ISourceActorProxy } from '../index';
 import { SourceMapConsumer, Position, MappedPosition } from 'source-map';
 
@@ -10,7 +11,8 @@ export class SourceMappingInfo {
 		public readonly sources: ISourceActorProxy[],
 		public readonly underlyingSource: ISourceActorProxy,
 		public readonly sourceMapUri?: string,
-		public readonly sourceMapConsumer?: SourceMapConsumer
+		public readonly sourceMapConsumer?: SourceMapConsumer,
+		private readonly sourceRoot?: string
 	) {}
 
 	public generatedLocationFor(originalLocation: MappedPosition): Position {
@@ -52,6 +54,10 @@ export class SourceMappingInfo {
 		if (originalLocation.line === null) {
 			consumerArgs.bias = GREATEST_LOWER_BOUND;
 			originalLocation = this.sourceMapConsumer.originalPositionFor(consumerArgs);
+		}
+
+		if (this.sourceRoot) {
+			originalLocation.source = url.resolve(this.sourceRoot, originalLocation.source);
 		}
 
 		if (this.underlyingSource.source.introductionType === 'wasm') {
