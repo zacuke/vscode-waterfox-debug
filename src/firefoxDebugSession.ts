@@ -402,7 +402,7 @@ export class FirefoxDebugSession {
 	private attachSource(sourceActor: ISourceActorProxy, threadAdapter: ThreadAdapter): void {
 
 		const source = sourceActor.source;
-		let sourceAdapter = threadAdapter.findCorrespondingSourceAdapter(source);
+		let sourceAdapter = threadAdapter.findCorrespondingSourceAdapter(source.url || undefined);
 
 		if (sourceAdapter !== undefined) {
 			sourceAdapter.actor = sourceActor;
@@ -436,7 +436,7 @@ export class FirefoxDebugSession {
 
 	public attachConsole(consoleActor: ConsoleActorProxy, threadAdapter: ThreadAdapter): void {
 
-		consoleActor.onConsoleAPICall((consoleEvent) => {
+		consoleActor.onConsoleAPICall(async (consoleEvent) => {
 			consoleActorLog.debug(`Console API: ${JSON.stringify(consoleEvent)}`);
 
 			let category = (consoleEvent.level === 'error') ? 'stderr' :
@@ -473,19 +473,19 @@ export class FirefoxDebugSession {
 				outputEvent.body.variablesReference = argsAdapter.variablesProviderId;
 			}
 
-			this.addLocation(outputEvent, consoleEvent.filename, consoleEvent.lineNumber, consoleEvent.columnNumber);
+			await this.addLocation(outputEvent, consoleEvent.filename, consoleEvent.lineNumber, consoleEvent.columnNumber);
 
 			this.sendEvent(outputEvent);
 		});
 
-		consoleActor.onPageErrorCall((err) => {
+		consoleActor.onPageErrorCall(async (err) => {
 			consoleActorLog.debug(`Page Error: ${JSON.stringify(err)}`);
 
 			if (err.category === 'content javascript') {
 				
 				let category = err.exception ? 'stderr' : 'stdout';
 				let outputEvent = new OutputEvent(err.errorMessage + '\n', category);
-				this.addLocation(outputEvent, err.sourceName, err.lineNumber, err.columnNumber);
+				await this.addLocation(outputEvent, err.sourceName, err.lineNumber, err.columnNumber);
 
 				this.sendEvent(outputEvent);
 			}
@@ -495,19 +495,22 @@ export class FirefoxDebugSession {
 		consoleActor.getCachedMessages();
 	}
 
-	private addLocation(
+	private async addLocation(
 		outputEvent: DebugProtocol.OutputEvent,
 		url: string,
 		line: number,
 		column: number
 	) {
 
-		let sourceAdapter = this.findSourceAdapter(url);
-
-		if (sourceAdapter) {
-			outputEvent.body.source = sourceAdapter.source;
-			outputEvent.body.line = line;
-			outputEvent.body.column = column;
+		for (let [, thread] of this.threads) {
+			let originalSourceLocation = await thread.findOriginalSourceLocation(url, line, column);
+			if (originalSourceLocation) {
+				const sourceAdapter = originalSourceLocation.source;
+				outputEvent.body.source = sourceAdapter.source;
+				outputEvent.body.line = originalSourceLocation.line;
+				outputEvent.body.column = originalSourceLocation.column;
+				return;
+			}
 		}
 	}
 

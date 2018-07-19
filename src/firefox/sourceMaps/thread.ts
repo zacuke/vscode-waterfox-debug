@@ -5,7 +5,7 @@ import { SourceMapConsumer, RawSourceMap } from 'source-map';
 import { Log } from '../../util/log';
 import { getUri, urlDirname } from '../../util/net';
 import { DebugConnection, ISourceActorProxy, SourceActorProxy, SourceMappingSourceActorProxy } from '../index';
-import { IThreadActorProxy, ExceptionBreakpoints } from '../actorProxy/thread';
+import { IThreadActorProxy, ExceptionBreakpoints, UrlLocation } from '../actorProxy/thread';
 import { SourceMappingInfo } from './info';
 
 let log = Log.create('SourceMappingThreadActorProxy');
@@ -190,6 +190,29 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 
 	public detach(): Promise<void> {
 		return this.underlyingActorProxy.detach();
+	}
+
+	public async findOriginalLocation(
+		generatedUrl: string,
+		line: number,
+		column?: number
+	): Promise<UrlLocation | undefined> {
+
+		for (const infoPromise of this.sourceMappingInfos.values()) {
+			const info = await infoPromise;
+			if (generatedUrl === info.underlyingSource.url) {
+
+				const originalLocation = info.originalLocationFor({ line, column: column || 1 });
+
+				return {
+					url: originalLocation.source, 
+					line: originalLocation.line,
+					column: originalLocation.column
+				};
+			}
+		}
+
+		return undefined;
 	}
 
 	public onPaused(cb: (_event: FirefoxDebugProtocol.ThreadPausedResponse) => void): void {

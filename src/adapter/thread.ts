@@ -4,6 +4,11 @@ import { ThreadCoordinator, ThreadPauseCoordinator, FrameAdapter, ScopeAdapter, 
 import { Variable } from 'vscode-debugadapter';
 import { FirefoxDebugSession } from "../firefoxDebugSession";
 import { pathsAreEqual } from '../util/misc';
+import { Location } from '../firefox/actorProxy/source';
+
+export interface SourceLocation extends Location {
+	source: SourceAdapter;
+}
 
 export class ThreadAdapter extends EventEmitter {
 
@@ -148,11 +153,11 @@ export class ThreadAdapter extends EventEmitter {
 		}
 	}
 
-	public findCorrespondingSourceAdapter(source: FirefoxDebugProtocol.Source): SourceAdapter | undefined {
-		if (!source.url) return undefined;
+	public findCorrespondingSourceAdapter(url: string | undefined): SourceAdapter | undefined {
+		if (!url) return undefined;
 
 		for (let sourceAdapter of this.sources) {
-			if (sourceAdapter.actor.source.url === source.url) {
+			if (sourceAdapter.actor.source.url === url) {
 				return sourceAdapter;
 			}
 		}
@@ -189,6 +194,27 @@ export class ThreadAdapter extends EventEmitter {
 		for (let i = 0; i < this.sources.length; i++) {
 			if (this.sources[i].actor.name === actorName) {
 				return this.sources[i];
+			}
+		}
+
+		return undefined;
+	}
+
+	public async findOriginalSourceLocation(
+		generatedUrl: string,
+		line: number,
+		column?: number
+	): Promise<SourceLocation | undefined> {
+
+		const originalLocation = await this.actor.findOriginalLocation(generatedUrl, line, column);
+		if (originalLocation) {
+			const sourceAdapter = this.findCorrespondingSourceAdapter(originalLocation.url);
+			if (sourceAdapter) {
+				return {
+					source: sourceAdapter,
+					line: originalLocation.line,
+					column: originalLocation.column
+				};
 			}
 		}
 

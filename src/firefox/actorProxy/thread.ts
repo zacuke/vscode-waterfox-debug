@@ -3,7 +3,7 @@ import { EventEmitter } from 'events';
 import { DebugConnection } from '../connection';
 import { PendingRequest, PendingRequests } from '../../util/pendingRequests';
 import { ActorProxy } from './interface';
-import { ISourceActorProxy, SourceActorProxy } from './source';
+import { ISourceActorProxy, SourceActorProxy, Location } from './source';
 
 let log = Log.create('ThreadActorProxy');
 
@@ -15,6 +15,7 @@ export interface IThreadActorProxy {
 	detach(): Promise<void>;
 	fetchSources(): Promise<FirefoxDebugProtocol.Source[]>;
 	fetchStackFrames(start?: number, count?: number): Promise<FirefoxDebugProtocol.Frame[]>;
+	findOriginalLocation(generatedUrl: string, line: number, column?: number): Promise<UrlLocation | undefined>
 	onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedResponse) => void): void;
 	onResumed(cb: () => void): void;
 	onExited(cb: () => void): void;
@@ -22,6 +23,10 @@ export interface IThreadActorProxy {
 	onNewSource(cb: (newSource: ISourceActorProxy) => void): void;
 	onNewGlobal(cb: () => void): void;
 	dispose(): void;
+}
+
+export interface UrlLocation extends Location {
+	url: string;
 }
 
 export enum ExceptionBreakpoints {
@@ -185,6 +190,14 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 				start, count
 			});
 		});
+	}
+
+	public async findOriginalLocation(
+		url: string,
+		line: number,
+		column?: number
+	): Promise<UrlLocation | undefined> {
+		return { url, line, column };
 	}
 
 	public dispose(): void {
