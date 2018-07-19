@@ -1,3 +1,6 @@
+### Version 1.4.2
+* compute the original locations of console and error events when `sourceMaps` is set to `client`
+
 ### Version 1.4.1
 * also look for `firefox-developer-edition` when searching the Firefox executable on Linux
 
