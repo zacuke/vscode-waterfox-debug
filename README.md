@@ -93,7 +93,7 @@ add-ons** to enable it.
 
 Additionally, if you want to debug WebWorkers, go to `about:config` and enable `devtools.debugger.workers`.
 
-*Deprecated*
+*Legacy mode:*  
 In previous versions of Firefox, you may have to set the following preferences manually:
 
 Preference Name                       | Value   | Comment
