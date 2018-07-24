@@ -42,7 +42,7 @@ export class SourceMappingInfo {
 			return Object.assign({ source: this.sources[0]!.url! }, generatedLocation);
 		}
 
-		let consumerArgs = Object.assign({ bias: LEAST_UPPER_BOUND }, generatedLocation);
+		let consumerArgs = Object.assign({ bias: GREATEST_LOWER_BOUND }, generatedLocation);
 
 		if (this.underlyingSource.source.introductionType === 'wasm') {
 			consumerArgs.column = consumerArgs.line;
@@ -52,7 +52,7 @@ export class SourceMappingInfo {
 		let originalLocation = this.sourceMapConsumer.originalPositionFor(consumerArgs);
 
 		if (originalLocation.line === null) {
-			consumerArgs.bias = GREATEST_LOWER_BOUND;
+			consumerArgs.bias = LEAST_UPPER_BOUND;
 			originalLocation = this.sourceMapConsumer.originalPositionFor(consumerArgs);
 		}
 
