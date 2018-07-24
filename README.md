@@ -26,7 +26,7 @@ editor.
 ### Launch
 Here's an example configuration for launching Firefox navigated to the local file `index.html` 
 in the root directory of your project:
-```
+```json
 {
     "version": "0.2.0",
     "configurations": [
@@ -45,7 +45,7 @@ You may want (or need) to debug your application running on a Webserver (especia
 with server-side components like Webservices). In this case replace the `file` property in your
 `launch` configuration with a `url` and a `webRoot` property. These properties are used to map
 urls to local files:
-```
+```json
 {
     "version": "0.2.0",
     "configurations": [
@@ -64,7 +64,7 @@ The `url` property may point to a file or a directory, if it points to a directo
 a trailing `/` (e.g. `http://localhost/my-app/`).
 You may omit the `webRoot` property if you specify the `pathMappings` manually. For example, the
 above configuration would be equivalent to
-```
+```json
 {
     "version": "0.2.0",
     "configurations": [
@@ -116,7 +116,7 @@ __Linux__
 `firefox -start-debugger-server`
 
 Navigate to your web application and use this `launch.json` configuration to attach to Firefox:
-```
+```json
 {
     "version": "0.2.0",
     "configurations": [
@@ -195,7 +195,7 @@ If your add-on is developed with the add-on SDK, you also have to ensure that th
 is in the system path.
 
 Here's an example configuration for add-on debugging:
-```
+```json
 {
     "version": "0.2.0",
     "configurations": [
@@ -239,7 +239,7 @@ whenever you change a file.
   make sure that you are not watching more files than necessary.
   The following example will watch all javascript files in your workspace except those under
   `node_modules`:
-  ```
+  ```json
     "reloadOnChange": {
         "watch": [ "${workspaceFolder}/**/*.js" ],
         "ignore": [ "${workspaceFolder}/node_modules/**" ]
@@ -253,7 +253,7 @@ whenever you change a file.
 
   Instead of string arrays, you can also use a single string for `watch` and `ignore` and if you
   don't need to specify `ignore` or `debounce`, you can specify the `watch` value directly, e.g.
-  ```
+  ```json
   "reloadOnChange": "${workspaceFolder}/lib/*.js"
   ```
 * `profileDir`, `profile`: You can specify a Firefox profile directory or the name of a profile
@@ -295,7 +295,7 @@ whenever you change a file.
 ### Diagnostic logging
 The following example for the `log` property will write all log messages to the file `log.txt` in
 your workspace:
-```
+```json
 ...
     "log": {
         "fileName": "${workspaceFolder}/log.txt",
@@ -308,7 +308,7 @@ your workspace:
 
 This example will write all messages about conversions from URLs to paths and all error messages
 to the VS Code console:
-```
+```json
 ...
     "log": {
         "consoleLevel": {
