@@ -1,3 +1,6 @@
+### Version 1.4.3
+* improve accuracy of client-side sourcemap support
+
 ### Version 1.4.2
 * compute the original locations of console and error events when `sourceMaps` is set to `client`
 
