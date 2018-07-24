@@ -337,7 +337,6 @@ function createFirefoxPreferences(
 	preferences['devtools.chrome.enabled'] = true;
 	preferences['devtools.debugger.prompt-connection'] = false;
 	preferences['devtools.debugger.remote-enabled'] = true;
-	preferences['devtools.debugger.workers'] = true;
 	preferences['extensions.autoDisableScopes'] = 10;
 	preferences['xpinstall.signatures.required'] = false;
 	preferences['extensions.sdk.console.logLevel'] = 'all';

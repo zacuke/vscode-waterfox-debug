@@ -91,8 +91,6 @@ Note that you must first configure Firefox to allow remote debugging. To do this
 configuration page by entering `about:debugging` in the address bar and click on **Enable debugging of
 add-ons** to enable it. 
 
-Additionally, if you want to debug WebWorkers, go to `about:config` and enable `devtools.debugger.workers`.
-
 *Legacy mode:*  
 In previous versions of Firefox, you may have to set the following preferences manually:
 
