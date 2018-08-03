@@ -92,9 +92,9 @@ export class PreferenceActorProxy implements ActorProxy {
 
 	receiveResponse(response: any): void {
 
-		if (response['value']) {
+		if (response['value'] !== undefined) {
 
-			this.pendingGetPrefRequests.resolveOne(response['value']);
+			this.pendingGetPrefRequests.resolveOne(response['value'].toString());
 
 		} else if (Object.keys(response).length === 1) {
 
