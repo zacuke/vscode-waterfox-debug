@@ -1,3 +1,6 @@
+### Version 1.5.0
+* WebExtension debugging: add commands and status bar button for toggling popup auto-hide
+
 ### Version 1.4.3
 * improve accuracy of client-side sourcemap support
 
