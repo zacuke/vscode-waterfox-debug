@@ -29,6 +29,8 @@ export abstract class DebugAdapterBase extends DebugSession {
 	protected abstract reloadAddon(): Promise<void>;
 	protected abstract rebuildAddon(): Promise<void>;
 	protected abstract toggleSkippingFile(url: string): Promise<void>;
+	protected abstract setPopupAutohide(popupAutohide: boolean): Promise<void>;
+	protected abstract togglePopupAutohide(): Promise<boolean>;
 
 	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
 		this.handleRequest(response, () => this.initialize(args));
@@ -119,6 +121,12 @@ export abstract class DebugAdapterBase extends DebugSession {
 
 				case 'toggleSkippingFile':
 				return await this.toggleSkippingFile(<string>args);
+
+				case 'setPopupAutohide':
+				return await this.setPopupAutohide(args === 'true');
+
+				case 'togglePopupAutohide':
+				return await this.togglePopupAutohide();
 			}
 		});
 	}

@@ -121,6 +121,18 @@
       {
         "command": "extension.firefox.addPathMapping",
         "title": "Map to local directory"
+      },
+      {
+        "command": "extension.firefox.enablePopupAutohide",
+        "title": "Firefox: Enable popup auto-hide"
+      },
+      {
+        "command": "extension.firefox.disablePopupAutohide",
+        "title": "Firefox: Disable popup auto-hide"
+      },
+      {
+        "command": "extension.firefox.togglePopupAutohide",
+        "title": "Firefox: Toggle popup auto-hide"
       }
     ],
     "menus": {

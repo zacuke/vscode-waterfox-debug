@@ -15,6 +15,7 @@ import { isWindowsPlatform as detectWindowsPlatform, delay } from './util/misc';
 import { tryRemoveRepeatedly } from './util/fs';
 import { connect, waitForSocket } from './util/net';
 import { NewSourceEventBody, ThreadStartedEventBody, ThreadExitedEventBody, RemoveSourcesEventBody } from "./extension/customEvents";
+import { PreferenceActorProxy } from './firefox/actorProxy/preference';
 
 let log = Log.create('FirefoxDebugSession');
 let consoleActorLog = Log.create('ConsoleActor');
@@ -32,6 +33,8 @@ export class FirefoxDebugSession {
 	private firefoxProc?: ChildProcess;
 	public firefoxDebugConnection: DebugConnection;
 	private firefoxDebugSocketClosed: boolean;
+
+	public preferenceActor: PreferenceActorProxy;
 
 	public readonly tabs = new Registry<TabActorProxy>();
 	public readonly threads = new Registry<ThreadAdapter>();
@@ -85,6 +88,8 @@ export class FirefoxDebugSession {
 			await delay(200);
 
 			let actors = await rootActor.fetchTabs();
+
+			this.preferenceActor = actors.preference;
 
 			if (this.addonManager) {
 				this.addonManager.sessionStarted(rootActor, actors.addons, actors.preference, this);

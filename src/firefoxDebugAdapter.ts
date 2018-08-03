@@ -10,6 +10,8 @@ import { FirefoxDebugSession } from './firefoxDebugSession';
 
 let log = Log.create('FirefoxDebugAdapter');
 
+const popupAutohidePreferenceKey = 'ui.popup.disable_autohide';
+
 export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	private session: FirefoxDebugSession;
@@ -407,6 +409,17 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			await this.session.skipFilesManager.toggleSkippingUrl(url);
 
 		}
+	}
+
+	protected async setPopupAutohide(enabled: boolean): Promise<void> {
+		await this.session.preferenceActor.setBoolPref(popupAutohidePreferenceKey, !enabled);
+	}
+
+	protected async togglePopupAutohide(): Promise<boolean> {
+		const currentValue = await this.session.preferenceActor.getBoolPref(popupAutohidePreferenceKey);
+		const newValue = !currentValue;
+		await this.session.preferenceActor.setBoolPref(popupAutohidePreferenceKey, newValue);
+		return !newValue;
 	}
 
 	protected async disconnect(args: DebugProtocol.DisconnectArguments): Promise<void> {

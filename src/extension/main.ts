@@ -42,12 +42,23 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.window.registerTreeDataProvider(
 		'extension.firefox.loadedScripts', loadedScriptsProvider));
 
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'extension.firefox.enablePopupAutohide', () => setPopupAutohide(true)
+	));
+
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'extension.firefox.disablePopupAutohide', () => setPopupAutohide(false)
+	));
+
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'extension.firefox.togglePopupAutohide', togglePopupAutohide
+	));
 }
 
-async function sendCustomRequest(command: string, args?: any) {
+async function sendCustomRequest(command: string, args?: any): Promise<any> {
 	let debugSession = vscode.debug.activeDebugSession;
 	if (debugSession && (debugSession.type === 'firefox')) {
-		await debugSession.customRequest(command, args);
+		return await debugSession.customRequest(command, args);
 	} else {
 		if (debugSession) {
 			throw 'The active debug session is not of type "firefox"';
@@ -87,4 +98,12 @@ async function openScript(pathOrUri: string) {
 	const doc = await vscode.workspace.openTextDocument(uri);
 
 	vscode.window.showTextDocument(doc);
+}
+
+async function setPopupAutohide(popupAutohide: boolean) {
+	await sendCustomRequest('setPopupAutohide', popupAutohide.toString());
+}
+
+async function togglePopupAutohide() {
+	await sendCustomRequest('togglePopupAutohide');
 }
