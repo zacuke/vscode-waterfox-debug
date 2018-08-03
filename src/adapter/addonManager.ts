@@ -10,6 +10,9 @@ import * as zipdir from 'zip-dir';
 import { Extract } from 'unzipper';
 import { RootActorProxy, AddonsActorProxy, PreferenceActorProxy, ConsoleActorProxy, WebExtensionActorProxy, TabActorProxy } from "../firefox/index";
 import { FirefoxDebugSession } from "../firefoxDebugSession";
+import { PopupAutohideEventBody } from '../extension/customEvents';
+
+export const popupAutohidePreferenceKey = 'ui.popup.disable_autohide';
 
 export class AddonManager {
 
@@ -98,6 +101,9 @@ export class AddonManager {
 				}
 
 				this.fetchAddonsAndAttach(rootActor);
+
+				const popupAutohide = !(await preferenceActor.getBoolPref(popupAutohidePreferenceKey));
+				debugSession.sendCustomEvent('popupAutohide', <PopupAutohideEventBody>{ popupAutohide });
 
 				break;
 		}

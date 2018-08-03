@@ -7,10 +7,9 @@ import { ExceptionBreakpoints } from './firefox/index';
 import { ThreadAdapter, SourceAdapter } from './adapter/index';
 import { LaunchConfiguration, AttachConfiguration, parseConfiguration } from "./configuration";
 import { FirefoxDebugSession } from './firefoxDebugSession';
+import { popupAutohidePreferenceKey } from './adapter/addonManager';
 
 let log = Log.create('FirefoxDebugAdapter');
-
-const popupAutohidePreferenceKey = 'ui.popup.disable_autohide';
 
 export class FirefoxDebugAdapter extends DebugAdapterBase {
 

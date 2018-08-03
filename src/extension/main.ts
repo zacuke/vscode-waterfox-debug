@@ -2,8 +2,15 @@ import * as vscode from 'vscode';
 import { LoadedScriptsProvider } from './loadedScripts/provider';
 import { onCustomEvent } from './customEvents';
 import { addPathMapping } from './addPathMapping';
+import { PopupAutohideManager } from './popupAutohideManager';
 
 export function activate(context: vscode.ExtensionContext) {
+
+	const loadedScriptsProvider = new LoadedScriptsProvider();
+	const popupAutohideManager = new PopupAutohideManager(sendCustomRequest);
+
+	context.subscriptions.push(vscode.window.registerTreeDataProvider(
+		'extension.firefox.loadedScripts', loadedScriptsProvider));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
 		'extension.firefox.reloadAddon', () => sendCustomRequest('reloadAddon')
@@ -25,10 +32,20 @@ export function activate(context: vscode.ExtensionContext) {
 		'extension.firefox.addPathMapping', addPathMapping
 	));
 
-	let loadedScriptsProvider = new LoadedScriptsProvider();
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'extension.firefox.enablePopupAutohide', () => popupAutohideManager.setPopupAutohide(true)
+	));
+
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'extension.firefox.disablePopupAutohide', () => popupAutohideManager.setPopupAutohide(false)
+	));
+
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'extension.firefox.togglePopupAutohide', () => popupAutohideManager.togglePopupAutohide()
+	));
 
 	context.subscriptions.push(vscode.debug.onDidReceiveDebugSessionCustomEvent(
-		(event) => onCustomEvent(event, loadedScriptsProvider)
+		(event) => onCustomEvent(event, loadedScriptsProvider, popupAutohideManager)
 	));
 
 	context.subscriptions.push(vscode.debug.onDidStartDebugSession(
@@ -36,22 +53,7 @@ export function activate(context: vscode.ExtensionContext) {
 	));
 
 	context.subscriptions.push(vscode.debug.onDidTerminateDebugSession(
-		(session) => onDidTerminateSession(session, loadedScriptsProvider)
-	));
-
-	context.subscriptions.push(vscode.window.registerTreeDataProvider(
-		'extension.firefox.loadedScripts', loadedScriptsProvider));
-
-	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.enablePopupAutohide', () => setPopupAutohide(true)
-	));
-
-	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.disablePopupAutohide', () => setPopupAutohide(false)
-	));
-
-	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.togglePopupAutohide', togglePopupAutohide
+		(session) => onDidTerminateSession(session, loadedScriptsProvider, popupAutohideManager)
 	));
 }
 
@@ -68,21 +70,29 @@ async function sendCustomRequest(command: string, args?: any): Promise<any> {
 	}
 }
 
+let activeFirefoxDebugSessions = 0;
+
 function onDidStartSession(
 	session: vscode.DebugSession,
 	loadedScriptsProvider: LoadedScriptsProvider
 ) {
 	if (session.type === 'firefox') {
 		loadedScriptsProvider.addSession(session);
+		activeFirefoxDebugSessions++;
 	}
 }
 
 function onDidTerminateSession(
 	session: vscode.DebugSession,
-	loadedScriptsProvider: LoadedScriptsProvider
+	loadedScriptsProvider: LoadedScriptsProvider,
+	popupAutohideManager: PopupAutohideManager
 ) {
 	if (session.type === 'firefox') {
 		loadedScriptsProvider.removeSession(session.id);
+		activeFirefoxDebugSessions--;
+		if (activeFirefoxDebugSessions === 0) {
+			popupAutohideManager.disableButton();
+		}
 	}
 }
 
@@ -98,12 +108,4 @@ async function openScript(pathOrUri: string) {
 	const doc = await vscode.workspace.openTextDocument(uri);
 
 	vscode.window.showTextDocument(doc);
-}
-
-async function setPopupAutohide(popupAutohide: boolean) {
-	await sendCustomRequest('setPopupAutohide', popupAutohide.toString());
-}
-
-async function togglePopupAutohide() {
-	await sendCustomRequest('togglePopupAutohide');
 }

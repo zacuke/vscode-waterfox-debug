@@ -599,4 +599,8 @@ export class FirefoxDebugSession {
 			}));
 		}
 	}
+
+	public sendCustomEvent(event: string, eventBody: any): void {
+		this.sendEvent(new Event(event, eventBody));
+	}
 }

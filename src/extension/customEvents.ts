@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { LoadedScriptsProvider } from './loadedScripts/provider';
+import { PopupAutohideManager } from './popupAutohideManager';
 
 export interface ThreadStartedEventBody {
 	name: string;
@@ -21,9 +22,14 @@ export interface RemoveSourcesEventBody {
 	threadId: number;
 }
 
+export interface PopupAutohideEventBody {
+	popupAutohide: boolean;
+}
+
 export function onCustomEvent(
 	event: vscode.DebugSessionCustomEvent,
-	loadedScriptsProvider: LoadedScriptsProvider
+	loadedScriptsProvider: LoadedScriptsProvider,
+	popupAutohideManager: PopupAutohideManager
 ) {
 	if (event.session.type === 'firefox') {
 
@@ -43,6 +49,10 @@ export function onCustomEvent(
 
 			case 'removeSources':
 				loadedScriptsProvider.removeSources((<RemoveSourcesEventBody>event.body).threadId, event.session.id);
+				break;
+
+			case 'popupAutohide':
+				popupAutohideManager.enableButton((<PopupAutohideEventBody>event.body).popupAutohide);
 				break;
 		}
 	}
