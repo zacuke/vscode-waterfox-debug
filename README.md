@@ -224,6 +224,9 @@ The add-on will also be reloaded when you restart the debugging session, unless 
 You can also use the `reloadOnChange` property to let VS Code reload your add-on automatically
 whenever you change a file.
 
+You can enable/disable/toggle popup auto-hide using the commands "Firefox: Enable/Disable/Toggle
+popup auto-hide" (`extension.firefox.enablePopupAutohide` / `disablePopupAutohide` / `togglePopupAutohide`).
+
 ### Further optional configuration properties
 * `reAttach`: If you set this option to `true` in a `launch` configuration, Firefox won't be 
   terminated at the end of your debugging session and the debugger will re-attach to it at the
@@ -281,6 +284,8 @@ whenever you change a file.
   the `reAttach` option and won't allow reloading the add-on while debugging, but it is necessary
   for debugging XUL overlays. By default, it is only used if `reAttach` isn't set to `true` and the
   `addonType` is set to `addonSdk` or `legacy`.
+* `popupAutohideButton`: Show a button in the status bar for toggling popup auto-hide
+  (enabled by default when debugging a WebExtension)
 * `sourceMaps`: The Firefox developers are moving the handling of source-maps to the client side of
   the debugging protocol. You can test the new source-mapping code by setting this property to `client`.
   Note that this is still experimental and there is a known issue when debugging minified code

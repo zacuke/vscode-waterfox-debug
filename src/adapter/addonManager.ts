@@ -102,10 +102,12 @@ export class AddonManager {
 
 				this.fetchAddonsAndAttach(rootActor);
 
-				const popupAutohide = !(await preferenceActor.getBoolPref(popupAutohidePreferenceKey));
-				debugSession.sendCustomEvent('popupAutohide', <PopupAutohideEventBody>{ popupAutohide });
-
 				break;
+		}
+
+		if (this.config.popupAutohideButton) {
+			const popupAutohide = !(await preferenceActor.getBoolPref(popupAutohidePreferenceKey));
+			debugSession.sendCustomEvent('popupAutohide', <PopupAutohideEventBody>{ popupAutohide });
 		}
 	}
 

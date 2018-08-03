@@ -422,6 +422,11 @@
                 "description": "Install the addon by placing it in the temporary profile (necessary for XUL overlays)",
                 "default": false
               },
+              "popupAutohideButton": {
+                "type": "boolean",
+                "description": "Show a button in the status bar for toggling popup auto-hide (WebExtension debugging)",
+                "default": false
+              },
               "sourceMaps": {
                 "type": "string",
                 "enum": [
@@ -636,6 +641,11 @@
                 "type": "string",
                 "description": "The path of the directory containing the addon",
                 "default": "${workspaceFolder}"
+              },
+              "popupAutohideButton": {
+                "type": "boolean",
+                "description": "Show a button in the status bar for toggling popup auto-hide (WebExtension debugging)",
+                "default": false
               },
               "sourceMaps": {
                 "type": "string",

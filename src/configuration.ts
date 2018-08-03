@@ -24,6 +24,7 @@ export interface CommonConfiguration {
 	log?: LogConfiguration;
 	addonType?: AddonType;
 	addonPath?: string;
+	popupAutohideButton?: boolean;
 	sourceMaps?: 'client' | 'server';
 	liftAccessorsFromPrototypes?: number;
 }
@@ -103,6 +104,7 @@ export interface ParsedAddonConfiguration {
 	path: string;
 	id: string | undefined;
 	installInProfile: boolean;
+	popupAutohideButton: boolean;
 }
 
 export async function parseConfiguration(
@@ -482,6 +484,10 @@ async function parseAddonConfiguration(
 
 	let addonType = config.addonType || 'webExtension';
 	let addonPath = config.addonPath;
+	const popupAutohideButton = 
+		(config.popupAutohideButton === undefined) ?
+		(config.addonType === 'webExtension') :
+		config.popupAutohideButton;
 
 	if (!addonPath) {
 		throw `If you set "addonType" you also have to set "addonPath" in the ${config.request} configuration`;
@@ -537,6 +543,6 @@ async function parseAddonConfiguration(
 	}
 
 	return {
-		type: addonType, path: addonPath, id: addonId, installInProfile
+		type: addonType, path: addonPath, id: addonId, installInProfile, popupAutohideButton
 	}
 }
