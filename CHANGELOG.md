@@ -1,3 +1,9 @@
+### Version 1.6.0
+* change the default for `sourceMaps` to `client`
+* improve the performance of client-side source-map handling
+* fix client-side source-map handling for source-maps with relative paths
+* fix detection of Firefox Developer Edition on MacOS
+
 ### Version 1.5.0
 * WebExtension debugging: add commands and status bar button for toggling popup auto-hide
 
