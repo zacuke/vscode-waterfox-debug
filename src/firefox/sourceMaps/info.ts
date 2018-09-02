@@ -1,9 +1,9 @@
 import * as url from 'url';
 import { ISourceActorProxy } from '../index';
-import { SourceMapConsumer, Position, MappedPosition, NullablePosition, NullableMappedPosition } from 'source-map';
+import { SourceMapConsumer, Position, MappedPosition, NullablePosition, NullableMappedPosition, BasicSourceMapConsumer } from 'source-map';
 
-let LEAST_UPPER_BOUND = (<any>SourceMapConsumer).LEAST_UPPER_BOUND;
-let GREATEST_LOWER_BOUND = (<any>SourceMapConsumer).GREATEST_LOWER_BOUND;
+let LEAST_UPPER_BOUND = SourceMapConsumer.LEAST_UPPER_BOUND;
+let GREATEST_LOWER_BOUND = SourceMapConsumer.GREATEST_LOWER_BOUND;
 
 export class SourceMappingInfo {
 
@@ -11,7 +11,7 @@ export class SourceMappingInfo {
 		public readonly sources: ISourceActorProxy[],
 		public readonly underlyingSource: ISourceActorProxy,
 		public readonly sourceMapUri?: string,
-		public readonly sourceMapConsumer?: SourceMapConsumer,
+		public readonly sourceMapConsumer?: BasicSourceMapConsumer,
 		private readonly sourceRoot?: string
 	) {}
 
@@ -25,7 +25,13 @@ export class SourceMappingInfo {
 			};
 		}
 
+		const originalSource = this.findUnresolvedSource(originalLocation.source);
+		if (!originalSource) {
+			throw 'Couldn\'t find original source';
+		}
+
 		let consumerArgs = Object.assign({ bias: LEAST_UPPER_BOUND }, originalLocation);
+		consumerArgs.source = originalSource;
 		let generatedLocation = this.sourceMapConsumer.generatedPositionFor(consumerArgs);
 
 		if (generatedLocation.line === null) {
@@ -94,5 +100,20 @@ export class SourceMappingInfo {
 				this.underlyingSource.dispose();
 			}
 		}
+	}
+
+	private findUnresolvedSource(resolvedSource: string): string | undefined {
+		if (!this.sourceMapConsumer) return undefined;
+
+		for (const source of this.sourceMapConsumer.sources) {
+
+			if ((source === resolvedSource) || 
+				(this.sourceRoot && (url.resolve(this.sourceRoot, source) === resolvedSource))) {
+
+				return source;
+			}
+		}
+
+		return undefined;
 	}
 }
