@@ -286,9 +286,10 @@ popup auto-hide" (`extension.firefox.enablePopupAutohide` / `disablePopupAutohid
   `addonType` is set to `addonSdk` or `legacy`.
 * `popupAutohideButton`: Show a button in the status bar for toggling popup auto-hide
   (enabled by default when debugging a WebExtension)
-* `sourceMaps`: The Firefox developers are moving the handling of source-maps to the client side of
-  the debugging protocol. You can test the new source-mapping code by setting this property to `client`.
-  Note that this is still experimental and there is a known issue when debugging minified code
+* `sourceMaps`: The Firefox developers have moved the handling of source-maps to the client side of
+  the debugging protocol and this extension was adapted to this change. You can get back the old
+  source-mapping implementation by setting this property to `server`.
+  Note that there is a known issue with the new implementation when debugging minified code
   (see [this bug report](https://bugzilla.mozilla.org/show_bug.cgi?id=1373632)).
 * `liftAccessorsFromPrototypes`: If there are accessor properties (getters and setters) defined
   on an object's prototype chain, you can "lift" them so they are displayed on the object itself.
