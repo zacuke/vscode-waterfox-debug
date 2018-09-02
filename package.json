@@ -140,7 +140,7 @@
       "debug/callstack/context": [
         {
           "command": "extension.firefox.toggleSkippingFile",
-          "when": "inDebugMode && debugType == 'firefox'"
+          "when": "inDebugMode && debugType == 'firefox' && callStackItemType == 'stackFrame'"
         }
       ],
       "view/item/context": [
