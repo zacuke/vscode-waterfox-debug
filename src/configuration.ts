@@ -260,6 +260,7 @@ async function findFirefoxExecutable(configuredPath?: string): Promise<string> {
 
 		case 'darwin':
 			candidates = [
+				'/Applications/Firefox Developer Edition.app/Contents/MacOS/firefox',
 				'/Applications/FirefoxDeveloperEdition.app/Contents/MacOS/firefox',
 				'/Applications/Firefox.app/Contents/MacOS/firefox'
 			]
