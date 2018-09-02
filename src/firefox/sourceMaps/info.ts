@@ -1,6 +1,6 @@
 import * as url from 'url';
 import { ISourceActorProxy } from '../index';
-import { SourceMapConsumer, Position, MappedPosition } from 'source-map';
+import { SourceMapConsumer, Position, MappedPosition, NullablePosition, NullableMappedPosition } from 'source-map';
 
 let LEAST_UPPER_BOUND = (<any>SourceMapConsumer).LEAST_UPPER_BOUND;
 let GREATEST_LOWER_BOUND = (<any>SourceMapConsumer).GREATEST_LOWER_BOUND;
@@ -15,10 +15,14 @@ export class SourceMappingInfo {
 		private readonly sourceRoot?: string
 	) {}
 
-	public generatedLocationFor(originalLocation: MappedPosition): Position {
+	public generatedLocationFor(originalLocation: MappedPosition): NullablePosition {
 
 		if (!this.sourceMapConsumer) {
-			return { line: originalLocation.line, column: originalLocation.column };
+			return { 
+				line: originalLocation.line,
+				column: originalLocation.column,
+				lastColumn: null
+			};
 		}
 
 		let consumerArgs = Object.assign({ bias: LEAST_UPPER_BOUND }, originalLocation);
@@ -30,16 +34,16 @@ export class SourceMappingInfo {
 		}
 
 		if (this.underlyingSource.source.introductionType === 'wasm') {
-			return { line: generatedLocation.column, column: 0 };
+			return { line: generatedLocation.column, column: 0, lastColumn: null };
 		}
 
 		return generatedLocation;
 	}
 
-	public originalLocationFor(generatedLocation: Position): MappedPosition {
+	public originalLocationFor(generatedLocation: Position): NullableMappedPosition {
 
 		if (!this.sourceMapConsumer) {
-			return Object.assign({ source: this.sources[0]!.url! }, generatedLocation);
+			return Object.assign({ source: this.sources[0]!.url, name: null }, generatedLocation);
 		}
 
 		let consumerArgs = Object.assign({ bias: GREATEST_LOWER_BOUND }, generatedLocation);
@@ -56,11 +60,11 @@ export class SourceMappingInfo {
 			originalLocation = this.sourceMapConsumer.originalPositionFor(consumerArgs);
 		}
 
-		if (this.sourceRoot) {
+		if (originalLocation.source && this.sourceRoot) {
 			originalLocation.source = url.resolve(this.sourceRoot, originalLocation.source);
 		}
 
-		if (this.underlyingSource.source.introductionType === 'wasm') {
+		if ((this.underlyingSource.source.introductionType === 'wasm') && originalLocation.line) {
 			originalLocation.line--;
 		}
 

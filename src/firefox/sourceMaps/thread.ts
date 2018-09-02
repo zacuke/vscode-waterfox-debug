@@ -73,29 +73,29 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		let sourceActor = this.connection.getOrCreate(
 			source.actor, () => new SourceActorProxy(source, this.connection));
 
-		let sourceMapUri = source.sourceMapURL;
-		if (!sourceMapUri) {
+		let sourceMapUrl = source.sourceMapURL;
+		if (!sourceMapUrl) {
 			return new SourceMappingInfo([sourceActor], sourceActor);
 		}
 
-		if (!isAbsoluteUrl(sourceMapUri)) {
+		if (!isAbsoluteUrl(sourceMapUrl)) {
 			if (source.url) {
-				sourceMapUri = url.resolve(urlDirname(source.url), sourceMapUri);
+				sourceMapUrl = url.resolve(urlDirname(source.url), sourceMapUrl);
 			} else {
-				log.warn(`Can't create absolute sourcemap URL from ${sourceMapUri} - giving up`);
+				log.warn(`Can't create absolute sourcemap URL from ${sourceMapUrl} - giving up`);
 				return new SourceMappingInfo([sourceActor], sourceActor);
 			}
 		}
 
 		let rawSourceMap: RawSourceMap;
 		try {
-			rawSourceMap = JSON.parse(await getUri(sourceMapUri));
+			rawSourceMap = JSON.parse(await getUri(sourceMapUrl));
 		} catch(e) {
-			log.warn(`Failed fetching sourcemap from ${sourceMapUri} - giving up`);
+			log.warn(`Failed fetching sourcemap from ${sourceMapUrl} - giving up`);
 			return new SourceMappingInfo([sourceActor], sourceActor);
 		}
 
-		let sourceMapConsumer = new SourceMapConsumer(rawSourceMap);
+		let sourceMapConsumer = await new SourceMapConsumer(rawSourceMap);
 		let sourceMappingSourceActors: SourceMappingSourceActorProxy[] = [];
 		let sourceRoot = rawSourceMap.sourceRoot;
 		if (!sourceRoot && source.url) {
@@ -103,21 +103,23 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		}
 
 		let sourceMappingInfo = new SourceMappingInfo(
-			sourceMappingSourceActors, sourceActor, sourceMapUri, sourceMapConsumer, sourceRoot);
+			sourceMappingSourceActors, sourceActor, sourceMapUrl, sourceMapConsumer, sourceRoot);
 
-		for (let origSource of (<any>sourceMapConsumer).sources) {
+		for (let origSource of sourceMapConsumer.sources) {
 
 			if (sourceRoot) {
 				origSource = url.resolve(sourceRoot, origSource);
 			}
 
-			let sourceMappingSource = this.createOriginalSource(source, origSource, sourceMapUri);
+			let sourceMappingSource = this.createOriginalSource(source, origSource, sourceMapUrl);
 
 			let sourceMappingSourceActor = new SourceMappingSourceActorProxy(
 				sourceMappingSource, sourceMappingInfo);
 
 			sourceMappingSourceActors.push(sourceMappingSourceActor);
 		}
+
+		sourceMapConsumer.destroy();
 
 		return sourceMappingInfo;
 	}
@@ -148,16 +150,16 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 
 			frame.where = {
 				source: originalSource,
-				line: originalLocation.line,
-				column: originalLocation.column
+				line: originalLocation.line || undefined,
+				column: originalLocation.column || undefined
 			}
 		}
 	}
 
 	private createOriginalSource(
 		generatedSource: FirefoxDebugProtocol.Source,
-		originalSourceUrl: string,
-		sourceMapUri: string
+		originalSourceUrl: string | null,
+		sourceMapUrl: string
 	): FirefoxDebugProtocol.Source {
 
 		return <FirefoxDebugProtocol.Source>{
@@ -169,7 +171,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 			isBlackBoxed: false,
 			isPrettyPrinted: false,
 			isSourceMapped: true,
-			sourceMapURL: sourceMapUri
+			sourceMapURL: sourceMapUrl
 		}
 	}
 
@@ -204,11 +206,13 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 
 				const originalLocation = info.originalLocationFor({ line, column: column || 1 });
 
-				return {
-					url: originalLocation.source, 
-					line: originalLocation.line,
-					column: originalLocation.column
-				};
+				if (originalLocation.source && originalLocation.line) {
+					return {
+						url: originalLocation.source, 
+						line: originalLocation.line,
+						column: originalLocation.column || undefined
+					};
+				}
 			}
 		}
 

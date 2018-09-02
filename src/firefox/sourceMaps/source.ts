@@ -23,7 +23,13 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 			source: this.url, line: location.line, column: location.column || 0
 		});
 
-		let result = await this.sourceMappingInfo.underlyingSource.setBreakpoint(generatedLocation, condition);
+		const generatedLine = generatedLocation.line;
+		if (generatedLine === null) {
+			throw 'Couldn\'t find generated location';
+		}
+
+		let result = await this.sourceMappingInfo.underlyingSource.setBreakpoint(
+			{ line: generatedLine, column: generatedLocation.column || undefined }, condition);
 		let actualGeneratedLocation = result.actualLocation || generatedLocation;
 		let actualOriginalLocation = this.sourceMappingInfo.originalLocationFor({
 			line: actualGeneratedLocation.line || 1,
@@ -32,8 +38,8 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 
 		result.actualLocation = {
 			source: this.source,
-			line: actualOriginalLocation.line,
-			column: actualOriginalLocation.column
+			line: actualOriginalLocation.line || undefined,
+			column: actualOriginalLocation.column || undefined
 		};
 
 		return result;
