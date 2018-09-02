@@ -201,7 +201,7 @@ export async function parseConfiguration(
 
 	let reloadOnChange = parseReloadConfiguration(config.reloadOnChange);
 
-	let sourceMaps = config.sourceMaps || 'server';
+	let sourceMaps = config.sourceMaps || 'client';
 	let showConsoleCallLocation = config.showConsoleCallLocation || false;
 	let liftAccessorsFromPrototypes = config.liftAccessorsFromPrototypes || 0;
 
