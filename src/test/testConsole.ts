@@ -107,7 +107,7 @@ describe('Debug console: The debugger', function() {
 			showConsoleCallLocation: true
 		});
 
-		let expectedMessageEnding = 'testdata/web/main.js:80:14)';
+		let expectedMessageEnding = 'testdata/web/main.js:80:2)';
 		if (isWindowsPlatform()) {
 			expectedMessageEnding = expectedMessageEnding.replace(/\//g, '\\');
 		}
@@ -143,26 +143,28 @@ describe('Debug console: The debugger', function() {
 
 		dc = await util.initDebugClient(TESTDATA_PATH, true);
 
-		let completions = await dc.completionsRequest({ text: 'v', column: 2 });
+		let completionsResult = await dc.completionsRequest({ text: 'v', column: 2 });
+		let completions = completionsResult.body.targets.map(item => item.label);
 
-		assert.equal(completions.body.targets.length, 3);
-		assert.equal(completions.body.targets[0].label, 'valueOf');
-		assert.equal(completions.body.targets[1].label, 'values');
-		assert.equal(completions.body.targets[2].label, 'vars');
+		assert.ok(completions.length >= 3);
+		assert.ok(completions.indexOf('valueOf') >= 0);
+		assert.ok(completions.indexOf('values') >= 0);
+		assert.ok(completions.indexOf('vars') >= 0);
 
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await util.setBreakpoints(dc, sourcePath, [ 12 ]);
 		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc, () => util.evaluate(dc, 'vars()'));
 		let stackTrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId });
 		let frameId = stackTrace.body.stackFrames[0].id;
-		completions = await dc.completionsRequest({ frameId, text: 'n', column: 2 });
+		completionsResult = await dc.completionsRequest({ frameId, text: 'n', column: 2 });
+		completions = completionsResult.body.targets.map(item => item.label);
 
-		assert.equal(completions.body.targets.length, 6);
-		assert.equal(completions.body.targets[0].label, 'name');
-		assert.equal(completions.body.targets[1].label, 'navigator');
-		assert.equal(completions.body.targets[2].label, 'netscape');
-		assert.equal(completions.body.targets[3].label, 'noop');
-		assert.equal(completions.body.targets[4].label, 'num1');
-		assert.equal(completions.body.targets[5].label, 'num2');
+		assert.ok(completions.length >= 6);
+		assert.ok(completions.indexOf('name') >= 0);
+		assert.ok(completions.indexOf('navigator') >= 0);
+		assert.ok(completions.indexOf('netscape') >= 0);
+		assert.ok(completions.indexOf('noop') >= 0);
+		assert.ok(completions.indexOf('num1') >= 0);
+		assert.ok(completions.indexOf('num2') >= 0);
 	});
 });
