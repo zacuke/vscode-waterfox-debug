@@ -164,6 +164,39 @@
         }
       ]
     },
+    "configuration": {
+      "title": "Firefox debug",
+      "properties": {
+        "firefox.executable": {
+          "description": "Absolute path to the Firefox executable",
+          "type": "string",
+          "scope": "resource"
+        },
+        "firefox.args": {
+          "description": "Additional arguments passed to Firefox",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "scope": "resource"
+        },
+        "firefox.profileDir": {
+          "description": "The path of the Firefox profile directory to use",
+          "type": "string",
+          "scope": "resource"
+        },
+        "firefox.profile": {
+          "description": "The name of the Firefox profile to use",
+          "type": "string",
+          "scope": "resource"
+        },
+        "firefox.keepProfileChanges": {
+          "description": "Use the specified profile directly instead of a temporary copy",
+          "type": "boolean",
+          "scope": "resource"
+        }
+      }
+    },
     "views": {
       "debug": [
         {

@@ -3,14 +3,21 @@ import { LoadedScriptsProvider } from './loadedScripts/provider';
 import { onCustomEvent } from './customEvents';
 import { addPathMapping } from './addPathMapping';
 import { PopupAutohideManager } from './popupAutohideManager';
+import { DebugConfigurationProvider } from './debugConfigurationProvider';
 
 export function activate(context: vscode.ExtensionContext) {
 
 	const loadedScriptsProvider = new LoadedScriptsProvider();
 	const popupAutohideManager = new PopupAutohideManager(sendCustomRequest);
+	const debugConfigurationProvider = new DebugConfigurationProvider();
 
 	context.subscriptions.push(vscode.window.registerTreeDataProvider(
-		'extension.firefox.loadedScripts', loadedScriptsProvider));
+		'extension.firefox.loadedScripts', loadedScriptsProvider
+	));
+
+	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider(
+		'firefox', debugConfigurationProvider
+	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
 		'extension.firefox.reloadAddon', () => sendCustomRequest('reloadAddon')

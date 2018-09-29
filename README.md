@@ -262,16 +262,18 @@ popup auto-hide" (`extension.firefox.enablePopupAutohide` / `disablePopupAutohid
 * `profileDir`, `profile`: You can specify a Firefox profile directory or the name of a profile
   created with the Firefox profile manager. The extension will create a copy of this profile in the
   system's temporary directory and modify the settings in this copy to allow remote debugging.
+  You can also override these properties in your settings (see below).
 * `keepProfileChanges`: Use the specified profile directly instead of creating a temporary copy.
   Since this profile will be permanently modified for debugging, you should only use this option
-  with a dedicated debugging profile.
+  with a dedicated debugging profile. You can also override this property in your settings (see below).
 * `port`: Firefox uses port 6000 for the debugger protocol by default. If you want to use a different
   port, you can set it with this property.
 * `firefoxExecutable`: The absolute path to the Firefox executable (`launch` configuration only).
   If not specified, this extension will use the default Firefox installation path. It will look for
   both regular and developer editions of Firefox; if both are available, it will use the developer
-  edition.
-* `firefoxArgs`: An array of additional arguments used when launching Firefox (`launch` configuration only)
+  edition. You can also override this property in your settings (see below).
+* `firefoxArgs`: An array of additional arguments used when launching Firefox (`launch` configuration only).
+  You can also override this property in your settings (see below).
 * `host`: If you want to debug with Firefox running on different machine, you can specify the 
   device's address using this property (`attach` configuration only).
 * `log`: Configures diagnostic logging for this extension. This may be useful for troubleshooting
@@ -297,6 +299,19 @@ popup auto-hide" (`extension.firefox.enablePopupAutohide` / `disablePopupAutohid
   executed with `this` set to the object's prototype instead of the object itself. This property
   lets you set the number of prototype levels that should be scanned for accessor properties to lift.
   Note that this will slow the debugger down, so it's set to `0` by default.
+
+### Overriding configuration properties in your settings
+You can override some of the `launch.json` configuration properties in your user, workspace or
+folder settings. This can be useful to make machine-specific changes to your launch configuration
+without sharing them with other users.
+
+This setting                 | overrides this `launch.json` property
+-----------------------------|-------------------------------------
+`firefox.executable`         | `firefoxExecutable`
+`firefox.args`               | `firefoxArgs`
+`firefox.profileDir`         | `profileDir`
+`firefox.profile`            | `profile`
+`firefox.keepProfileChanges` | `keepProfileChanges`
 
 ### Diagnostic logging
 The following example for the `log` property will write all log messages to the file `log.txt` in
