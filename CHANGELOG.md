@@ -1,3 +1,6 @@
+### Version 1.7.0
+* add the ability to override some launch configuration properties in the settings
+
 ### Version 1.6.0
 * change the default for `sourceMaps` to `client`
 * improve the performance of client-side source-map handling
