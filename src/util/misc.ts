@@ -2,6 +2,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import FirefoxProfile = require('firefox-profile');
+import * as stripJsonComments from 'strip-json-comments';
 import { AddonType } from '../configuration';
 
 export function concatArrays<T>(arrays: T[][]): T[] {
@@ -99,7 +100,12 @@ export function findAddonId(addonPath: string, addonType: AddonType): Promise<st
 }
 
 async function findWebExtensionId(addonPath: string): Promise<string | undefined> {
-	const manifest = await fs.readJson(path.join(addonPath, 'manifest.json'));
-	const id = ((manifest.applications || {}).gecko || {}).id;
-	return id;
+	try {
+		const rawManifest = await fs.readFile(path.join(addonPath, 'manifest.json'), { encoding: 'utf8' });
+		const manifest = JSON.parse(stripJsonComments(rawManifest));
+		const id = ((manifest.applications || {}).gecko || {}).id;
+		return id;
+	} catch (err) {
+		throw `Couldn't parse manifest.json: ${err}`;
+	}
 }
