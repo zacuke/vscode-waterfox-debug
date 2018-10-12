@@ -1,3 +1,6 @@
+### Version 1.7.1
+* WebExtension debugging: allow comments in manifest.json
+
 ### Version 1.7.0
 * add the ability to override some launch configuration properties in the settings
 
