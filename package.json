@@ -19,7 +19,7 @@
     "build": "tsc",
     "watch": "tsc -w",
     "rebuild": "npm run clean && npm run build",
-    "test": "TS_NODE_FILES=true mocha --timeout 20000 --slow 6000 --require ts-node/register \"src/test/test*.ts\"",
+    "test": "TS_NODE_FILES=true mocha --opts src/test/mocha.opts \"src/test/test*.ts\"",
     "cover": "nyc npm test && nyc report --reporter=lcov && nyc report --reporter=html",
     "package": "vsce package",
     "publish": "vsce publish"

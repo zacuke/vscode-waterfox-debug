@@ -1,0 +1,4 @@
+--require ts-node/register
+--timeout 20000
+--slow 6000
+--exit

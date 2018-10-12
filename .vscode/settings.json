@@ -10,10 +10,8 @@
 	"editor.rulers": [100],
 	"typescript.tsdk": "./node_modules/typescript/lib",
 	"mochaExplorer.files": "src/test/*.ts",
-	"mochaExplorer.require": "ts-node/register",
+	"mochaExplorer.optsFile": "src/test/mocha.opts",
 	"mochaExplorer.env": {
 		"TS_NODE_FILES": "true"
-	},
-	"mochaExplorer.timeout": 20000,
-	"mochaExplorer.exit": true
+	}
 }
