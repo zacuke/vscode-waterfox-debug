@@ -1,3 +1,6 @@
+### Version 1.7.2
+* add log messages to monitor source-mapping performance
+
 ### Version 1.7.1
 * WebExtension debugging: allow comments in manifest.json
 
