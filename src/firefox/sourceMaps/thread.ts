@@ -123,8 +123,6 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 			sourceMappingSourceActors.push(sourceMappingSourceActor);
 		}
 
-		sourceMapConsumer.destroy();
-
 		return sourceMappingInfo;
 	}
 
