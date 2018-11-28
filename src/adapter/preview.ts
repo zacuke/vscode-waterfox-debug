@@ -123,7 +123,7 @@ function renderArrayLikePreview(preview: FirefoxDebugProtocol.ArrayLikePreview):
 
 		const renderCount = Math.min(preview.items.length, maxArrayItems);
 		const itemsToRender = preview.items.slice(0, renderCount);
-		const renderedItems = itemsToRender.map(item => renderGrip(item));
+		const renderedItems = itemsToRender.map(item => renderGripOrNull(item));
 
 		if (renderCount < preview.items.length) {
 			renderedItems.push('\u2026');
@@ -154,6 +154,14 @@ function renderFunctionGrip(functionGrip: FirefoxDebugProtocol.FunctionGrip): st
 
 	const functionName = functionGrip.displayName || functionGrip.name || 'function';
 	return `${functionName}(${parameters}) {\u2026}`;
+}
+
+function renderGripOrNull(gripOrNull: FirefoxDebugProtocol.Grip | null): string {
+	if (gripOrNull === null) {
+		return "_";
+	} else {
+		return renderGrip(gripOrNull);
+	}
 }
 
 function renderGrip(grip: FirefoxDebugProtocol.Grip): string {

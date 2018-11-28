@@ -410,7 +410,7 @@ declare namespace FirefoxDebugProtocol {
 	interface ArrayLikePreview {
 		kind: 'ArrayLike';
 		length: number;
-		items?: Grip[];
+		items?: (Grip | null)[];
 	}
 
 	interface SafeGetterValuePreview {
