@@ -1,7 +1,10 @@
+import { Log } from '../util/log';
 import { ISourceActorProxy } from '../firefox/index';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { Source } from 'vscode-debugadapter';
 import { ThreadAdapter, Registry, BreakpointInfo, BreakpointAdapter } from './index';
+
+const log = Log.create('SourceAdapter');
 
 const actorIdRegex = /[0-9]+$/;
 
@@ -90,6 +93,8 @@ export class SourceAdapter {
 			}
 		}
 
+		if (log.isDebugEnabled) log.debug(`Going to delete ${breakpointsToDelete.length} breakpoints`);
+
 		const deletionPromises = breakpointsToDelete.map(
 			breakpointAdapter => breakpointAdapter.actor.delete()
 		);
@@ -102,6 +107,8 @@ export class SourceAdapter {
 				currentBreakpoint => desiredBreakpoint.isEquivalent(currentBreakpoint.breakpointInfo)
 			)
 		);
+
+		if (log.isDebugEnabled) log.debug(`Going to add ${breakpointsToAdd.length} breakpoints`);
 
 		const additionPromises = breakpointsToAdd.map(
 			breakpointInfo => this.actor.setBreakpoint({ 

@@ -1,4 +1,7 @@
+import { Log } from '../util/log';
 import { EventEmitter } from 'events';
+
+let log = Log.create('DebugProtocolTransport');
 
 /**
  * Implements the Remote Debugging Protocol Stream Transport
@@ -37,6 +40,9 @@ export class DebugProtocolTransport extends EventEmitter {
 						if (this.buffer[i] === 58) {
 							// header is complete: parse it
 							let bodyLength = +this.buffer.toString('ascii', 0, i);
+							if (bodyLength > 1000000) {
+								log.debug(`Going to receive message with ${bodyLength} bytes in body (initial chunk contained ${chunk.length} bytes)`);
+							}
 							// create a buffer for the message body
 							let bodyBuffer = new Buffer(bodyLength);
 							// copy the start of the body from this.buffer
@@ -51,6 +57,9 @@ export class DebugProtocolTransport extends EventEmitter {
 				} else {
 					// did we receive the complete body yet?
 					if (this.bufferedLength === this.buffer.length) {
+						if (this.bufferedLength > 1000000) {
+							log.info(`Received ${this.bufferedLength} bytes`);
+						}
 						// body is complete: parse and emit it
 						let msgString = this.buffer.toString('utf8');
 						this.emit('message', JSON.parse(msgString));

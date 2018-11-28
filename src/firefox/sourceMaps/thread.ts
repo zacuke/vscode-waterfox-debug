@@ -89,7 +89,10 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 
 		let rawSourceMap: RawSourceMap;
 		try {
-			rawSourceMap = JSON.parse(await getUri(sourceMapUrl));
+			const sourceMapString = await getUri(sourceMapUrl);
+			log.debug('Received sourcemap');
+			rawSourceMap = JSON.parse(sourceMapString);
+			log.debug('Parsed sourcemap');
 		} catch(e) {
 			log.warn(`Failed fetching sourcemap from ${sourceMapUrl} - giving up`);
 			return new SourceMappingInfo([sourceActor], sourceActor);
@@ -101,6 +104,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		if (!sourceRoot && source.url) {
 			sourceRoot = urlDirname(source.url);
 		}
+		log.debug('Created SourceMapConsumer');
 
 		let sourceMappingInfo = new SourceMappingInfo(
 			sourceMappingSourceActors, sourceActor, sourceMapUrl, sourceMapConsumer, sourceRoot);
