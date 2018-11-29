@@ -1,3 +1,6 @@
+### Version 1.7.3
+* fix handling of relative sourceRoot in sourcemaps
+
 ### Version 1.7.2
 * add log messages to monitor source-mapping performance
 
