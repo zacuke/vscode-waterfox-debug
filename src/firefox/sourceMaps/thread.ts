@@ -103,6 +103,8 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		let sourceRoot = rawSourceMap.sourceRoot;
 		if (!sourceRoot && source.url) {
 			sourceRoot = urlDirname(source.url);
+		} else if ((sourceRoot !== undefined) && !isAbsoluteUrl(sourceRoot)) {
+			sourceRoot = url.resolve(sourceMapUrl, sourceRoot);
 		}
 		log.debug('Created SourceMapConsumer');
 
