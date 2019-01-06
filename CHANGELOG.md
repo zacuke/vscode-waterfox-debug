@@ -1,3 +1,6 @@
+### Version 1.7.4
+* fix path mapping for configurations where `url` contains no path and no trailing slash (e.g. `"url": "http://localhost:8080"`)
+
 ### Version 1.7.3
 * fix handling of relative sourceRoot in sourcemaps
 
