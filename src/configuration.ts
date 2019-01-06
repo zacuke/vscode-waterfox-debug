@@ -372,7 +372,7 @@ function parseWebRootConfiguration(config: CommonConfiguration, pathMappings: Pa
 		}
 
 		let webRootUrl = config.url;
-		if (webRootUrl.indexOf('/') >= 0) {
+		if (webRootUrl.lastIndexOf('/') > 7) {
 			webRootUrl = webRootUrl.substr(0, webRootUrl.lastIndexOf('/'));
 		}
 

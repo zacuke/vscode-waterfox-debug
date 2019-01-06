@@ -132,6 +132,18 @@ describe('The configuration parser', function() {
 			(mapping) => mapping.url === 'https://mozilla.org')!.path, '/home/user/project');
 	});
 
+	it('should not strip the hostname from the webRoot in the pathMapping', async function() {
+
+		let parsedConfiguration = await parseConfiguration({
+			request: 'launch',
+			url: 'https://mozilla.org',
+			webRoot: '/home/user/project'
+		});
+
+		assert.equal(parsedConfiguration.pathMappings.find(
+			(mapping) => mapping.url === 'https://mozilla.org')!.path, '/home/user/project');
+	});
+
 	it('should include a user-specified pathMapping in a launch configuration', async function() {
 
 		let parsedConfiguration = await parseConfiguration({
