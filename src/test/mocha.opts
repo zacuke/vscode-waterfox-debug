@@ -2,3 +2,4 @@
 --timeout 20000
 --slow 6000
 --exit
+src/test/*.ts
