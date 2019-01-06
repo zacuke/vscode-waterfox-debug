@@ -7,7 +7,9 @@
 			"label": "watch",
 			"isBackground": true,
 			"problemMatcher": "$tsc-watch",
-			"auto": true
+			"runOptions": {
+				"runOn": "folderOpen"
+			}
 		}
 	]
 }
