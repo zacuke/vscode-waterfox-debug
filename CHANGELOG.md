@@ -1,3 +1,7 @@
+### Version 1.7.5
+* fix for sourcemaps in WebExtensions
+* fix for `reAttach` on MacOS
+
 ### Version 1.7.4
 * fix path mapping for configurations where `url` contains no path and no trailing slash (e.g. `"url": "http://localhost:8080"`)
 
