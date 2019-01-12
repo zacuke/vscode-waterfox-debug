@@ -1,6 +1,7 @@
 import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { PendingRequests } from '../../util/pendingRequests';
+import { PathMapper } from '../../util/pathMapper';
 import { ActorProxy } from './interface';
 import { TabActorProxy } from './tab';
 import { ConsoleActorProxy } from './console';
@@ -25,6 +26,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 	constructor(
 		private sourceMaps: 'client' | 'server',
+		private readonly pathMapper: PathMapper,
 		private readonly connection: DebugConnection
 	) {
 		super();
@@ -105,7 +107,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 					actorsForTab = [
 						new TabActorProxy(
-							tab.actor, tab.title, tab.url, this.sourceMaps, this.connection),
+							tab.actor, tab.title, tab.url, this.sourceMaps, this.pathMapper, this.connection),
 						new ConsoleActorProxy(tab.consoleActor, this.connection)
 					];
 					this.emit('tabOpened', actorsForTab);
@@ -165,7 +167,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 			this.pendingProcessRequests.resolveOne([
 				new TabActorProxy(
 					processResponse.form.actor, 'Browser', processResponse.form.url,
-					this.sourceMaps, this.connection),
+					this.sourceMaps, this.pathMapper, this.connection),
 				new ConsoleActorProxy(processResponse.form.consoleActor, this.connection)
 			]);
 

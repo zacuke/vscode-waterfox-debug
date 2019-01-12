@@ -1,9 +1,11 @@
 import { EventEmitter } from 'events';
 import * as url from 'url';
 import isAbsoluteUrl = require('is-absolute-url');
+import pathToFileUri = require('file-url');
 import { SourceMapConsumer, RawSourceMap } from 'source-map';
 import { Log } from '../../util/log';
-import { getUri, urlDirname } from '../../util/net';
+import { PathMapper } from '../../util/pathMapper';
+import { getUri, urlDirname, canGetUri } from '../../util/net';
 import { DebugConnection, ISourceActorProxy, SourceActorProxy, SourceMappingSourceActorProxy } from '../index';
 import { IThreadActorProxy, ExceptionBreakpoints, UrlLocation } from '../actorProxy/thread';
 import { SourceMappingInfo } from './info';
@@ -16,6 +18,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 
 	public constructor(
 		private readonly underlyingActorProxy: IThreadActorProxy,
+		private readonly pathMapper: PathMapper,
 		private readonly connection: DebugConnection
 	) {
 		super();
@@ -83,6 +86,16 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 				sourceMapUrl = url.resolve(urlDirname(source.url), sourceMapUrl);
 			} else {
 				log.warn(`Can't create absolute sourcemap URL from ${sourceMapUrl} - giving up`);
+				return new SourceMappingInfo([sourceActor], sourceActor);
+			}
+		}
+
+		if (!canGetUri(sourceMapUrl)) {
+			const sourceMapPath = this.pathMapper.convertFirefoxUrlToPath(sourceMapUrl);
+			if (sourceMapPath) {
+				sourceMapUrl = pathToFileUri(sourceMapPath, { resolve: false });
+			} else {
+				log.warn(`Failed fetching sourcemap from ${sourceMapUrl} - giving up`);
 				return new SourceMappingInfo([sourceActor], sourceActor);
 			}
 		}

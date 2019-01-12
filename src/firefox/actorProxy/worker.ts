@@ -2,6 +2,7 @@ import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { DebugConnection, ActorProxy, IThreadActorProxy, ThreadActorProxy, SourceMappingThreadActorProxy, ConsoleActorProxy } from '../index';
 import { PendingRequest } from '../../util/pendingRequests';
+import { PathMapper } from '../../util/pathMapper';
 
 let log = Log.create('WorkerActorProxy');
 
@@ -11,6 +12,7 @@ export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 		public readonly name: string,
 		public readonly url: string,
 		private readonly sourceMaps: 'client' | 'server',
+		private readonly pathMapper: PathMapper,
 		private readonly connection: DebugConnection
 	) {
 		super();
@@ -89,7 +91,7 @@ export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 					() => new ThreadActorProxy(connectedResponse.threadActor, this.connection));
 
 				if (this.sourceMaps === 'client') {
-					threadActor = new SourceMappingThreadActorProxy(threadActor, this.connection);
+					threadActor = new SourceMappingThreadActorProxy(threadActor, this.pathMapper, this.connection);
 				}
 
 				let consoleActor = this.connection.getOrCreate(

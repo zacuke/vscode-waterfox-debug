@@ -81,3 +81,8 @@ export async function getUri(uri: string): Promise<string> {
 		});
 	});
 }
+
+export function canGetUri(uri: string): boolean {
+	return uri.startsWith('data:') || uri.startsWith('file:') ||
+		uri.startsWith('http:') || uri.startsWith('https:');
+}

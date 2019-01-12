@@ -64,7 +64,7 @@ export class FirefoxDebugSession {
 
 		let socket = await this.connectToFirefox();
 
-		this.firefoxDebugConnection = new DebugConnection(this.config.sourceMaps, socket);
+		this.firefoxDebugConnection = new DebugConnection(this.config.sourceMaps, this.pathMapper, socket);
 		this.firefoxDebugSocketClosed = false;
 		let rootActor = this.firefoxDebugConnection.rootActor;
 

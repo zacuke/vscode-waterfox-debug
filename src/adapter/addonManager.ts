@@ -149,13 +149,15 @@ export class AddonManager {
 					if (addon.isWebExtension) {
 
 						let webExtensionActor = new WebExtensionActorProxy(
-							addon, sourceMaps, this.debugSession.firefoxDebugConnection);
+							addon, sourceMaps, this.debugSession.pathMapper,
+							this.debugSession.firefoxDebugConnection);
 						[this.addonActor, consoleActor] = await webExtensionActor.connect();
 
 					} else {
 
 						this.addonActor = new TabActorProxy(
-							addon.actor, addon.name, '', sourceMaps, this.debugSession.firefoxDebugConnection);
+							addon.actor, addon.name, '', sourceMaps, this.debugSession.pathMapper,
+							this.debugSession.firefoxDebugConnection);
 						consoleActor = new ConsoleActorProxy(
 							addon.consoleActor!, this.debugSession.firefoxDebugConnection);
 					}

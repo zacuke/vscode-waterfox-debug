@@ -3,6 +3,7 @@ import { Socket } from 'net';
 import { DebugProtocolTransport } from './transport';
 import { ActorProxy } from './actorProxy/interface';
 import { RootActorProxy } from './actorProxy/root';
+import { PathMapper } from '../util/pathMapper';
 
 let log = Log.create('DebugConnection');
 
@@ -17,11 +18,12 @@ export class DebugConnection {
 
 	constructor(
 		sourceMaps: 'client' | 'server',
+		pathMapper: PathMapper,
 		socket: Socket
 	) {
 
 		this.actors = new Map<string, ActorProxy>();
-		this.rootActor = new RootActorProxy(sourceMaps, this);
+		this.rootActor = new RootActorProxy(sourceMaps, pathMapper, this);
 		this.transport = new DebugProtocolTransport(socket);
 
 		this.transport.on('message', (response: FirefoxDebugProtocol.Response) => {

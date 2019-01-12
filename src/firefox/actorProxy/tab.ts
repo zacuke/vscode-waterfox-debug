@@ -2,6 +2,7 @@ import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { DebugConnection, ActorProxy, WorkerActorProxy, IThreadActorProxy, ThreadActorProxy, SourceMappingThreadActorProxy } from '../index';
 import { PendingRequests } from '../../util/pendingRequests';
+import { PathMapper } from '../../util/pathMapper';
 
 let log = Log.create('TabActorProxy');
 
@@ -18,6 +19,7 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 		private _title: string,
 		private _url: string,
 		private readonly sourceMaps: 'client' | 'server',
+		private readonly pathMapper: PathMapper,
 		private readonly connection: DebugConnection
 	) {
 		super();
@@ -88,7 +90,7 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 				() => new ThreadActorProxy(tabAttachedResponse.threadActor, this.connection));
 
 			if (this.sourceMaps === 'client') {
-				threadActor = new SourceMappingThreadActorProxy(threadActor, this.connection);
+				threadActor = new SourceMappingThreadActorProxy(threadActor, this.pathMapper, this.connection);
 			}
 
 			this.emit('attached', threadActor);
@@ -165,7 +167,7 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 					log.debug(`Worker ${worker.actor} started`);
 
 					workerActor = new WorkerActorProxy(
-						worker.actor, worker.url, this.sourceMaps, this.connection);
+						worker.actor, worker.url, this.sourceMaps, this.pathMapper, this.connection);
 					this.emit('workerStarted', workerActor);
 
 				}

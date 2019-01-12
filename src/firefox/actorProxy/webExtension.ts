@@ -1,6 +1,7 @@
 import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
 import { PendingRequests } from '../../util/pendingRequests';
+import { PathMapper } from '../../util/pathMapper';
 import { ActorProxy } from './interface';
 import { TabActorProxy } from './tab';
 import { ConsoleActorProxy } from './console';
@@ -14,7 +15,8 @@ export class WebExtensionActorProxy extends EventEmitter implements ActorProxy {
 
 	constructor(
 		private readonly webExtensionInfo: FirefoxDebugProtocol.Addon,
-		private sourceMaps: 'client' | 'server',
+		private readonly sourceMaps: 'client' | 'server',
+		private readonly pathMapper: PathMapper,
 		private readonly connection: DebugConnection
 	) {
 		super();
@@ -44,7 +46,7 @@ export class WebExtensionActorProxy extends EventEmitter implements ActorProxy {
 			this.pendingConnectRequests.resolveOne([
 				new TabActorProxy(
 					connectResponse.form.actor, this.webExtensionInfo.name, connectResponse.form.url,
-					this.sourceMaps, this.connection),
+					this.sourceMaps, this.pathMapper, this.connection),
 				new ConsoleActorProxy(connectResponse.form.consoleActor, this.connection)
 			]);
 
