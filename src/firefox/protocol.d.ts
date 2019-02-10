@@ -256,7 +256,8 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface SourceLocation {
-		source: Source;
+		source?: Source; // Firefox < 66.0
+		actor?: string; // Firefox >= 66.0
 		line?: number;
 		column?: number;
 	}

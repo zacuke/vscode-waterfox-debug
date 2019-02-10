@@ -25,7 +25,7 @@ export class FrameAdapter {
 
 	public getStackframe(): StackFrame {
 
-		let sourceActorName = this.frame.where.source.actor;
+		let sourceActorName = this.frame.where.actor || this.frame.where.source!.actor;
 		let sourceAdapter = this.threadAdapter.findSourceAdapterForActorName(sourceActorName);
 		if (!sourceAdapter) {
 			throw new Error(`Couldn't find source adapter for ${sourceActorName}`);

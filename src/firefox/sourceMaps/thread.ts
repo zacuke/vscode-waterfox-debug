@@ -155,15 +155,28 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 
 	private async applySourceMapToFrame(frame: FirefoxDebugProtocol.Frame): Promise<void> {
 
-		let sourceMappingInfo = await this.getOrCreateSourceMappingInfo(frame.where.source);
-		if (sourceMappingInfo.sourceMapUri && sourceMappingInfo.sourceMapConsumer) {
+		let sourceMappingInfo: SourceMappingInfo | undefined;
+		let source = frame.where.source;
+		if (source) {
+			sourceMappingInfo = await this.getOrCreateSourceMappingInfo(source);
+		} else {
+			const sourceMappingInfoPromise = this.sourceMappingInfos.get(frame.where.actor!);
+			if (sourceMappingInfoPromise) {
+				sourceMappingInfo = await sourceMappingInfoPromise;
+				source = sourceMappingInfo.underlyingSource.source;
+			} else {
+				log.warn(`Couldn't find SourceMappingInfo for ${frame.where.actor}`);
+			}
+		}
+
+		if (sourceMappingInfo && sourceMappingInfo.sourceMapUri && sourceMappingInfo.sourceMapConsumer) {
 
 			let originalLocation = sourceMappingInfo.originalLocationFor({
 				line: frame.where.line!, column: frame.where.column!
 			});
 
 			let originalSource = this.createOriginalSource(
-				frame.where.source, originalLocation.source, sourceMappingInfo.sourceMapUri);
+				source!, originalLocation.source, sourceMappingInfo.sourceMapUri);
 
 			frame.where = {
 				source: originalSource,

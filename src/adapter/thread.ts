@@ -2,9 +2,12 @@ import { EventEmitter } from 'events';
 import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy, ISourceActorProxy } from '../firefox/index';
 import { ThreadCoordinator, ThreadPauseCoordinator, FrameAdapter, ScopeAdapter, SourceAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
 import { Variable } from 'vscode-debugadapter';
+import { Log } from '../util/log';
 import { FirefoxDebugSession } from "../firefoxDebugSession";
 import { pathsAreEqual } from '../util/misc';
 import { Location } from '../firefox/actorProxy/source';
+
+let log = Log.create('ThreadAdapter');
 
 export interface SourceLocation extends Location {
 	source: SourceAdapter;
@@ -47,15 +50,15 @@ export class ThreadAdapter extends EventEmitter {
 				((event.why.type === 'exception') &&
 				 (debugSession.config.sourceMaps === 'server'));
 
-			let source: FirefoxDebugProtocol.Source;
+			let sourceActor: string;
 			if (!distrustSourceInPausedEvent) {
-				source = event.frame.where.source;
+				sourceActor = event.frame.where.actor || event.frame.where.source!.actor;
 			} else {
 				let frames = await this.fetchAllStackFrames();
-				source = frames[0].frame.where.source;
+				sourceActor = frames[0].frame.where.actor || frames[0].frame.where.source!.actor;
 			}
 
-			const sourceAdapter = this.findSourceAdapterForActorName(source.actor);
+			const sourceAdapter = this.findSourceAdapterForActorName(sourceActor);
 
 			if (sourceAdapter) {
 
@@ -63,7 +66,7 @@ export class ThreadAdapter extends EventEmitter {
 
 					this.resume();
 					return;
-	
+
 				}
 
 				if ((event.why.type === 'breakpoint') &&
@@ -79,7 +82,7 @@ export class ThreadAdapter extends EventEmitter {
 
 								this.resume();
 								return;
-				
+
 							}
 						}
 
@@ -103,11 +106,24 @@ export class ThreadAdapter extends EventEmitter {
 
 				let frames = await this.fetchAllStackFrames();
 				let startFrame = (frames.length > 0) ? frames[frames.length - 1] : undefined;
-				if (startFrame && (startFrame.frame.where.source.introductionType === 'debugger eval')) {
+				if (startFrame) {
 
-					this.resume();
-					return;
+					let source = startFrame.frame.where.source;
+					if (!source) {
+						const sourceAdapter = this.findSourceAdapterForActorName(startFrame.frame.where.actor!);
+						if (sourceAdapter) {
+							source = sourceAdapter.actor.source;
+						} else {
+							log.warn(`Couldn't find SourceAdapter for ${startFrame.frame.where.actor}`);
+						}
+					}
 
+					if (source && source.introductionType === 'debugger eval') {
+
+						this.resume();
+						return;
+
+					}
 				}
 			}
 
@@ -387,7 +403,7 @@ export class ThreadAdapter extends EventEmitter {
 	public onResumed(cb: () => void) {
 		this.actor.onResumed(cb);
 	}
-	
+
 	public onExited(cb: () => void) {
 		this.actor.onExited(cb);
 	}
