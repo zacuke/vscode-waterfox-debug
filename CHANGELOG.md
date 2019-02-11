@@ -1,3 +1,6 @@
+### Version 1.7.6
+* fix for a debug protocol change in Firefox 66
+
 ### Version 1.7.5
 * fix for sourcemaps in WebExtensions
 * fix for `reAttach` on MacOS
