@@ -20,7 +20,9 @@ declare namespace FirefoxDebugProtocol {
 
 	interface InitialResponse extends Response {
 		applicationType: string;
-		traits?: any;
+		traits: {
+			breakpointWhileRunning: boolean
+		};
 	}
 
 	interface TabsResponse extends Response {
@@ -210,6 +212,14 @@ declare namespace FirefoxDebugProtocol {
 		frameFinished?: CompletionValue; // if type is 'resumeLimit' or 'clientEvaluated'
 		exception?: Grip; // if type is 'exception'
 		actors?: string[]; // if type is 'breakpoint' or 'watchpoint'
+	}
+
+	interface GetBreakpointPositionsCompressedResponse extends Response {
+		positions: BreakpointPositions;
+	}
+
+	interface BreakpointPositions {
+		[line: string]: number[];
 	}
 
 	interface SetBreakpointResponse extends Response {

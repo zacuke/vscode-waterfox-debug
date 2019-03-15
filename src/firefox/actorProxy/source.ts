@@ -10,6 +10,7 @@ export interface ISourceActorProxy {
 	name: string;
 	source: FirefoxDebugProtocol.Source;
 	url: string | null;
+	getBreakpointPositions(): Promise<FirefoxDebugProtocol.BreakpointPositions>;
 	setBreakpoint(location: Location, condition?: string): Promise<SetBreakpointResult>;
 	fetchSource(): Promise<FirefoxDebugProtocol.Grip>;
 	setBlackbox(blackbox: boolean): Promise<void>;
@@ -30,6 +31,7 @@ export class SetBreakpointResult {
 
 export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 
+	private pendingGetBreakpointPositionsRequests = new PendingRequests<FirefoxDebugProtocol.BreakpointPositions>();
 	private pendingSetBreakpointRequests = new PendingRequests<SetBreakpointResult>();
 	private pendingFetchSourceRequests = new PendingRequests<FirefoxDebugProtocol.Grip>();
 	private pendingBlackboxRequests = new PendingRequests<void>();
@@ -47,6 +49,16 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 
 	public get url() {
 		return this.source.url;
+	}
+
+	public getBreakpointPositions(): Promise<FirefoxDebugProtocol.BreakpointPositions> {
+
+		log.debug(`Fetching breakpointPositions of ${this.url}`);
+
+		return new Promise<FirefoxDebugProtocol.BreakpointPositions>((resolve, reject) => {
+			this.pendingGetBreakpointPositionsRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'getBreakpointPositionsCompressed' });
+		});
 	}
 
 	public setBreakpoint(
@@ -90,8 +102,14 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 	}
 
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
-		
-		if (response['isPending'] !== undefined) {
+
+		if (response['positions'] !== undefined) {
+
+			log.debug('Received getBreakpointPositions response');
+			let breakpointPositionsResponse = <FirefoxDebugProtocol.GetBreakpointPositionsCompressedResponse>response;
+			this.pendingGetBreakpointPositionsRequests.resolveOne(breakpointPositionsResponse.positions);
+
+		} else if (response['isPending'] !== undefined) {
 
 			let setBreakpointResponse = <FirefoxDebugProtocol.SetBreakpointResponse>response;
 			let actualLocation = setBreakpointResponse.actualLocation;

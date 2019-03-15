@@ -15,6 +15,8 @@ export interface IThreadActorProxy {
 	detach(): Promise<void>;
 	fetchSources(): Promise<FirefoxDebugProtocol.Source[]>;
 	fetchStackFrames(start?: number, count?: number): Promise<FirefoxDebugProtocol.Frame[]>;
+	setBreakpoint(line: number, column: number, sourceUrl: string): Promise<void>;
+	removeBreakpoint(line: number, column: number, sourceUrl: string): Promise<void>;
 	findOriginalLocation(generatedUrl: string, line: number, column?: number): Promise<UrlLocation | undefined>
 	onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedResponse) => void): void;
 	onResumed(cb: () => void): void;
@@ -58,6 +60,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 
 	private pendingSourcesRequests = new PendingRequests<FirefoxDebugProtocol.Source[]>();
 	private pendingStackFramesRequests = new PendingRequests<FirefoxDebugProtocol.Frame[]>();
+	private pendingSetOrRemoveBreakpointRequests = new PendingRequests<void>();
 
 	/**
 	 * Attach the thread if it is detached
@@ -162,6 +165,30 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 		}
 
 		return this.detachPromise;
+	}
+
+	public setBreakpoint(line: number, column: number, sourceUrl: string): Promise<void> {
+		log.debug(`Setting breakpoint at ${line}:${column} in ${sourceUrl}`);
+
+		return new Promise<void>((resolve, reject) => {
+			this.pendingSetOrRemoveBreakpointRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({
+				to: this.name, type: 'setBreakpoint',
+				location: { line, column, sourceUrl }
+			});
+		})
+	}
+
+	public removeBreakpoint(line: number, column: number, sourceUrl: string): Promise<void> {
+		log.debug(`Removing breakpoint at ${line}:${column} in ${sourceUrl}`);
+
+		return new Promise<void>((resolve, reject) => {
+			this.pendingSetOrRemoveBreakpointRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({
+				to: this.name, type: 'removeBreakpoint',
+				location: { line, column, sourceUrl }
+			});
+		})
 	}
 
 	/**
@@ -360,7 +387,13 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 
 		} else {
 
-			if (response['type'] === 'willInterrupt') {
+			let propertyCount = Object.keys(response).length;
+			if (propertyCount === 1) {
+
+				log.debug('Received setBreakpoint or removeBreakpoint response');
+				this.pendingSetOrRemoveBreakpointRequests.resolveOne(undefined);
+
+			} else if (response['type'] === 'willInterrupt') {
 				log.debug(`Received willInterrupt event from ${this.name} (ignoring)`);
 			} else {
 				log.warn("Unknown message from ThreadActor: " + JSON.stringify(response));

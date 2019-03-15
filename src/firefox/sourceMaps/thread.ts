@@ -205,6 +205,34 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		}
 	}
 
+	public async setBreakpoint(line: number, column: number, sourceUrl: string): Promise<void> {
+
+		if (log.isDebugEnabled) log.debug(`Computing generated location for ${line}:${column} in ${sourceUrl}`);
+		let generatedLocation = await this.findGeneratedLocation(sourceUrl, line, column);
+		if (generatedLocation) {
+			if (log.isDebugEnabled) log.debug(`Got generated location ${generatedLocation.line}:${generatedLocation.column}`);
+		} else {
+			if (log.isWarnEnabled) log.warn(`Couldn't find generated location for ${line}:${column} in ${sourceUrl}`);
+			return;
+		}
+
+		await this.underlyingActorProxy.setBreakpoint(generatedLocation.line, generatedLocation.column!, generatedLocation.url);
+	}
+
+	public async removeBreakpoint(line: number, column: number, sourceUrl: string): Promise<void> {
+
+		if (log.isDebugEnabled) log.debug(`Computing generated location for ${line}:${column} in ${sourceUrl}`);
+		let generatedLocation = await this.findGeneratedLocation(sourceUrl, line, column);
+		if (generatedLocation) {
+			if (log.isDebugEnabled) log.debug(`Got generated location ${generatedLocation.line}:${generatedLocation.column}`);
+		} else {
+			if (log.isWarnEnabled) log.warn(`Couldn't find generated location for ${line}:${column} in ${sourceUrl}`);
+			return;
+		}
+
+		await this.underlyingActorProxy.removeBreakpoint(generatedLocation.line, generatedLocation.column!, generatedLocation.url);
+	}
+
 	public attach(): Promise<void> {
 		return this.underlyingActorProxy.attach(false);
 	}
@@ -242,6 +270,33 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 						line: originalLocation.line,
 						column: originalLocation.column || undefined
 					};
+				}
+			}
+		}
+
+		return undefined;
+	}
+
+	private async findGeneratedLocation(
+		sourceUrl: string,
+		line: number,
+		column: number
+	): Promise<UrlLocation | undefined> {
+
+		for (const infoPromise of this.sourceMappingInfos.values()) {
+			const info = await infoPromise;
+			for (const originalSource of info.sources) {
+				if (sourceUrl === originalSource.url) {
+
+					const generatedLocation = info.generatedLocationFor({ source: sourceUrl, line, column });
+	
+					if ((generatedLocation.line !== null) && (generatedLocation.column !== null)) {
+						return {
+							url: info.underlyingSource.url!,
+							line: generatedLocation.line,
+							column: generatedLocation.column
+						};
+					}
 				}
 			}
 		}

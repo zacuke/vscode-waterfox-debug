@@ -20,6 +20,38 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 		private readonly sourceMappingInfo: SourceMappingInfo
 	) {}
 
+	public async getBreakpointPositions(): Promise<FirefoxDebugProtocol.BreakpointPositions> {
+
+		if (log.isDebugEnabled) log.debug(`Fetching generated breakpoint positions for ${this.url}`);
+		let generatedBreakpointPositions = await this.sourceMappingInfo.underlyingSource.getBreakpointPositions();
+
+		if (log.isDebugEnabled) log.debug(`Computing original breakpoint positions for ${Object.keys(generatedBreakpointPositions).length} generated lines`);
+		const originalBreakpointPositions: FirefoxDebugProtocol.BreakpointPositions = {};
+		for (const generatedLine in generatedBreakpointPositions) {
+			for (const generatedColumn of generatedBreakpointPositions[generatedLine]) {
+
+				const originalLocation = this.sourceMappingInfo.originalLocationFor({
+					line: parseInt(generatedLine),
+					column: generatedColumn
+				});
+
+				if ((originalLocation.line !== null) && (originalLocation.column !== null)) {
+
+					if (originalBreakpointPositions[originalLocation.line] === undefined) {
+						originalBreakpointPositions[originalLocation.line] = [];
+					}
+
+					originalBreakpointPositions[originalLocation.line].push(originalLocation.column);
+
+				} else {
+					if (log.isWarnEnabled) log.warn(`Got ${originalLocation.line}:${originalLocation.column} as original location for ${generatedLine}:${generatedColumn} in ${this.url}`);
+				}
+			}
+		}
+
+		return originalBreakpointPositions;
+	}
+
 	public async setBreakpoint(location: Location, condition: string): Promise<SetBreakpointResult> {
 
 		if (log.isDebugEnabled) log.debug(`Computing generated location for ${this.url}:${location.line}:${location.column}`);
