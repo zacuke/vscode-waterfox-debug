@@ -151,8 +151,8 @@ export class ThreadAdapter extends EventEmitter {
 		await this.coordinator.resume();
 	}
 
-	public createSourceAdapter(actor: ISourceActorProxy, path: string | undefined): SourceAdapter {
-		let adapter = new SourceAdapter(this.debugSession.sources, actor, path, this);
+	public createSourceAdapter(actor: ISourceActorProxy, path: string | undefined, newBreakpointProtocol: boolean): SourceAdapter {
+		let adapter = new SourceAdapter(this.debugSession.sources, actor, path, this, newBreakpointProtocol);
 		this.sources.push(adapter);
 		return adapter;
 	}

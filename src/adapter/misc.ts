@@ -1,5 +1,5 @@
 import { BreakpointActorProxy } from '../firefox/index';
-import { VariablesProvider, VariableAdapter, ThreadAdapter } from './index';
+import { VariablesProvider, VariableAdapter, ThreadAdapter, SourceAdapter } from './index';
 import { DebugProtocol } from 'vscode-debugprotocol';
 
 export class BreakpointInfo {
@@ -26,16 +26,54 @@ export class BreakpointInfo {
 	}
 }
 
-export class BreakpointAdapter {
-	
-	public breakpointInfo: BreakpointInfo;
-	public actor: BreakpointActorProxy;
+export interface BreakpointAdapter {
+	readonly breakpointInfo: BreakpointInfo;
+	readonly actorName: string | undefined;
+	hitCount: number;
+	delete(): Promise<void>;
+}
+
+export class OldProtocolBreakpointAdapter implements BreakpointAdapter {
+
 	public hitCount: number;
 
-	public constructor(requestedBreakpoint: BreakpointInfo, actor: BreakpointActorProxy) {
-		this.breakpointInfo = requestedBreakpoint;
-		this.actor = actor;
+	public get actorName(): string {
+		return this.actor.name;
+	}
+
+	public constructor(
+		public readonly breakpointInfo: BreakpointInfo,
+		private readonly actor: BreakpointActorProxy
+	) {
 		this.hitCount = 0;
+	}
+
+	delete(): Promise<void> {
+		return this.actor.delete();
+	}
+}
+
+export class NewProtocolBreakpointAdapter implements BreakpointAdapter {
+
+	public hitCount: number;
+
+	public get actorName(): undefined {
+		return undefined;
+	}
+
+	public constructor(
+		public readonly breakpointInfo: BreakpointInfo,
+		private readonly sourceAdapter: SourceAdapter
+	) {
+		this.hitCount = 0;
+	}
+
+	delete(): Promise<void> {
+		return this.sourceAdapter.threadAdapter.actor.removeBreakpoint(
+			this.breakpointInfo.actualLine!,
+			this.breakpointInfo.actualColumn!,
+			this.sourceAdapter.actor.url!
+		);
 	}
 }
 

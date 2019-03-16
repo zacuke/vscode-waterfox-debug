@@ -3,6 +3,7 @@ import { ISourceActorProxy } from '../firefox/index';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { Source } from 'vscode-debugadapter';
 import { ThreadAdapter, Registry, BreakpointInfo, BreakpointAdapter } from './index';
+import { OldProtocolBreakpointAdapter, NewProtocolBreakpointAdapter } from './misc';
 
 const log = Log.create('SourceAdapter');
 
@@ -21,7 +22,8 @@ export class SourceAdapter {
 		sourceRegistry: Registry<SourceAdapter>,
 		public actor: ISourceActorProxy,
 		public readonly sourcePath: string | undefined,
-		private readonly threadAdapter: ThreadAdapter
+		public readonly threadAdapter: ThreadAdapter,
+		private readonly newBreakpointProtocol: boolean
 	) {
 		this.id = sourceRegistry.register(this);
 		this.source = SourceAdapter.createSource(actor, sourcePath, this.id);
@@ -64,13 +66,17 @@ export class SourceAdapter {
 
 	public findBreakpointAdapterForActorName(actorName: string): BreakpointAdapter | undefined {
 		return this.currentBreakpoints.find(
-			breakpointAdapter => (breakpointAdapter.actor.name === actorName)
+			breakpointAdapter => (breakpointAdapter.actorName === actorName)
 		);
 	}
 
 	private checkAndSyncBreakpoints(): void {
 		if ((this.desiredBreakpoints !== undefined) && !this.isSyncingBreakpoints) {
-			this.threadAdapter.coordinator.runOnPausedThread(() => this.syncBreakpoints());
+			if (this.newBreakpointProtocol) {
+				this.syncBreakpoints();
+			} else {
+				this.threadAdapter.coordinator.runOnPausedThread(() => this.syncBreakpoints());
+			}
 		}
 	}
 
@@ -96,7 +102,7 @@ export class SourceAdapter {
 		if (log.isDebugEnabled) log.debug(`Going to delete ${breakpointsToDelete.length} breakpoints`);
 
 		const deletionPromises = breakpointsToDelete.map(
-			breakpointAdapter => breakpointAdapter.actor.delete()
+			breakpointAdapter => breakpointAdapter.delete()
 		);
 
 		await Promise.all(deletionPromises);
@@ -110,36 +116,114 @@ export class SourceAdapter {
 
 		if (log.isDebugEnabled) log.debug(`Going to add ${breakpointsToAdd.length} breakpoints`);
 
-		const additionPromises = breakpointsToAdd.map(
-			breakpointInfo => this.actor.setBreakpoint({ 
-				line: breakpointInfo.requestedBreakpoint.line,
-				column: breakpointInfo.requestedBreakpoint.column
-			}, breakpointInfo.requestedBreakpoint.condition)
-		);
+		let addedBreakpoints: BreakpointAdapter[];
+		if (this.newBreakpointProtocol) {
 
-		const additionResults = await Promise.all(additionPromises);
+			const breakpointPositions = await this.actor.getBreakpointPositions();
 
-		const breakpointsManager = this.threadAdapter.debugSession.breakpointsManager;
+			const additionPromises = breakpointsToAdd.map(
+				async breakpointInfo => {
 
-		const addedBreakpoints = additionResults.map(
-			(setBreakpointResult, index) => {
+					const actualLocation = this.findBreakpointPosition(
+						breakpointInfo.requestedBreakpoint.line,
+						breakpointInfo.requestedBreakpoint.column || 0,
+						breakpointPositions
+					);
+					breakpointInfo.actualLine = actualLocation.line;
+					breakpointInfo.actualColumn = actualLocation.column;
 
-				const desiredBreakpoint = breakpointsToAdd[index];
-				const actualLocation = setBreakpointResult.actualLocation;
-				const actualLine = actualLocation ? actualLocation.line : desiredBreakpoint.requestedBreakpoint.line;
-				const actualColumn = actualLocation ? actualLocation.column : desiredBreakpoint.requestedBreakpoint.column;
+					await this.threadAdapter.actor.setBreakpoint(
+						breakpointInfo.actualLine,
+						breakpointInfo.actualColumn,
+						this.actor.url!
+					);
+				}
+			);
+	
+			await Promise.all(additionPromises);
+	
+			const breakpointsManager = this.threadAdapter.debugSession.breakpointsManager;
+	
+			addedBreakpoints = breakpointsToAdd.map(
+				breakpointInfo => {
+	
+					breakpointsManager.verifyBreakpoint(
+						breakpointInfo, 
+						breakpointInfo.actualLine,
+						breakpointInfo.actualColumn
+					);
+	
+					return new NewProtocolBreakpointAdapter(breakpointInfo, this);
+				}
+			);
 
-				breakpointsManager.verifyBreakpoint(desiredBreakpoint, actualLine, actualColumn);
+		} else {
 
-				return new BreakpointAdapter(desiredBreakpoint, setBreakpointResult.breakpointActor);
-			}
-		);
+			const additionPromises = breakpointsToAdd.map(
+				breakpointInfo => this.actor.setBreakpoint({ 
+					line: breakpointInfo.requestedBreakpoint.line,
+					column: breakpointInfo.requestedBreakpoint.column
+				}, breakpointInfo.requestedBreakpoint.condition)
+			);
+	
+			const additionResults = await Promise.all(additionPromises);
+	
+			const breakpointsManager = this.threadAdapter.debugSession.breakpointsManager;
+	
+			addedBreakpoints = additionResults.map(
+				(setBreakpointResult, index) => {
+	
+					const desiredBreakpoint = breakpointsToAdd[index];
+					const actualLocation = setBreakpointResult.actualLocation;
+					const actualLine = actualLocation ? actualLocation.line : desiredBreakpoint.requestedBreakpoint.line;
+					const actualColumn = actualLocation ? actualLocation.column : desiredBreakpoint.requestedBreakpoint.column;
+	
+					breakpointsManager.verifyBreakpoint(desiredBreakpoint, actualLine, actualColumn);
+	
+					return new OldProtocolBreakpointAdapter(desiredBreakpoint, setBreakpointResult.breakpointActor);
+				}
+			);
+		}
 
 
 		this.currentBreakpoints = breakpointsToKeep.concat(addedBreakpoints);
 		this.isSyncingBreakpoints = false;
 
 		this.checkAndSyncBreakpoints();
+	}
+
+	private findBreakpointPosition(
+		requestedLine: number,
+		requestedColumn: number,
+		breakpointPositions: FirefoxDebugProtocol.BreakpointPositions
+	): { line: number, column: number } {
+
+		let line = Number.MAX_SAFE_INTEGER;
+		let lastLine = 0;
+		for (const l in breakpointPositions) {
+			const possibleLine = parseInt(l);
+			if ((possibleLine >= requestedLine) && (possibleLine < line)) {
+				line = possibleLine;
+			}
+			if (possibleLine > lastLine) {
+				lastLine = possibleLine;
+			}
+		}
+
+		if (line === Number.MAX_SAFE_INTEGER) {
+			line = lastLine;
+		}
+
+		if (line === requestedLine) {
+			for (const column of breakpointPositions[line]) {
+				if (column >= requestedColumn) {
+					return { line, column };
+				}
+			}
+		}
+
+		const column = breakpointPositions[line][0];
+		return { line, column };
 	}
 
 	public dispose(): void {

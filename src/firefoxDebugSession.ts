@@ -34,6 +34,8 @@ export class FirefoxDebugSession {
 	public firefoxDebugConnection: DebugConnection;
 	private firefoxDebugSocketClosed: boolean;
 
+	private newBreakpointProtocol = false;
+
 	public preferenceActor: PreferenceActorProxy;
 
 	public readonly tabs = new Registry<TabActorProxy>();
@@ -82,7 +84,11 @@ export class FirefoxDebugSession {
 			rootActor.fetchTabs();
 		});
 
-		rootActor.onInit(async () => {
+		rootActor.onInit(async (initialResponse) => {
+
+			if (initialResponse.traits.breakpointWhileRunning) {
+				this.newBreakpointProtocol = true;
+			}
 
 			// early beta versions of Firefox 60 sometimes stop working when we fetch the tabs too early
 			await delay(200);
@@ -416,7 +422,7 @@ export class FirefoxDebugSession {
 		}
 
 		const sourcePath = this.pathMapper.convertFirefoxSourceToPath(source);
-		sourceAdapter = threadAdapter.createSourceAdapter(sourceActor, sourcePath);
+		sourceAdapter = threadAdapter.createSourceAdapter(sourceActor, sourcePath, this.newBreakpointProtocol);
 
 		this.sendNewSourceEvent(threadAdapter, sourceAdapter);
 
