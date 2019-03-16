@@ -15,12 +15,23 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 		return this.source.url!;
 	}
 
+	private getBreakpointPositionsPromise?: Promise<FirefoxDebugProtocol.BreakpointPositions>;
+
 	public constructor(
 		public readonly source: FirefoxDebugProtocol.Source,
 		private readonly sourceMappingInfo: SourceMappingInfo
 	) {}
 
 	public async getBreakpointPositions(): Promise<FirefoxDebugProtocol.BreakpointPositions> {
+
+		if (!this.getBreakpointPositionsPromise) {
+			this.getBreakpointPositionsPromise = this.getBreakpointPositionsInt();
+		}
+
+		return this.getBreakpointPositionsPromise;
+	}
+
+	private async getBreakpointPositionsInt(): Promise<FirefoxDebugProtocol.BreakpointPositions> {
 
 		if (log.isDebugEnabled) log.debug(`Fetching generated breakpoint positions for ${this.url}`);
 		let generatedBreakpointPositions = await this.sourceMappingInfo.underlyingSource.getBreakpointPositions();

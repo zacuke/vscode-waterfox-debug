@@ -1,6 +1,6 @@
 import { Log } from '../../util/log';
 import { DebugConnection } from '../connection';
-import { PendingRequests } from '../../util/pendingRequests';
+import { PendingRequests, PendingRequest } from '../../util/pendingRequests';
 import { ActorProxy } from './interface';
 import { BreakpointActorProxy } from './breakpoint';
 
@@ -31,7 +31,8 @@ export class SetBreakpointResult {
 
 export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 
-	private pendingGetBreakpointPositionsRequests = new PendingRequests<FirefoxDebugProtocol.BreakpointPositions>();
+	private pendingGetBreakpointPositionsRequest?: PendingRequest<FirefoxDebugProtocol.BreakpointPositions>;
+	private getBreakpointPositionsPromise?: Promise<FirefoxDebugProtocol.BreakpointPositions>;
 	private pendingSetBreakpointRequests = new PendingRequests<SetBreakpointResult>();
 	private pendingFetchSourceRequests = new PendingRequests<FirefoxDebugProtocol.Grip>();
 	private pendingBlackboxRequests = new PendingRequests<void>();
@@ -52,13 +53,16 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 	}
 
 	public getBreakpointPositions(): Promise<FirefoxDebugProtocol.BreakpointPositions> {
+		if (!this.getBreakpointPositionsPromise) {
+			log.debug(`Fetching breakpointPositions of ${this.url}`);
 
-		log.debug(`Fetching breakpointPositions of ${this.url}`);
+			this.getBreakpointPositionsPromise = new Promise<FirefoxDebugProtocol.BreakpointPositions>((resolve, reject) => {
+				this.pendingGetBreakpointPositionsRequest = { resolve, reject };
+				this.connection.sendRequest({ to: this.name, type: 'getBreakpointPositionsCompressed' });
+			});
+		}
 
-		return new Promise<FirefoxDebugProtocol.BreakpointPositions>((resolve, reject) => {
-			this.pendingGetBreakpointPositionsRequests.enqueue({ resolve, reject });
-			this.connection.sendRequest({ to: this.name, type: 'getBreakpointPositionsCompressed' });
-		});
+		return this.getBreakpointPositionsPromise;
 	}
 
 	public setBreakpoint(
@@ -106,8 +110,14 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 		if (response['positions'] !== undefined) {
 
 			log.debug('Received getBreakpointPositions response');
+
 			let breakpointPositionsResponse = <FirefoxDebugProtocol.GetBreakpointPositionsCompressedResponse>response;
-			this.pendingGetBreakpointPositionsRequests.resolveOne(breakpointPositionsResponse.positions);
+			if (this.pendingGetBreakpointPositionsRequest) {
+				this.pendingGetBreakpointPositionsRequest.resolve(breakpointPositionsResponse.positions);
+				this.pendingGetBreakpointPositionsRequest = undefined;
+			} else {
+				log.warn(`Got BreakpointPositions ${this.url} without a corresponding request`);
+			}
 
 		} else if (response['isPending'] !== undefined) {
 
