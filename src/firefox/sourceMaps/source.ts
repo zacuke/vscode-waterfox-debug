@@ -46,7 +46,8 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 					column: generatedColumn
 				});
 
-				if ((originalLocation.line !== null) && (originalLocation.column !== null)) {
+				if ((originalLocation.line !== null) && (originalLocation.column !== null) &&
+					(originalLocation.source === this.url)) {
 
 					if (originalBreakpointPositions[originalLocation.line] === undefined) {
 						originalBreakpointPositions[originalLocation.line] = [];
