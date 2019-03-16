@@ -15,7 +15,7 @@ export interface IThreadActorProxy {
 	detach(): Promise<void>;
 	fetchSources(): Promise<FirefoxDebugProtocol.Source[]>;
 	fetchStackFrames(start?: number, count?: number): Promise<FirefoxDebugProtocol.Frame[]>;
-	setBreakpoint(line: number, column: number, sourceUrl: string): Promise<void>;
+	setBreakpoint(line: number, column: number, sourceUrl: string, condition?: string): Promise<void>;
 	removeBreakpoint(line: number, column: number, sourceUrl: string): Promise<void>;
 	findOriginalLocation(generatedUrl: string, line: number, column?: number): Promise<UrlLocation | undefined>
 	onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedResponse) => void): void;
@@ -167,14 +167,15 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 		return this.detachPromise;
 	}
 
-	public setBreakpoint(line: number, column: number, sourceUrl: string): Promise<void> {
+	public setBreakpoint(line: number, column: number, sourceUrl: string, condition?: string): Promise<void> {
 		log.debug(`Setting breakpoint at ${line}:${column} in ${sourceUrl}`);
 
 		return new Promise<void>((resolve, reject) => {
 			this.pendingSetOrRemoveBreakpointRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({
 				to: this.name, type: 'setBreakpoint',
-				location: { line, column, sourceUrl }
+				location: { line, column, sourceUrl },
+				options: { condition }
 			});
 		})
 	}

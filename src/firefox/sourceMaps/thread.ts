@@ -205,7 +205,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		}
 	}
 
-	public async setBreakpoint(line: number, column: number, sourceUrl: string): Promise<void> {
+	public async setBreakpoint(line: number, column: number, sourceUrl: string, condition?: string): Promise<void> {
 
 		if (log.isDebugEnabled) log.debug(`Computing generated location for ${line}:${column} in ${sourceUrl}`);
 		let generatedLocation = await this.findGeneratedLocation(sourceUrl, line, column);
@@ -216,7 +216,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 			return;
 		}
 
-		await this.underlyingActorProxy.setBreakpoint(generatedLocation.line, generatedLocation.column!, generatedLocation.url);
+		await this.underlyingActorProxy.setBreakpoint(generatedLocation.line, generatedLocation.column!, generatedLocation.url, condition);
 	}
 
 	public async removeBreakpoint(line: number, column: number, sourceUrl: string): Promise<void> {

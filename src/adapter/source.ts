@@ -135,7 +135,8 @@ export class SourceAdapter {
 					await this.threadAdapter.actor.setBreakpoint(
 						breakpointInfo.actualLine,
 						breakpointInfo.actualColumn,
-						this.actor.url!
+						this.actor.url!,
+						breakpointInfo.requestedBreakpoint.condition
 					);
 				}
 			);
