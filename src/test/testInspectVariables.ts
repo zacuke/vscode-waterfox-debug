@@ -77,6 +77,23 @@ describe('Inspecting variables: The debugger', function() {
 	it('should inspect return values on stepping out', async function() {
 
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ 71 ]);
+
+		util.evaluate(dc, 'doEval(17)');
+		let stoppedEvent = await util.receiveStoppedEvent(dc);
+		let threadId = stoppedEvent.body.threadId!;
+
+		await dc.stepOutRequest({ threadId });
+		await util.receiveStoppedEvent(dc);
+		let stackTrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId! });
+		let scopes = await dc.scopesRequest({ frameId: stackTrace.body.stackFrames[0].id });
+		let variables = await dc.variablesRequest({ variablesReference: scopes.body.scopes[0].variablesReference });
+		assert.equal(util.findVariable(variables.body.variables, 'Return value').value, 17);
+	});
+
+	it.skip('should inspect return values on stepping out of recursive functions', async function() {
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await util.setBreakpoints(dc, sourcePath, [ 25 ]);
 
 		util.evaluate(dc, 'factorial(4)');

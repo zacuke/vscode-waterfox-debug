@@ -14,7 +14,7 @@ export async function testSourcemaps(
 	let fPath = path.join(srcDir, 'f.js');
 	let gPath = path.join(srcDir, 'g.js');
 
-	util.setBreakpoints(dc, fPath, [ 7 ]);
+	await util.setBreakpoints(dc, fPath, [ 7 ]);
 
 	let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc, () =>
 		util.evaluateDelayed(dc, 'f()', 0));
@@ -29,7 +29,9 @@ export async function testSourcemaps(
 	await checkDebuggeeState(dc, threadId, gPath, 5, 'y', '2');
 
 	await util.runCommandAndReceiveStoppedEvent(dc, () => dc.stepOutRequest({ threadId }));
-	await util.runCommandAndReceiveStoppedEvent(dc, () => dc.stepOutRequest({ threadId }));
+	if (process.env['NEW_BREAKPOINT_PROTOCOL'] !== 'true') {
+		await util.runCommandAndReceiveStoppedEvent(dc, () => dc.stepOutRequest({ threadId }));
+	}
 
 	await checkDebuggeeState(dc, threadId, fPath, 8, 'x', '4');
 

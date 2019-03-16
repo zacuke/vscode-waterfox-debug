@@ -76,13 +76,6 @@ describe('Stepping: The debugger', function() {
 
 		stackTrace = await dc.stackTraceRequest({ threadId });
 		assert.equal(stackTrace.body.stackFrames[0].source!.path, sourcePath);
-		assert.equal(stackTrace.body.stackFrames[0].line, 5);
-
-		dc.stepOutRequest({ threadId });
-		await util.receiveStoppedEvent(dc);
-
-		stackTrace = await dc.stackTraceRequest({ threadId });
-		assert.equal(stackTrace.body.stackFrames[0].source!.path, sourcePath);
 		assert.equal(stackTrace.body.stackFrames[0].line, 21);
 	});
 

@@ -135,7 +135,7 @@ describe('Setting breakpoints: The debugger', function() {
 		assert.equal(setBreakpointsResponse.body.breakpoints[0].verified, false);
 		assert.equal(setBreakpointsResponse.body.breakpoints[1].verified, false);
 
-		await delay(100);
+		await delay(200);
 
 		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc, 
 			() => util.evaluate(dc, 'vars()')

@@ -1,5 +1,5 @@
 function dummyFunc() {
-	let dummy;
+	let dummy = 0;
 }
 function throwError() {
 	throw new Error();

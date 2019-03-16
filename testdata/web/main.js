@@ -1,6 +1,6 @@
 function noop() {
 
-	let dummy;
+	let dummy = 0;
 
 }
 

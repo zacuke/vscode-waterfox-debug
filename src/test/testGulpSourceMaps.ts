@@ -49,6 +49,12 @@ describe('Gulp sourcemaps: The debugger', function() {
 			continue;
 		}
 
+		// server-side source-maps are not supported with Firefox >= 67.0
+		if ((process.env['NEW_BREAKPOINT_PROTOCOL'] === 'true') && (sourceMaps === 'server')) {
+			it.skip(descr);
+			continue;
+		}
+
 		it(descr, async function() {
 
 			let { targetDir, srcDir, buildDir } = await prepareTargetDir(bundleScripts, separateBuildDir);
