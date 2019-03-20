@@ -86,7 +86,7 @@ export class FirefoxDebugSession {
 
 		rootActor.onInit(async (initialResponse) => {
 
-			if (initialResponse.traits.breakpointWhileRunning) {
+			if (initialResponse.traits.nativeLogpoints) {
 				this.newBreakpointProtocol = true;
 			}
 
