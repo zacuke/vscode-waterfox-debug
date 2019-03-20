@@ -1,3 +1,6 @@
+### Version 1.7.8
+* fix for Firefox 66
+
 ### Version 1.7.7
 * fix for debug protocol changes in Firefox 67
 
