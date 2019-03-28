@@ -134,6 +134,23 @@ export function receiveStoppedEvent(dc: DebugClient): Promise<DebugProtocol.Even
 	return dc.waitForEvent('stopped', 10000);
 }
 
+export function collectOutputEvents(dc: DebugClient, count: number): Promise<DebugProtocol.OutputEvent[]> {
+	return new Promise<DebugProtocol.OutputEvent[]>(resolve => {
+
+		const outputEvents: DebugProtocol.OutputEvent[] = [];
+
+		function listener(event: DebugProtocol.OutputEvent) {
+			outputEvents.push(event);
+			if (outputEvents.length >= count) {
+				dc.removeListener('output', listener);
+				resolve(outputEvents);
+			}
+		}
+
+		dc.addListener('output', listener);
+	});
+}
+
 export async function runCommandAndReceiveStoppedEvent(dc: DebugClient, command: () => void): Promise<DebugProtocol.Event> {
 	let stoppedEventPromise = dc.waitForEvent('stopped', 10000);
 	command();

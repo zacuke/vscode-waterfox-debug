@@ -1,4 +1,3 @@
-import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugClient } from 'vscode-debugadapter-testsupport';
 import * as path from 'path';
 import * as util from './util';
@@ -160,11 +159,8 @@ describe('Hitting breakpoints: The debugger', function() {
 		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await util.setBreakpoints(dc, sourcePath, [ { line: 24, logMessage: 'factorial({n})' } ]);
 
-		const outputEvents: DebugProtocol.OutputEvent[] = [];
 		util.evaluate(dc, 'factorial(3)');
-		for (let i = 0; i < 3; i++) {
-			outputEvents.push(<DebugProtocol.OutputEvent> await dc.waitForEvent('output'));
-		}
+		const outputEvents = await util.collectOutputEvents(dc, 3);
 
 		assert.equal(outputEvents[0].body.output.trimRight(), 'factorial(3)');
 		assert.equal(outputEvents[1].body.output.trimRight(), 'factorial(2)');
