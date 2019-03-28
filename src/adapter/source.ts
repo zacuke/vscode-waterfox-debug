@@ -132,11 +132,17 @@ export class SourceAdapter {
 					breakpointInfo.actualLine = actualLocation.line;
 					breakpointInfo.actualColumn = actualLocation.column;
 
+					let logValue: string | undefined;
+					if (breakpointInfo.requestedBreakpoint.logMessage) {
+						logValue = `\`${breakpointInfo.requestedBreakpoint.logMessage.replace('{', '${')}\``;
+					}
+
 					await this.threadAdapter.actor.setBreakpoint(
 						breakpointInfo.actualLine,
 						breakpointInfo.actualColumn,
 						this.actor.url!,
-						breakpointInfo.requestedBreakpoint.condition
+						breakpointInfo.requestedBreakpoint.condition,
+						logValue
 					);
 				}
 			);
