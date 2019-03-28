@@ -161,7 +161,7 @@ describe('Setting breakpoints: The debugger', function() {
 		assert.equal(setBreakpointsResponse.body.breakpoints.length, 0);
 	});
 
-	it('should change the condition on an already set breakpoint', async function() {
+	it('should add a condition to an already set breakpoint', async function() {
 
 		await util.receivePageLoadedEvent(dc);
 
@@ -193,5 +193,28 @@ describe('Setting breakpoints: The debugger', function() {
 		variablesResponse = await dc.variablesRequest({ variablesReference: scopes.body.scopes[0].variablesReference });
 		variables = variablesResponse.body.variables;
 		assert.equal(util.findVariable(variables, 'n').value, '2');
+	});
+
+	it('should add a logMessage to an already set breakpoint', async function() {
+
+		await util.receivePageLoadedEvent(dc);
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ { line: 24 } ]);
+
+		let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc, 
+			() => util.evaluate(dc, 'factorial(0)')
+		);
+		let threadId = stoppedEvent.body.threadId!;
+		await dc.continueRequest({ threadId });
+
+		await util.setBreakpoints(dc, sourcePath, [ { line: 24, logMessage: 'factorial({n})' } ]);
+
+		util.evaluate(dc, 'factorial(3)');
+		const outputEvents = await util.collectOutputEvents(dc, 3);
+
+		assert.equal(outputEvents[0].body.output.trimRight(), 'factorial(3)');
+		assert.equal(outputEvents[1].body.output.trimRight(), 'factorial(2)');
+		assert.equal(outputEvents[2].body.output.trimRight(), 'factorial(1)');
 	});
 });

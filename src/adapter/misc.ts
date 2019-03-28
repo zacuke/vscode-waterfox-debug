@@ -22,7 +22,8 @@ export class BreakpointInfo {
 		const bp1 = this.requestedBreakpoint;
 		const bp2 = (other instanceof BreakpointInfo) ? other.requestedBreakpoint : other;
 
-		return (bp1.line === bp2.line) && (bp1.column === bp2.column) && (bp1.condition === bp2.condition);
+		return (bp1.line === bp2.line) && (bp1.column === bp2.column) &&
+			(bp1.condition === bp2.condition) && (bp1.logMessage === bp2.logMessage);
 	}
 }
 
