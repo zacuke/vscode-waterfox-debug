@@ -7,7 +7,7 @@ import { Log } from '../../util/log';
 import { PathMapper } from '../../util/pathMapper';
 import { getUri, urlDirname, canGetUri } from '../../util/net';
 import { DebugConnection, ISourceActorProxy, SourceActorProxy, SourceMappingSourceActorProxy } from '../index';
-import { IThreadActorProxy, ExceptionBreakpoints, UrlLocation } from '../actorProxy/thread';
+import { IThreadActorProxy, ExceptionBreakpoints, UrlLocation, AttachOptions } from '../actorProxy/thread';
 import { SourceMappingInfo } from './info';
 
 let log = Log.create('SourceMappingThreadActorProxy');
@@ -233,12 +233,16 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		await this.underlyingActorProxy.removeBreakpoint(generatedLocation.line, generatedLocation.column!, generatedLocation.url);
 	}
 
-	public attach(): Promise<void> {
-		return this.underlyingActorProxy.attach(false);
+	public pauseOnExceptions(pauseOnExceptions: boolean, ignoreCaughtExceptions: boolean): Promise<void> {
+		return this.underlyingActorProxy.pauseOnExceptions(pauseOnExceptions, ignoreCaughtExceptions);
+	}
+
+	public attach(options: AttachOptions): Promise<void> {
+		return this.underlyingActorProxy.attach(options);
 	}
 
 	public resume(
-		exceptionBreakpoints: ExceptionBreakpoints,
+		exceptionBreakpoints: ExceptionBreakpoints | undefined,
 		resumeLimitType?: "next" | "step" | "finish" | undefined
 	): Promise<void> {
 		return this.underlyingActorProxy.resume(exceptionBreakpoints, resumeLimitType);

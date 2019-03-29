@@ -34,7 +34,8 @@ export class FirefoxDebugSession {
 	public firefoxDebugConnection: DebugConnection;
 	private firefoxDebugSocketClosed: boolean;
 
-	private newBreakpointProtocol = false;
+	private _newBreakpointProtocol = false;
+	public get newBreakpointProtocol(): boolean { return this._newBreakpointProtocol; }
 
 	public preferenceActor: PreferenceActorProxy;
 
@@ -87,7 +88,7 @@ export class FirefoxDebugSession {
 		rootActor.onInit(async (initialResponse) => {
 
 			if (initialResponse.traits.nativeLogpoints) {
-				this.newBreakpointProtocol = true;
+				this._newBreakpointProtocol = true;
 			}
 
 			// early beta versions of Firefox 60 sometimes stop working when we fetch the tabs too early

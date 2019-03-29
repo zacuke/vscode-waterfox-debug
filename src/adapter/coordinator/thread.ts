@@ -13,7 +13,7 @@ type ThreadTarget = 'paused' | 'running' | 'stepOver' | 'stepIn' | 'stepOut';
 
 export class ThreadCoordinator extends EventEmitter {
 
-	private exceptionBreakpoints: ExceptionBreakpoints;
+	private exceptionBreakpoints: ExceptionBreakpoints | undefined;
 
 	private threadState: ThreadState = 'paused';
 

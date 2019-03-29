@@ -6,6 +6,7 @@ import { Log } from '../util/log';
 import { FirefoxDebugSession } from "../firefoxDebugSession";
 import { pathsAreEqual } from '../util/misc';
 import { Location } from '../firefox/actorProxy/source';
+import { AttachOptions } from '../firefox/actorProxy/thread';
 
 let log = Log.create('ThreadAdapter');
 
@@ -135,11 +136,17 @@ export class ThreadAdapter extends EventEmitter {
 
 	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
 
-		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
+		const attachOptions: AttachOptions = {};
+		if (this.debugSession.newBreakpointProtocol) {
+			attachOptions.pauseOnExceptions = (exceptionBreakpoints !== ExceptionBreakpoints.None);
+			attachOptions.ignoreCaughtExceptions = (exceptionBreakpoints !== ExceptionBreakpoints.All);
+		} else {
+			this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
+		}
 
 		await this.pauseCoordinator.requestInterrupt(this.id, this.name, 'auto');
 		try {
-			await this.actor.attach();
+			await this.actor.attach(attachOptions);
 			this.pauseCoordinator.notifyInterrupted(this.id, this.name, 'auto');
 		} catch(e) {
 			this.pauseCoordinator.notifyInterruptFailed(this.id, this.name);
@@ -258,7 +265,13 @@ export class ThreadAdapter extends EventEmitter {
 	}
 
 	public setExceptionBreakpoints(exceptionBreakpoints: ExceptionBreakpoints) {
-		this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
+		if (this.debugSession.newBreakpointProtocol) {
+			const pauseOnExceptions = (exceptionBreakpoints !== ExceptionBreakpoints.None);
+			const ignoreCaughtExceptions = (exceptionBreakpoints !== ExceptionBreakpoints.All);
+			this.actor.pauseOnExceptions(pauseOnExceptions, ignoreCaughtExceptions);
+		} else {
+			this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
+		}
 	}
 
 	private fetchAllStackFrames(): Promise<FrameAdapter[]> {
