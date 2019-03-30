@@ -290,9 +290,8 @@ popup auto-hide" (`extension.firefox.enablePopupAutohide` / `disablePopupAutohid
   (enabled by default when debugging a WebExtension)
 * `sourceMaps`: The Firefox developers have moved the handling of source-maps to the client side of
   the debugging protocol and this extension was adapted to this change. You can get back the old
-  source-mapping implementation by setting this property to `server`.
-  Note that there is a known issue with the new implementation when debugging minified code
-  (see [this bug report](https://bugzilla.mozilla.org/show_bug.cgi?id=1373632)).
+  source-mapping implementation by setting this property to `server`, but this is only supported
+  in Firefox before version 66.
 * `liftAccessorsFromPrototypes`: If there are accessor properties (getters and setters) defined
   on an object's prototype chain, you can "lift" them so they are displayed on the object itself.
   This is usually necessary in order to execute the getters, because otherwise they would be
