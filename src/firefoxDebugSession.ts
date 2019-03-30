@@ -64,93 +64,102 @@ export class FirefoxDebugSession {
 	}
 
 	public async start(): Promise<void> {
+		return new Promise<void>(async (resolve, reject) => {
 
-		let socket = await this.connectToFirefox();
+			let socket = await this.connectToFirefox();
 
-		this.firefoxDebugConnection = new DebugConnection(this.config.sourceMaps, this.pathMapper, socket);
-		this.firefoxDebugSocketClosed = false;
-		let rootActor = this.firefoxDebugConnection.rootActor;
-
-		// attach to all tabs, register the corresponding threads and inform VSCode about them
-		rootActor.onTabOpened(async ([tabActor, consoleActor]) => {
-			log.info(`Tab opened with url ${tabActor.url}`);
-			let tabId = this.tabs.register(tabActor);
-			let threadAdapter = await this.attachTabOrAddon(tabActor, consoleActor, `Tab ${tabId}`, tabId);
-			if (threadAdapter !== undefined) {
-				this.attachConsole(consoleActor, threadAdapter);
-			}
-		});
-
-		rootActor.onTabListChanged(() => {
-			rootActor.fetchTabs();
-		});
-
-		rootActor.onInit(async (initialResponse) => {
-
-			if (initialResponse.traits.nativeLogpoints) {
-				this._newBreakpointProtocol = true;
-			}
-
-			// early beta versions of Firefox 60 sometimes stop working when we fetch the tabs too early
-			await delay(200);
-
-			let actors = await rootActor.fetchTabs();
-
-			this.preferenceActor = actors.preference;
-
-			if (this.addonManager) {
-				this.addonManager.sessionStarted(rootActor, actors.addons, actors.preference, this);
-			}
-
-			this.reloadTabs = false;
-		});
-
-		socket.on('close', () => {
-			log.info('Connection to Firefox closed - terminating debug session');
-			this.firefoxDebugSocketClosed = true;
-			this.sendEvent(new TerminatedEvent());
-		});
-
-		if (this.config.reloadOnChange) {
-
-			this.reloadWatcher = chokidar.watch(this.config.reloadOnChange.watch, { 
-				ignored: this.config.reloadOnChange.ignore,
-				ignoreInitial: true
-			});
-
-			let reload: () => void;
-			if (this.config.addon) {
-
-				reload = () => {
-					if (this.addonManager) {
-						log.debug('Reloading add-on');
+			this.firefoxDebugConnection = new DebugConnection(this.config.sourceMaps, this.pathMapper, socket);
+			this.firefoxDebugSocketClosed = false;
+			let rootActor = this.firefoxDebugConnection.rootActor;
 	
-						this.addonManager.reloadAddon();
-					}
+			// attach to all tabs, register the corresponding threads and inform VSCode about them
+			rootActor.onTabOpened(async ([tabActor, consoleActor]) => {
+				log.info(`Tab opened with url ${tabActor.url}`);
+				let tabId = this.tabs.register(tabActor);
+				let threadAdapter = await this.attachTabOrAddon(tabActor, consoleActor, `Tab ${tabId}`, tabId);
+				if (threadAdapter !== undefined) {
+					this.attachConsole(consoleActor, threadAdapter);
+				}
+			});
+	
+			rootActor.onTabListChanged(() => {
+				rootActor.fetchTabs();
+			});
+	
+			rootActor.onInit(async (initialResponse) => {
+
+				if (initialResponse.traits.breakpointWhileRunning && (this.config.sourceMaps === 'server')) {
+					reject('Server-side sourcemaps are not supported in Firefox 66+ anymore');
+					return;
 				}
 
-			} else {
+				if (initialResponse.traits.nativeLogpoints) {
+					this._newBreakpointProtocol = true;
+				}
+	
+				// early beta versions of Firefox 60 sometimes stop working when we fetch the tabs too early
+				await delay(200);
+	
+				let actors = await rootActor.fetchTabs();
+	
+				this.preferenceActor = actors.preference;
+	
+				if (this.addonManager) {
+					this.addonManager.sessionStarted(rootActor, actors.addons, actors.preference, this);
+				}
+	
+				this.reloadTabs = false;
 
-				reload = () => {
-					log.debug('Reloading tabs');
-
-					for (let [, tabActor] of this.tabs) {
-						tabActor.reload();
+				resolve();
+			});
+	
+			socket.on('close', () => {
+				log.info('Connection to Firefox closed - terminating debug session');
+				this.firefoxDebugSocketClosed = true;
+				this.sendEvent(new TerminatedEvent());
+			});
+	
+			if (this.config.reloadOnChange) {
+	
+				this.reloadWatcher = chokidar.watch(this.config.reloadOnChange.watch, { 
+					ignored: this.config.reloadOnChange.ignore,
+					ignoreInitial: true
+				});
+	
+				let reload: () => void;
+				if (this.config.addon) {
+	
+					reload = () => {
+						if (this.addonManager) {
+							log.debug('Reloading add-on');
+		
+							this.addonManager.reloadAddon();
+						}
+					}
+	
+				} else {
+	
+					reload = () => {
+						log.debug('Reloading tabs');
+	
+						for (let [, tabActor] of this.tabs) {
+							tabActor.reload();
+						}
 					}
 				}
+	
+				if (this.config.reloadOnChange.debounce > 0) {
+					reload = debounce(reload, this.config.reloadOnChange.debounce);
+				}
+	
+				this.reloadWatcher.on('add', reload);
+				this.reloadWatcher.on('change', reload);
+				this.reloadWatcher.on('unlink', reload);
 			}
-
-			if (this.config.reloadOnChange.debounce > 0) {
-				reload = debounce(reload, this.config.reloadOnChange.debounce);
-			}
-
-			this.reloadWatcher.on('add', reload);
-			this.reloadWatcher.on('change', reload);
-			this.reloadWatcher.on('unlink', reload);
-		}
-
-		// now we are ready to accept breakpoints -> fire the initialized event to give UI a chance to set breakpoints
-		this.sendEvent(new InitializedEvent());
+	
+			// now we are ready to accept breakpoints -> fire the initialized event to give UI a chance to set breakpoints
+			this.sendEvent(new InitializedEvent());
+		});
 	}
 
 	public async stop(): Promise<void> {
