@@ -1,3 +1,6 @@
+### Version 1.7.9
+* further fixes for Firefox 67
+
 ### Version 1.7.8
 * fix for Firefox 66
 
