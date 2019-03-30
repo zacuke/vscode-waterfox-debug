@@ -12,7 +12,15 @@ export async function initDebugClient(
 
 	let dc = new DebugClient('node', './out/firefoxDebugAdapter.js', 'firefox');
 
-	let launchArgs = { request: 'launch', file: path.join(testDataPath, 'web/index.html') };
+	let launchArgs: LaunchConfiguration = {
+		request: 'launch',
+		file: path.join(testDataPath, 'web/index.html')
+	};
+
+	if (process.env['FIREFOX_EXECUTABLE']) {
+		launchArgs.firefoxExecutable = process.env['FIREFOX_EXECUTABLE'];
+	}
+
 	if (extraLaunchArgs !== undefined) {
 		launchArgs = Object.assign(launchArgs, extraLaunchArgs);
 	}
@@ -58,6 +66,10 @@ export async function initDebugClientForAddon(
 		dcArgs.file = path.join(testDataPath, `web/index.html`);
 	} else {
 		dcArgs.file = path.join(testDataPath, `${addonType}/index.html`);
+	}
+
+	if (process.env['FIREFOX_EXECUTABLE']) {
+		dcArgs.firefoxExecutable = process.env['FIREFOX_EXECUTABLE'];
 	}
 
 	let dc = new DebugClient('node', './out/firefoxDebugAdapter.js', 'firefox');

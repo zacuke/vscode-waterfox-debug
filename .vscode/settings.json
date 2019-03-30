@@ -12,6 +12,7 @@
 	"mochaExplorer.optsFile": "src/test/mocha.opts",
 	"mochaExplorer.env": {
 		"TS_NODE_FILES": "true",
+		"FIREFOX_EXECUTABLE": "",
 		"NEW_STEP_OUT_BEHAVIOR": "true",
 		"NEW_BREAKPOINT_PROTOCOL": "true"
 	}
