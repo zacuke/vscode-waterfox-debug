@@ -145,6 +145,9 @@ export class ThreadAdapter extends EventEmitter {
 	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
 
 		const attachOptions: AttachOptions = {};
+		if (this.debugSession.config.sourceMaps === 'server') {
+			attachOptions.useSourceMaps = true;
+		}
 		if (this.debugSession.newBreakpointProtocol) {
 			attachOptions.pauseOnExceptions = (exceptionBreakpoints !== ExceptionBreakpoints.None);
 			attachOptions.ignoreCaughtExceptions = (exceptionBreakpoints !== ExceptionBreakpoints.All);
