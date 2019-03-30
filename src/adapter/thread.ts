@@ -7,6 +7,7 @@ import { FirefoxDebugSession } from "../firefoxDebugSession";
 import { pathsAreEqual } from '../util/misc';
 import { Location } from '../firefox/actorProxy/source';
 import { AttachOptions } from '../firefox/actorProxy/thread';
+import { BreakpointAdapter } from './misc';
 
 let log = Log.create('ThreadAdapter');
 
@@ -51,14 +52,15 @@ export class ThreadAdapter extends EventEmitter {
 				((event.why.type === 'exception') &&
 				 (debugSession.config.sourceMaps === 'server'));
 
-			let sourceActor: string;
+			let sourceLocation: FirefoxDebugProtocol.SourceLocation;
 			if (!distrustSourceInPausedEvent) {
-				sourceActor = event.frame.where.actor || event.frame.where.source!.actor;
+				sourceLocation = event.frame.where;
 			} else {
 				let frames = await this.fetchAllStackFrames();
-				sourceActor = frames[0].frame.where.actor || frames[0].frame.where.source!.actor;
+				sourceLocation = frames[0].frame.where;
 			}
 
+			const sourceActor = sourceLocation.actor || sourceLocation.source!.actor;
 			const sourceAdapter = this.findSourceAdapterForActorName(sourceActor);
 
 			if (sourceAdapter) {
@@ -73,7 +75,13 @@ export class ThreadAdapter extends EventEmitter {
 				if ((event.why.type === 'breakpoint') &&
 					event.why.actors && (event.why.actors.length > 0)) {
 
-					const breakpointAdapter = sourceAdapter.findBreakpointAdapterForActorName(event.why.actors[0]);
+					let breakpointAdapter: BreakpointAdapter | undefined;
+					if (this.debugSession.newBreakpointProtocol) {
+						breakpointAdapter = sourceAdapter.findBreakpointAdapterForLocation(sourceLocation);
+					} else {
+						breakpointAdapter = sourceAdapter.findBreakpointAdapterForActorName(event.why.actors[0]);
+					}
+
 					if (breakpointAdapter) {
 
 						if (breakpointAdapter.breakpointInfo.hitCount) {
@@ -88,7 +96,7 @@ export class ThreadAdapter extends EventEmitter {
 						}
 
 						const logMessage = breakpointAdapter.breakpointInfo.requestedBreakpoint.logMessage;
-						if (logMessage) {
+						if (logMessage && !this.debugSession.newBreakpointProtocol) {
 
 							const frames = await this.fetchAllStackFrames();
 							const frameActor = (frames.length > 0) ? frames[0].frame.actor : undefined;

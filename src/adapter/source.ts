@@ -70,6 +70,14 @@ export class SourceAdapter {
 		);
 	}
 
+	public findBreakpointAdapterForLocation(location: FirefoxDebugProtocol.SourceLocation): BreakpointAdapter | undefined {
+		return this.currentBreakpoints.find(
+			breakpointAdapter => 
+				(breakpointAdapter.breakpointInfo.actualLine === location.line) &&
+				(breakpointAdapter.breakpointInfo.actualColumn === location.column)
+		);
+	}
+
 	private checkAndSyncBreakpoints(): void {
 		if ((this.desiredBreakpoints !== undefined) && !this.isSyncingBreakpoints) {
 			if (this.newBreakpointProtocol) {
