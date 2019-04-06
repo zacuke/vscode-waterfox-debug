@@ -6,6 +6,7 @@ import { SourceMapConsumer, RawSourceMap } from 'source-map';
 import { Log } from '../../util/log';
 import { PathMapper } from '../../util/pathMapper';
 import { getUri, urlDirname, canGetUri } from '../../util/net';
+import { PendingRequest } from '../../util/pendingRequests';
 import { DebugConnection, ISourceActorProxy, SourceActorProxy, SourceMappingSourceActorProxy } from '../index';
 import { IThreadActorProxy, ExceptionBreakpoints, UrlLocation, AttachOptions } from '../actorProxy/thread';
 import { SourceMappingInfo } from './info';
@@ -15,6 +16,7 @@ let log = Log.create('SourceMappingThreadActorProxy');
 export class SourceMappingThreadActorProxy extends EventEmitter implements IThreadActorProxy {
 
 	private sourceMappingInfos = new Map<string, Promise<SourceMappingInfo>>();
+	private pendingSources = new Map<string, PendingRequest<SourceMappingInfo>>();
 
 	public constructor(
 		private readonly underlyingActorProxy: IThreadActorProxy,
@@ -55,13 +57,30 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 
 		if (this.sourceMappingInfos.has(source.actor)) {
 
+			if (this.pendingSources.has(source.actor)) {
+
+				const pending = this.pendingSources.get(source.actor)!;
+				this.pendingSources.delete(source.actor);
+
+				(async () => {
+					try {
+
+						const sourceMappingInfos = await this.createSourceMappingInfo(source);
+						pending.resolve(sourceMappingInfos);
+
+					} catch(e) {
+						pending.reject(e);
+					}
+				})();
+			}
+
 			return this.sourceMappingInfos.get(source.actor)!;
 
 		} else {
 
-			let sourceMappingInfo = this.createSourceMappingInfo(source);
-			this.sourceMappingInfos.set(source.actor, sourceMappingInfo);
-			return sourceMappingInfo;
+			let sourceMappingInfoPromise = this.createSourceMappingInfo(source);
+			this.sourceMappingInfos.set(source.actor, sourceMappingInfoPromise);
+			return sourceMappingInfoPromise;
 		}
 	}
 
@@ -141,6 +160,24 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		return sourceMappingInfo;
 	}
 
+	private getSourceMappingInfo(actor: string): Promise<SourceMappingInfo> {
+
+		if (this.sourceMappingInfos.has(actor)) {
+
+			return this.sourceMappingInfos.get(actor)!;
+
+		} else {
+
+			const promise = new Promise<SourceMappingInfo>((resolve, reject) => {
+				this.pendingSources.set(actor, { resolve, reject });
+			});
+
+			this.sourceMappingInfos.set(actor, promise);
+
+			return promise;
+		}
+	}
+
 	public async fetchStackFrames(
 		start?: number,
 		count?: number
@@ -160,13 +197,9 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		if (source) {
 			sourceMappingInfo = await this.getOrCreateSourceMappingInfo(source);
 		} else {
-			const sourceMappingInfoPromise = this.sourceMappingInfos.get(frame.where.actor!);
-			if (sourceMappingInfoPromise) {
-				sourceMappingInfo = await sourceMappingInfoPromise;
-				source = sourceMappingInfo.underlyingSource.source;
-			} else {
-				log.warn(`Couldn't find SourceMappingInfo for ${frame.where.actor}`);
-			}
+			const sourceMappingInfoPromise = this.getSourceMappingInfo(frame.where.actor!);
+			sourceMappingInfo = await sourceMappingInfoPromise;
+			source = sourceMappingInfo.underlyingSource.source;
 		}
 
 		if (sourceMappingInfo && sourceMappingInfo.sourceMapUri && sourceMappingInfo.sourceMapConsumer) {

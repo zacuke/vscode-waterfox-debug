@@ -54,6 +54,12 @@ describe('Skipping files: The debugger', function() {
 	for (let sourceMaps of [ 'server', 'client' ]) {
 		it(`should skip exceptions in blackboxed source-mapped files thrown immediately after loading with source-maps handled by the ${sourceMaps}`, async function() {
 
+			// server-side source-maps are not supported with Firefox >= 66.0
+			if ((process.env['NEW_STEP_OUT_BEHAVIOR'] === 'true') && (sourceMaps === 'server')) {
+				this.skip();
+				return;
+			}
+
 			dc = await util.initDebugClient(TESTDATA_PATH, true, {
 				skipFiles: [ '**/exception-sourcemap.ts' ],
 				sourceMaps
