@@ -70,9 +70,9 @@ async function sendCustomRequest(command: string, args?: any): Promise<any> {
 		return await debugSession.customRequest(command, args);
 	} else {
 		if (debugSession) {
-			throw 'The active debug session is not of type "firefox"';
+			vscode.window.showErrorMessage('The active debug session is not of type "firefox"');
 		} else {
-			throw 'There is no active debug session';
+			vscode.window.showErrorMessage('There is no active debug session');
 		}
 	}
 }
