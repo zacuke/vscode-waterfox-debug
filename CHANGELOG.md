@@ -1,3 +1,7 @@
+### Version 1.7.10
+* bugfix: sometimes the exception view wasn't shown
+* further fixes for Firefox 67
+
 ### Version 1.7.9
 * further fixes for Firefox 67
 
