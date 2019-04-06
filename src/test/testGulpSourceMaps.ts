@@ -43,9 +43,9 @@ describe('Gulp sourcemaps: The debugger', function() {
 			`to their original sources in ${separateBuildDir ? 'a different' : 'the same'} directory ` +
 			`using an ${embedSourceMap ? 'embedded' : 'external'} source-map handled by the ${sourceMaps}`;
 
-		if (minifyScripts && (sourceMaps === 'client')) {
-			// tests with minified scripts and client-side source-maps disabled until Firefox bug #1373632 is fixed
-			it.skip(descr, function(){});
+		if ((process.env['NEW_STEP_OUT_BEHAVIOR'] !== 'true') && minifyScripts && (sourceMaps === 'client')) {
+			// tests with minified scripts and client-side source-maps disabled for Firefox < 66.0 due to Firefox bug #1373632
+			it.skip(descr);
 			continue;
 		}
 
@@ -121,7 +121,7 @@ function build(
 	return sourceMapUtil.waitForStreamEnd(
 		gulp.src(path.join(buildDir, separateBuildDir ? '../src/*.js' : '*.js'))
 		.pipe(sourcemaps.init())
-		.pipe(minifyScripts ? uglify({ mangle: false }) : nop())
+		.pipe(minifyScripts ? uglify({ mangle: false, compress: { sequences: false } }) : nop())
 		.pipe(bundleScripts ? concat('bundle.js') : rename((path) => { path.basename += '.min'; }))
 		.pipe(mapSources((srcPath) => separateBuildDir ? '../src/' + srcPath : srcPath))
 		.pipe(sourcemaps.write(embedSourceMap ? undefined : '.', { includeContent: false }))
