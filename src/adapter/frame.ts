@@ -35,26 +35,39 @@ export class FrameAdapter {
 		switch (this.frame.type) {
 
 			case 'call':
-				let callee = (<FirefoxDebugProtocol.CallFrame>this.frame).callee;
-				if ((typeof callee === 'object') && (callee.type === 'object') && 
-					((<FirefoxDebugProtocol.ObjectGrip>callee).class === 'Function')) {
+				const callFrame = this.frame as FirefoxDebugProtocol.CallFrame;
 
-					let functionGrip = (<FirefoxDebugProtocol.FunctionGrip>callee);
-					let calleeName = functionGrip.name || functionGrip.displayName;
-					name = (calleeName !== undefined) ? calleeName : '[anonymous function]';
+				if (callFrame.displayName) {
+
+					name = callFrame.displayName;
 
 				} else {
 
-					log.error(`Unexpected callee in call frame: ${JSON.stringify(callee)}`);
-					name = '[unknown]';
+					let callee = callFrame.callee;
+					if ((typeof callee === 'object') && (callee.type === 'object') &&
+						((<FirefoxDebugProtocol.ObjectGrip>callee).class === 'Function')) {
 
+						let functionGrip = (<FirefoxDebugProtocol.FunctionGrip>callee);
+						let calleeName = functionGrip.name || functionGrip.displayName;
+						name = (calleeName !== undefined) ? calleeName : '[anonymous function]';
+
+					} else {
+
+						if (this.threadAdapter.debugSession.newBreakpointProtocol) {
+							name = '[anonymous function]';
+						} else {
+							log.error(`Unexpected callee in call frame: ${JSON.stringify(callee)}`);
+							name = '[unknown]';
+						}
+
+					}
 				}
 				break;
 
 			case 'global':
 				name = '[Global]';
 				break;
-				
+
 			case 'eval':
 			case 'clientEvaluate':
 				name = '[eval]';

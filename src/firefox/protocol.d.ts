@@ -256,7 +256,8 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface CallFrame extends Frame {
-		callee: Grip;
+		callee?: Grip; // Firefox < 67.0
+		displayName?: string; // Firefox >= 67.0
 		arguments: Grip[];
 	}
 
