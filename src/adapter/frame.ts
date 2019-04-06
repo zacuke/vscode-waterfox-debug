@@ -83,7 +83,7 @@ export class FrameAdapter {
 				break;
 		}
 
-		return new StackFrame(this.id, name, sourceAdapter.source, this.frame.where.line, this.frame.where.column);
+		return new StackFrame(this.id, name, sourceAdapter.source, this.frame.where.line, this.frame.where.column || 1);
 	}
 
 	public dispose(): void {
