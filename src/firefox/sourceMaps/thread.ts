@@ -145,9 +145,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 
 		for (let origSource of sourceMapConsumer.sources) {
 
-			if (sourceRoot) {
-				origSource = url.resolve(sourceRoot, origSource);
-			}
+			origSource = sourceMappingInfo.resolveSource(origSource);
 
 			let sourceMappingSource = this.createOriginalSource(source, origSource, sourceMapUrl);
 

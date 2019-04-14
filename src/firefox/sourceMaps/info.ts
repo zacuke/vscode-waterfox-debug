@@ -1,9 +1,13 @@
 import * as url from 'url';
+import { isWindowsPlatform as detectWindowsPlatform } from '../../util/misc';
 import { ISourceActorProxy } from '../index';
 import { SourceMapConsumer, Position, MappedPosition, NullablePosition, NullableMappedPosition, BasicSourceMapConsumer } from 'source-map';
 
 let LEAST_UPPER_BOUND = SourceMapConsumer.LEAST_UPPER_BOUND;
 let GREATEST_LOWER_BOUND = SourceMapConsumer.GREATEST_LOWER_BOUND;
+
+const isWindowsPlatform = detectWindowsPlatform();
+const windowsAbsolutePathRegEx = /^[a-zA-Z]:\//;
 
 export class SourceMappingInfo {
 
@@ -66,8 +70,8 @@ export class SourceMappingInfo {
 			originalLocation = this.sourceMapConsumer.originalPositionFor(consumerArgs);
 		}
 
-		if (originalLocation.source && this.sourceRoot) {
-			originalLocation.source = url.resolve(this.sourceRoot, originalLocation.source);
+		if (originalLocation.source) {
+			originalLocation.source = this.resolveSource(originalLocation.source);
 		}
 
 		if ((this.underlyingSource.source.introductionType === 'wasm') && originalLocation.line) {
@@ -102,13 +106,36 @@ export class SourceMappingInfo {
 		}
 	}
 
+	public resolveSource(sourceUrl: string): string {
+
+			// some tools (e.g. create-react-app) use absolute _paths_ instead of _urls_ here,
+			// we work around this bug by converting anything that looks like an absolute path
+			// into a url
+			if (isWindowsPlatform)
+			{
+				if (windowsAbsolutePathRegEx.test(sourceUrl)) {
+					sourceUrl = encodeURI('file:///' + sourceUrl);
+				}
+			} else {
+				if (sourceUrl.startsWith('/')) {
+					sourceUrl = encodeURI('file://' + sourceUrl);
+				}
+			}
+
+			if (this.sourceRoot) {
+				sourceUrl = url.resolve(this.sourceRoot, sourceUrl);
+			}
+
+			return sourceUrl;
+	}
+
 	private findUnresolvedSource(resolvedSource: string): string | undefined {
 		if (!this.sourceMapConsumer) return undefined;
 
 		for (const source of this.sourceMapConsumer.sources) {
 
-			if ((source === resolvedSource) || 
-				(this.sourceRoot && (url.resolve(this.sourceRoot, source) === resolvedSource))) {
+			if ((source === resolvedSource) ||
+				(this.resolveSource(source) === resolvedSource)) {
 
 				return source;
 			}
