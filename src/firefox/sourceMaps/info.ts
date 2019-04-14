@@ -7,7 +7,7 @@ let LEAST_UPPER_BOUND = SourceMapConsumer.LEAST_UPPER_BOUND;
 let GREATEST_LOWER_BOUND = SourceMapConsumer.GREATEST_LOWER_BOUND;
 
 const isWindowsPlatform = detectWindowsPlatform();
-const windowsAbsolutePathRegEx = /^[a-zA-Z]:\//;
+const windowsAbsolutePathRegEx = /^[a-zA-Z]:[\/\\]/;
 
 export class SourceMappingInfo {
 
@@ -114,7 +114,7 @@ export class SourceMappingInfo {
 			if (isWindowsPlatform)
 			{
 				if (windowsAbsolutePathRegEx.test(sourceUrl)) {
-					sourceUrl = encodeURI('file:///' + sourceUrl);
+					sourceUrl = encodeURI('file:///' + sourceUrl.replace(/\\/g, '/'));
 				}
 			} else {
 				if (sourceUrl.startsWith('/')) {
