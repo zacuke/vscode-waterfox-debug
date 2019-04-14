@@ -1,9 +1,13 @@
 import { Log } from '../util/log';
+import { isWindowsPlatform as detectWindowsPlatform } from '../util/misc';
 import { SourceAdapter, ThreadAdapter, Registry, BreakpointInfo } from './index';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { Breakpoint, BreakpointEvent } from 'vscode-debugadapter';
 
-let log = Log.create('BreakpointsAdapter');
+let log = Log.create('BreakpointsManager');
+
+const isWindowsPlatform = detectWindowsPlatform();
+const windowsAbsolutePathRegEx = /^[a-zA-Z]:\\/;
 
 export class BreakpointsManager {
 
@@ -22,12 +26,13 @@ export class BreakpointsManager {
 
 		log.debug(`Setting ${breakpoints.length} breakpoints for ${sourcePathOrUrl}`);
 
-		const oldBreakpointInfos = this.breakpointsBySourcePathOrUrl.get(sourcePathOrUrl);
+		const key = this.createBreakpointInfoKey(sourcePathOrUrl);
+		const oldBreakpointInfos = this.breakpointsBySourcePathOrUrl.get(key);
 		const breakpointInfos = breakpoints.map(
 			breakpoint => this.getOrCreateBreakpointInfo(breakpoint, oldBreakpointInfos)
 		);
 
-		this.breakpointsBySourcePathOrUrl.set(sourcePathOrUrl, breakpointInfos);
+		this.breakpointsBySourcePathOrUrl.set(key, breakpointInfos);
 
 		for (const [, threadAdapter] of this.threads) {
 			const sourceAdapters = threadAdapter.findSourceAdaptersForPathOrUrl(sourcePathOrUrl);
@@ -62,10 +67,19 @@ export class BreakpointsManager {
 	public onNewSource(sourceAdapter: SourceAdapter) {
 		const sourcePath = sourceAdapter.sourcePath;
 		if (sourcePath !== undefined) {
-			const breakpointInfos = this.breakpointsBySourcePathOrUrl.get(sourcePath);
+			const key = this.createBreakpointInfoKey(sourcePath);
+			const breakpointInfos = this.breakpointsBySourcePathOrUrl.get(key);
 			if (breakpointInfos !== undefined) {
 				sourceAdapter.updateBreakpoints(breakpointInfos);
 			}
+		}
+	}
+
+	private createBreakpointInfoKey(sourcePathOrUrl: string): string {
+		if (isWindowsPlatform && windowsAbsolutePathRegEx.test(sourcePathOrUrl)) {
+			return sourcePathOrUrl.toLowerCase();
+		} else {
+			return sourcePathOrUrl;
 		}
 	}
 
