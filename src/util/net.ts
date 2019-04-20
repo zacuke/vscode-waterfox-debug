@@ -3,8 +3,8 @@ import * as fs from 'fs-extra';
 import * as net from 'net';
 import * as http from 'http';
 import * as https from 'https';
-import fileUriToPath = require('file-uri-to-path');
-import dataUriToBuffer = require('data-uri-to-buffer');
+import fileUriToPath from 'file-uri-to-path';
+import dataUriToBuffer from 'data-uri-to-buffer';
 import { Log } from "./log";
 import { delay } from './misc';
 

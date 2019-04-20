@@ -1,12 +1,12 @@
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs-extra';
-import FirefoxProfile = require('firefox-profile');
-import * as stripJsonComments from 'strip-json-comments';
+import FirefoxProfile from 'firefox-profile';
+import stripJsonComments from 'strip-json-comments';
 import { AddonType } from '../configuration';
 
 export function concatArrays<T>(arrays: T[][]): T[] {
-	return [].concat.apply([], arrays);
+	return ([] as T[]).concat.apply([], arrays);
 }
 
 export function delay(timeout: number): Promise<void> {

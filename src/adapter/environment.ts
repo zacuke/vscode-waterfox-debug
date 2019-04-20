@@ -4,19 +4,19 @@ import { FrameAdapter } from "./frame";
 
 let log = Log.create('EnvironmentAdapter');
 
-export abstract class EnvironmentAdapter {
-	
-	protected environment: FirefoxDebugProtocol.Environment;
-	protected parent: EnvironmentAdapter;
-	
-	public constructor(environment: FirefoxDebugProtocol.Environment) {
+export abstract class EnvironmentAdapter<T extends FirefoxDebugProtocol.Environment> {
+
+	protected environment: T;
+	protected parent?: EnvironmentAdapter<FirefoxDebugProtocol.Environment>;
+
+	public constructor(environment: T) {
 		this.environment = environment;
 		if (environment.parent !== undefined) {
 			this.parent = EnvironmentAdapter.from(environment.parent);
 		}
 	}
 
-	public static from(environment: FirefoxDebugProtocol.Environment): EnvironmentAdapter {
+	public static from(environment: FirefoxDebugProtocol.Environment): EnvironmentAdapter<FirefoxDebugProtocol.Environment> {
 		switch (environment.type) {
 			case 'object':
 				return new ObjectEnvironmentAdapter(<FirefoxDebugProtocol.ObjectEnvironment>environment);
@@ -26,7 +26,7 @@ export abstract class EnvironmentAdapter {
 				return new WithEnvironmentAdapter(<FirefoxDebugProtocol.WithEnvironment>environment);
 			case 'block':
 				return new BlockEnvironmentAdapter(<FirefoxDebugProtocol.BlockEnvironment>environment);
-			default: 
+			default:
 				throw new Error(`Unknown environment type ${environment.type}`);
 		}
 	}
@@ -57,9 +57,7 @@ export abstract class EnvironmentAdapter {
 	protected abstract getOwnScopeAdapter(frameAdapter: FrameAdapter): ScopeAdapter;
 }
 
-export class ObjectEnvironmentAdapter extends EnvironmentAdapter {
-
-	protected environment: FirefoxDebugProtocol.ObjectEnvironment;
+export class ObjectEnvironmentAdapter extends EnvironmentAdapter<FirefoxDebugProtocol.ObjectEnvironment> {
 
 	public constructor(environment: FirefoxDebugProtocol.ObjectEnvironment) {
 		super(environment);
@@ -68,7 +66,7 @@ export class ObjectEnvironmentAdapter extends EnvironmentAdapter {
 	protected getOwnScopeAdapter(frameAdapter: FrameAdapter): ScopeAdapter {
 
 		let grip = this.environment.object;
-		
+
 		if ((typeof grip === 'boolean') || (typeof grip === 'number') || (typeof grip === 'string')) {
 
 			throw new Error(`Object environment with unexpected grip of type ${typeof grip}`);
@@ -87,9 +85,7 @@ export class ObjectEnvironmentAdapter extends EnvironmentAdapter {
 	}
 }
 
-export class FunctionEnvironmentAdapter extends EnvironmentAdapter {
-
-	protected environment: FirefoxDebugProtocol.FunctionEnvironment;
+export class FunctionEnvironmentAdapter extends EnvironmentAdapter<FirefoxDebugProtocol.FunctionEnvironment> {
 
 	public constructor(environment: FirefoxDebugProtocol.FunctionEnvironment) {
 		super(environment);
@@ -99,7 +95,7 @@ export class FunctionEnvironmentAdapter extends EnvironmentAdapter {
 
 		let func = this.environment.function;
 		let scopeName: string;
-		if ((typeof func === 'object') && (func.type === 'object') && 
+		if ((typeof func === 'object') && (func.type === 'object') &&
 			((<FirefoxDebugProtocol.ObjectGrip>func).class === 'Function')) {
 
 			let funcName = (<FirefoxDebugProtocol.FunctionGrip>func).name;
@@ -116,9 +112,7 @@ export class FunctionEnvironmentAdapter extends EnvironmentAdapter {
 	}
 }
 
-export class WithEnvironmentAdapter extends EnvironmentAdapter {
-
-	protected environment: FirefoxDebugProtocol.WithEnvironment;
+export class WithEnvironmentAdapter extends EnvironmentAdapter<FirefoxDebugProtocol.WithEnvironment> {
 
 	public constructor(environment: FirefoxDebugProtocol.WithEnvironment) {
 		super(environment);
@@ -146,9 +140,7 @@ export class WithEnvironmentAdapter extends EnvironmentAdapter {
 	}
 }
 
-export class BlockEnvironmentAdapter extends EnvironmentAdapter {
-
-	protected environment: FirefoxDebugProtocol.BlockEnvironment;
+export class BlockEnvironmentAdapter extends EnvironmentAdapter<FirefoxDebugProtocol.BlockEnvironment> {
 
 	public constructor(environment: FirefoxDebugProtocol.BlockEnvironment) {
 		super(environment);

@@ -1,7 +1,7 @@
 import { Socket } from 'net';
 import { ChildProcess } from 'child_process';
 import * as chokidar from 'chokidar';
-import debounce = require('debounce');
+import debounce from 'debounce';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, ContinuedEvent, Event } from 'vscode-debugadapter';
 import { Log } from './util/log';
@@ -31,13 +31,13 @@ export class FirefoxDebugSession {
 	private threadPauseCoordinator = new ThreadPauseCoordinator();
 
 	private firefoxProc?: ChildProcess;
-	public firefoxDebugConnection: DebugConnection;
-	private firefoxDebugSocketClosed: boolean;
+	public firefoxDebugConnection!: DebugConnection;
+	private firefoxDebugSocketClosed = false;
 
 	private _newBreakpointProtocol = false;
 	public get newBreakpointProtocol(): boolean { return this._newBreakpointProtocol; }
 
-	public preferenceActor: PreferenceActorProxy;
+	public preferenceActor!: PreferenceActorProxy;
 
 	public readonly tabs = new Registry<TabActorProxy>();
 	public readonly threads = new Registry<ThreadAdapter>();
@@ -63,13 +63,12 @@ export class FirefoxDebugSession {
 		}
 	}
 
-	public async start(): Promise<void> {
+	public start(): Promise<void> {
 		return new Promise<void>(async (resolve, reject) => {
 
 			let socket = await this.connectToFirefox();
 
 			this.firefoxDebugConnection = new DebugConnection(this.config.sourceMaps, this.pathMapper, socket);
-			this.firefoxDebugSocketClosed = false;
 			let rootActor = this.firefoxDebugConnection.rootActor;
 	
 			// attach to all tabs, register the corresponding threads and inform VSCode about them

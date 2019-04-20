@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as uuid from 'uuid';
 import * as util from './util';
 import * as sourceMapUtil from './sourceMapUtil';
-import * as webpack from 'webpack';
+import webpack from 'webpack';
 import { DebugClient } from "vscode-debugadapter-testsupport";
 
 const TESTDATA_PATH = path.join(__dirname, '../../testdata/web/sourceMaps/modules');

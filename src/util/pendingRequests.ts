@@ -2,7 +2,7 @@ import { Log } from './log';
 
 let log = Log.create('PendingRequests');
 
-export class PendingRequest<T> {
+export interface PendingRequest<T> {
 	resolve: (t: T) => void;
 	reject: (err: any) => void;
 }

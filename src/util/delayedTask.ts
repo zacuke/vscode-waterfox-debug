@@ -5,8 +5,8 @@ let log = Log.create('DelayedTask');
 export class DelayedTask<T> {
 
 	private state: 'waiting' | 'running' | 'finished';
-	private resolve: (result: T) => void;
-	private reject: (reason?: any) => void;
+	private resolve!: (result: T) => void;
+	private reject!: (reason?: any) => void;
 
 	public readonly promise: Promise<T>;
 

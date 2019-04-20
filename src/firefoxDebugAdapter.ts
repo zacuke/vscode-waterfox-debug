@@ -13,7 +13,7 @@ let log = Log.create('FirefoxDebugAdapter');
 
 export class FirefoxDebugAdapter extends DebugAdapterBase {
 
-	private session: FirefoxDebugSession;
+	private session!: FirefoxDebugSession;
 
 	public constructor(debuggerLinesStartAt1: boolean, isServer: boolean = false) {
 		super(debuggerLinesStartAt1, isServer);

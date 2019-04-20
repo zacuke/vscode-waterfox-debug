@@ -3,16 +3,13 @@
 		"target": "es2015",
 		"lib": [ "es2015" ],
 		"module": "commonjs",
-		"importHelpers": true,
 		"outDir": "out",
+		"importHelpers": true,
 		"sourceMap": true,
-		"noImplicitAny": true,
-		"suppressImplicitAnyIndexErrors": true,
-		"noImplicitReturns": true,
-		"noImplicitThis": true,
 		"removeComments": true,
-		"strictNullChecks": true,
-		"noUnusedLocals": true
+		"strict": true,
+		"noImplicitReturns": true,
+		"esModuleInterop": true
 	},
 	"include": [
 		"src/firefoxDebugAdapter.ts",

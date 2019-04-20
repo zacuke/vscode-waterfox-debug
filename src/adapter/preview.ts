@@ -11,9 +11,11 @@ const maxParameters = 5;
 export function renderPreview(objectGrip: FirefoxDebugProtocol.ObjectGrip): string {
 	try {
 
-		if ((objectGrip.class === 'Function') || objectGrip['parameterNames']) {
+		if ((objectGrip.class === 'Function') || 
+			(objectGrip as FirefoxDebugProtocol.FunctionGrip).parameterNames) {
+
 			if (objectGrip.class !== 'Function') {
-				log.info(JSON.stringify(objectGrip));
+				log.warn(`Looks like a FunctionGrip but has a different class: ${JSON.stringify(objectGrip)}`);
 			}
 			return renderFunctionGrip(<FirefoxDebugProtocol.FunctionGrip>objectGrip);
 		}

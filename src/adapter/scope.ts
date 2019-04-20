@@ -17,8 +17,8 @@ export abstract class ScopeAdapter implements VariablesProvider {
 		return this.referenceFrame.threadAdapter;
 	}
 
-	public thisVariable: VariableAdapter;
-	public returnVariable: VariableAdapter;
+	public thisVariable?: VariableAdapter;
+	public returnVariable?: VariableAdapter;
 
 	protected constructor(
 		public readonly name: string,
@@ -104,7 +104,6 @@ export class ObjectScopeAdapter extends ScopeAdapter {
 
 export class LocalVariablesScopeAdapter extends ScopeAdapter {
 
-	public name: string;
 	public variables: VariableAdapter[] = [];
 
 	public constructor(name: string, variableDescriptors: FirefoxDebugProtocol.PropertyDescriptors, referenceFrame: FrameAdapter) {
@@ -126,7 +125,6 @@ export class LocalVariablesScopeAdapter extends ScopeAdapter {
 
 export class FunctionScopeAdapter extends ScopeAdapter {
 
-	public name: string;
 	public variables: VariableAdapter[] = [];
 
 	public constructor(name: string, bindings: FirefoxDebugProtocol.FunctionBindings, referenceFrame: FrameAdapter) {

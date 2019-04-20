@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import * as url from 'url';
-import isAbsoluteUrl = require('is-absolute-url');
-import pathToFileUri = require('file-url');
+import isAbsoluteUrl from 'is-absolute-url';
+import pathToFileUri from 'file-url';
 import { SourceMapConsumer, RawSourceMap } from 'source-map';
 import { Log } from '../../util/log';
 import { PathMapper } from '../../util/pathMapper';

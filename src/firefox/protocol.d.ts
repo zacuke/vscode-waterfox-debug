@@ -6,6 +6,7 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface Response {
+		[key: string]: any;
 		from: string;
 	}
 
