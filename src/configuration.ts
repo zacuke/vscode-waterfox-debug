@@ -37,7 +37,6 @@ export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.
 	port?: number;
 	firefoxArgs?: string[];
 	reAttach?: boolean;
-	installAddonInProfile?: boolean;
 }
 
 export interface AttachConfiguration extends CommonConfiguration, DebugProtocol.AttachRequestArguments {
@@ -99,7 +98,6 @@ export interface ParsedLaunchConfiguration {
 export interface ParsedAddonConfiguration {
 	path: string;
 	id: string | undefined;
-	installInProfile: boolean;
 	popupAutohideButton: boolean;
 }
 
@@ -484,14 +482,6 @@ async function parseAddonConfiguration(
 
 	let addonId = await findAddonId(addonPath);
 
-	let installInProfile = false;
-	if ((config.request === 'launch') && (config.installAddonInProfile !== undefined)) {
-		if (config.installAddonInProfile && config.reAttach) {
-			throw '"installAddonInProfile" is not available with "reAttach"';
-		}
-		installInProfile = config.installAddonInProfile;
-	}
-
 	let sanitizedAddonPath = addonPath;
 	if (sanitizedAddonPath[sanitizedAddonPath.length - 1] === '/') {
 		sanitizedAddonPath = sanitizedAddonPath.substr(0, sanitizedAddonPath.length - 1);
@@ -508,11 +498,9 @@ async function parseAddonConfiguration(
 			url: new RegExp(`^jar:file:.*/extensions/${rewrittenAddonId}.xpi!(/.*)$`),
 			path: sanitizedAddonPath
 		});
-	} else if (installInProfile) {
-		throw `You need to specify an ID for your add-on in the manifest or set "installAddonInProfile" to false in the ${config.request} configuration`;
 	}
 
 	return {
-		path: addonPath, id: addonId, installInProfile, popupAutohideButton
+		path: addonPath, id: addonId, popupAutohideButton
 	}
 }

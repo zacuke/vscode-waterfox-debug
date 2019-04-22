@@ -258,9 +258,6 @@ popup auto-hide" (`extension.firefox.enablePopupAutohide` / `disablePopupAutohid
 * `showConsoleCallLocation`: Set this option to `true` to append the source location of `console`
   calls to their output
 * `preferences`: Set additional Firefox preferences in the debugging profile
-* `installAddonInProfile`: Install the WebExtension by building an xpi file and placing it in the temporary
-  profile that is created for the debugging session. This installation method is incompatible with
-  the `reAttach` option and won't allow reloading the add-on while debugging.
 * `popupAutohideButton`: Show a button in the status bar for toggling popup auto-hide
   (enabled by default when debugging a WebExtension)
 * `sourceMaps`: The Firefox developers have moved the handling of source-maps to the client side of

@@ -15,34 +15,29 @@ describe('Addons: The debugger', function() {
 		await dc.stop();
 	});
 
-	for (let installInProfile of [ false, true ]) {
+	it(`should debug a WebExtension`, async function() {
 
-		let installMethod = installInProfile ? 'in the profile' : 'using RDP';
+		dc = await util.initDebugClientForAddon(TESTDATA_PATH);
 
-		it(`should debug a WebExtension installed ${installMethod}`, async function() {
+		await debugWebExtension(dc);
+	});
 
-			dc = await util.initDebugClientForAddon(TESTDATA_PATH, { installInProfile });
+	it(`should show log messages from WebExtensions`, async function() {
 
-			await debugWebExtension(dc);
-		});
+		dc = await util.initDebugClientForAddon(TESTDATA_PATH);
 
-		it(`should show log messages from WebExtensions installed ${installMethod}`, async function() {
+		await util.setConsoleThread(dc, await util.findTabThread(dc));
+		util.evaluate(dc, 'putMessage("bar")');
 
-			dc = await util.initDebugClientForAddon(TESTDATA_PATH, { installInProfile });
+		let outputEvent = <DebugProtocol.OutputEvent> await dc.waitForEvent('output');
 
-			await util.setConsoleThread(dc, await util.findTabThread(dc));
-			util.evaluate(dc, 'putMessage("bar")');
-
-			let outputEvent = <DebugProtocol.OutputEvent> await dc.waitForEvent('output');
-
-			assert.equal(outputEvent.body.category, 'stdout');
-			assert.equal(outputEvent.body.output.trim(), 'foo: bar');
-		});
-	}
+		assert.equal(outputEvent.body.category, 'stdout');
+		assert.equal(outputEvent.body.output.trim(), 'foo: bar');
+	});
 
 	it(`should debug a WebExtension without an ID if it is installed using RDP`, async function() {
 
-		dc = await util.initDebugClientForAddon(TESTDATA_PATH, { installInProfile: false, addonDirectory: 'webExtension2' });
+		dc = await util.initDebugClientForAddon(TESTDATA_PATH, { addonDirectory: 'webExtension2' });
 
 		await debugWebExtension(dc, 'webExtension2');
 	});

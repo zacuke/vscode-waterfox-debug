@@ -104,7 +104,11 @@ export class FirefoxDebugSession {
 				this.preferenceActor = actors.preference;
 	
 				if (this.addonManager) {
-					this.addonManager.sessionStarted(rootActor, actors.addons, actors.preference, this);
+					if (actors.addons) {
+						this.addonManager.sessionStarted(rootActor, actors.addons, actors.preference, this);
+					} else {
+						reject('No AddonsActor received from Firefox');
+					}
 				}
 	
 				this.reloadTabs = false;
@@ -233,7 +237,7 @@ export class FirefoxDebugSession {
 
 		if (socket === undefined) {
 
-			this.firefoxProc = await launchFirefox(this.config.launch!, this.addonManager);
+			this.firefoxProc = await launchFirefox(this.config.launch!);
 
 			socket = await waitForSocket(this.config.launch!.port);
 		}

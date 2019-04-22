@@ -41,7 +41,6 @@ export async function initDebugClient(
 export async function initDebugClientForAddon(
 	testDataPath: string,
 	options?: {
-		installInProfile?: boolean,
 		delayedNavigation?: boolean,
 		addonDirectory?: string
 	}
@@ -56,8 +55,7 @@ export async function initDebugClientForAddon(
 
 	let dcArgs: LaunchConfiguration = { 
 		request: 'launch',
-		addonPath,
-		installAddonInProfile: !!(options && options.installInProfile)
+		addonPath
 	};
 
 	if (options && options.delayedNavigation) {

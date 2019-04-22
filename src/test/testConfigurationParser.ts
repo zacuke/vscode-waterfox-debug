@@ -621,65 +621,10 @@ describe('The configuration parser', function() {
 		assert.ok(parsedConfiguration.launch!.firefoxArgs.indexOf('-private') >= 0);
 	});
 
-	for (let reAttach of [ undefined, false ]) {
-
-		it(`should default to installing WebExtensions via RDP if "reAttach" is ${reAttach}`, async function() {
-
-			let parsedConfiguration = await parseConfiguration({
-				request: 'launch',
-				reAttach,
-				addonPath: path.join(__dirname, '../../testdata/webExtension/addOn')
-			});
-
-			assert.equal(parsedConfiguration.addon!.installInProfile, false);
-		});
-
-		it(`should allow installing WebExtensions in the profile if "reAttach" is ${reAttach}`, async function() {
-
-			let parsedConfiguration = await parseConfiguration({
-				request: 'launch',
-				reAttach,
-				addonPath: path.join(__dirname, '../../testdata/webExtension/addOn'),
-				installAddonInProfile: true
-			});
-
-			assert.equal(parsedConfiguration.addon!.installInProfile, true);
-		});
-	}
-
-	it('should default to installing WebExtensions via RDP if "reAttach" is true', async function() {
-
-		let parsedConfiguration = await parseConfiguration({
-			request: 'launch',
-			reAttach: true,
-			addonPath: path.join(__dirname, '../../testdata/webExtension/addOn')
-		});
-
-		assert.equal(parsedConfiguration.addon!.installInProfile, false);
-	});
-
-	it('should refuse installing WebExtensions in the profile if "reAttach" is true', async function() {
-		await assertPromiseRejects(parseConfiguration(<any>{
-			request: 'launch',
-			reAttach: true,
-			addonPath: path.join(__dirname, '../../testdata/webExtension/addOn'),
-			installAddonInProfile: true
-		}), '"installAddonInProfile" is not available with "reAttach"');
-	});
-
-	it('should refuse installing WebExtensions in the profile if they don\'t specify an ID in their manifest', async function() {
-		await assertPromiseRejects(parseConfiguration(<any>{
-			request: 'launch',
-			addonPath: path.join(__dirname, '../../testdata/webExtension2/addOn'),
-			installAddonInProfile: true
-		}), 'You need to specify an ID for your add-on in the manifest or set "installAddonInProfile" to false in the launch configuration');
-	});
-
-	it('should allow installing WebExtensions that don\'t specify an ID in their manifest via RDP', async function() {
+	it('should allow installing WebExtensions that don\'t specify an ID in their manifest', async function() {
 		await parseConfiguration(<any>{
 			request: 'launch',
-			addonPath: path.join(__dirname, '../../testdata/webExtension2/addOn'),
-			installAddonInProfile: false
+			addonPath: path.join(__dirname, '../../testdata/webExtension2/addOn')
 		});
 	});
 

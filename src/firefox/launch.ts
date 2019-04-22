@@ -3,17 +3,10 @@ import * as fs from 'fs-extra';
 import { spawn, fork, ChildProcess } from 'child_process';
 import FirefoxProfile from 'firefox-profile';
 import { ParsedLaunchConfiguration } from '../configuration';
-import { AddonManager } from "../adapter/addonManager";
 
-export async function launchFirefox(
-	launch: ParsedLaunchConfiguration,
-	addonManager?: AddonManager
-): Promise<ChildProcess | undefined> {
+export async function launchFirefox(launch: ParsedLaunchConfiguration): Promise<ChildProcess | undefined> {
 
-	let profile = await prepareDebugProfile(launch);
-	if (addonManager) {
-		await addonManager.profilePrepared(profile);
-	}
+	await prepareDebugProfile(launch);
 
 	let childProc: ChildProcess | undefined = undefined;
 
