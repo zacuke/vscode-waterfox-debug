@@ -7,7 +7,6 @@ import { AddonManager } from "../adapter/addonManager";
 
 export async function launchFirefox(
 	launch: ParsedLaunchConfiguration,
-	sendToConsole: (msg: string) => void,
 	addonManager?: AddonManager
 ): Promise<ChildProcess | undefined> {
 
@@ -49,12 +48,6 @@ export async function launchFirefox(
 	} else {
 
 		childProc = spawn(launch.firefoxExecutable, launch.firefoxArgs, { detached: true });
-
-		childProc.stdout.on('data', (data) => {
-			let msg = (typeof data === 'string') ? data : data.toString('utf8');
-			msg = msg.trim();
-			sendToConsole(msg);
-		});
 
 		childProc.unref();
 	}

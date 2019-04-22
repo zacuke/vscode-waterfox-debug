@@ -233,13 +233,7 @@ export class FirefoxDebugSession {
 
 		if (socket === undefined) {
 
-			// send messages from Firefox' stdout to the debug console when debugging an addonSdk extension
-			let sendToConsole: (msg: string) => void = 
-				(this.config.addon && this.config.addon.type === 'addonSdk') ? 
-					(msg) => this.sendEvent(new OutputEvent(msg + '\n', 'stdout')) :
-					(msg) => undefined;
-
-			this.firefoxProc = await launchFirefox(this.config.launch!, sendToConsole, this.addonManager);
+			this.firefoxProc = await launchFirefox(this.config.launch!, this.addonManager);
 
 			socket = await waitForSocket(this.config.launch!.port);
 		}

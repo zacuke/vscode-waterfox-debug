@@ -10,8 +10,6 @@ import FirefoxProfile from 'firefox-profile';
 
 let log = Log.create('ParseConfiguration');
 
-export type AddonType = 'legacy' | 'addonSdk' | 'webExtension';
-
 export interface CommonConfiguration {
 	request: 'launch' | 'attach';
 	url?: string;
@@ -22,7 +20,6 @@ export interface CommonConfiguration {
 	skipFiles?: string[];
 	showConsoleCallLocation?: boolean;
 	log?: LogConfiguration;
-	addonType?: AddonType;
 	addonPath?: string;
 	popupAutohideButton?: boolean;
 	sourceMaps?: 'client' | 'server';
@@ -100,7 +97,6 @@ export interface ParsedLaunchConfiguration {
 }
 
 export interface ParsedAddonConfiguration {
-	type: AddonType;
 	path: string;
 	id: string | undefined;
 	installInProfile: boolean;
@@ -156,7 +152,7 @@ export async function parseConfiguration(
 
 		} else if (config.url) {
 			firefoxArgs.push(config.url);
-		} else if (config.addonType || config.addonPath) {
+		} else if (config.addonPath) {
 			firefoxArgs.push('about:blank');
 		} else {
 			throw 'You need to set either "file" or "url" in the launch configuration';
@@ -181,7 +177,7 @@ export async function parseConfiguration(
 		pathMappings.push(...config.pathMappings.map(harmonizeTrailingSlashes));
 	}
 
-	if (config.addonType || config.addonPath) {
+	if (config.addonPath) {
 		addon = await parseAddonConfiguration(config, pathMappings);
 	}
 
@@ -483,67 +479,40 @@ async function parseAddonConfiguration(
 	pathMappings: PathMappings
 ): Promise<ParsedAddonConfiguration> {
 
-	let addonType = config.addonType || 'webExtension';
-	let addonPath = config.addonPath;
-	const popupAutohideButton = 
-		(config.popupAutohideButton === undefined) ?
-		(config.addonType === 'webExtension') :
-		config.popupAutohideButton;
+	let addonPath = config.addonPath!;
+	const popupAutohideButton = (config.popupAutohideButton !== false);
 
-	if (!addonPath) {
-		throw `If you set "addonType" you also have to set "addonPath" in the ${config.request} configuration`;
-	}
-
-	let addonId = await findAddonId(addonPath, addonType);
+	let addonId = await findAddonId(addonPath);
 
 	let installInProfile = false;
-	if (config.request === 'launch') {
-		if (config.installAddonInProfile !== undefined) {
-			if (config.installAddonInProfile && config.reAttach) {
-				throw '"installAddonInProfile" is not available with "reAttach"';
-			}
-			installInProfile = config.installAddonInProfile;
-		} else {
-			installInProfile = (addonType !== 'webExtension') && !config.reAttach;
+	if ((config.request === 'launch') && (config.installAddonInProfile !== undefined)) {
+		if (config.installAddonInProfile && config.reAttach) {
+			throw '"installAddonInProfile" is not available with "reAttach"';
 		}
+		installInProfile = config.installAddonInProfile;
 	}
 
-	if (config.addonType === 'addonSdk') {
+	let sanitizedAddonPath = addonPath;
+	if (sanitizedAddonPath[sanitizedAddonPath.length - 1] === '/') {
+		sanitizedAddonPath = sanitizedAddonPath.substr(0, sanitizedAddonPath.length - 1);
+	}
+	pathMappings.push({ 
+		url: new RegExp('^moz-extension://[0-9a-f-]*(/.*)$'),
+		path: sanitizedAddonPath
+	});
 
-		let rewrittenAddonId = addonId!.replace("@", "-at-");
-		let sanitizedAddonPath = addonPath;
-		if (sanitizedAddonPath[sanitizedAddonPath.length - 1] === '/') {
-			sanitizedAddonPath = sanitizedAddonPath.substr(0, sanitizedAddonPath.length - 1);
-		}
-		pathMappings.push({
-			url: 'resource://' + rewrittenAddonId,
-			path: sanitizedAddonPath
-		});
-
-	} else if (config.addonType === 'webExtension') {
-
-		let sanitizedAddonPath = addonPath;
-		if (sanitizedAddonPath[sanitizedAddonPath.length - 1] === '/') {
-			sanitizedAddonPath = sanitizedAddonPath.substr(0, sanitizedAddonPath.length - 1);
-		}
+	if (addonId) {
+		// this pathMapping may no longer be necessary, I haven't seen this kind of URL recently...
+		let rewrittenAddonId = addonId.replace('{', '%7B').replace('}', '%7D');
 		pathMappings.push({ 
-			url: new RegExp('^moz-extension://[0-9a-f-]*(/.*)$'),
+			url: new RegExp(`^jar:file:.*/extensions/${rewrittenAddonId}.xpi!(/.*)$`),
 			path: sanitizedAddonPath
 		});
-
-		if (addonId) {
-			// this pathMapping may no longer be necessary, I haven't seen this kind of URL recently...
-			let rewrittenAddonId = addonId.replace('{', '%7B').replace('}', '%7D');
-			pathMappings.push({ 
-				url: new RegExp(`^jar:file:.*/extensions/${rewrittenAddonId}.xpi!(/.*)$`),
-				path: sanitizedAddonPath
-			});
-		} else if (installInProfile) {
-			throw `You need to specify an ID for your add-on in the manifest or set "installAddonInProfile" to false in the ${config.request} configuration`;
-		}
+	} else if (installInProfile) {
+		throw `You need to specify an ID for your add-on in the manifest or set "installAddonInProfile" to false in the ${config.request} configuration`;
 	}
 
 	return {
-		type: addonType, path: addonPath, id: addonId, installInProfile, popupAutohideButton
+		path: addonPath, id: addonId, installInProfile, popupAutohideButton
 	}
 }

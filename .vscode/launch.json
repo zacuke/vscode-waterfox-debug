@@ -51,18 +51,8 @@
 		{
 			"type": "firefox",
 			"request": "launch",
-			"name": "jetpack test",
-			"debugServer": 4711,
-			"addonType": "addonSdk",
-			"addonPath": "${workspaceFolder}/testdata/addonSdk/addOn",
-			"file": "${workspaceFolder}/testdata/addonSdk/index.html"
-		},
-		{
-			"type": "firefox",
-			"request": "launch",
 			"name": "webextension test",
 			"debugServer": 4711,
-			"addonType": "webExtension",
 			"addonPath": "${workspaceFolder}/testdata/webExtension/addOn",
 			"file": "${workspaceFolder}/testdata/webExtension/index.html"
 		}

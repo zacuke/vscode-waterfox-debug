@@ -27,7 +27,6 @@ export abstract class DebugAdapterBase extends DebugSession {
 	protected abstract evaluate(args: DebugProtocol.EvaluateArguments): Promise<{ result: string, type?: string, variablesReference: number, namedVariables?: number, indexedVariables?: number }>;
 	protected abstract getCompletions(args: DebugProtocol.CompletionsArguments): Promise<{ targets: DebugProtocol.CompletionItem[] }>;
 	protected abstract reloadAddon(): Promise<void>;
-	protected abstract rebuildAddon(): Promise<void>;
 	protected abstract toggleSkippingFile(url: string): Promise<void>;
 	protected abstract setPopupAutohide(popupAutohide: boolean): Promise<void>;
 	protected abstract togglePopupAutohide(): Promise<boolean>;
@@ -113,10 +112,6 @@ export abstract class DebugAdapterBase extends DebugSession {
 			switch(command) {
 
 				case 'reloadAddon':
-				return await this.reloadAddon();
-
-				case 'rebuildAndReloadAddon':
-				await this.rebuildAddon();
 				return await this.reloadAddon();
 
 				case 'toggleSkippingFile':

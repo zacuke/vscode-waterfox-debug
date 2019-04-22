@@ -1,7 +1,7 @@
 import { delay, isWindowsPlatform } from '../util/misc';
 import { DebugClient } from 'vscode-debugadapter-testsupport';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { AddonType, LaunchConfiguration } from '../configuration';
+import { LaunchConfiguration } from '../configuration';
 import * as path from 'path';
 
 export async function initDebugClient(
@@ -40,7 +40,6 @@ export async function initDebugClient(
 
 export async function initDebugClientForAddon(
 	testDataPath: string,
-	addonType: AddonType,
 	options?: {
 		installInProfile?: boolean,
 		delayedNavigation?: boolean,
@@ -52,12 +51,11 @@ export async function initDebugClientForAddon(
 	if (options && options.addonDirectory) {
 		addonPath = path.join(testDataPath, `${options.addonDirectory}/addOn`);
 	} else {
-		addonPath = path.join(testDataPath, `${addonType}/addOn`);
+		addonPath = path.join(testDataPath, `webExtension/addOn`);
 	}
 
 	let dcArgs: LaunchConfiguration = { 
 		request: 'launch',
-		addonType,
 		addonPath,
 		installAddonInProfile: !!(options && options.installInProfile)
 	};
@@ -65,7 +63,7 @@ export async function initDebugClientForAddon(
 	if (options && options.delayedNavigation) {
 		dcArgs.file = path.join(testDataPath, `web/index.html`);
 	} else {
-		dcArgs.file = path.join(testDataPath, `${addonType}/index.html`);
+		dcArgs.file = path.join(testDataPath, `webExtension/index.html`);
 	}
 
 	if (process.env['FIREFOX_EXECUTABLE']) {
@@ -81,16 +79,16 @@ export async function initDebugClientForAddon(
 	]);
 	dc.setExceptionBreakpointsRequest({ filters: [] });
 
-	await receivePageLoadedEvent(dc, (addonType === 'addonSdk'));
+	await receivePageLoadedEvent(dc);
 
 	if (options && options.delayedNavigation) {
 		await setConsoleThread(dc, await findTabThread(dc));
-		let filePath = path.join(testDataPath, `${addonType}/index.html`);
+		let filePath = path.join(testDataPath, `webExtension/index.html`);
 		let fileUrl = isWindowsPlatform() ? 
 			'file:///' + filePath.replace(/\\/g, '/') :
 			'file://' + filePath;
 		await evaluate(dc, `location="${fileUrl}"`);
-		await receivePageLoadedEvent(dc, (addonType === 'addonSdk'));
+		await receivePageLoadedEvent(dc);
 	}
 
 	return dc;

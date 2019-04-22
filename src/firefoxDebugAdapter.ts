@@ -381,14 +381,6 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		await this.session.addonManager.reloadAddon();
 	}
 
-	protected async rebuildAddon(): Promise<void> {
-		if (!this.session.addonManager) {
-			throw 'This command is only available when debugging an addon of type "addonSdk"';
-		}
-
-		await this.session.addonManager.rebuildAddon();
-	}
-
 	// url is a file:// url for local sources and the original url (as seen by Firefox) for remote sources
 	protected async toggleSkippingFile(url: string): Promise<void> {
 

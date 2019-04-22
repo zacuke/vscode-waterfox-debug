@@ -21,14 +21,14 @@ describe('Addons: The debugger', function() {
 
 		it(`should debug a WebExtension installed ${installMethod}`, async function() {
 
-			dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'webExtension', { installInProfile });
+			dc = await util.initDebugClientForAddon(TESTDATA_PATH, { installInProfile });
 
 			await debugWebExtension(dc);
 		});
 
 		it(`should show log messages from WebExtensions installed ${installMethod}`, async function() {
 
-			dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'webExtension', { installInProfile });
+			dc = await util.initDebugClientForAddon(TESTDATA_PATH, { installInProfile });
 
 			await util.setConsoleThread(dc, await util.findTabThread(dc));
 			util.evaluate(dc, 'putMessage("bar")');
@@ -38,47 +38,13 @@ describe('Addons: The debugger', function() {
 			assert.equal(outputEvent.body.category, 'stdout');
 			assert.equal(outputEvent.body.output.trim(), 'foo: bar');
 		});
-
-		it.skip(`should debug a Jetpack add-on installed ${installMethod}`, async function() {
-
-			dc = await util.initDebugClientForAddon(
-				TESTDATA_PATH, 'addonSdk', { installInProfile, delayedNavigation: true });
-
-			let contentScriptPath = path.join(TESTDATA_PATH, 'addonSdk/addOn/data/contentscript.js');
-			await util.setBreakpoints(dc, contentScriptPath,  [ 2 ]);
-
-			let backgroundScriptPath = path.join(TESTDATA_PATH, 'addonSdk/addOn/index.js');
-			await util.setBreakpoints(dc, backgroundScriptPath, [ 8 ]);
-
-			let stoppedEvent = await util.receiveStoppedEvent(dc);
-			let contentThreadId = stoppedEvent.body.threadId!;
-			let stackTrace = await dc.stackTraceRequest({ threadId: contentThreadId });
-
-			assert.equal(stackTrace.body.stackFrames[0].source!.path, contentScriptPath);
-
-			dc.continueRequest({ threadId: contentThreadId });
-			stoppedEvent = await util.receiveStoppedEvent(dc);
-			let addOnThreadId = stoppedEvent.body.threadId!;
-			stackTrace = await dc.stackTraceRequest({ threadId: addOnThreadId });
-
-			assert.notEqual(contentThreadId, addOnThreadId);
-		});
 	}
 
 	it(`should debug a WebExtension without an ID if it is installed using RDP`, async function() {
 
-		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'webExtension', { installInProfile: false, addonDirectory: 'webExtension2' });
+		dc = await util.initDebugClientForAddon(TESTDATA_PATH, { installInProfile: false, addonDirectory: 'webExtension2' });
 
 		await debugWebExtension(dc, 'webExtension2');
-	});
-
-	it.skip(`should show log messages from a Jetpack add-on installed in the profile`, async function() {
-
-		dc = await util.initDebugClientForAddon(TESTDATA_PATH, 'addonSdk', { installInProfile: true });
-		let outputEvent = <DebugProtocol.OutputEvent> await dc.waitForEvent('output');
-
-		assert.equal(outputEvent.body.category, 'stdout');
-		assert.equal(outputEvent.body.output.trim(), 'console.log: test: foo: bar');
 	});
 });
 

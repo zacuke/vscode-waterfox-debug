@@ -1,9 +1,7 @@
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs-extra';
-import FirefoxProfile from 'firefox-profile';
 import stripJsonComments from 'strip-json-comments';
-import { AddonType } from '../configuration';
 
 export function concatArrays<T>(arrays: T[][]): T[] {
 	return ([] as T[]).concat.apply([], arrays);
@@ -81,25 +79,7 @@ export function accessorExpression(objectExpression: string | undefined, propert
 	}
 }
 
-export function findAddonId(addonPath: string, addonType: AddonType): Promise<string | undefined> {
-	if (addonType === 'webExtension') {
-		return findWebExtensionId(addonPath);
-	} else {
-		return new Promise<string>((resolve, reject) => {
-			var dummyProfile = new FirefoxProfile();
-			(<any>dummyProfile)._addonDetails(addonPath, (addonDetails: { id?: string | null }) => {
-				if (typeof addonDetails.id === 'string') {
-					resolve(addonDetails.id);
-				} else {
-					reject('This debugger currently requires add-ons to specify an ID in their manifest');
-				}
-				dummyProfile.deleteDir(() => {});
-			});
-		});
-	}
-}
-
-async function findWebExtensionId(addonPath: string): Promise<string | undefined> {
+export async function findAddonId(addonPath: string): Promise<string | undefined> {
 	try {
 		const rawManifest = await fs.readFile(path.join(addonPath, 'manifest.json'), { encoding: 'utf8' });
 		const manifest = JSON.parse(stripJsonComments(rawManifest));

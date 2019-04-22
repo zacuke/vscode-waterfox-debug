@@ -621,27 +621,6 @@ describe('The configuration parser', function() {
 		assert.ok(parsedConfiguration.launch!.firefoxArgs.indexOf('-private') >= 0);
 	});
 
-	for (let request of [ 'launch', 'attach' ]) {
-		it(`should require "addonPath" if "addonType" is set in a ${request} configuration`, async function() {
-			await assertPromiseRejects(parseConfiguration(<any>{
-				request,
-				addonType: 'webExtension'
-			}), `If you set "addonType" you also have to set "addonPath" in the ${request} configuration`);
-		});
-	}
-
-	for (let request of [ 'launch', 'attach' ]) {
-		it(`should set "addonType" to "webExtension" by default if "addonPath" is set in a ${request} configuration`, async function() {
-
-			let parsedConfiguration = await parseConfiguration(<any>{
-				request,
-				addonPath: path.join(__dirname, '../../testdata/webExtension/addOn')
-			});
-
-			assert.equal(parsedConfiguration.addon!.type, 'webExtension');
-		});
-	}
-
 	for (let reAttach of [ undefined, false ]) {
 
 		it(`should default to installing WebExtensions via RDP if "reAttach" is ${reAttach}`, async function() {
@@ -649,23 +628,10 @@ describe('The configuration parser', function() {
 			let parsedConfiguration = await parseConfiguration({
 				request: 'launch',
 				reAttach,
-				addonType: 'webExtension',
 				addonPath: path.join(__dirname, '../../testdata/webExtension/addOn')
 			});
 
 			assert.equal(parsedConfiguration.addon!.installInProfile, false);
-		});
-
-		it(`should default to installing Jetpack addons in the profile if "reAttach" is ${reAttach}`, async function() {
-
-			let parsedConfiguration = await parseConfiguration({
-				request: 'launch',
-				reAttach,
-				addonType: 'addonSdk',
-				addonPath: path.join(__dirname, '../../testdata/addonSdk/addOn')
-			});
-
-			assert.equal(parsedConfiguration.addon!.installInProfile, true);
 		});
 
 		it(`should allow installing WebExtensions in the profile if "reAttach" is ${reAttach}`, async function() {
@@ -673,25 +639,11 @@ describe('The configuration parser', function() {
 			let parsedConfiguration = await parseConfiguration({
 				request: 'launch',
 				reAttach,
-				addonType: 'webExtension',
 				addonPath: path.join(__dirname, '../../testdata/webExtension/addOn'),
 				installAddonInProfile: true
 			});
 
 			assert.equal(parsedConfiguration.addon!.installInProfile, true);
-		});
-
-		it(`should allow installing Jetpack addons via RDP if "reAttach" is ${reAttach}`, async function() {
-
-			let parsedConfiguration = await parseConfiguration({
-				request: 'launch',
-				reAttach,
-				addonType: 'addonSdk',
-				addonPath: path.join(__dirname, '../../testdata/addonSdk/addOn'),
-				installAddonInProfile: false
-			});
-
-			assert.equal(parsedConfiguration.addon!.installInProfile, false);
 		});
 	}
 
@@ -700,20 +652,7 @@ describe('The configuration parser', function() {
 		let parsedConfiguration = await parseConfiguration({
 			request: 'launch',
 			reAttach: true,
-			addonType: 'webExtension',
 			addonPath: path.join(__dirname, '../../testdata/webExtension/addOn')
-		});
-
-		assert.equal(parsedConfiguration.addon!.installInProfile, false);
-	});
-
-	it('should default to installing Jetpack addons via RDP if "reAttach" is true', async function() {
-
-		let parsedConfiguration = await parseConfiguration({
-			request: 'launch',
-			reAttach: true,
-			addonType: 'addonSdk',
-			addonPath: path.join(__dirname, '../../testdata/addonSdk/addOn')
 		});
 
 		assert.equal(parsedConfiguration.addon!.installInProfile, false);
@@ -723,18 +662,7 @@ describe('The configuration parser', function() {
 		await assertPromiseRejects(parseConfiguration(<any>{
 			request: 'launch',
 			reAttach: true,
-			addonType: 'webExtension',
 			addonPath: path.join(__dirname, '../../testdata/webExtension/addOn'),
-			installAddonInProfile: true
-		}), '"installAddonInProfile" is not available with "reAttach"');
-	});
-
-	it('should refuse installing Jetpack addons in the profile if "reAttach" is true', async function() {
-		await assertPromiseRejects(parseConfiguration(<any>{
-			request: 'launch',
-			reAttach: true,
-			addonType: 'addonSdk',
-			addonPath: path.join(__dirname, '../../testdata/addonSdk/addOn'),
 			installAddonInProfile: true
 		}), '"installAddonInProfile" is not available with "reAttach"');
 	});
@@ -742,7 +670,6 @@ describe('The configuration parser', function() {
 	it('should refuse installing WebExtensions in the profile if they don\'t specify an ID in their manifest', async function() {
 		await assertPromiseRejects(parseConfiguration(<any>{
 			request: 'launch',
-			addonType: 'webExtension',
 			addonPath: path.join(__dirname, '../../testdata/webExtension2/addOn'),
 			installAddonInProfile: true
 		}), 'You need to specify an ID for your add-on in the manifest or set "installAddonInProfile" to false in the launch configuration');
@@ -751,7 +678,6 @@ describe('The configuration parser', function() {
 	it('should allow installing WebExtensions that don\'t specify an ID in their manifest via RDP', async function() {
 		await parseConfiguration(<any>{
 			request: 'launch',
-			addonType: 'webExtension',
 			addonPath: path.join(__dirname, '../../testdata/webExtension2/addOn'),
 			installAddonInProfile: false
 		});
@@ -762,7 +688,6 @@ describe('The configuration parser', function() {
 		let addonPath = path.join(__dirname, '../../testdata/webExtension/addOn');
 		let parsedConfiguration = await parseConfiguration({
 			request: 'launch',
-			addonType: 'webExtension',
 			addonPath
 		});
 
@@ -776,25 +701,10 @@ describe('The configuration parser', function() {
 			addonPath);
 	});
 
-	it('should add pathMappings for Jetpack addon debugging', async function() {
-
-		let addonPath = path.join(__dirname, '../../testdata/addonSdk/addOn');
-		let parsedConfiguration = await parseConfiguration({
-			request: 'launch',
-			addonType: 'addonSdk',
-			addonPath
-		});
-
-		assert.equal(parsedConfiguration.pathMappings.find((pathMapping) =>
-			(pathMapping.url === 'resource://vscode-firefox-debug-test-at-jetpack'))!.path,
-			addonPath);
-	});
-
 	it('should default to "about:blank" as the start page for addon debugging', async function() {
 
 		let parsedConfiguration = await parseConfiguration({
 			request: 'launch',
-			addonType: 'webExtension',
 			addonPath: path.join(__dirname, '../../testdata/webExtension/addOn')
 		});
 
@@ -815,7 +725,6 @@ describe('The configuration parser', function() {
 		let parsedConfiguration = await parseConfiguration({
 			request: 'launch',
 			file: filePath,
-			addonType: 'webExtension',
 			addonPath: path.join(__dirname, '../../testdata/webExtension/addOn')
 		});
 
@@ -828,7 +737,6 @@ describe('The configuration parser', function() {
 			request: 'launch',
 			url: 'https://mozilla.org',
 			webRoot: '/home/user/project',
-			addonType: 'webExtension',
 			addonPath: path.join(__dirname, '../../testdata/webExtension/addOn')
 		});
 

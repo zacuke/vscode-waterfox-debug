@@ -109,10 +109,6 @@
         "title": "Firefox: Reload add-on"
       },
       {
-        "command": "extension.firefox.rebuildAndReloadAddon",
-        "title": "Firefox: Rebuild and reload add-on"
-      },
-      {
         "command": "extension.firefox.toggleSkippingFile",
         "title": "Toggle skipping this file"
       },
@@ -235,11 +231,10 @@
             "request": "attach"
           },
           {
-            "name": "Launch addon",
+            "name": "Launch WebExtension",
             "type": "firefox",
             "request": "launch",
             "reAttach": true,
-            "addonType": "webExtension",
             "addonPath": "${workspaceFolder}"
           }
         ],
@@ -277,15 +272,14 @@
             }
           },
           {
-            "label": "Firefox: Add-on",
-            "description": "Launch Firefox with your add-on project installed",
+            "label": "Firefox: WebExtension",
+            "description": "Launch Firefox with your WebExtension project installed",
             "body": {
               "type": "firefox",
               "request": "launch",
               "reAttach": true,
               "name": "${1:Launch add-on}",
-              "addonType": "${2:webExtension}",
-              "addonPath": "^\"\\${workspaceFolder}${3:}\""
+              "addonPath": "^\"\\${workspaceFolder}${2:}\""
             }
           }
         ],
@@ -437,24 +431,14 @@
                 "description": "Show the location of console API calls",
                 "default": true
               },
-              "addonType": {
-                "type": "string",
-                "enum": [
-                  "legacy",
-                  "addonSdk",
-                  "webExtension"
-                ],
-                "description": "The type of this Firefox addon (legacy, addonSdk or webExtension)",
-                "default": "webExtension"
-              },
               "addonPath": {
                 "type": "string",
-                "description": "The path of the directory containing the addon",
+                "description": "The path of the directory containing the WebExtension",
                 "default": "${workspaceFolder}"
               },
               "installAddonInProfile": {
                 "type": "boolean",
-                "description": "Install the addon by placing it in the temporary profile (necessary for XUL overlays)",
+                "description": "Install the WebExtension by placing it in the temporary profile",
                 "default": false
               },
               "popupAutohideButton": {
@@ -662,19 +646,9 @@
                 "description": "Show the location of console API calls",
                 "default": true
               },
-              "addonType": {
-                "type": "string",
-                "enum": [
-                  "legacy",
-                  "addonSdk",
-                  "webExtension"
-                ],
-                "description": "The type of this Firefox addon (legacy, addonSdk or webExtension)",
-                "default": "webExtension"
-              },
               "addonPath": {
                 "type": "string",
-                "description": "The path of the directory containing the addon",
+                "description": "The path of the directory containing the WebExtension",
                 "default": "${workspaceFolder}"
               },
               "popupAutohideButton": {
