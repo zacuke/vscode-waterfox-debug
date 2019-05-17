@@ -144,3 +144,37 @@ export class SourceMappingInfo {
 		return undefined;
 	}
 }
+
+export function findNextBreakpointPosition(
+	requestedLine: number,
+	requestedColumn: number,
+	breakpointPositions: FirefoxDebugProtocol.BreakpointPositions
+): { line: number, column: number } {
+
+	let line = Number.MAX_SAFE_INTEGER;
+	let lastLine = 0;
+	for (const l in breakpointPositions) {
+		const possibleLine = parseInt(l);
+		if ((possibleLine >= requestedLine) && (possibleLine < line)) {
+			line = possibleLine;
+		}
+		if (possibleLine > lastLine) {
+			lastLine = possibleLine;
+		}
+	}
+
+	if (line === Number.MAX_SAFE_INTEGER) {
+		line = lastLine;
+	}
+
+	if (line === requestedLine) {
+		for (const column of breakpointPositions[line]) {
+			if (column >= requestedColumn) {
+				return { line, column };
+			}
+		}
+	}
+
+	const column = breakpointPositions[line][0];
+	return { line, column };
+}

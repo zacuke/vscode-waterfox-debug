@@ -9,7 +9,7 @@ import { getUri, urlDirname, canGetUri } from '../../util/net';
 import { PendingRequest } from '../../util/pendingRequests';
 import { DebugConnection, ISourceActorProxy, SourceActorProxy, SourceMappingSourceActorProxy } from '../index';
 import { IThreadActorProxy, ExceptionBreakpoints, UrlLocation, AttachOptions } from '../actorProxy/thread';
-import { SourceMappingInfo } from './info';
+import { SourceMappingInfo, findNextBreakpointPosition } from './info';
 
 let log = Log.create('SourceMappingThreadActorProxy');
 
@@ -326,10 +326,14 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 					const generatedLocation = info.generatedLocationFor({ source: sourceUrl, line, column });
 	
 					if ((generatedLocation.line !== null) && (generatedLocation.column !== null)) {
+						const { line, column } = findNextBreakpointPosition(
+							generatedLocation.line, generatedLocation.column,
+							await info.underlyingSource.getBreakpointPositions()
+						);
 						return {
 							url: info.underlyingSource.url!,
-							line: generatedLocation.line,
-							column: generatedLocation.column
+							line,
+							column
 						};
 					}
 				}

@@ -4,6 +4,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { Source } from 'vscode-debugadapter';
 import { ThreadAdapter, Registry, BreakpointInfo, BreakpointAdapter } from './index';
 import { OldProtocolBreakpointAdapter, NewProtocolBreakpointAdapter } from './misc';
+import { findNextBreakpointPosition } from '../firefox/sourceMaps/info';
 
 const log = Log.create('SourceAdapter');
 
@@ -132,7 +133,7 @@ export class SourceAdapter {
 			const additionPromises = breakpointsToAdd.map(
 				async breakpointInfo => {
 
-					const actualLocation = this.findBreakpointPosition(
+					const actualLocation = findNextBreakpointPosition(
 						breakpointInfo.requestedBreakpoint.line,
 						breakpointInfo.requestedBreakpoint.column || 0,
 						breakpointPositions
@@ -205,40 +206,6 @@ export class SourceAdapter {
 		this.isSyncingBreakpoints = false;
 
 		this.checkAndSyncBreakpoints();
-	}
-
-	private findBreakpointPosition(
-		requestedLine: number,
-		requestedColumn: number,
-		breakpointPositions: FirefoxDebugProtocol.BreakpointPositions
-	): { line: number, column: number } {
-
-		let line = Number.MAX_SAFE_INTEGER;
-		let lastLine = 0;
-		for (const l in breakpointPositions) {
-			const possibleLine = parseInt(l);
-			if ((possibleLine >= requestedLine) && (possibleLine < line)) {
-				line = possibleLine;
-			}
-			if (possibleLine > lastLine) {
-				lastLine = possibleLine;
-			}
-		}
-
-		if (line === Number.MAX_SAFE_INTEGER) {
-			line = lastLine;
-		}
-
-		if (line === requestedLine) {
-			for (const column of breakpointPositions[line]) {
-				if (column >= requestedColumn) {
-					return { line, column };
-				}
-			}
-		}
-
-		const column = breakpointPositions[line][0];
-		return { line, column };
 	}
 
 	public dispose(): void {
