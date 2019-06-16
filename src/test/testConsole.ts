@@ -3,7 +3,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import * as path from 'path';
 import * as util from './util';
 import * as assert from 'assert';
-import { isWindowsPlatform } from "../util/misc";
+import { isWindowsPlatform } from '../common/util';
 
 describe('Debug console: The debugger', function() {
 

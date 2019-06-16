@@ -1,7 +1,7 @@
 import { Log } from '../util/log';
-import { ThreadAdapter, EnvironmentAdapter, ScopeAdapter } from '../adapter/index';
+import { ThreadAdapter, EnvironmentAdapter, ScopeAdapter } from './index';
 import { StackFrame } from 'vscode-debugadapter';
-import { Registry } from "./registry";
+import { Registry } from './registry';
 
 let log = Log.create('FrameAdapter');
 

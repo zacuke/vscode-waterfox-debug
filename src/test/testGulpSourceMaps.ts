@@ -11,7 +11,7 @@ import uglify from 'gulp-uglify';
 import rename from 'gulp-rename';
 import concat from 'gulp-concat';
 import mapSources from '@gulp-sourcemaps/map-sources';
-import { DebugClient } from "vscode-debugadapter-testsupport";
+import { DebugClient } from 'vscode-debugadapter-testsupport';
 
 const TESTDATA_PATH = path.join(__dirname, '../../testdata/web/sourceMaps/scripts');
 

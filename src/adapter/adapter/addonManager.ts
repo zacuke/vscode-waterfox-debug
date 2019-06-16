@@ -1,7 +1,7 @@
 import { ParsedAddonConfiguration } from '../configuration';
-import { RootActorProxy, AddonsActorProxy, PreferenceActorProxy, ConsoleActorProxy, WebExtensionActorProxy, TabActorProxy } from "../firefox/index";
-import { FirefoxDebugSession } from "../firefoxDebugSession";
-import { PopupAutohideEventBody } from '../extension/customEvents';
+import { RootActorProxy, AddonsActorProxy, PreferenceActorProxy, ConsoleActorProxy, WebExtensionActorProxy, TabActorProxy } from '../firefox/index';
+import { FirefoxDebugSession } from '../firefoxDebugSession';
+import { PopupAutohideEventBody } from '../../common/customEvents';
 
 export const popupAutohidePreferenceKey = 'ui.popup.disable_autohide';
 

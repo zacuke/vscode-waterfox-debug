@@ -1,4 +1,4 @@
-import { Log } from '../util/log';
+import { Log } from './log';
 
 let log = Log.create('DelayedTask');
 

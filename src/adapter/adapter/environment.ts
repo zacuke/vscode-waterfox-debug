@@ -1,6 +1,6 @@
 import { Log } from '../util/log';
 import { ScopeAdapter, ObjectScopeAdapter, LocalVariablesScopeAdapter, FunctionScopeAdapter } from './scope';
-import { FrameAdapter } from "./frame";
+import { FrameAdapter } from './frame';
 
 let log = Log.create('EnvironmentAdapter');
 

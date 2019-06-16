@@ -1,7 +1,7 @@
-import { VariablesProvider } from "./scope";
-import { ThreadAdapter } from "./thread";
-import { FrameAdapter } from "./frame";
-import { VariableAdapter } from "./variable";
+import { VariablesProvider } from './scope';
+import { ThreadAdapter } from './thread';
+import { FrameAdapter } from './frame';
+import { VariableAdapter } from './variable';
 
 export class GetterValueAdapter implements VariablesProvider {
 

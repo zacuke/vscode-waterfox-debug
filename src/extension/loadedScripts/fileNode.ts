@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { NewSourceEventBody } from "../customEvents";
-import { TreeNode } from "./treeNode";
+import { NewSourceEventBody } from '../../common/customEvents';
+import { TreeNode } from './treeNode';
 import { NonLeafNode } from './nonLeafNode';
 
 export class FileNode extends TreeNode {

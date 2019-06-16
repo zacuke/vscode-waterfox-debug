@@ -3,7 +3,7 @@ import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy, ISourceActo
 import { ThreadCoordinator, ThreadPauseCoordinator, FrameAdapter, ScopeAdapter, SourceAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
 import { Variable } from 'vscode-debugadapter';
 import { Log } from '../util/log';
-import { FirefoxDebugSession } from "../firefoxDebugSession";
+import { FirefoxDebugSession } from '../firefoxDebugSession';
 import { pathsAreEqual } from '../util/misc';
 import { Location } from '../firefox/actorProxy/source';
 import { AttachOptions } from '../firefox/actorProxy/thread';

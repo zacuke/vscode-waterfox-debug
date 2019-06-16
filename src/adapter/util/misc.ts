@@ -1,21 +1,7 @@
-import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import stripJsonComments from 'strip-json-comments';
-
-export function concatArrays<T>(arrays: T[][]): T[] {
-	return ([] as T[]).concat.apply([], arrays);
-}
-
-export function delay(timeout: number): Promise<void> {
-	return new Promise<void>((resolve) => {
-		setTimeout(resolve, timeout);
-	});
-}
-
-export function isWindowsPlatform(): boolean {
-	return (os.platform() === 'win32');
-}
+import { isWindowsPlatform } from '../../common/util';
 
 export function pathsAreEqual(path1: string, path2: string | undefined) {
 	if (path2 === undefined) return false;

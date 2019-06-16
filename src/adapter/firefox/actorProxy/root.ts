@@ -7,7 +7,7 @@ import { TabActorProxy } from './tab';
 import { ConsoleActorProxy } from './console';
 import { PreferenceActorProxy } from './preference';
 import { AddonsActorProxy } from './addons';
-import { DebugConnection } from "../connection";
+import { DebugConnection } from '../connection';
 
 let log = Log.create('RootActorProxy');
 

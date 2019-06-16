@@ -1,7 +1,7 @@
 import { Log } from '../../util/log';
 import { ISourceActorProxy, SetBreakpointResult, Location } from '../actorProxy/source';
-import { SourceMappingInfo } from "./info";
-import { getUri } from "../../util/net";
+import { SourceMappingInfo } from './info';
+import { getUri } from '../../util/net';
 
 const log = Log.create('SourceMappingSourceActorProxy');
 

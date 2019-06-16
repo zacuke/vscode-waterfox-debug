@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { LoadedScriptsProvider } from './loadedScripts/provider';
-import { onCustomEvent } from './customEvents';
+import { ThreadStartedEventBody, ThreadExitedEventBody, NewSourceEventBody, RemoveSourcesEventBody, PopupAutohideEventBody } from '../common/customEvents';
 import { addPathMapping } from './addPathMapping';
 import { PopupAutohideManager } from './popupAutohideManager';
 import { DebugConfigurationProvider } from './debugConfigurationProvider';
@@ -95,6 +95,38 @@ function onDidTerminateSession(
 		activeFirefoxDebugSessions--;
 		if (activeFirefoxDebugSessions === 0) {
 			popupAutohideManager.disableButton();
+		}
+	}
+}
+
+function onCustomEvent(
+	event: vscode.DebugSessionCustomEvent,
+	loadedScriptsProvider: LoadedScriptsProvider,
+	popupAutohideManager: PopupAutohideManager
+) {
+	if (event.session.type === 'firefox') {
+
+		switch (event.event) {
+
+			case 'threadStarted':
+				loadedScriptsProvider.addThread(<ThreadStartedEventBody>event.body, event.session.id);
+				break;
+
+			case 'threadExited':
+				loadedScriptsProvider.removeThread((<ThreadExitedEventBody>event.body).id, event.session.id);
+				break;
+
+			case 'newSource':
+				loadedScriptsProvider.addSource(<NewSourceEventBody>event.body, event.session.id);
+				break;
+
+			case 'removeSources':
+				loadedScriptsProvider.removeSources((<RemoveSourcesEventBody>event.body).threadId, event.session.id);
+				break;
+
+			case 'popupAutohide':
+				popupAutohideManager.enableButton((<PopupAutohideEventBody>event.body).popupAutohide);
+				break;
 		}
 	}
 }

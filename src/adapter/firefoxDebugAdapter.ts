@@ -5,7 +5,7 @@ import { accessorExpression } from './util/misc';
 import { DebugAdapterBase } from './debugAdapterBase';
 import { ExceptionBreakpoints } from './firefox/index';
 import { ThreadAdapter, SourceAdapter } from './adapter/index';
-import { LaunchConfiguration, AttachConfiguration, parseConfiguration } from "./configuration";
+import { LaunchConfiguration, AttachConfiguration, parseConfiguration } from './configuration';
 import { FirefoxDebugSession } from './firefoxDebugSession';
 import { popupAutohidePreferenceKey } from './adapter/addonManager';
 

@@ -1,5 +1,5 @@
 import * as url from 'url';
-import { isWindowsPlatform as detectWindowsPlatform } from '../../util/misc';
+import { isWindowsPlatform as detectWindowsPlatform } from '../../../common/util';
 import { ISourceActorProxy } from '../index';
 import { SourceMapConsumer, Position, MappedPosition, NullablePosition, NullableMappedPosition, BasicSourceMapConsumer } from 'source-map';
 

@@ -1,5 +1,5 @@
 import * as fs from 'fs-extra';
-import { delay } from './misc';
+import { delay } from '../../common/util';
 import { Log } from './log';
 
 let log = Log.create('fs');

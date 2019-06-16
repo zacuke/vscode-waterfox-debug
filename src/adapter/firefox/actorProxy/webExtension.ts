@@ -5,7 +5,7 @@ import { PathMapper } from '../../util/pathMapper';
 import { ActorProxy } from './interface';
 import { TabActorProxy } from './tab';
 import { ConsoleActorProxy } from './console';
-import { DebugConnection } from "../connection";
+import { DebugConnection } from '../connection';
 
 let log = Log.create('WebExtensionActorProxy');
 

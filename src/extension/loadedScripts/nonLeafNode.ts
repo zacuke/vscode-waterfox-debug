@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { NewSourceEventBody, ThreadStartedEventBody } from "../customEvents";
-import { TreeNode } from "./treeNode";
+import { NewSourceEventBody, ThreadStartedEventBody } from '../../common/customEvents';
+import { TreeNode } from './treeNode';
 import { FileNode } from './fileNode';
 import { SessionNode } from './sessionNode';
 

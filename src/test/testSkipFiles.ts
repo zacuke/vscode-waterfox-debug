@@ -3,8 +3,7 @@ import { StoppedEvent } from 'vscode-debugadapter';
 import * as path from 'path';
 import * as util from './util';
 import * as assert from 'assert';
-import { delay } from '../util/misc';
-import { isWindowsPlatform } from '../util/misc';
+import { delay, isWindowsPlatform } from '../common/util';
 
 describe('Skipping files: The debugger', function() {
 

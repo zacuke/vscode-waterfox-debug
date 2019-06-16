@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { TreeNode } from "./treeNode";
-import { RootNode } from "./rootNode";
+import { TreeNode } from './treeNode';
+import { RootNode } from './rootNode';
 import { ThreadNode } from './nonLeafNode';
-import { ThreadStartedEventBody, NewSourceEventBody } from "../customEvents";
+import { ThreadStartedEventBody, NewSourceEventBody } from '../../common/customEvents';
 
 export interface SessionInfo {
 	id: string;

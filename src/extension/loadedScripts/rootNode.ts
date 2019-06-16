@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { ThreadStartedEventBody, NewSourceEventBody } from "../customEvents";
-import { TreeNode } from "./treeNode";
-import { SessionInfo, SessionNode } from "./sessionNode";
+import { ThreadStartedEventBody, NewSourceEventBody } from '../../common/customEvents';
+import { TreeNode } from './treeNode';
+import { SessionInfo, SessionNode } from './sessionNode';
 
 export class RootNode extends TreeNode {
 

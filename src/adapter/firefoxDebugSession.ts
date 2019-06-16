@@ -9,12 +9,12 @@ import { AddonManager } from './adapter/addonManager';
 import { launchFirefox } from './firefox/launch';
 import { DebugConnection, TabActorProxy, WorkerActorProxy, IThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, ISourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
 import { ThreadAdapter, ThreadPauseCoordinator, FrameAdapter, VariableAdapter, ConsoleAPICallAdapter, VariablesProvider, SourceAdapter, Registry, BreakpointsManager, SkipFilesManager } from './adapter/index';
-import { ParsedConfiguration } from "./configuration";
+import { ParsedConfiguration } from './configuration';
 import { PathMapper, urlDetector } from './util/pathMapper';
-import { isWindowsPlatform as detectWindowsPlatform, delay } from './util/misc';
+import { isWindowsPlatform as detectWindowsPlatform, delay } from '../common/util';
 import { tryRemoveRepeatedly } from './util/fs';
 import { connect, waitForSocket } from './util/net';
-import { NewSourceEventBody, ThreadStartedEventBody, ThreadExitedEventBody, RemoveSourcesEventBody } from "./extension/customEvents";
+import { NewSourceEventBody, ThreadStartedEventBody, ThreadExitedEventBody, RemoveSourcesEventBody } from '../common/customEvents';
 import { PreferenceActorProxy } from './firefox/actorProxy/preference';
 
 let log = Log.create('FirefoxDebugSession');

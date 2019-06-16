@@ -3,7 +3,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import * as path from 'path';
 import * as util from './util';
 import * as assert from 'assert';
-import { delay } from "../util/misc";
+import { delay } from '../common/util';
 
 const TESTDATA_PATH = path.join(__dirname, '../../testdata');
 

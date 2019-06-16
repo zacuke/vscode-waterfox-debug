@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as url from 'url';
 import { Log } from './log';
 import { PathMappings, ParsedAddonConfiguration } from '../configuration';
-import { isWindowsPlatform as detectWindowsPlatform } from './misc';
+import { isWindowsPlatform as detectWindowsPlatform } from '../../common/util';
 import { urlDirname } from './net';
 
 let log = Log.create('PathConversion');

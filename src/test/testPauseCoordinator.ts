@@ -1,5 +1,5 @@
-import { ThreadPauseCoordinator } from '../adapter/index';
-import { delay } from '../util/misc';
+import { ThreadPauseCoordinator } from '../adapter/adapter/index';
+import { delay } from '../common/util';
 import * as assert from 'assert';
 
 describe('The ThreadPauseCoordinator', function() {

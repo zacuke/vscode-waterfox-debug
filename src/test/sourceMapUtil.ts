@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 import { Stream } from 'stream';
 import * as assert from 'assert';
-import { DebugClient } from "vscode-debugadapter-testsupport";
+import { DebugClient } from 'vscode-debugadapter-testsupport';
 import * as util from './util';
 
 export async function testSourcemaps(

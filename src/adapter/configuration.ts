@@ -3,10 +3,11 @@ import * as path from 'path';
 import * as uuid from 'uuid';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { Log, LogConfiguration } from './util/log';
-import { isWindowsPlatform, findAddonId, normalizePath } from './util/misc';
+import { findAddonId, normalizePath } from './util/misc';
 import { isExecutable } from './util/fs';
 import { Minimatch } from 'minimatch';
 import FirefoxProfile from 'firefox-profile';
+import { isWindowsPlatform } from '../common/util';
 
 let log = Log.create('ParseConfiguration');
 

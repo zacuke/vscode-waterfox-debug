@@ -5,8 +5,8 @@ import * as http from 'http';
 import * as https from 'https';
 import fileUriToPath from 'file-uri-to-path';
 import dataUriToBuffer from 'data-uri-to-buffer';
-import { Log } from "./log";
-import { delay } from './misc';
+import { Log } from './log';
+import { delay } from '../../common/util';
 
 let log = Log.create('net');
 

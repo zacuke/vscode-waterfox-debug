@@ -1,7 +1,7 @@
-import { parseConfiguration, LaunchConfiguration, AttachConfiguration, NormalizedReloadConfiguration } from '../configuration';
+import { parseConfiguration, LaunchConfiguration, AttachConfiguration, NormalizedReloadConfiguration } from '../adapter/configuration';
 import * as assert from 'assert';
 import * as path from 'path';
-import { isWindowsPlatform } from '../util/misc';
+import { isWindowsPlatform } from '../common/util';
 
 describe('The configuration parser', function() {
 
