@@ -13,6 +13,10 @@ export async function isExecutable(path: string): Promise<boolean> {
 	}
 }
 
+/**
+ * Sometimes (on Windows) the temporary directories created for debugging can't be deleted immediately
+ * after terminating Firefox, so this method keeps retrying for 500ms.
+ */
 export async function tryRemoveRepeatedly(dir: string): Promise<void> {
 	for (var i = 0; i < 5; i++) {
 		try {

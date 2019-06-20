@@ -11,6 +11,34 @@ import { isWindowsPlatform } from '../common/util';
 
 let log = Log.create('ParseConfiguration');
 
+/**
+ * A launch configuration, as provided by VS Code
+ */
+export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.LaunchRequestArguments {
+	request: 'launch';
+	file?: string;
+	firefoxExecutable?: string;
+	profileDir?: string;
+	profile?: string;
+	keepProfileChanges?: boolean;
+	preferences?: { [key: string]: boolean | number | string | null };
+	port?: number;
+	firefoxArgs?: string[];
+	reAttach?: boolean;
+}
+
+/**
+ * An attach configuration, as provided by VS Code
+ */
+export interface AttachConfiguration extends CommonConfiguration, DebugProtocol.AttachRequestArguments {
+	request: 'attach';
+	port?: number;
+	host?: string;
+}
+
+/**
+ * Common properties of launch and attach configurations
+ */
 export interface CommonConfiguration {
 	request: 'launch' | 'attach';
 	url?: string;
@@ -25,25 +53,6 @@ export interface CommonConfiguration {
 	popupAutohideButton?: boolean;
 	sourceMaps?: 'client' | 'server';
 	liftAccessorsFromPrototypes?: number;
-}
-
-export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.LaunchRequestArguments {
-	request: 'launch';
-	file?: string;
-	firefoxExecutable?: string;
-	profileDir?: string;
-	profile?: string;
-	keepProfileChanges?: boolean;
-	preferences?: { [key: string]: boolean | number | string | null };
-	port?: number;
-	firefoxArgs?: string[];
-	reAttach?: boolean;
-}
-
-export interface AttachConfiguration extends CommonConfiguration, DebugProtocol.AttachRequestArguments {
-	request: 'attach';
-	port?: number;
-	host?: string;
 }
 
 export type ReloadConfiguration = string | string[] | DetailedReloadConfiguration;
@@ -102,6 +111,10 @@ export interface ParsedAddonConfiguration {
 	popupAutohideButton: boolean;
 }
 
+/**
+ * Reads the configuration that was provided by VS Code, checks that it's consistent,
+ * adds default values and returns it in a form that is easier to work with
+ */
 export async function parseConfiguration(
 	config: LaunchConfiguration | AttachConfiguration
 ): Promise<ParsedConfiguration> {

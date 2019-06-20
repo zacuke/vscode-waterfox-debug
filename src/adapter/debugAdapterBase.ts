@@ -1,6 +1,10 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugSession } from 'vscode-debugadapter';
 
+/**
+ * This class extends the base class provided by VS Code for debug adapters,
+ * offering a Promise-based API instead of the callback-based API used by VS Code
+ */
 export abstract class DebugAdapterBase extends DebugSession {
 
 	public constructor(debuggerLinesStartAt1: boolean, isServer: boolean = false) {

@@ -3,6 +3,9 @@ import * as fs from 'fs-extra';
 import stripJsonComments from 'strip-json-comments';
 import { isWindowsPlatform } from '../../common/util';
 
+/**
+ * compare file paths, taking into account whether filenames are case sensitive on the current platform
+ */
 export function pathsAreEqual(path1: string, path2: string | undefined) {
 	if (path2 === undefined) return false;
 	if (isWindowsPlatform()) {
@@ -12,6 +15,9 @@ export function pathsAreEqual(path1: string, path2: string | undefined) {
 	}
 }
 
+/**
+ * replace `\` with `/` on windows and remove trailing slashes
+ */
 export function normalizePath(rawPath: string) {
 	let normalized = path.normalize(rawPath);
 	if (isWindowsPlatform()) {
@@ -24,6 +30,10 @@ export function normalizePath(rawPath: string) {
 	return normalized;
 }
 
+/**
+ * extract an error message from an exception
+ * [grip](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#grips)
+ */
 export function exceptionGripToString(grip: FirefoxDebugProtocol.Grip | null | undefined) {
 
 	if ((typeof grip === 'object') && (grip !== null) && (grip.type === 'object')) {
@@ -52,6 +62,9 @@ export function exceptionGripToString(grip: FirefoxDebugProtocol.Grip | null | u
 
 const identifierExpression = /^[a-zA-Z_$][a-zA-Z_$]*$/;
 
+/**
+ * create a javascript expression for accessing a property of an object
+ */
 export function accessorExpression(objectExpression: string | undefined, propertyName: string): string | undefined {
 	if (objectExpression === undefined) {
 		return undefined;
@@ -65,6 +78,9 @@ export function accessorExpression(objectExpression: string | undefined, propert
 	}
 }
 
+/**
+ * extract the addon id from a WebExtension's `manifest.json`
+ */
 export async function findAddonId(addonPath: string): Promise<string | undefined> {
 	try {
 		const rawManifest = await fs.readFile(path.join(addonPath, 'manifest.json'), { encoding: 'utf8' });

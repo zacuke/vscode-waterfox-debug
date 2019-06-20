@@ -4,8 +4,8 @@ import { EventEmitter } from 'events';
 let log = Log.create('DebugProtocolTransport');
 
 /**
- * Implements the Remote Debugging Protocol Stream Transport
- * as defined in https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport
+ * Implements the Remote Debugging Protocol Stream Transport as defined in
+ * https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#stream-transport
  * Currently bulk data packets are unsupported and error handling is nonexistent
  */
 export class DebugProtocolTransport extends EventEmitter {

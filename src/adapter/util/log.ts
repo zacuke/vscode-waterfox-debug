@@ -10,6 +10,10 @@ export interface LogConfiguration {
 
 enum NumericLogLevel { Debug, Info, Warn, Error }
 
+/**
+ * The logger used throughout the debug adapter.
+ * It is configured using the `log` property in the launch or attach configuration.
+ */
 export class Log {
 
 	private static startTime = Date.now();

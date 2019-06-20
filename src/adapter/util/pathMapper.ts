@@ -11,6 +11,10 @@ let isWindowsPlatform = detectWindowsPlatform();
 
 export let urlDetector = /^[a-zA-Z][a-zA-Z0-9\+\-\.]*\:\/\//;
 
+/**
+ * This class is used to map the URLs as seen by Firefox to local paths as seen by VS Code.
+ * It is configured using the `pathMappings` property in the launch or attach configuration.
+ */
 export class PathMapper {
 
 	constructor(

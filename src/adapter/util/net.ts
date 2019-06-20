@@ -10,6 +10,9 @@ import { delay } from '../../common/util';
 
 let log = Log.create('net');
 
+/**
+ * connect to a TCP port
+ */
 export function connect(port: number, host?: string): Promise<net.Socket> {
 	return new Promise<net.Socket>((resolve, reject) => {
 		let socket = net.connect(port, host || 'localhost');
@@ -18,6 +21,10 @@ export function connect(port: number, host?: string): Promise<net.Socket> {
 	});
 }
 
+/**
+ * Try to connect to a TCP port and keep retrying for 5 seconds if the connection is rejected initially.
+ * Used to connect to Firefox after launching it.
+ */
 export async function waitForSocket(port: number): Promise<net.Socket> {
 	let lastError: any;
 	for (var i = 0; i < 25; i++) {
@@ -49,6 +56,9 @@ export function urlDirname(url: string): string {
 	}
 }
 
+/**
+ * fetch the document from a URI, with support for the http(s), file and data schemes
+ */
 export async function getUri(uri: string): Promise<string> {
 
 	if (uri.startsWith('data:')) {
