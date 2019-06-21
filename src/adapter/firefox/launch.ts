@@ -4,6 +4,19 @@ import { spawn, fork, ChildProcess } from 'child_process';
 import FirefoxProfile from 'firefox-profile';
 import { ParsedLaunchConfiguration } from '../configuration';
 
+/**
+ * Launches Firefox after preparing the debug profile.
+ * If Firefox is launched "detached" (when the `reAttach` flag in the launch configuration is set
+ * to `true`), it creates one or even two intermediate child processes for launching Firefox:
+ * * one of them will wait for the Firefox process to exit and then remove any temporary directories
+ *   created by this debug adapter
+ * * the other one is used to work around a bug in the node version that is distributed with VS Code
+ *   (and that runs this debug adapter), which fails to properly detach from child processes.
+ *   See [this issue](https://github.com/microsoft/vscode/issues/22022) for an explanation of the
+ *   bug and how to work around it.
+ * 
+ * The intermediate child processes execute the [forkedLauncher](../util/forkedLauncher.ts) script.
+ */
 export async function launchFirefox(launch: ParsedLaunchConfiguration): Promise<ChildProcess | undefined> {
 
 	await prepareDebugProfile(launch);

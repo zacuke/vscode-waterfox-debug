@@ -5,6 +5,11 @@ import { ActorProxy } from './interface';
 
 let log = Log.create('ObjectGripActorProxy');
 
+/**
+ * Proxy class for an object grip actor
+ * ([docs](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#objects),
+ * [spec](https://github.com/mozilla/gecko-dev/blob/master/devtools/shared/specs/object.js))
+ */
 export class ObjectGripActorProxy implements ActorProxy {
 
 	private _refCount = 0;

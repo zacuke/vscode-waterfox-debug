@@ -43,7 +43,9 @@ export enum ExceptionBreakpoints {
 }
 
 /**
- * A ThreadActorProxy is a proxy for a "thread-like actor" (a Tab, Worker or Addon) in Firefox.
+ * A ThreadActorProxy is a proxy for a "thread-like actor" (a Tab, Worker or Addon) in Firefox
+ * ([docs](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#interacting-with-thread-like-actors),
+ * [spec](https://github.com/mozilla/gecko-dev/blob/master/devtools/shared/specs/thread.js))
  */
 export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThreadActorProxy {
 

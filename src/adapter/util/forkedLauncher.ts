@@ -1,6 +1,11 @@
 import { spawn } from 'child_process';
 import * as fs from 'fs-extra';
 
+/**
+ * This script is used by the [launchFirefox()](../firefox/launch.ts) function when `reAttach` is
+ * set to true in the launch configuration.
+ */
+
 let args = process.argv.splice(2);
 
 let cmd = args.shift();

@@ -4,6 +4,10 @@ import { PendingRequests } from '../../util/pendingRequests';
 
 let log = Log.create('PreferenceActorProxy');
 
+/**
+ * Proxy class for a preference actor
+ * ([spec](https://github.com/mozilla/gecko-dev/blob/master/devtools/shared/specs/preference.js))
+ */
 export class PreferenceActorProxy implements ActorProxy {
 
 	private pendingGetPrefRequests = new PendingRequests<string>();

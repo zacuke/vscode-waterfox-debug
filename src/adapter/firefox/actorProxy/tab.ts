@@ -6,6 +6,10 @@ import { PathMapper } from '../../util/pathMapper';
 
 let log = Log.create('TabActorProxy');
 
+/**
+ * Proxy class for a tab actor
+ * ([docs](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#listing-browser-tabs))
+ */
 export class TabActorProxy extends EventEmitter implements ActorProxy {
 
 	private pendingAttachRequests = new PendingRequests<IThreadActorProxy>();

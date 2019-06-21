@@ -9,6 +9,10 @@ import { DebugConnection } from '../connection';
 
 let log = Log.create('WebExtensionActorProxy');
 
+/**
+ * Proxy class for a WebExtension actor
+ * ([spec](https://github.com/mozilla/gecko-dev/blob/master/devtools/shared/specs/addon/webextension.js))
+ */
 export class WebExtensionActorProxy extends EventEmitter implements ActorProxy {
 
 	private pendingConnectRequests = new PendingRequests<[TabActorProxy, ConsoleActorProxy]>();

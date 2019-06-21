@@ -7,6 +7,9 @@ import { exceptionGripToString } from '../../util/misc';
 
 let log = Log.create('ConsoleActorProxy');
 
+/**
+ * Proxy class for a console actor
+ */
 export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 
 	private static listenFor = [ 'PageError', 'ConsoleAPI' ];

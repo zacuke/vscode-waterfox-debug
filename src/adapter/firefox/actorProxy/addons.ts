@@ -4,6 +4,10 @@ import { PendingRequests } from '../../util/pendingRequests';
 
 let log = Log.create('AddonsActorProxy');
 
+/**
+ * Proxy class for an addons actor
+ * ([spec](https://github.com/mozilla/gecko-dev/blob/master/devtools/shared/specs/addon/addons.js))
+ */
 export class AddonsActorProxy implements ActorProxy {
 
 	private pendingInstallRequests = new PendingRequests<FirefoxDebugProtocol.InstallAddonResponse>();

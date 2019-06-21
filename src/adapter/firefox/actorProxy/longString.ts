@@ -5,6 +5,11 @@ import { ActorProxy } from './interface';
 
 let log = Log.create('LongStringGripActorProxy');
 
+/**
+ * Proxy class for a long string grip actor
+ * ([docs](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#long-strings),
+ * [spec](https://github.com/mozilla/gecko-dev/blob/master/devtools/shared/specs/string.js))
+ */
 export class LongStringGripActorProxy implements ActorProxy {
 
 	private pendingSubstringRequests = new PendingRequests<string>();

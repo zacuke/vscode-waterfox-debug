@@ -5,6 +5,11 @@ import { ActorProxy } from './interface';
 
 let log = Log.create('BreakpointActorProxy');
 
+/**
+ * Proxy class for a breakpoint actor.
+ * This actor was removed in Firefox 67, after that breakpoints are added and removed
+ * [using the thread actor](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#breakpoints).
+ */
 export class BreakpointActorProxy implements ActorProxy {
 
 	private pendingDeleteRequests = new PendingRequests<void>();

@@ -17,6 +17,11 @@ export type FetchTabsResult = {
 	addons: AddonsActorProxy | undefined
 };
 
+/**
+ * Proxy class for a root actor
+ * ([docs](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#the-root-actor),
+ * [spec](https://github.com/mozilla/gecko-dev/blob/master/devtools/shared/specs/root.js))
+ */
 export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 	private tabs = new Map<string, [TabActorProxy, ConsoleActorProxy]>();

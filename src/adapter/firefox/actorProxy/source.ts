@@ -29,6 +29,11 @@ export class SetBreakpointResult {
 	) {}
 }
 
+/**
+ * Proxy class for a source actor
+ * ([docs](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#loading-script-sources),
+ * [spec](https://github.com/mozilla/gecko-dev/blob/master/devtools/shared/specs/source.js))
+ */
 export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 
 	private pendingGetBreakpointPositionsRequest?: PendingRequest<FirefoxDebugProtocol.BreakpointPositions>;

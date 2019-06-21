@@ -6,6 +6,9 @@ import { PathMapper } from '../../util/pathMapper';
 
 let log = Log.create('WorkerActorProxy');
 
+/**
+ * Proxy class for a WebWorker actor
+ */
 export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 
 	constructor(
