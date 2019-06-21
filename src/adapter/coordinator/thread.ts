@@ -1,9 +1,9 @@
-import { Log } from '../../util/log';
+import { Log } from '../util/log';
 import { EventEmitter } from 'events';
-import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy } from '../../firefox/index';
+import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy } from '../firefox/index';
 import { ThreadPauseCoordinator, PauseType } from './threadPause';
-import { DelayedTask } from '../../util/delayedTask';
-import { PendingRequest } from '../../util/pendingRequests';
+import { DelayedTask } from '../util/delayedTask';
+import { PendingRequest } from '../util/pendingRequests';
 
 let log = Log.create('ThreadCoordinator');
 

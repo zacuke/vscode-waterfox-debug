@@ -1,5 +1,5 @@
-import { Log } from '../../util/log';
-import { PendingRequest } from '../../util/pendingRequests';
+import { Log } from '../util/log';
+import { PendingRequest } from '../util/pendingRequests';
 
 let log = Log.create('ThreadPauseCoordinator');
 

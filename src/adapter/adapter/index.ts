@@ -1,6 +1,4 @@
 export { BreakpointInfo, BreakpointAdapter, ConsoleAPICallAdapter } from './misc';
-export { ThreadCoordinator } from './coordinator/thread';
-export { ThreadPauseCoordinator, PauseType } from './coordinator/threadPause';
 export { ThreadAdapter } from './thread';
 export { SourceAdapter } from './source';
 export { BreakpointsManager } from './breakpointsManager';
