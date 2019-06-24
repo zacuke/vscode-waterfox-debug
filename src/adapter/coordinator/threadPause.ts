@@ -5,6 +5,25 @@ let log = Log.create('ThreadPauseCoordinator');
 
 export type PauseType = 'auto' | 'user';
 
+/**
+ * This class coordinates the states of all attached
+ * ["threads"](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#interacting-with-thread-like-actors).
+ * When debugging multiple threads, some thread pauses may block other threads from being resumed:
+ * when thread A is paused and then thread B is paused, thread A can't be resumed before thread B
+ * is resumed.
+ * 
+ * This class distinguishes between automatic and user-visible pauses:
+ * * automatic pauses are requested in order to run some task on the paused thread and automatically
+ *   resume it afterwards. These pauses are not visible to the user and are usually short-lived.
+ * * user-visible pauses are triggered by hitting a breakpoint or by a user request to interrupt the
+ *   thread.
+ * 
+ * This class tries its best to ensure that resuming an automatically-paused thread is not blocked
+ * by another thread that is in a user-visible pause, although this can't always be guaranteed
+ * (e.g. when one thread hits a breakpoint while another thread is in an automatic pause).
+ * It does so by delaying the request for a user-visible pause until all automatically paused threads
+ * have been resumed.
+ */
 export class ThreadPauseCoordinator {
 
 	private currentPauses: ThreadPauseInfo[] = [];
@@ -13,6 +32,15 @@ export class ThreadPauseCoordinator {
 	private interruptingThread?: ThreadPauseInfo;
 	private resumingThread?: ThreadInfo;
 
+	/**
+	 * This method is called when a thread should be interrupted and returns a Promise that is
+	 * resolved when this class considers it to be "safe" to interrupt the thread.
+	 * In particular, if a thread should be interrupted due to a user request while another thread is
+	 * in an automatic pause (i.e. some actions are running on the paused thread and it will be
+	 * automatically resumed when they have finished), the returned Promise will only be resolved
+	 * once the automatically paused thread is resumed because otherwise the requested pause will
+	 * block the other thread from being resumed.
+	 */
 	public requestInterrupt(threadId: number, threadName: string, pauseType: PauseType): Promise<void> {
 
 		if (log.isDebugEnabled()) {
@@ -34,6 +62,13 @@ export class ThreadPauseCoordinator {
 		return promise;
 	}
 
+	/**
+	 * This method is called when a thread should be resumed and returns a Promise that is
+	 * resolved when resuming it is not blocked by another thread's pause.
+	 * If resuming the thread was requested by the user, but it is blocked by another thread's
+	 * pause which was also requested by the user, the Promise will be rejected with a message
+	 * to be shown to the user to tell him which threads need to be resumed first.
+	 */
 	public requestResume(threadId: number, threadName: string): Promise<void> {
 
 		if (log.isDebugEnabled()) {
@@ -77,6 +112,9 @@ export class ThreadPauseCoordinator {
 		return promise;
 	}
 
+	/**
+	 * This method is called whenever a thread was interrupted.
+	 */
 	public notifyInterrupted(threadId: number, threadName: string, pauseType: PauseType): void {
 
 		if (log.isDebugEnabled()) {
@@ -99,6 +137,9 @@ export class ThreadPauseCoordinator {
 		this.doNext();
 	}
 
+	/**
+	 * This method is called whenever a thread was requested to be interrupted, but the request failed.
+	 */
 	public notifyInterruptFailed(threadId: number, threadName: string): void {
 
 		if (log.isDebugEnabled()) {
@@ -110,6 +151,9 @@ export class ThreadPauseCoordinator {
 		}
 	}
 
+	/**
+	 * This method is called whenever a thread was resumed.
+	 */
 	public notifyResumed(threadId: number, threadName: string): void {
 
 		if (log.isDebugEnabled()) {
@@ -144,6 +188,9 @@ export class ThreadPauseCoordinator {
 		this.doNext();
 	}
 
+	/**
+	 * This method is called whenever a thread was requested to be resumed, but the request failed.
+	 */
 	public notifyResumeFailed(threadId: number, threadName: string): void {
 
 		if (log.isDebugEnabled()) {
@@ -155,6 +202,9 @@ export class ThreadPauseCoordinator {
 		} 
 	}
 
+	/**
+	 * This method is called whenever a thread was detached.
+	 */
 	public threadTerminated(threadId: number, threadName: string) {
 
 		if (log.isDebugEnabled()) {
@@ -191,6 +241,11 @@ export class ThreadPauseCoordinator {
 		this.doNext();
 	}
 
+	/**
+	 * This method is called whenever `requestedPauses` or `requestedResumes` changed and decides
+	 * what should be done next (if anything) and will do it by calling `pauseThread()` or
+	 * `resumeThread()`.
+	 */
 	private doNext(): void {
 
 		if (log.isDebugEnabled()) {
