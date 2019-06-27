@@ -9,6 +9,10 @@ let log = Log.create('BreakpointsManager');
 const isWindowsPlatform = detectWindowsPlatform();
 const windowsAbsolutePathRegEx = /^[a-zA-Z]:\\/;
 
+/**
+ * This class holds all breakpoints that have been set in VS Code and synchronizes them with all
+ * sources in all threads in Firefox using [`SourceAdapter#updateBreakpoints()`](./source.ts).
+ */
 export class BreakpointsManager {
 
 	private nextBreakpointId = 1;
@@ -19,6 +23,10 @@ export class BreakpointsManager {
 		private readonly sendEvent: (ev: DebugProtocol.Event) => void
 	) {}
 
+	/**
+	 * called by [`FirefoxDebugAdapter#setBreakpoints()`](../firefoxDebugAdapter.ts) whenever the
+	 * breakpoints have been changed by the user in VS Code
+	 */
 	public setBreakpoints(
 		breakpoints: DebugProtocol.SourceBreakpoint[],
 		sourcePathOrUrl: string
@@ -44,6 +52,10 @@ export class BreakpointsManager {
 		return breakpointInfos;
 	}
 
+	/** 
+	 * called by [`SourceAdapter#syncBreakpoints()`](./source.ts) whenever a breakpoint has been set
+	 * in Firefox
+	 */
 	public verifyBreakpoint(
 		breakpointInfo: BreakpointInfo,
 		actualLine: number | undefined,
@@ -64,6 +76,10 @@ export class BreakpointsManager {
 		}
 	}
 
+	/**
+	 * called by [`FirefoxDebugSession#attachSource()`](../firefoxDebugSession.ts) whenever a new
+	 * javascript source was attached
+	 */
 	public onNewSource(sourceAdapter: SourceAdapter) {
 		const sourcePath = sourceAdapter.sourcePath;
 		if (sourcePath !== undefined) {

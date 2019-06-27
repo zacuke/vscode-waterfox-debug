@@ -1,14 +1,10 @@
 import { ThreadAdapter, VariableAdapter, FrameAdapter } from './index';
 import { Scope } from 'vscode-debugadapter';
+import { VariablesProvider } from './variablesProvider';
 
-export interface VariablesProvider {
-	readonly variablesProviderId: number;
-	readonly threadAdapter: ThreadAdapter;
-	readonly referenceFrame: FrameAdapter | undefined;
-	readonly referenceExpression: string | undefined;
-	getVariables(): Promise<VariableAdapter[]>;
-}
-
+/**
+ * Abstract adapter base class for a javascript scope.
+ */
 export abstract class ScopeAdapter implements VariablesProvider {
 
 	public readonly variablesProviderId: number;

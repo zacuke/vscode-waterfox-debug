@@ -5,6 +5,11 @@ import { PopupAutohideEventBody } from '../../common/customEvents';
 
 export const popupAutohidePreferenceKey = 'ui.popup.disable_autohide';
 
+/**
+ * When debugging a WebExtension, this class installs the WebExtension, attaches to it, reloads it
+ * when desired and tells the [`PopupAutohideManager`](../../extension/popupAutohideManager.ts) the
+ * initial state of the popup auto-hide flag by sending a custom event.
+ */
 export class AddonManager {
 
 	private readonly config: ParsedAddonConfiguration;

@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy, ISourceActorProxy } from '../firefox/index';
-import { FrameAdapter, ScopeAdapter, SourceAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter } from './index';
+import { FrameAdapter, ScopeAdapter, SourceAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter, BreakpointAdapter } from './index';
 import { ThreadCoordinator } from '../coordinator/thread';
 import { ThreadPauseCoordinator } from '../coordinator/threadPause';
 import { Variable } from 'vscode-debugadapter';
@@ -9,7 +9,6 @@ import { FirefoxDebugSession } from '../firefoxDebugSession';
 import { pathsAreEqual } from '../util/misc';
 import { Location } from '../firefox/actorProxy/source';
 import { AttachOptions } from '../firefox/actorProxy/thread';
-import { BreakpointAdapter } from './misc';
 
 let log = Log.create('ThreadAdapter');
 

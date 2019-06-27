@@ -8,6 +8,7 @@ const maxStringChars = 20;
 const maxAttributes = 5;
 const maxParameters = 5;
 
+/** generates the preview string for an object shown in the debugger's Variables view */
 export function renderPreview(objectGrip: FirefoxDebugProtocol.ObjectGrip): string {
 	try {
 

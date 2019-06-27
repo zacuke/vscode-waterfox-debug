@@ -2,21 +2,28 @@ import { Log } from '../util/log';
 import { ISourceActorProxy } from '../firefox/index';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { Source } from 'vscode-debugadapter';
-import { ThreadAdapter, Registry, BreakpointInfo, BreakpointAdapter } from './index';
-import { OldProtocolBreakpointAdapter, NewProtocolBreakpointAdapter } from './misc';
+import { ThreadAdapter, Registry, BreakpointInfo, BreakpointAdapter, OldProtocolBreakpointAdapter, NewProtocolBreakpointAdapter } from './index';
 import { findNextBreakpointPosition } from '../firefox/sourceMaps/info';
 
 const log = Log.create('SourceAdapter');
 
 const actorIdRegex = /[0-9]+$/;
 
+/**
+ * Adapter class for a javascript source.
+ */
 export class SourceAdapter {
 
 	public readonly id: number;
 	public readonly source: Source;
 
+	/** the breakpoints for this source that have been set in Firefox */
 	private currentBreakpoints: BreakpointAdapter[] = [];
+
+	/** the breakpoints for this source that should be set in Firefox */
 	private desiredBreakpoints: BreakpointInfo[] | undefined = undefined;
+
+	/** `true` while `syncBreakpoints()` is running  */
 	private isSyncingBreakpoints: boolean = false;
 
 	public constructor(
@@ -89,6 +96,10 @@ export class SourceAdapter {
 		}
 	}
 
+	/**
+	 * synchronize the breakpoints for this source with Firefox, i.e. calculate the difference
+	 * between `currentBreakpoints` and `desiredBreakpoints` and add and remove breakpoints as needed
+	 */
 	private async syncBreakpoints(): Promise<void> {
 
 		this.isSyncingBreakpoints = true;

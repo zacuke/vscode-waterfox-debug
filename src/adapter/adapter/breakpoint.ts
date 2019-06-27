@@ -1,12 +1,25 @@
 import { BreakpointActorProxy } from '../firefox/index';
-import { VariablesProvider, VariableAdapter, ThreadAdapter, SourceAdapter } from './index';
+import { SourceAdapter } from './index';
 import { DebugProtocol } from 'vscode-debugprotocol';
 
 export class BreakpointInfo {
 
+	/**
+	 * the actual line where the breakpoint was set (which may be different from the requested line
+	 * in `requestedBreakpoint.line`)
+	 */
 	public actualLine: number | undefined;
+
+	/**
+	 * the actual column where the breakpoint was set (which may be different from the requested
+	 * column in `requestedBreakpoint.column`)
+	 */
 	public actualColumn: number | undefined;
+
+	/** true if the breakpoint was successfully set */
 	public verified: boolean;
+
+	/** how many times the breakpoint should be skipped initially */
 	public readonly hitCount: number;
 
 	public constructor(
@@ -34,6 +47,9 @@ export interface BreakpointAdapter {
 	delete(): Promise<void>;
 }
 
+/**
+ * Adapter class for a breakpoint in Firefox < 67
+ */
 export class OldProtocolBreakpointAdapter implements BreakpointAdapter {
 
 	public hitCount: number;
@@ -54,6 +70,9 @@ export class OldProtocolBreakpointAdapter implements BreakpointAdapter {
 	}
 }
 
+/**
+ * Adapter class for a breakpoint in Firefox >= 67
+ */
 export class NewProtocolBreakpointAdapter implements BreakpointAdapter {
 
 	public hitCount: number;
@@ -75,23 +94,5 @@ export class NewProtocolBreakpointAdapter implements BreakpointAdapter {
 			this.breakpointInfo.actualColumn!,
 			this.sourceAdapter.actor.url!
 		);
-	}
-}
-
-export class ConsoleAPICallAdapter implements VariablesProvider {
-
-	public readonly variablesProviderId: number;
-	public readonly referenceExpression = undefined;
-	public readonly referenceFrame = undefined;
-
-	public constructor(
-		private readonly variables: VariableAdapter[],
-		public readonly threadAdapter: ThreadAdapter
-	) {
-		this.variablesProviderId = threadAdapter.debugSession.variablesProviders.register(this);
-	}
-
-	public getVariables(): Promise<VariableAdapter[]> {
-		return Promise.resolve(this.variables);
 	}
 }

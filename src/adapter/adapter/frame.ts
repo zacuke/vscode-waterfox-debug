@@ -5,6 +5,9 @@ import { Registry } from './registry';
 
 let log = Log.create('FrameAdapter');
 
+/**
+ * Adapter class for a stackframe.
+ */
 export class FrameAdapter {
 
 	public readonly id: number;

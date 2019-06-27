@@ -4,6 +4,10 @@ import { FrameAdapter } from './frame';
 
 let log = Log.create('EnvironmentAdapter');
 
+/**
+ * Abstract adapter base class for a lexical environment.
+ * Used to create [`ScopeAdapter`](./scope.ts)s which then create `Scope` objects for VS Code.
+ */
 export abstract class EnvironmentAdapter<T extends FirefoxDebugProtocol.Environment> {
 
 	protected environment: T;
@@ -16,6 +20,7 @@ export abstract class EnvironmentAdapter<T extends FirefoxDebugProtocol.Environm
 		}
 	}
 
+	/** factory function for creating an EnvironmentAdapter of the appropriate type */
 	public static from(environment: FirefoxDebugProtocol.Environment): EnvironmentAdapter<FirefoxDebugProtocol.Environment> {
 		switch (environment.type) {
 			case 'object':

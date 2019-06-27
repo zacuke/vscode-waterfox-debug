@@ -4,11 +4,18 @@ import { Variable } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { accessorExpression } from '../util/misc';
 import { renderPreview } from './preview';
-import { VariablesProvider } from './scope';
+import { VariablesProvider } from './variablesProvider';
 import { GetterValueAdapter } from './getterValue';
 
 let log = Log.create('VariableAdapter');
 
+/**
+ * Adapter class for anything that will be sent to VS Code as a Variable.
+ * At the very least a Variable needs a name and a string representation of its value.
+ * If the VariableAdapter represents anything that can have child variables, it also needs a
+ * [`VariablesProvider`](./variablesProvider.ts) that will be used to fetch the child variables when
+ * requested by VS Code.
+ */
 export class VariableAdapter {
 
 	private _variablesProvider: VariablesProvider | undefined;
@@ -35,6 +42,10 @@ export class VariableAdapter {
 		return variable;
 	}
 
+	/**
+	 * factory function for creating a VariableAdapter from an
+	 * [object grip](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#objects)
+	 */
 	public static fromGrip(
 		varname: string,
 		parentReferenceExpression: string | undefined,
@@ -105,6 +116,10 @@ export class VariableAdapter {
 		}
 	}
 
+	/**
+	 * factory function for creating a VariableAdapter from a
+	 * [property descriptor](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#property-descriptors)
+	 */
 	public static fromPropertyDescriptor(
 		varname: string,
 		parentReferenceExpression: string | undefined,
@@ -154,6 +169,10 @@ export class VariableAdapter {
 		}
 	}
 
+	/**
+	 * factory function for creating a VariableAdapter from a
+	 * [safe getter value descriptor](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#property-descriptors)
+	 */
 	public static fromSafeGetterValueDescriptor(
 		varname: string,
 		parentReferenceExpression: string | undefined,

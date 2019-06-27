@@ -4,9 +4,19 @@ import { ThreadAdapter, Registry } from './index';
 
 let log = Log.create('SkipFilesManager');
 
+/**
+ * This class determines which files should be skipped (aka blackboxed). Files to be skipped are
+ * configured using the `skipFiles` configuration property or by using the context menu on a
+ * stackframe in VS Code.
+ */
 export class SkipFilesManager {
 
 	private readonly isWindowsPlatform = detectWindowsPlatform();
+
+	/**
+	 * Files that were configured to (not) be skipped by using the context menu on a
+	 * stackframe in VS Code. This overrides the `skipFiles` configuration property.
+	 */
 	private readonly dynamicFiles = new Map<string, boolean>();
 
 	public constructor(

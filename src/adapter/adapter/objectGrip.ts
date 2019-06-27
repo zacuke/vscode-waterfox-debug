@@ -1,6 +1,9 @@
 import { ThreadAdapter, VariablesProvider, VariableAdapter, FrameAdapter } from './index';
 import { ObjectGripActorProxy } from '../firefox/index';
 
+/**
+ * Adapter class for a javascript object.
+ */
 export class ObjectGripAdapter implements VariablesProvider {
 
 	public readonly variablesProviderId: number;
@@ -8,9 +11,11 @@ export class ObjectGripAdapter implements VariablesProvider {
 	public get threadAdapter(): ThreadAdapter {
 		return this.variableAdapter.threadAdapter;
 	}
+	/** a javascript expression for accessing the object represented by this adapter */
 	public get referenceExpression(): string | undefined {
 		return this.variableAdapter.referenceExpression;
 	}
+	/** the stackframe to use when executing the `referenceExpression` */
 	public get referenceFrame(): FrameAdapter | undefined {
 		return this.variableAdapter.referenceFrame;
 	}
@@ -93,6 +98,11 @@ export class ObjectGripAdapter implements VariablesProvider {
 		return variables;
 	}
 
+	/**
+	 * used to "lift" accessor properties from the prototype chain to an object if the
+	 * `liftAccessorsFromPrototypes` configuration property is set.
+	 * Have a look at the [`GetterValueAdapter`](./getterValue.ts) for more info.
+	 */
 	private async fetchAccessorsFromPrototypes(
 		prototypeVariable: VariableAdapter,
 		levels: number
@@ -136,4 +146,3 @@ export class ObjectGripAdapter implements VariablesProvider {
 		this.threadAdapter.debugSession.variablesProviders.unregister(this.variablesProviderId);
 	}
 }
-
