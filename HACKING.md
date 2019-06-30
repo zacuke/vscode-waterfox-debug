@@ -11,7 +11,7 @@ and the [Firefox Remote Debugging Protocol](https://github.com/mozilla/gecko-dev
 * run `npm run watch` or start the `watch` task in VS Code
 
 Most source folders contain a `README` file giving an overview of the contained code.
-Start with the [top-level README](./src/README.md).
+Start with the [top-level README](./src).
 
 ## Debugging
 This repository contains several launch configurations for debugging different parts of the code:

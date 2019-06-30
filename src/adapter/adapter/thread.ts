@@ -16,6 +16,9 @@ export interface SourceLocation extends Location {
 	source: SourceAdapter;
 }
 
+/**
+ * Adapter class for a thread
+ */
 export class ThreadAdapter extends EventEmitter {
 
 	public id: number;
@@ -25,11 +28,31 @@ export class ThreadAdapter extends EventEmitter {
 
 	public readonly coordinator: ThreadCoordinator;
 
+	/**
+	 * All `SourceAdapter`s for this thread. They will be disposed when this `ThreadAdapter` is disposed.
+	 */
 	private sources: SourceAdapter[] = [];
+
+	/**
+	 * When the thread is paused, this is set to a Promise that resolves to the `FrameAdapter`s for
+	 * the stacktrace for the current thread pause. At the end of the thread pause, these are disposed.
+	 */
 	private framesPromise: Promise<FrameAdapter[]> | undefined = undefined;
+
+	/**
+	 * All `ScopeAdapter`s that have been created for the current thread pause. They will be disposed
+	 * at the end of the thread pause.
+	 */
 	private scopes: ScopeAdapter[] = [];
 
+	/**
+	 * All `ObjectGripAdapter`s that should be disposed at the end of the current thread pause
+	 */
 	private pauseLifetimeObjects: ObjectGripAdapter[] = [];
+
+	/**
+	 * All `ObjectGripAdapter`s that should be disposed when this `ThreadAdapter` is disposed
+	 */
 	private threadLifetimeObjects: ObjectGripAdapter[] = [];
 
 	public constructor(
@@ -68,6 +91,10 @@ export class ThreadAdapter extends EventEmitter {
 
 				if (sourceAdapter.actor.source.isBlackBoxed) {
 
+					// skipping (or blackboxing) source files is usually done by Firefox itself,
+					// but when the debugger hits an exception in a source that was just loaded and
+					// should be skipped, we may not have been able to tell Firefox that we want
+					// to skip this file, so we have to do it here
 					this.resume();
 					return;
 
@@ -87,6 +114,8 @@ export class ThreadAdapter extends EventEmitter {
 
 						if (breakpointAdapter.breakpointInfo.hitCount) {
 
+							// Firefox doesn't have breakpoints with hit counts, so we have to
+							// implement this here
 							breakpointAdapter.hitCount++;
 							if (breakpointAdapter.hitCount < breakpointAdapter.breakpointInfo.hitCount) {
 
@@ -102,6 +131,8 @@ export class ThreadAdapter extends EventEmitter {
 							const frames = await this.fetchAllStackFrames();
 							const frameActor = (frames.length > 0) ? frames[0].frame.actor : undefined;
 
+							// support for Firefox' log points hasn't been implemented yet, so we
+							// implement this feature by evaluating a `console.log()` call in Firefox
 							this.evaluate(`console.log(\`${logMessage.replace('{', '${')}\`)`, false, frameActor);
 
 							this.resume();
@@ -130,6 +161,7 @@ export class ThreadAdapter extends EventEmitter {
 
 					if (source && source.introductionType === 'debugger eval') {
 
+						// skip exceptions triggered by debugger eval code
 						this.resume();
 						return;
 
@@ -143,6 +175,9 @@ export class ThreadAdapter extends EventEmitter {
 		});
 	}
 
+	/**
+	 * Attach to the thread, fetch sources and resume.
+	 */
 	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
 
 		const attachOptions: AttachOptions = {};
@@ -338,6 +373,7 @@ export class ThreadAdapter extends EventEmitter {
 		return [requestedFrames, frameAdapters.length];
 	}
 
+	/** this will cause VS Code to reload the current stackframes from this adapter */
 	public triggerStackframeRefresh(): void {
 		if (this.coordinator.threadTarget === 'paused') {
 			this.debugSession.sendStoppedEvent(this, this.coordinator.threadPausedReason);
@@ -383,6 +419,9 @@ export class ThreadAdapter extends EventEmitter {
 		}
 	}
 
+	/**
+	 * Called by the `ThreadCoordinator` before resuming the thread
+	 */
 	private async disposePauseLifetimeAdapters(): Promise<void> {
 
 		if (this.framesPromise) {
@@ -421,6 +460,11 @@ export class ThreadAdapter extends EventEmitter {
 		this.consoleActor.dispose();
 	}
 
+	/**
+	 * The `paused` event is sent when we receive a `paused` event from the thread actor and
+	 * neither the `ThreadCoordinator` nor the `ThreadAdapter` decide that Firefox should be
+	 * resumed immediately.
+	 */
 	public onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedReason) => void) {
 		this.on('paused', cb);
 	}

@@ -4,10 +4,10 @@ This folder contains the sources for the Firefox
 The entry point is the [`FirefoxDebugAdapter`](./firefoxDebugAdapter.ts) class, which receives the
 requests from VS Code and delegates most of the work to the [`FirefoxDebugSession`](./firefoxDebugSession.ts) class.
 
-The `firefox` folder contains the code for launching and talking to Firefox.
+The [`firefox`](./firefox) folder contains the code for launching and talking to Firefox.
 
-The `coordinator` folder contains classes that manage the states of
+The [`coordinator`](./coordinator) folder contains classes that manage the states of
 ["threads"](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#interacting-with-thread-like-actors)
 in Firefox.
 
-The `adapter` folder contains classes that translate between the debugging protocols of Firefox and VS Code.
+The [`adapter`](./adapter) folder contains classes that translate between the debugging protocols of Firefox and VS Code.

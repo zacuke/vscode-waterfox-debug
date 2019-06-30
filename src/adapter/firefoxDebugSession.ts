@@ -50,6 +50,10 @@ export class FirefoxDebugSession {
 
 	private reloadTabs = false;
 
+	/**
+	 * The ID of the last thread that the user interacted with. This thread will be used when the
+	 * user wants to evaluate an expression in VS Code's debug console.
+	 */
 	private lastActiveThreadId: number = 0;
 
 	public constructor(
@@ -64,6 +68,10 @@ export class FirefoxDebugSession {
 		}
 	}
 
+	/**
+	 * Connect to Firefox and start the debug session. Returns a Promise that is resolved when the
+	 * initial response from Firefox was processed.
+	 */
 	public start(): Promise<void> {
 		return new Promise<void>(async (resolve, reject) => {
 
@@ -166,6 +174,9 @@ export class FirefoxDebugSession {
 		});
 	}
 
+	/**
+	 * Terminate the debug session
+	 */
 	public async stop(): Promise<void> {
 
 		let detachPromises: Promise<void>[] = [];
@@ -585,6 +596,7 @@ export class FirefoxDebugSession {
 		return undefined;
 	}
 
+	/** tell VS Code and the [Loaded Scripts Explorer](../extension/loadedScripts) about a new thread */
 	private sendThreadStartedEvent(threadAdapter: ThreadAdapter): void {
 		this.sendEvent(new ThreadEvent('started', threadAdapter.id));
 		this.sendEvent(new Event('threadStarted', <ThreadStartedEventBody>{
@@ -593,6 +605,7 @@ export class FirefoxDebugSession {
 		}));
 	}
 
+	/** tell VS Code and the [Loaded Scripts Explorer](../extension/loadedScripts) to remove a thread */
 	private sendThreadExitedEvent(threadAdapter: ThreadAdapter): void {
 		this.sendEvent(new ThreadEvent('exited', threadAdapter.id));
 		this.sendEvent(new Event('threadExited', <ThreadExitedEventBody>{
@@ -600,6 +613,7 @@ export class FirefoxDebugSession {
 		}));
 	}
 
+	/** tell the [Loaded Scripts Explorer](../extension/loadedScripts) about a new source */
 	private sendNewSourceEvent(threadAdapter: ThreadAdapter, sourceAdapter: SourceAdapter): void {
 
 		const sourceUrl = sourceAdapter.actor.url;

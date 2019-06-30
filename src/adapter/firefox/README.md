@@ -9,4 +9,4 @@ using the [`DebugProtocolTransport`](./transport.ts) class for the
 of the protocol.
 It passes the responses and events it receives to [proxy classes](./actorProxy) for the Firefox
 [actors](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#actors).
-The `sourceMaps` folder contains the debug adapter's source-map support.
+The [`sourceMaps`](./sourceMaps) folder contains the debug adapter's source-map support.
