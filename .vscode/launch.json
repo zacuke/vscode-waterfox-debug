@@ -5,7 +5,7 @@
 			"type": "node",
 			"request": "launch",
 			"name": "debug server",
-			"program": "${workspaceFolder}/out/firefoxDebugAdapter.js",
+			"program": "${workspaceFolder}/out/adapter/firefoxDebugAdapter.js",
 			"args": [ "--server=4711" ],
 			"cwd": "${workspaceFolder}",
 			"stopOnEntry": false,
