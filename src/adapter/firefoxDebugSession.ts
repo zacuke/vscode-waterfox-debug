@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { Socket } from 'net';
 import { ChildProcess } from 'child_process';
 import * as chokidar from 'chokidar';
@@ -7,7 +8,7 @@ import { InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEve
 import { Log } from './util/log';
 import { AddonManager } from './adapter/addonManager';
 import { launchFirefox } from './firefox/launch';
-import { DebugConnection, TabActorProxy, WorkerActorProxy, IThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, ISourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy } from './firefox/index';
+import { DebugConnection, TabActorProxy, WorkerActorProxy, IThreadActorProxy, ConsoleActorProxy, ExceptionBreakpoints, ISourceActorProxy, ObjectGripActorProxy, LongStringGripActorProxy, AddonsActorProxy } from './firefox/index';
 import { ThreadAdapter, FrameAdapter, VariableAdapter, ConsoleAPICallAdapter, VariablesProvider, SourceAdapter, Registry, BreakpointsManager, SkipFilesManager } from './adapter/index';
 import {ThreadPauseCoordinator } from './coordinator/threadPause';
 import { ParsedConfiguration } from './configuration';
@@ -32,6 +33,7 @@ export class FirefoxDebugSession {
 	private threadPauseCoordinator = new ThreadPauseCoordinator();
 
 	private firefoxProc?: ChildProcess;
+	private firefoxClosedPromise?: Promise<void>;
 	public firefoxDebugConnection!: DebugConnection;
 	private firefoxDebugSocketClosed = false;
 
@@ -39,6 +41,7 @@ export class FirefoxDebugSession {
 	public get newBreakpointProtocol(): boolean { return this._newBreakpointProtocol; }
 
 	public preferenceActor!: PreferenceActorProxy;
+	private addonsActor?: AddonsActorProxy;
 
 	public readonly tabs = new Registry<TabActorProxy>();
 	public readonly threads = new Registry<ThreadAdapter>();
@@ -111,7 +114,8 @@ export class FirefoxDebugSession {
 				let actors = await rootActor.fetchTabs();
 	
 				this.preferenceActor = actors.preference;
-	
+				this.addonsActor = actors.addons;
+
 				if (this.addonManager) {
 					if (actors.addons) {
 						this.addonManager.sessionStarted(rootActor, actors.addons, actors.preference, this);
@@ -130,7 +134,7 @@ export class FirefoxDebugSession {
 				this.firefoxDebugSocketClosed = true;
 				this.sendEvent(new TerminatedEvent());
 			});
-	
+
 			if (this.config.reloadOnChange) {
 	
 				this.reloadWatcher = chokidar.watch(this.config.reloadOnChange.watch, { 
@@ -249,7 +253,24 @@ export class FirefoxDebugSession {
 
 		if (socket === undefined) {
 
-			this.firefoxProc = await launchFirefox(this.config.launch!);
+			const firefoxProc = await launchFirefox(this.config.launch!);
+
+			if (firefoxProc && !this.config.launch!.detached) {
+
+				// set everything up so that Firefox can be terminated at the end of this debug session
+				this.firefoxProc = firefoxProc;
+
+				// firefoxProc may be a short-lived startup process - we remove the reference to it
+				// when it exits so that we don't try to kill it with a SIGTERM signal (which may
+				// end up killing an unrelated process) at the end of this debug session
+				this.firefoxProc.once('exit', () => { this.firefoxProc = undefined; });
+
+				// the `close` event from firefoxProc seems to be the only reliable notification
+				// that Firefox is exiting
+				this.firefoxClosedPromise = new Promise<void>(resolve => {
+					this.firefoxProc!.once('close', resolve);
+				});
+			}
 
 			socket = await waitForSocket(this.config.launch!.port);
 		}
@@ -264,38 +285,41 @@ export class FirefoxDebugSession {
 			this.reloadWatcher = undefined;
 		}
 
-		if (!this.firefoxDebugSocketClosed) {
-			await this.firefoxDebugConnection.disconnect();
+		if (!this.firefoxClosedPromise) {
+			// Firefox is running detached and should not be terminated
+			return;
 		}
 
-		if (this.config.launch) {
-			let launchConfig = this.config.launch;
+		if (!this.firefoxDebugSocketClosed && this.addonsActor) {
+			log.debug('Trying to close Firefox using the Terminator WebExtension');
+			const terminatorPath = path.resolve(__dirname, '../../terminator');
+			await this.addonsActor.installAddon(terminatorPath);
+			await Promise.race([ this.firefoxClosedPromise, delay(1000) ]);
+		}
 
-			if (this.firefoxProc) {
-				let firefoxProc = this.firefoxProc;
+		if (!this.firefoxDebugSocketClosed && this.firefoxProc) {
+			log.warn('Trying to kill Firefox using a SIGTERM signal');
+			this.firefoxProc.kill('SIGTERM');
+			await Promise.race([ this.firefoxClosedPromise, delay(1000) ]);
+		}
 
-				if (launchConfig.tmpDirs.length > 0) {
+		if (!this.firefoxDebugSocketClosed) {
+			log.warn("Couldn't terminate Firefox");
+			return;
+		}
 
-					await new Promise<void>((resolve) => {
+		if (this.config.launch && (this.config.launch.tmpDirs.length > 0)) {
 
-						this.firefoxProc!.once('exit', async () => {
-							try {
-								await Promise.all(launchConfig.tmpDirs.map(
-									(tmpDir) => tryRemoveRepeatedly(tmpDir)));
-							} catch (err) {
-								log.warn(`Failed to remove temporary directory: ${err}`);
-							}
-							resolve();
-						});
+			// after closing all connections to this debug adapter Firefox will still be writing
+			// to the temporary profile directory before exiting
+			await delay(2000);
 
-						firefoxProc.kill('SIGTERM');
-					});
-
-				} else {
-					firefoxProc.kill('SIGTERM');
-				}
-
-				this.firefoxProc = undefined;
+			log.debug("Removing " + this.config.launch.tmpDirs.join(" , "));
+			try {
+				await Promise.all(this.config.launch.tmpDirs.map(
+					(tmpDir) => tryRemoveRepeatedly(tmpDir)));
+			} catch (err) {
+				log.warn(`Failed to remove temporary directory: ${err}`);
 			}
 		}
 	}
