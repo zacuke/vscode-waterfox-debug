@@ -1,3 +1,6 @@
+### Version 1.8.1
+* bugfix: the temporary debug profile wasn't removed at the end of the debug session when using a recent Firefox version on Windows
+
 ### Version 1.8.0
 * fix for Firefox 68
 * remove support for legacy add-ons
