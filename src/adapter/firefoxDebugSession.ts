@@ -287,6 +287,7 @@ export class FirefoxDebugSession {
 
 		if (!this.firefoxClosedPromise) {
 			// Firefox is running detached and should not be terminated
+			await this.firefoxDebugConnection.disconnect();
 			return;
 		}
 
@@ -305,6 +306,7 @@ export class FirefoxDebugSession {
 
 		if (!this.firefoxDebugSocketClosed) {
 			log.warn("Couldn't terminate Firefox");
+			await this.firefoxDebugConnection.disconnect();
 			return;
 		}
 
