@@ -25,10 +25,13 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 	) {
 		super();
 
-		underlyingActorProxy.onNewSource(async (actor) => {
-			let sourceMappingInfo = await this.getOrCreateSourceMappingInfo(actor.source);
-			for (let source of sourceMappingInfo.sources) {
-				this.emit('newSource', source);
+		underlyingActorProxy.onNewSource(async (generatedSourceActor) => {
+			let sourceMappingInfo = await this.getOrCreateSourceMappingInfo(generatedSourceActor.source);
+			for (let originalSourceActor of sourceMappingInfo.sources) {
+				this.emit('newSource', originalSourceActor);
+			}
+			if (!sourceMappingInfo.sources.some(actor => actor === generatedSourceActor)) {
+				this.emit('newSource', generatedSourceActor);
 			}
 		});
 	}
@@ -206,13 +209,16 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 				line: frame.where.line!, column: frame.where.column!
 			});
 
-			let originalSource = this.createOriginalSource(
-				source!, originalLocation.source, sourceMappingInfo.sourceMapUri);
+			if (originalLocation.source !== null) {
 
-			frame.where = {
-				source: originalSource,
-				line: originalLocation.line || undefined,
-				column: originalLocation.column || undefined
+				let originalSource = this.createOriginalSource(
+					source!, originalLocation.source, sourceMappingInfo.sourceMapUri);
+	
+				frame.where = {
+					source: originalSource,
+					line: originalLocation.line || undefined,
+					column: originalLocation.column || undefined
+				}
 			}
 		}
 	}
