@@ -53,7 +53,7 @@ export class SkipFilesManager {
 			return result;
 		}
 
-		let testee = pathOrUrl;
+		let testee = pathOrUrl.replace('/./', '/');
 		if (isPath && this.isWindowsPlatform) {
 			testee = testee.replace(/\\/g, '/');
 		}
