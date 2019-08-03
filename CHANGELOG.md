@@ -1,3 +1,8 @@
+### Version 1.8.2
+* bugfix: globstars (`**`) in the skipFiles configuration didn't match path segments that contain `/./`
+* bugfix: show the generated source location of a stack frame if it can't be mapped to an original source location
+* bugfix: the debug adapter kept running after the end of the debug session until Firefox was closed
+
 ### Version 1.8.1
 * bugfix: the temporary debug profile wasn't removed at the end of the debug session when using a recent Firefox version on Windows
 
