@@ -78,7 +78,13 @@ export class FirefoxDebugSession {
 	public start(): Promise<void> {
 		return new Promise<void>(async (resolve, reject) => {
 
-			let socket = await this.connectToFirefox();
+			let socket: Socket;
+			try {
+				socket = await this.connectToFirefox();
+			} catch(err) {
+				reject(err);
+				return;
+			}
 
 			this.firefoxDebugConnection = new DebugConnection(this.config.sourceMaps, this.pathMapper, socket);
 			let rootActor = this.firefoxDebugConnection.rootActor;
