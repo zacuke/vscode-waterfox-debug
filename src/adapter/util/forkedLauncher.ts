@@ -25,6 +25,9 @@ if (cmd === 'spawnDetached') {
 
 	let childProc = spawn(exe!, args);
 
+	childProc.stdout.on('data', () => undefined);
+	childProc.stderr.on('data', () => undefined);
+
 	childProc.once('close', () => setTimeout(() => fs.remove(pathToRemove!), 500));
 
 } else if (cmd === 'spawnAndRemove2') {
@@ -34,6 +37,9 @@ if (cmd === 'spawnDetached') {
 	let exe = args.shift();
 
 	let childProc = spawn(exe!, args);
+
+	childProc.stdout.on('data', () => undefined);
+	childProc.stderr.on('data', () => undefined);
 
 	childProc.once('close', () => setTimeout(() => fs.remove(pathToRemove!, () => fs.remove(pathToRemove2!)), 500));
 
