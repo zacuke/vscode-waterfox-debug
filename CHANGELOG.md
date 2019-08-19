@@ -1,3 +1,7 @@
+### Version 1.8.3
+* fix for launching Firefox on MacOS and some Linux distros
+* increase the timeout for connecting to Firefox to 10 seconds and fix the handling of that timeout
+
 ### Version 1.8.2
 * bugfix: globstars (`**`) in the skipFiles configuration didn't match path segments that contain `/./`
 * bugfix: show the generated source location of a stack frame if it can't be mapped to an original source location
