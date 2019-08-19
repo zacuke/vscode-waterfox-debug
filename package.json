@@ -3,7 +3,7 @@
   "displayName": "Debugger for Firefox",
   "version": "1.8.2",
   "author": "Holger Benl <hbenl@evandor.de>",
-  "publisher": "hbenl",
+  "publisher": "firefox-devtools",
   "description": "Debug your web application or browser extension in Firefox",
   "icon": "icon.png",
   "engines": {
