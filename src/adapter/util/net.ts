@@ -27,7 +27,7 @@ export function connect(port: number, host?: string): Promise<net.Socket> {
  */
 export async function waitForSocket(port: number): Promise<net.Socket> {
 	let lastError: any;
-	for (var i = 0; i < 25; i++) {
+	for (var i = 0; i < 50; i++) {
 		try {
 			return await connect(port);
 		} catch(err) {
