@@ -320,6 +320,6 @@ to the VS Code console:
   of red), the conversion between file paths and urls may not work. The messages from the 
   `PathConversion` logger may contain clues how to fix your configuration. Have a look at the 
   "Diagnostic Logging" section for an example how to enable this logger.
-* If you think you've found a bug in this adapter please [file a bug report](https://github.com/hbenl/vscode-firefox-debug/issues).
+* If you think you've found a bug in this adapter please [file a bug report](https://github.com/firefox-devtools/vscode-firefox-debug/issues).
   It may be helpful if you create a log file (as described in the "Diagnostic Logging" section) and
   attach it to the bug report.

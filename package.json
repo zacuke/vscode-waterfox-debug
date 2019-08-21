@@ -79,7 +79,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/hbenl/vscode-firefox-debug.git"
+    "url": "https://github.com/firefox-devtools/vscode-firefox-debug.git"
   },
   "keywords": [
     "vscode",
@@ -88,9 +88,9 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/hbenl/vscode-firefox-debug/issues"
+    "url": "https://github.com/firefox-devtools/vscode-firefox-debug/issues"
   },
-  "homepage": "https://github.com/hbenl/vscode-firefox-debug",
+  "homepage": "https://github.com/firefox-devtools/vscode-firefox-debug",
   "main": "./out/extension/main.js",
   "activationEvents": [
     "onDebug"

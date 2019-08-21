@@ -9,7 +9,7 @@ They are grouped into the following subfolders:
 * [`extension`](./extension) - contains additional integration with VS Code (this code will be run in the VS Code extension host):
   * the Loaded Scripts Explorer, which is shown at the bottom of the debug view
   * a [DebugConfigurationProvider](https://code.visualstudio.com/api/extension-guides/debugger-extension#using-a-debugconfigurationprovider)
-    that adds [machine-specific configuration](https://github.com/hbenl/vscode-firefox-debug#overriding-configuration-properties-in-your-settings)
+    that adds [machine-specific configuration](https://github.com/firefox-devtools/vscode-firefox-debug#overriding-configuration-properties-in-your-settings)
     (like the location of the Firefox executable, the name of the profile to use for debugging, etc.)
     from the user's VS Code settings to debug configurations
   * a button to toggle the “Disable Popup Auto-Hide” flag (for WebExtension debugging) from VS Code
