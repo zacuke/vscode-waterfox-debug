@@ -9,9 +9,14 @@
 
 <h4 align="center">Debug your JavaScript code running in Firefox from VS Code.</h4>
 
-A VS Code extension to debug web applications and extensions in the Mozilla Firefox browser.
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=firefox-devtools.vscode-firefox-debug"><img src="https://vsmarketplacebadge.apphb.com/version/firefox-devtools.vscode-firefox-debug.svg?label=Debugger%20for%20Firefox" alt="Marketplace bagde"></a>
+</p>
+
+A VS Code extension to debug web applications and extensions running in the [Mozilla Firefox browser](https://www.mozilla.org/en-US/firefox/developer/). [Install from VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=firefox-devtools.vscode-firefox-debug).
 
 ## Getting Started
+
 You can use this extension in **launch** or **attach** mode.
 
 In **launch** mode it will start an instance of Firefox navigated to the start page of your application
