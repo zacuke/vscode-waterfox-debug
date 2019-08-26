@@ -1,3 +1,6 @@
+### Version 2.0.0
+* branding updated - this extension is now an official Firefox DevTool!
+
 ### Version 1.8.3
 * fix for launching Firefox on MacOS and some Linux distros
 * increase the timeout for connecting to Firefox to 10 seconds and fix the handling of that timeout
