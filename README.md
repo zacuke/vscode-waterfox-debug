@@ -1,26 +1,32 @@
-# VS Code Debug Adapter for Firefox
+<h1 align="center">
+  <br>
+    <img src="https://github.com/firefox-devtools/vscode-firefox-debug/blob/master/icon.png?raw=true" alt="logo" width="200">
+  <br>
+  VS Code Debugger for Firefox
+  <br>
+  <br>
+</h1>
 
-A Visual Studio Code extension to debug your web application or WebExtension in Firefox.
+<h4 align="center">Debug your JavaScript code running in Firefox from VS Code.</h4>
 
-## Starting
-You can use this extension in launch or attach mode.
+A VS Code extension to debug web applications and extensions in the Mozilla Firefox browser.
 
-In launch mode it will start an instance of Firefox navigated to the start page of your application
-and terminate it when you stop debugging.
-You can also set the `reAttach` option in your launch configuration to `true`, in this case Firefox
-won't be terminated at the end of your debugging session and the debugger will re-attach to it when
-you start the next debugging session - this is a lot faster than restarting Firefox every time.
-`reAttach` also works for WebExtension debugging: in this case, the WebExtension is (re-)installed as a
-[temporary add-on](https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Temporary_Installation_in_Firefox).
+## Getting Started
+You can use this extension in **launch** or **attach** mode.
 
-In attach mode the extension attaches to a running instance of Firefox (which must be manually
+In **launch** mode it will start an instance of Firefox navigated to the start page of your application
+and terminate it when you stop debugging. You can also set the `reAttach` option in your launch configuration to `true`, in this case Firefox won't be terminated at the end of your debugging session and the debugger will re-attach to it when
+you start the next debugging session - this is a lot faster than restarting Firefox every time. `reAttach` also works for WebExtension debugging: in this case, the WebExtension is (re-)installed as a [temporary add-on](https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Temporary_Installation_in_Firefox).
+
+In **attach** mode the extension connects to a running instance of Firefox (which must be manually
 configured to allow remote debugging - see [below](#attach)).
 
 To configure these modes you must create a file `.vscode/launch.json` in the root directory of your
 project. You can do so manually or let VS Code create an example configuration for you by clicking 
 the gear icon at the top of the Debug pane.
+
 Finally, if `.vscode/launch.json` already exists in your project, you can open it and add a 
-configuration snippet to it using the "Add Configuration" button in the lower right corner of the
+configuration snippet to it using the *"Add Configuration"* button in the lower right corner of the
 editor.
 
 ### Launch
