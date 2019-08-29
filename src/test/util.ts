@@ -10,7 +10,7 @@ export async function initDebugClient(
 	extraLaunchArgs?: {}
 ): Promise<DebugClient> {
 
-	let dc = new DebugClient('node', './out/adapter/firefoxDebugAdapter.js', 'firefox');
+	let dc = new DebugClient('node', './dist/adapter.bundle.js', 'firefox');
 
 	let launchArgs: LaunchConfiguration = {
 		request: 'launch',
@@ -68,7 +68,7 @@ export async function initDebugClientForAddon(
 		dcArgs.firefoxExecutable = process.env['FIREFOX_EXECUTABLE'];
 	}
 
-	let dc = new DebugClient('node', './out/adapter/firefoxDebugAdapter.js', 'firefox');
+	let dc = new DebugClient('node', './dist/adapter.bundle.js', 'firefox');
 
 	await dc.start();
 	await Promise.all([
