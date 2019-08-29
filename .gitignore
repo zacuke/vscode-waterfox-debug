@@ -2,4 +2,5 @@ node_modules/
 .nyc_output/
 coverage/
 dist/*.bundle.js
+dist/*.bundle.js.map
 dist/mappings.wasm

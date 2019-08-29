@@ -25,7 +25,8 @@ module.exports = {
 	output: {
 		path: path.resolve(__dirname, 'dist'),
 		filename: '[name].bundle.js',
-		libraryTarget: 'commonjs2'
+		libraryTarget: 'commonjs2',
+		devtoolModuleFilenameTemplate: '../src/[resource-path]'
 	},
 	target: 'node',
 	node: {
@@ -35,5 +36,6 @@ module.exports = {
 		new CopyPlugin([{
 			from: path.resolve(__dirname, 'node_modules/source-map/lib/mappings.wasm')
 		}])
-	]
+	],
+	devtool: 'source-map'
 };
