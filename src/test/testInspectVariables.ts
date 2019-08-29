@@ -156,6 +156,23 @@ describe('Inspecting variables: The debugger', function() {
 		let bar = util.findVariable(variables.body.variables, 'bar');
 		assert.equal(bar.value, '"baz"');
 	});
+
+	it('should return the same variables if the variablesRequest is issued twice', async function() {
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ 112 ]);
+
+		util.evaluate(dc, 'protoGetter().y');
+		const stoppedEvent = await util.receiveStoppedEvent(dc);
+		const stackTrace = await dc.stackTraceRequest({ threadId: stoppedEvent.body.threadId! });
+		const frameId = stackTrace.body.stackFrames[0].id;
+		const scopes = await dc.scopesRequest({ frameId });
+		const variablesReference = scopes.body.scopes[0].variablesReference;
+
+		const variables1 = await dc.variablesRequest({ variablesReference });
+		const variables2 = await dc.variablesRequest({ variablesReference });
+		assert.deepStrictEqual(variables1.body.variables, variables2.body.variables);
+	});
 });
 
 function factorial(n: number): number {

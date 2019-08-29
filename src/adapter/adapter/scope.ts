@@ -50,7 +50,8 @@ export abstract class ScopeAdapter implements VariablesProvider {
 
 	public async getVariables(): Promise<VariableAdapter[]> {
 
-		let variables = await this.getVariablesInt();
+		// we make a (shallow) copy of the variables array because we're going to modify it
+		let variables = [ ...await this.getVariablesInt() ];
 
 		if (this.thisVariable) {
 			variables.unshift(this.thisVariable);
