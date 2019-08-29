@@ -1,10 +1,9 @@
 src/**
-typings/**
+node_modules/**
 **/*.map
-out/test/**
 package-lock.json
 tsconfig.json
-typings.json
+webpack.config.js
 .vscode/**
 .gitignore
 .nyc_output/**

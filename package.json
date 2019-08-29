@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "reinstall": "rimraf node_modules package-lock.json && npm install --no-optional",
-    "clean": "rimraf dist coverage .nyc_output vscode-firefox-debug-*.vsix",
+    "clean": "rimraf dist/*.bundle.js dist/*.bundle.js.map dist/mappings.wasm coverage .nyc_output vscode-firefox-debug-*.vsix",
     "build": "webpack --mode=production",
     "watch": "webpack --watch --mode=development",
     "rebuild": "npm run clean && npm run build",
