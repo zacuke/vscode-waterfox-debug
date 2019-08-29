@@ -1,5 +1,10 @@
 import { ParsedAddonConfiguration } from '../configuration';
-import { RootActorProxy, AddonsActorProxy, PreferenceActorProxy, ConsoleActorProxy, WebExtensionActorProxy, TabActorProxy } from '../firefox/index';
+import { RootActorProxy } from '../firefox/actorProxy/root';
+import { AddonsActorProxy } from '../firefox/actorProxy/addons';
+import { PreferenceActorProxy } from '../firefox/actorProxy/preference';
+import { ConsoleActorProxy } from '../firefox/actorProxy/console';
+import { WebExtensionActorProxy } from '../firefox/actorProxy/webExtension';
+import { TabActorProxy } from '../firefox/actorProxy/tab';
 import { FirefoxDebugSession } from '../firefoxDebugSession';
 import { PopupAutohideEventBody } from '../../common/customEvents';
 

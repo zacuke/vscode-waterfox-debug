@@ -1,4 +1,6 @@
-import { ThreadAdapter, VariableAdapter, FrameAdapter } from './index';
+import { ThreadAdapter } from './thread';
+import { VariableAdapter } from './variable';
+import { FrameAdapter } from './frame';
 
 /**
  * This interface must be implemented by any adapter that can provide child variables.

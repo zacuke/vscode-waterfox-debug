@@ -7,7 +7,9 @@ import { Log } from '../../util/log';
 import { PathMapper } from '../../util/pathMapper';
 import { getUri, urlDirname, canGetUri } from '../../util/net';
 import { PendingRequest } from '../../util/pendingRequests';
-import { DebugConnection, ISourceActorProxy, SourceActorProxy, SourceMappingSourceActorProxy } from '../index';
+import { DebugConnection } from '../connection';
+import { ISourceActorProxy, SourceActorProxy } from '../actorProxy/source';
+import { SourceMappingSourceActorProxy } from './source';
 import { IThreadActorProxy, ExceptionBreakpoints, UrlLocation, AttachOptions } from '../actorProxy/thread';
 import { SourceMappingInfo, findNextBreakpointPosition } from './info';
 

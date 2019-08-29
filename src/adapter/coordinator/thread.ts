@@ -1,6 +1,7 @@
 import { Log } from '../util/log';
 import { EventEmitter } from 'events';
-import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy } from '../firefox/index';
+import { ExceptionBreakpoints, IThreadActorProxy } from '../firefox/actorProxy/thread';
+import { ConsoleActorProxy } from '../firefox/actorProxy/console';
 import { ThreadPauseCoordinator, PauseType } from './threadPause';
 import { DelayedTask } from '../util/delayedTask';
 import { PendingRequest } from '../util/pendingRequests';

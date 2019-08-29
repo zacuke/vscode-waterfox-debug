@@ -1,6 +1,7 @@
 import { Log } from '../util/log';
 import { isWindowsPlatform as detectWindowsPlatform } from '../../common/util';
-import { ThreadAdapter, Registry } from './index';
+import { ThreadAdapter } from './thread';
+import { Registry } from './registry';
 
 let log = Log.create('SkipFilesManager');
 

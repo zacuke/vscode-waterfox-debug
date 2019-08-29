@@ -1,6 +1,6 @@
 import * as url from 'url';
 import { isWindowsPlatform as detectWindowsPlatform } from '../../../common/util';
-import { ISourceActorProxy } from '../index';
+import { ISourceActorProxy } from '../actorProxy/source';
 import { SourceMapConsumer, Position, MappedPosition, NullablePosition, NullableMappedPosition, BasicSourceMapConsumer } from 'source-map';
 
 let LEAST_UPPER_BOUND = SourceMapConsumer.LEAST_UPPER_BOUND;

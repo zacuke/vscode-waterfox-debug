@@ -1,5 +1,7 @@
 import { Log } from '../util/log';
-import { ThreadAdapter, EnvironmentAdapter, ScopeAdapter } from './index';
+import { ThreadAdapter } from './thread';
+import { EnvironmentAdapter } from './environment';
+import { ScopeAdapter } from './scope';
 import { StackFrame } from 'vscode-debugadapter';
 import { Registry } from './registry';
 

@@ -1,5 +1,5 @@
-import { BreakpointActorProxy } from '../firefox/index';
-import { SourceAdapter } from './index';
+import { BreakpointActorProxy } from '../firefox/actorProxy/breakpoint';
+import { SourceAdapter } from './source';
 import { DebugProtocol } from 'vscode-debugprotocol';
 
 export class BreakpointInfo {

@@ -1,6 +1,10 @@
 import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
-import { DebugConnection, ActorProxy, IThreadActorProxy, ThreadActorProxy, SourceMappingThreadActorProxy, ConsoleActorProxy } from '../index';
+import { DebugConnection } from '../connection';
+import { ActorProxy } from './interface';
+import { IThreadActorProxy, ThreadActorProxy } from './thread';
+import { ConsoleActorProxy } from './console';
+import { SourceMappingThreadActorProxy } from '../sourceMaps/thread';
 import { PendingRequest } from '../../util/pendingRequests';
 import { PathMapper } from '../../util/pathMapper';
 

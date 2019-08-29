@@ -1,8 +1,10 @@
 import { Log } from '../util/log';
-import { ISourceActorProxy } from '../firefox/index';
+import { ISourceActorProxy } from '../firefox/actorProxy/source';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { Source } from 'vscode-debugadapter';
-import { ThreadAdapter, Registry, BreakpointInfo, BreakpointAdapter, OldProtocolBreakpointAdapter, NewProtocolBreakpointAdapter } from './index';
+import { ThreadAdapter } from './thread';
+import { Registry } from './registry';
+import { BreakpointInfo, BreakpointAdapter, OldProtocolBreakpointAdapter, NewProtocolBreakpointAdapter } from './breakpoint';
 import { findNextBreakpointPosition } from '../firefox/sourceMaps/info';
 
 const log = Log.create('SourceAdapter');

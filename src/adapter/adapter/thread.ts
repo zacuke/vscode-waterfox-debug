@@ -1,6 +1,14 @@
 import { EventEmitter } from 'events';
-import { ExceptionBreakpoints, IThreadActorProxy, ConsoleActorProxy, ISourceActorProxy } from '../firefox/index';
-import { FrameAdapter, ScopeAdapter, SourceAdapter, ObjectGripAdapter, VariablesProvider, VariableAdapter, BreakpointAdapter } from './index';
+import { ExceptionBreakpoints, IThreadActorProxy } from '../firefox/actorProxy/thread';
+import { ConsoleActorProxy } from '../firefox/actorProxy/console';
+import { ISourceActorProxy } from '../firefox/actorProxy/source';
+import { FrameAdapter } from './frame';
+import { ScopeAdapter } from './scope';
+import { SourceAdapter } from './source';
+import { ObjectGripAdapter } from './objectGrip';
+import { VariablesProvider } from './variablesProvider';
+import { VariableAdapter } from './variable';
+import { BreakpointAdapter } from './breakpoint';
 import { ThreadCoordinator } from '../coordinator/thread';
 import { ThreadPauseCoordinator } from '../coordinator/threadPause';
 import { Variable } from 'vscode-debugadapter';

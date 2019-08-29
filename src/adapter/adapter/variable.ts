@@ -1,5 +1,7 @@
 import { Log } from '../util/log';
-import { ThreadAdapter, ObjectGripAdapter, FrameAdapter } from './index';
+import { ThreadAdapter } from './thread';
+import { ObjectGripAdapter } from './objectGrip';
+import { FrameAdapter } from './frame';
 import { Variable } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { accessorExpression } from '../util/misc';

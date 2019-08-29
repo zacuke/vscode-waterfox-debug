@@ -1,4 +1,6 @@
-import { VariablesProvider, VariableAdapter, ThreadAdapter } from './index';
+import { VariablesProvider } from './variablesProvider';
+import { VariableAdapter } from './variable';
+import { ThreadAdapter } from './thread';
 
 /**
  * Adapter class for representing a `consoleAPICall` event from Firefox.

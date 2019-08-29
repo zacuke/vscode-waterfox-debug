@@ -1,6 +1,9 @@
 import { Log } from '../util/log';
 import { isWindowsPlatform as detectWindowsPlatform } from '../../common/util';
-import { SourceAdapter, ThreadAdapter, Registry, BreakpointInfo } from './index';
+import { SourceAdapter } from './source';
+import { ThreadAdapter } from './thread';
+import { Registry } from './registry';
+import { BreakpointInfo } from './breakpoint';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { Breakpoint, BreakpointEvent } from 'vscode-debugadapter';
 

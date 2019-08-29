@@ -1,5 +1,8 @@
-import { ThreadAdapter, VariablesProvider, VariableAdapter, FrameAdapter } from './index';
-import { ObjectGripActorProxy } from '../firefox/index';
+import { VariablesProvider } from './variablesProvider';
+import { VariableAdapter } from './variable';
+import { FrameAdapter } from './frame';
+import { ThreadAdapter } from './thread';
+import { ObjectGripActorProxy } from '../firefox/actorProxy/objectGrip';
 
 /**
  * Adapter class for a javascript object.
