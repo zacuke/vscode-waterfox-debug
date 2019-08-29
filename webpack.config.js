@@ -33,9 +33,10 @@ module.exports = {
 		__dirname: false
 	},
 	plugins: [
-		new CopyPlugin([{
-			from: path.resolve(__dirname, 'node_modules/source-map/lib/mappings.wasm')
-		}])
+		new CopyPlugin([
+			{ from: path.resolve(__dirname, 'node_modules/source-map/lib/mappings.wasm') },
+			{ from: path.resolve(__dirname, 'LICENSE') }
+		])
 	],
 	devtool: 'source-map'
 };

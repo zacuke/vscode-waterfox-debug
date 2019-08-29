@@ -23,7 +23,9 @@
     "test": "TS_NODE_FILES=true mocha --opts src/test/mocha.opts \"src/test/test*.ts\"",
     "cover": "nyc npm test && nyc report --reporter=lcov && nyc report --reporter=html",
     "package": "vsce package",
-    "publish": "vsce publish"
+    "publish": "npm run rebuild && vsce publish",
+    "package-npm": "cd dist && npm pack",
+    "publish-npm": "npm run rebuild && cd dist && npm publish"
   },
   "dependencies": {
     "@babel/polyfill": "^7.4.4",
