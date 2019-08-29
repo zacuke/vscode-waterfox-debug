@@ -2,7 +2,6 @@
 	"editor.insertSpaces": false,
 	"files.exclude": {
 		".git": true,
-		"out": true,
 		"node_modules": true,
 		".nyc_output": true,
 		"coverage": true

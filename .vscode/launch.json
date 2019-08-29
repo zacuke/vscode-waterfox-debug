@@ -5,13 +5,13 @@
 			"type": "node",
 			"request": "launch",
 			"name": "debug server",
-			"program": "${workspaceFolder}/out/adapter/firefoxDebugAdapter.js",
+			"program": "${workspaceFolder}/dist/adapter.bundle.js",
 			"args": [ "--server=4711" ],
 			"cwd": "${workspaceFolder}",
 			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outFiles": [
-				"${workspaceFolder}/out"
+				"${workspaceFolder}/dist"
 			]
 		},
 		{
@@ -25,20 +25,7 @@
 			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outFiles": [
-				"${workspaceFolder}/out"
-			]
-		},
-		{
-			"type": "node",
-			"request": "launch",
-			"name": "run tests",
-			"program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
-			"args": [ "--no-timeouts", "--colors", "out/test/test*.js" ],
-			"cwd": "${workspaceFolder}",
-			"stopOnEntry": false,
-			"sourceMaps": true,
-			"outFiles": [
-				"${workspaceFolder}/out"
+				"${workspaceFolder}/dist"
 			]
 		},
 		{

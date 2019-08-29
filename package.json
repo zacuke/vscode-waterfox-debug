@@ -14,32 +14,41 @@
   ],
   "scripts": {
     "reinstall": "rimraf node_modules package-lock.json && npm install --no-optional",
-    "clean": "rimraf out coverage .nyc_output vscode-firefox-debug-*.vsix",
-    "build": "tsc",
-    "watch": "tsc -w",
+    "clean": "rimraf dist coverage .nyc_output vscode-firefox-debug-*.vsix",
+    "build": "webpack --mode=production",
+    "watch": "webpack --watch --mode=development",
     "rebuild": "npm run clean && npm run build",
+    "typecheck": "tsc",
+    "typecheck-watch": "tsc -w",
     "test": "TS_NODE_FILES=true mocha --opts src/test/mocha.opts \"src/test/test*.ts\"",
     "cover": "nyc npm test && nyc report --reporter=lcov && nyc report --reporter=html",
     "package": "vsce package",
     "publish": "vsce publish"
   },
   "dependencies": {
+    "@babel/polyfill": "^7.4.4",
     "chokidar": "^3.0.2",
+    "core-js": "^3.2.1",
     "data-uri-to-buffer": "2.0.1",
     "debounce": "^1.2.0",
     "file-uri-to-path": "^1.0.0",
     "file-url": "^3.0.0",
     "firefox-profile": "^1.2.0",
     "fs-extra": "^8.1.0",
-    "is-absolute-url": "^3.0.0",
+    "is-absolute-url": "^3.0.1",
     "minimatch": "^3.0.4",
     "source-map": "^0.7.3",
     "strip-json-comments": "^3.0.1",
-    "tslib": "^1.10.0",
-    "uuid": "^3.3.2",
-    "vscode-debugadapter": "^1.35.0"
+    "uuid": "^3.3.3",
+    "vscode-debugadapter": "^1.36.0"
   },
   "devDependencies": {
+    "@babel/cli": "^7.5.5",
+    "@babel/core": "^7.5.5",
+    "@babel/plugin-proposal-class-properties": "^7.5.5",
+    "@babel/plugin-proposal-object-rest-spread": "^7.5.5",
+    "@babel/preset-env": "^7.5.5",
+    "@babel/preset-typescript": "^7.3.3",
     "@gulp-sourcemaps/map-sources": "^1.0.0",
     "@types/debounce": "^1.2.0",
     "@types/fs-extra": "^8.0.0",
@@ -50,11 +59,13 @@
     "@types/gulp-uglify": "^3.0.6",
     "@types/minimatch": "^3.0.3",
     "@types/mocha": "^5.2.7",
-    "@types/node": "^8.10.51",
+    "@types/node": "^8.10.52",
     "@types/rimraf": "^2.0.2",
     "@types/uuid": "^3.4.5",
     "@types/vscode": "~1.26.0",
-    "@types/webpack": "^4.32.1",
+    "@types/webpack": "^4.39.1",
+    "babel-loader": "^8.0.6",
+    "copy-webpack-plugin": "^5.0.4",
     "gulp": "^4.0.2",
     "gulp-concat": "^2.6.1",
     "gulp-nop": "0.0.3",
@@ -64,11 +75,32 @@
     "mocha": "^6.2.0",
     "nyc": "^14.1.1",
     "ts-node": "^8.3.0",
-    "typescript": "~3.5.3",
+    "typescript": "~3.6.2",
     "vsce": "^1.66.0",
-    "vscode-debugadapter-testsupport": "^1.35.0",
-    "webpack": "^4.38.0"
+    "vscode-debugadapter-testsupport": "^1.36.0",
+    "webpack": "^4.39.3",
+    "webpack-cli": "^3.3.7"
   },
+  "babel": {
+    "presets": [
+      "@babel/typescript",
+      [
+        "@babel/env",
+        {
+          "modules": false,
+          "useBuiltIns": "usage",
+          "corejs": 3
+        }
+      ]
+    ],
+    "plugins": [
+      "@babel/proposal-class-properties",
+      "@babel/proposal-object-rest-spread"
+    ]
+  },
+  "browserslist": [
+    "node 8"
+  ],
   "nyc": {
     "include": [
       "out/**/*.js"
@@ -91,7 +123,7 @@
     "url": "https://github.com/firefox-devtools/vscode-firefox-debug/issues"
   },
   "homepage": "https://github.com/firefox-devtools/vscode-firefox-debug",
-  "main": "./out/extension/main.js",
+  "main": "./dist/extension.bundle.js",
   "activationEvents": [
     "onDebug"
   ],
@@ -200,7 +232,7 @@
       {
         "type": "firefox",
         "label": "Firefox",
-        "program": "./out/adapter/firefoxDebugAdapter.js",
+        "program": "./dist/adapter.bundle.js",
         "runtime": "node",
         "initialConfigurations": [
           {

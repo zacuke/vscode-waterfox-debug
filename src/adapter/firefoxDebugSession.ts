@@ -315,7 +315,7 @@ export class FirefoxDebugSession {
 
 		if (!this.firefoxDebugSocketClosed && this.addonsActor) {
 			log.debug('Trying to close Firefox using the Terminator WebExtension');
-			const terminatorPath = path.resolve(__dirname, '../../terminator');
+			const terminatorPath = path.resolve(__dirname, '../terminator');
 			await this.addonsActor.installAddon(terminatorPath);
 			await Promise.race([ this.firefoxClosedPromise, delay(1000) ]);
 		}
