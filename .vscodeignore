@@ -9,3 +9,6 @@ webpack.config.js
 .nyc_output/**
 coverage/**
 testdata/**
+dist/package.json
+dist/README.md
+dist/LICENSE
