@@ -33,6 +33,10 @@ export class PendingRequests<T> {
 		}
 	}
 	
+	public isEmpty(): boolean {
+		return (this.pendingRequests.length === 0);
+	}
+
 	public resolveAll(t: T) {
 		this.pendingRequests.forEach((req) => req.resolve(t));
 		this.pendingRequests = [];

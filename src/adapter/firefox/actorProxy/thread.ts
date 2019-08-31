@@ -411,8 +411,12 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 			let propertyCount = Object.keys(response).length;
 			if (propertyCount === 1) {
 
-				log.debug('Received setBreakpoint or removeBreakpoint or pauseOnExceptions response');
-				this.pendingEmptyResponseRequests.resolveOne(undefined);
+				if (this.pendingEmptyResponseRequests.isEmpty()) {
+					log.info('Received unexpected response, this is probably due to Firefox bug #1577996');
+				} else {
+					log.debug('Received setBreakpoint or removeBreakpoint or pauseOnExceptions response');
+					this.pendingEmptyResponseRequests.resolveOne(undefined);
+				}
 
 			} else if (response['type'] === 'willInterrupt') {
 				log.debug(`Received willInterrupt event from ${this.name} (ignoring)`);
