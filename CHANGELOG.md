@@ -1,3 +1,10 @@
+### Version 2.1.0
+* add `timeout` launch configuration property
+
+### Version 2.0.1
+* build with babel and bundle with webpack - the resulting package is much smaller and loads faster
+Version 2.0.1 was only released on npm
+
 ### Version 2.0.0
 * branding updated - this extension is now an official Firefox DevTool!
 
