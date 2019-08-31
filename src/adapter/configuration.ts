@@ -24,6 +24,7 @@ export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.
 	preferences?: { [key: string]: boolean | number | string | null };
 	port?: number;
 	firefoxArgs?: string[];
+	timeout?: number;
 	reAttach?: boolean;
 }
 
@@ -102,6 +103,7 @@ export interface ParsedLaunchConfiguration {
 	preferences: FirefoxPreferences;
 	tmpDirs: string[];
 	port: number;
+	timeout: number;
 	detached: boolean;
 }
 
@@ -123,6 +125,7 @@ export async function parseConfiguration(
 	let launch: ParsedLaunchConfiguration | undefined = undefined;
 	let addon: ParsedAddonConfiguration | undefined = undefined;
 	let port = config.port || 6000;
+	let timeout = 5;
 	let pathMappings: PathMappings = [];
 
 	if (config.request === 'launch') {
@@ -170,11 +173,15 @@ export async function parseConfiguration(
 			throw 'You need to set either "file" or "url" in the launch configuration';
 		}
 
+		if (typeof config.timeout === 'number') {
+			timeout = config.timeout;
+		}
+
 		let detached = !!config.reAttach;
 
 		launch = {
 			firefoxExecutable, firefoxArgs, profileDir, srcProfileDir,
-			preferences, tmpDirs, port, detached
+			preferences, tmpDirs, port, timeout, detached
 		};
 
 	} else { // config.request === 'attach'

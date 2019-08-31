@@ -32,6 +32,7 @@ describe('The configuration parser', function() {
 		assert.ok(parsedConfiguration.launch!.firefoxExecutable);
 		assert.equal([...parsedConfiguration.launch!.firefoxArgs].pop(), fileUrl);
 		assert.equal(parsedConfiguration.launch!.port, 6000);
+		assert.equal(parsedConfiguration.launch!.timeout, 5);
 		assert.equal(parsedConfiguration.launch!.preferences['devtools.debugger.remote-enabled'], true);
 		assert.ok(parsedConfiguration.launch!.profileDir);
 		assert.equal(parsedConfiguration.launch!.srcProfileDir, undefined);
@@ -608,6 +609,17 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.launch!.port, 7000);
 		assert.ok(parsedConfiguration.launch!.firefoxArgs.indexOf('6000') < 0);
 		assert.ok(parsedConfiguration.launch!.firefoxArgs.indexOf('7000') >= 0);
+	});
+
+	it('should copy "timeout" from a launch configuration', async function() {
+
+		let parsedConfiguration = await parseConfiguration({
+			request: 'launch',
+			file: '/home/user/project/index.html',
+			timeout: 10
+		});
+
+		assert.equal(parsedConfiguration.launch!.timeout, 10);
 	});
 
 	it('should add user-specified "firefoxArgs"', async function() {

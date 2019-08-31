@@ -294,7 +294,7 @@ export class FirefoxDebugSession {
 				});
 			}
 
-			socket = await waitForSocket(this.config.launch!.port);
+			socket = await waitForSocket(this.config.launch!.port, this.config.launch!.timeout);
 		}
 
 		return socket;

@@ -350,6 +350,11 @@
                 "description": "The remote debugging port to use",
                 "default": 6000
               },
+              "timeout": {
+                "type": "number",
+                "description": "The timeout in seconds for the adapter to connect to Firefox after launching it",
+                "default": 5
+              },
               "firefoxArgs": {
                 "type": "array",
                 "description": "Additional arguments passed to Firefox",
