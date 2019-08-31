@@ -256,6 +256,7 @@ popup auto-hide" (`extension.firefox.enablePopupAutohide` / `disablePopupAutohid
   with a dedicated debugging profile. You can also override this property in your settings (see below).
 * `port`: Firefox uses port 6000 for the debugger protocol by default. If you want to use a different
   port, you can set it with this property.
+* `timeout`: The timeout in seconds for the adapter to connect to Firefox after launching it.
 * `firefoxExecutable`: The absolute path to the Firefox executable (`launch` configuration only).
   If not specified, this extension will use the default Firefox installation path. It will look for
   both regular and developer editions of Firefox; if both are available, it will use the developer
