@@ -282,6 +282,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 
 				case 'resumeLimit':
 				case 'breakpoint':
+				case 'watchpoint':
 				case 'exception':
 				case 'debuggerStatement':
 					if (this.pendingInterruptRequest) {
