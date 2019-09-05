@@ -25,6 +25,7 @@ import { Registry } from './adapter/registry';
 import { ThreadAdapter } from './adapter/thread';
 import { ConsoleAPICallAdapter } from './adapter/consoleAPICall';
 import { BreakpointsManager } from './adapter/breakpointsManager';
+import { DataBreakpointsManager } from './adapter/dataBreakpointsManager';
 import { SkipFilesManager } from './adapter/skipFilesManager';
 import { ThreadPauseCoordinator } from './coordinator/threadPause';
 import { ParsedConfiguration } from './configuration';
@@ -43,6 +44,7 @@ export class FirefoxDebugSession {
 	public readonly isWindowsPlatform = detectWindowsPlatform();
 	public readonly pathMapper: PathMapper;
 	public readonly breakpointsManager: BreakpointsManager;
+	public readonly dataBreakpointsManager: DataBreakpointsManager;
 	public readonly skipFilesManager: SkipFilesManager;
 	public readonly addonManager?: AddonManager;
 	private reloadWatcher?: chokidar.FSWatcher;
@@ -81,6 +83,7 @@ export class FirefoxDebugSession {
 	) {
 		this.pathMapper = new PathMapper(this.config.pathMappings, this.config.addon);
 		this.breakpointsManager = new BreakpointsManager(this.threads, this.sendEvent);
+		this.dataBreakpointsManager = new DataBreakpointsManager(this.variablesProviders);
 		this.skipFilesManager = new SkipFilesManager(this.config.filesToSkip, this.threads);
 		if (this.config.addon) {
 			this.addonManager = new AddonManager(this);

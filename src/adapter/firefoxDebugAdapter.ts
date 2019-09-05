@@ -9,6 +9,8 @@ import { SourceAdapter } from './adapter/source';
 import { LaunchConfiguration, AttachConfiguration, parseConfiguration } from './configuration';
 import { FirefoxDebugSession } from './firefoxDebugSession';
 import { popupAutohidePreferenceKey } from './adapter/addonManager';
+import { ObjectGripAdapter } from './adapter/objectGrip';
+import { DataBreakpointsManager } from './adapter/dataBreakpointsManager';
 
 let log = Log.create('FirefoxDebugAdapter');
 
@@ -37,6 +39,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			supportsDelayedStackTraceLoading: true,
 			supportsHitConditionalBreakpoints: true,
 			supportsLogPoints: true,
+			supportsDataBreakpoints: true,
 			exceptionBreakpointFilters: [
 				{
 					filter: 'all',
@@ -372,6 +375,32 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		return { 
 			targets: matches.map((match) => <DebugProtocol.CompletionItem>{ label: match })
 		 };
+	}
+
+	protected async dataBreakpointInfo(args: DebugProtocol.DataBreakpointInfoArguments): Promise<{ dataId: string | null, description: string, accessTypes?: DebugProtocol.DataBreakpointAccessType[], canPersist?: boolean }> {
+
+		if (args.variablesReference !== undefined) {
+
+			const provider = this.session.variablesProviders.find(args.variablesReference);
+			if (provider instanceof ObjectGripAdapter) {
+
+				return {
+					dataId: DataBreakpointsManager.encodeDataId(args.variablesReference, args.name),
+					description: args.name,
+					accessTypes: [ 'read', 'write' ]
+				};
+			}
+		}
+
+		return {
+			dataId: null,
+			description: 'Data breakpoints are only supported on object properties'
+		};
+	}
+
+	protected async setDataBreakpoints(args: DebugProtocol.SetDataBreakpointsArguments): Promise<{ breakpoints: DebugProtocol.Breakpoint[] }> {
+		await this.session.dataBreakpointsManager.setDataBreakpoints(args.breakpoints);
+		return { breakpoints: new Array(args.breakpoints.length).fill({ verified: true }) }
 	}
 
 	protected async reloadAddon(): Promise<void> {
