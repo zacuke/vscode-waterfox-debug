@@ -231,6 +231,23 @@ export class ThreadAdapter extends EventEmitter {
 		}
 	}
 
+	/**
+	 * extend the given adapter's lifetime to threadLifetime (if it isn't already)
+	 */
+	public threadLifetime(objectGripAdapter: ObjectGripAdapter): void {
+
+		if (!objectGripAdapter.threadLifetime) {
+
+			const index = this.pauseLifetimeObjects.indexOf(objectGripAdapter);
+			if (index >= 0) {
+				this.pauseLifetimeObjects.splice(index, 1);
+			}
+
+			this.threadLifetimeObjects.push(objectGripAdapter);
+			objectGripAdapter.threadLifetime = true;
+		}
+	}
+
 	public findCorrespondingSourceAdapter(url: string | undefined): SourceAdapter | undefined {
 		if (!url) return undefined;
 

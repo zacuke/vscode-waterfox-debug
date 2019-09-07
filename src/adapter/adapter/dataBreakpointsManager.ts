@@ -34,7 +34,7 @@ export class DataBreakpointsManager {
 		for (const dataBreakpoint of newDataBreakpoints) {
 			if (!oldDataBreakpoints.has(dataBreakpoint.dataId)) {
 
-				const type = dataBreakpoint.accessType === 'read' ? 'get' : 'set';
+				const type = (dataBreakpoint.accessType === 'read') ? 'get' : 'set';
 				await this.addDataBreakpoint(dataBreakpoint.dataId, type);
 
 			} else {
@@ -55,6 +55,7 @@ export class DataBreakpointsManager {
 		const variablesProvider = this.variablesProviders.find(variablesProviderId);
 
 		if (variablesProvider instanceof ObjectGripAdapter) {
+			variablesProvider.threadAdapter.threadLifetime(variablesProvider);
 			await variablesProvider.actor.addWatchpoint(property, dataId, type);
 		}
 	}
