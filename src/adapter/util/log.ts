@@ -1,12 +1,5 @@
 import * as fs from 'fs-extra';
-
-export declare type LogLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
-
-export interface LogConfiguration {
-	fileName?: string;
-	fileLevel?: { [logName: string]: LogLevel };
-	consoleLevel?: { [logName: string]: LogLevel };
-}
+import { LogConfiguration, LogLevel } from '../../common/configuration';
 
 enum NumericLogLevel { Debug, Info, Warn, Error }
 

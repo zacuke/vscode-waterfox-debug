@@ -1,69 +1,16 @@
 import * as os from 'os';
 import * as path from 'path';
 import * as uuid from 'uuid';
-import { DebugProtocol } from 'vscode-debugprotocol';
 import isAbsoluteUrl from 'is-absolute-url';
-import { Log, LogConfiguration } from './util/log';
+import { Log } from './util/log';
 import { findAddonId, normalizePath } from './util/misc';
 import { isExecutable } from './util/fs';
 import { Minimatch } from 'minimatch';
 import FirefoxProfile from 'firefox-profile';
 import { isWindowsPlatform } from '../common/util';
+import { LaunchConfiguration, AttachConfiguration, CommonConfiguration, ReloadConfiguration, DetailedReloadConfiguration } from '../common/configuration';
 
 let log = Log.create('ParseConfiguration');
-
-/**
- * A launch configuration, as provided by VS Code
- */
-export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.LaunchRequestArguments {
-	request: 'launch';
-	file?: string;
-	firefoxExecutable?: string;
-	profileDir?: string;
-	profile?: string;
-	keepProfileChanges?: boolean;
-	preferences?: { [key: string]: boolean | number | string | null };
-	port?: number;
-	firefoxArgs?: string[];
-	timeout?: number;
-	reAttach?: boolean;
-}
-
-/**
- * An attach configuration, as provided by VS Code
- */
-export interface AttachConfiguration extends CommonConfiguration, DebugProtocol.AttachRequestArguments {
-	request: 'attach';
-	port?: number;
-	host?: string;
-}
-
-/**
- * Common properties of launch and attach configurations
- */
-export interface CommonConfiguration {
-	request: 'launch' | 'attach';
-	url?: string;
-	webRoot?: string;
-	reloadOnAttach?: boolean;
-	reloadOnChange?: ReloadConfiguration;
-	pathMappings?: { url: string, path: string | null }[];
-	skipFiles?: string[];
-	showConsoleCallLocation?: boolean;
-	log?: LogConfiguration;
-	addonPath?: string;
-	popupAutohideButton?: boolean;
-	sourceMaps?: 'client' | 'server';
-	liftAccessorsFromPrototypes?: number;
-}
-
-export type ReloadConfiguration = string | string[] | DetailedReloadConfiguration;
-
-export interface DetailedReloadConfiguration {
-	watch: string | string[];
-	ignore?: string | string[];
-	debounce?: number | boolean;
-}
 
 export interface NormalizedReloadConfiguration {
 	watch: string[];

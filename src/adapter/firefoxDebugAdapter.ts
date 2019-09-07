@@ -7,7 +7,8 @@ import { DebugAdapterBase } from './debugAdapterBase';
 import { ExceptionBreakpoints } from './firefox/actorProxy/thread';
 import { ThreadAdapter } from './adapter/thread';
 import { SourceAdapter } from './adapter/source';
-import { LaunchConfiguration, AttachConfiguration, parseConfiguration } from './configuration';
+import { LaunchConfiguration, AttachConfiguration } from '../common/configuration';
+import { parseConfiguration } from './configuration';
 import { FirefoxDebugSession } from './firefoxDebugSession';
 import { popupAutohidePreferenceKey } from './adapter/addonManager';
 
