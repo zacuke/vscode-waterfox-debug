@@ -2,6 +2,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as uuid from 'uuid';
 import { DebugProtocol } from 'vscode-debugprotocol';
+import isAbsoluteUrl from 'is-absolute-url';
 import { Log, LogConfiguration } from './util/log';
 import { findAddonId, normalizePath } from './util/misc';
 import { isExecutable } from './util/fs';
@@ -258,10 +259,10 @@ async function findFirefoxExecutable(configuredPath?: string): Promise<string> {
 			throw 'Couldn\'t find the Firefox executable. Please correct the path given in your launch configuration.';
 		}
 	}
-	
+
 	let candidates: string[] = [];
 	switch (os.platform()) {
-		
+
 		case 'linux':
 		case 'freebsd':
 		case 'sunos':
@@ -296,7 +297,7 @@ async function findFirefoxExecutable(configuredPath?: string): Promise<string> {
 			return candidates[i];
 		}
 	}
-	
+
 	throw 'Couldn\'t find the Firefox executable. Please specify the path by setting "firefoxExecutable" in your launch configuration.';
 }
 
@@ -382,7 +383,7 @@ function parseWebRootConfiguration(config: CommonConfiguration, pathMappings: Pa
 				throw `If you set "url" you also have to set "webRoot" or "pathMappings" in the ${config.request} configuration`;
 			}
 			return undefined;
-		} else if (!path.isAbsolute(config.webRoot)) {
+		} else if (!path.isAbsolute(config.webRoot) && !isAbsoluteUrl(config.webRoot)) {
 			throw `The "webRoot" property in the ${config.request} configuration has to be an absolute path`;
 		}
 
@@ -391,7 +392,7 @@ function parseWebRootConfiguration(config: CommonConfiguration, pathMappings: Pa
 			webRootUrl = webRootUrl.substr(0, webRootUrl.lastIndexOf('/'));
 		}
 
-		let webRoot = normalizePath(config.webRoot);
+		let webRoot = isAbsoluteUrl(config.webRoot) ? config.webRoot : normalizePath(config.webRoot);
 
 		pathMappings.forEach((pathMapping) => {
 			const to = pathMapping.path;
@@ -507,7 +508,7 @@ async function parseAddonConfiguration(
 	if (sanitizedAddonPath[sanitizedAddonPath.length - 1] === '/') {
 		sanitizedAddonPath = sanitizedAddonPath.substr(0, sanitizedAddonPath.length - 1);
 	}
-	pathMappings.push({ 
+	pathMappings.push({
 		url: new RegExp('^moz-extension://[0-9a-f-]*(/.*)$'),
 		path: sanitizedAddonPath
 	});
@@ -515,7 +516,7 @@ async function parseAddonConfiguration(
 	if (addonId) {
 		// this pathMapping may no longer be necessary, I haven't seen this kind of URL recently...
 		let rewrittenAddonId = addonId.replace('{', '%7B').replace('}', '%7D');
-		pathMappings.push({ 
+		pathMappings.push({
 			url: new RegExp(`^jar:file:.*/extensions/${rewrittenAddonId}.xpi!(/.*)$`),
 			path: sanitizedAddonPath
 		});

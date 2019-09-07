@@ -2,13 +2,14 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 import stripJsonComments from 'strip-json-comments';
 import { isWindowsPlatform } from '../../common/util';
+import isAbsoluteUrl from 'is-absolute-url';
 
 /**
- * compare file paths, taking into account whether filenames are case sensitive on the current platform
+ * compare file paths or urls, taking into account whether filenames are case sensitive on the current platform
  */
 export function pathsAreEqual(path1: string, path2: string | undefined) {
 	if (path2 === undefined) return false;
-	if (isWindowsPlatform()) {
+	if (isWindowsPlatform() && !isAbsoluteUrl(path1)) {
 		return path1.toUpperCase() === path2.toUpperCase();
 	} else {
 		return path1 === path2;

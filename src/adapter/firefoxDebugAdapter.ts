@@ -1,3 +1,4 @@
+import { URI } from 'vscode-uri';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugSession, StoppedEvent, OutputEvent, Thread, Variable, Breakpoint } from 'vscode-debugadapter';
 import { Log } from './util/log';
@@ -70,14 +71,14 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	}
 
 	protected setBreakpoints(args: DebugProtocol.SetBreakpointsArguments): { breakpoints: DebugProtocol.Breakpoint[] } {
-		
+
 		const requestedBreakpoints = args.breakpoints;
 		if (requestedBreakpoints === undefined) {
 			log.error('setBreakpoints request without any breakpoints');
 			return { breakpoints: [] };
 		}
 
-		// a path for local sources and a url (as seen by Firefox) for remote sources
+		// a path for local sources or a url (as seen by either VS Code or Firefox) for remote sources
 		const sourcePathOrUrl = args.source.path;
 		if (sourcePathOrUrl === undefined) {
 			throw 'Couldn\'t set breakpoint: unknown source path';
@@ -192,7 +193,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	}
 
 	protected getThreads(): { threads: DebugProtocol.Thread[] } {
-		
+
 		log.debug(`${this.session.threads.count} threads`);
 
 		let threads = this.session.threads.map(
@@ -206,7 +207,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		let threadAdapter = this.getThreadAdapter(args.threadId);
 		this.session.setActiveThread(threadAdapter);
 
-		let [frameAdapters, totalFrames] = 
+		let [frameAdapters, totalFrames] =
 			await threadAdapter.fetchStackFrames(args.startFrame || 0, args.levels || 0);
 
 		let stackFrames = frameAdapters.map((frameAdapter) => frameAdapter.getStackframe());
@@ -369,9 +370,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			matches = await threadAdapter.autoComplete(args.text, args.column - 1);
 		}
 
-		return { 
+		return {
 			targets: matches.map((match) => <DebugProtocol.CompletionItem>{ label: match })
-		 };
+		};
 	}
 
 	protected async reloadAddon(): Promise<void> {
@@ -382,23 +383,16 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		await this.session.addonManager.reloadAddon();
 	}
 
-	// url is a file:// url for local sources and the original url (as seen by Firefox) for remote sources
 	protected async toggleSkippingFile(url: string): Promise<void> {
 
 		if (url.startsWith('file://')) {
 
-			let path: string;
-			if (this.session.isWindowsPlatform) {
-				path = url.substr(8).replace(/\//g, '\\').replace('%3A', ':');
-			} else {
-				path = url.substr(7);
-			}
-
-			await this.session.skipFilesManager.toggleSkippingPath(path);
+			const path = URI.parse(url).fsPath;
+			await this.session.skipFilesManager.toggleSkipping(path);
 
 		} else {
 
-			await this.session.skipFilesManager.toggleSkippingUrl(url);
+			await this.session.skipFilesManager.toggleSkipping(url);
 
 		}
 	}

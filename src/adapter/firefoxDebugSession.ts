@@ -3,6 +3,7 @@ import { Socket } from 'net';
 import { ChildProcess } from 'child_process';
 import * as chokidar from 'chokidar';
 import debounce from 'debounce';
+import isAbsoluteUrl from 'is-absolute-url';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, ContinuedEvent, Event } from 'vscode-debugadapter';
 import { Log } from './util/log';
@@ -28,7 +29,7 @@ import { BreakpointsManager } from './adapter/breakpointsManager';
 import { SkipFilesManager } from './adapter/skipFilesManager';
 import { ThreadPauseCoordinator } from './coordinator/threadPause';
 import { ParsedConfiguration } from './configuration';
-import { PathMapper, urlDetector } from './util/pathMapper';
+import { PathMapper } from './util/pathMapper';
 import { isWindowsPlatform as detectWindowsPlatform, delay } from '../common/util';
 import { tryRemoveRepeatedly } from './util/fs';
 import { connect, waitForSocket } from './util/net';
@@ -496,11 +497,11 @@ export class FirefoxDebugSession {
 		// check if this source should be skipped
 		let skipThisSource: boolean | undefined = undefined;
 		if (sourcePath !== undefined) {
-			skipThisSource = this.skipFilesManager.shouldSkipPath(sourcePath);
-		} else if (source.generatedUrl && (!source.url || !urlDetector.test(source.url))) {
-			skipThisSource = this.skipFilesManager.shouldSkipUrl(source.generatedUrl);
+			skipThisSource = this.skipFilesManager.shouldSkip(sourcePath);
+		} else if (source.generatedUrl && (!source.url || !isAbsoluteUrl(source.url))) {
+			skipThisSource = this.skipFilesManager.shouldSkip(source.generatedUrl);
 		} else if (source.url) {
-			skipThisSource = this.skipFilesManager.shouldSkipUrl(source.url);
+			skipThisSource = this.skipFilesManager.shouldSkip(source.url);
 		}
 
 		if (skipThisSource !== undefined) {

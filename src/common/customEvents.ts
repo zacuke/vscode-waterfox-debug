@@ -10,7 +10,9 @@ export interface ThreadExitedEventBody {
 export interface NewSourceEventBody {
 	threadId: number;
 	sourceId: number;
+	/** as seen by Firefox */
 	url: string | undefined;
+	/** path or url as seen by VS Code */
 	path: string | undefined;
 }
 

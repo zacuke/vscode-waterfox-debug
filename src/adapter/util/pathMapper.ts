@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as url from 'url';
+import isAbsoluteUrl from 'is-absolute-url';
 import { Log } from './log';
 import { PathMappings, ParsedAddonConfiguration } from '../configuration';
 import { isWindowsPlatform as detectWindowsPlatform } from '../../common/util';
@@ -8,8 +9,6 @@ import { urlDirname } from './net';
 let log = Log.create('PathConversion');
 
 let isWindowsPlatform = detectWindowsPlatform();
-
-export let urlDetector = /^[a-zA-Z][a-zA-Z0-9\+\-\.]*\:\/\//;
 
 /**
  * This class is used to map the URLs as seen by Firefox to local paths as seen by VS Code.
@@ -31,7 +30,7 @@ export class PathMapper {
 			log.debug(`Addon script path: ${sourcePath}`);
 			return sourcePath;
 
-		} else if (source.isSourceMapped && source.generatedUrl && source.url && !urlDetector.test(source.url)) {
+		} else if (source.isSourceMapped && source.generatedUrl && source.url && !isAbsoluteUrl(source.url)) {
 
 			let originalPathOrUrl = source.url;
 

@@ -42,7 +42,8 @@
     "source-map": "^0.7.3",
     "strip-json-comments": "^3.0.1",
     "uuid": "^3.3.3",
-    "vscode-debugadapter": "^1.36.0"
+    "vscode-debugadapter": "^1.36.0",
+    "vscode-uri": "^2.0.3"
   },
   "devDependencies": {
     "@babel/cli": "^7.5.5",
