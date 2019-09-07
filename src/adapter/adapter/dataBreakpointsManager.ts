@@ -10,8 +10,9 @@ export class DataBreakpointsManager {
 
 	private dataBreakpoints = new Set<string>();
 
-	constructor(private readonly variablesProviders: Registry<VariablesProvider>) {
-	}
+	constructor(
+		private readonly variablesProviders: Registry<VariablesProvider>
+	) {}
 
 	public static encodeDataId(variablesProviderId: number, property: string): string {
 		return `${variablesProviderId}.${property}`;
@@ -28,6 +29,8 @@ export class DataBreakpointsManager {
 	}
 
 	public async setDataBreakpoints(newDataBreakpoints: DebugProtocol.DataBreakpoint[]): Promise<void> {
+
+		log.debug(`Setting ${newDataBreakpoints.length} data breakpoints`);
 
 		const oldDataBreakpoints = new Set<string>(this.dataBreakpoints);
 
@@ -55,8 +58,14 @@ export class DataBreakpointsManager {
 		const variablesProvider = this.variablesProviders.find(variablesProviderId);
 
 		if (variablesProvider instanceof ObjectGripAdapter) {
+
+			log.debug(`Adding data breakpoint for property ${property} of object #${variablesProviderId}`);
+
 			variablesProvider.threadAdapter.threadLifetime(variablesProvider);
 			await variablesProvider.actor.addWatchpoint(property, dataId, type);
+
+		} else {
+			log.warn(`Couldn't find object #${variablesProviderId}`);
 		}
 	}
 
@@ -66,7 +75,13 @@ export class DataBreakpointsManager {
 		const variablesProvider = this.variablesProviders.find(variablesProviderId);
 
 		if (variablesProvider instanceof ObjectGripAdapter) {
+
+			log.debug(`Removing data breakpoint for property ${property} of object #${variablesProviderId}`);
+
 			await variablesProvider.actor.removeWatchpoint(property);
+
+		} else {
+			log.warn(`Couldn't find object #${variablesProviderId}`);
 		}
 	}
 }
