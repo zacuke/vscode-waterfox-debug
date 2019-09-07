@@ -125,6 +125,7 @@
     "url": "https://github.com/firefox-devtools/vscode-firefox-debug/issues"
   },
   "homepage": "https://github.com/firefox-devtools/vscode-firefox-debug",
+  "extensionKind": "ui",
   "main": "./dist/extension.bundle.js",
   "activationEvents": [
     "onDebug"
