@@ -44,7 +44,7 @@ export class FirefoxDebugSession {
 	public readonly isWindowsPlatform = detectWindowsPlatform();
 	public readonly pathMapper: PathMapper;
 	public readonly breakpointsManager: BreakpointsManager;
-	public readonly dataBreakpointsManager: DataBreakpointsManager;
+	public dataBreakpointsManager?: DataBreakpointsManager;
 	public readonly skipFilesManager: SkipFilesManager;
 	public readonly addonManager?: AddonManager;
 	private reloadWatcher?: chokidar.FSWatcher;
@@ -83,7 +83,6 @@ export class FirefoxDebugSession {
 	) {
 		this.pathMapper = new PathMapper(this.config.pathMappings, this.config.addon);
 		this.breakpointsManager = new BreakpointsManager(this.threads, this.sendEvent);
-		this.dataBreakpointsManager = new DataBreakpointsManager(this.variablesProviders);
 		this.skipFilesManager = new SkipFilesManager(this.config.filesToSkip, this.threads);
 		if (this.config.addon) {
 			this.addonManager = new AddonManager(this);
@@ -107,7 +106,7 @@ export class FirefoxDebugSession {
 
 			this.firefoxDebugConnection = new DebugConnection(this.config.sourceMaps, this.pathMapper, socket);
 			let rootActor = this.firefoxDebugConnection.rootActor;
-	
+
 			// attach to all tabs, register the corresponding threads and inform VSCode about them
 			rootActor.onTabOpened(async ([tabActor, consoleActor]) => {
 				log.info(`Tab opened with url ${tabActor.url}`);
@@ -117,11 +116,11 @@ export class FirefoxDebugSession {
 					this.attachConsole(consoleActor, threadAdapter);
 				}
 			});
-	
+
 			rootActor.onTabListChanged(() => {
 				rootActor.fetchTabs();
 			});
-	
+
 			rootActor.onInit(async (initialResponse) => {
 
 				if (initialResponse.traits.breakpointWhileRunning && (this.config.sourceMaps === 'server')) {
@@ -132,12 +131,16 @@ export class FirefoxDebugSession {
 				if (initialResponse.traits.nativeLogpoints) {
 					this._newBreakpointProtocol = true;
 				}
-	
+
+				if (initialResponse.traits.watchpoints) {
+					this.dataBreakpointsManager = new DataBreakpointsManager(this.variablesProviders);
+				}
+
 				// early beta versions of Firefox 60 sometimes stop working when we fetch the tabs too early
 				await delay(200);
-	
+
 				let actors = await rootActor.fetchTabs();
-	
+
 				this.preferenceActor = actors.preference;
 				this.addonsActor = actors.addons;
 
@@ -148,12 +151,12 @@ export class FirefoxDebugSession {
 						reject('No AddonsActor received from Firefox');
 					}
 				}
-	
+
 				this.reloadTabs = false;
 
 				resolve();
 			});
-	
+
 			socket.on('close', () => {
 				log.info('Connection to Firefox closed - terminating debug session');
 				this.firefoxDebugSocketClosed = true;
@@ -161,43 +164,43 @@ export class FirefoxDebugSession {
 			});
 
 			if (this.config.reloadOnChange) {
-	
-				this.reloadWatcher = chokidar.watch(this.config.reloadOnChange.watch, { 
+
+				this.reloadWatcher = chokidar.watch(this.config.reloadOnChange.watch, {
 					ignored: this.config.reloadOnChange.ignore,
 					ignoreInitial: true
 				});
-	
+
 				let reload: () => void;
 				if (this.config.addon) {
-	
+
 					reload = () => {
 						if (this.addonManager) {
 							log.debug('Reloading add-on');
-		
+
 							this.addonManager.reloadAddon();
 						}
 					}
-	
+
 				} else {
-	
+
 					reload = () => {
 						log.debug('Reloading tabs');
-	
+
 						for (let [, tabActor] of this.tabs) {
 							tabActor.reload();
 						}
 					}
 				}
-	
+
 				if (this.config.reloadOnChange.debounce > 0) {
 					reload = debounce(reload, this.config.reloadOnChange.debounce);
 				}
-	
+
 				this.reloadWatcher.on('add', reload);
 				this.reloadWatcher.on('change', reload);
 				this.reloadWatcher.on('unlink', reload);
 			}
-	
+
 			// now we are ready to accept breakpoints -> fire the initialized event to give UI a chance to set breakpoints
 			this.sendEvent(new InitializedEvent());
 		});
@@ -563,7 +566,7 @@ export class FirefoxDebugSession {
 			consoleActorLog.debug(`Page Error: ${JSON.stringify(err)}`);
 
 			if (err.category === 'content javascript') {
-				
+
 				let category = err.exception ? 'stderr' : 'stdout';
 				let outputEvent = new OutputEvent(err.errorMessage + '\n', category);
 				await this.addLocation(outputEvent, err.sourceName, err.lineNumber, err.columnNumber);

@@ -379,6 +379,13 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected async dataBreakpointInfo(args: DebugProtocol.DataBreakpointInfoArguments): Promise<{ dataId: string | null, description: string, accessTypes?: DebugProtocol.DataBreakpointAccessType[], canPersist?: boolean }> {
 
+		if (!this.session.dataBreakpointsManager) {
+			return {
+				dataId: null,
+				description: "Your version of Firefox doesn't support watchpoints / data breakpoints"
+			};
+		}
+
 		if (args.variablesReference !== undefined) {
 
 			const provider = this.session.variablesProviders.find(args.variablesReference);
@@ -399,6 +406,10 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	}
 
 	protected async setDataBreakpoints(args: DebugProtocol.SetDataBreakpointsArguments): Promise<{ breakpoints: DebugProtocol.Breakpoint[] }> {
+		if (!this.session.dataBreakpointsManager) {
+			throw "Your version of Firefox doesn't support watchpoints / data breakpoints";
+		}
+
 		await this.session.dataBreakpointsManager.setDataBreakpoints(args.breakpoints);
 		return { breakpoints: new Array(args.breakpoints.length).fill({ verified: true }) }
 	}
