@@ -26,7 +26,7 @@ export class ObjectGripAdapter implements VariablesProvider {
 	public constructor(
 		private readonly variableAdapter: VariableAdapter,
 		objectGrip: FirefoxDebugProtocol.ObjectGrip,
-		public readonly threadLifetime: boolean,
+		public threadLifetime: boolean,
 		private readonly isPrototype: boolean
 	) {
 		this.actor = this.threadAdapter.debugSession.getOrCreateObjectGripActorProxy(objectGrip);

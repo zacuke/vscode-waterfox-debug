@@ -23,7 +23,8 @@ declare namespace FirefoxDebugProtocol {
 		applicationType: string;
 		traits: {
 			breakpointWhileRunning: boolean,
-			nativeLogpoints: boolean
+			nativeLogpoints: boolean,
+			watchpoints: boolean
 		};
 	}
 

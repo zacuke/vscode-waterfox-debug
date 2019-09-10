@@ -115,3 +115,9 @@ function protoGetter() {
 	var x = new ProtoGetter();
 	return x;
 }
+
+function inc(o) {
+	console.log(`Old: ${o.x}`);
+	o.x++;
+	console.log(`New: ${o.x}`);
+}

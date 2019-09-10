@@ -15,6 +15,7 @@ export class ObjectGripActorProxy implements ActorProxy {
 	private _refCount = 0;
 
  	private pendingPrototypeAndPropertiesRequests = new PendingRequests<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>();
+ 	private pendingWatchpointRequests = new PendingRequests<void>();
 
 	constructor(
 		private grip: FirefoxDebugProtocol.ObjectGrip,
@@ -54,6 +55,36 @@ export class ObjectGripActorProxy implements ActorProxy {
 		});
 	}
 
+	public addWatchpoint(property: string, label: string, watchpointType: 'get' | 'set'): Promise<void> {
+
+		if (log.isDebugEnabled()) {
+			log.debug(`Adding watchpoint for ${property} on ${this.name}`);
+		}
+
+		return new Promise<void>((resolve, reject) => {
+			this.pendingWatchpointRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({
+				to: this.name, type: 'addWatchpoint',
+				property, label, watchpointType
+			});
+		});
+	}
+
+	public removeWatchpoint(property: string): Promise<void> {
+
+		if (log.isDebugEnabled()) {
+			log.debug(`Removing watchpoint for ${property} on ${this.name}`);
+		}
+
+		return new Promise<void>((resolve, reject) => {
+			this.pendingWatchpointRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({
+				to: this.name, type: 'removeWatchpoint',
+				property
+			});
+		});
+	}
+
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 
 		if ((response['prototype'] !== undefined) && (response['ownProperties'] !== undefined)) {
@@ -62,6 +93,10 @@ export class ObjectGripActorProxy implements ActorProxy {
 				log.debug(`Prototype and properties fetched from ${this.name}`);
 			}
 			this.pendingPrototypeAndPropertiesRequests.resolveOne(<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>response);
+
+		} else if (Object.keys(response).length === 1) {
+
+			this.pendingWatchpointRequests.resolveOne(undefined);
 
 		} else if (response['error'] === 'noSuchActor') {
 

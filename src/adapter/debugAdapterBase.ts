@@ -30,6 +30,8 @@ export abstract class DebugAdapterBase extends DebugSession {
 	protected abstract setVariable(args: DebugProtocol.SetVariableArguments): Promise<{ value: string, variablesReference?: number }>;
 	protected abstract evaluate(args: DebugProtocol.EvaluateArguments): Promise<{ result: string, type?: string, variablesReference: number, namedVariables?: number, indexedVariables?: number }>;
 	protected abstract getCompletions(args: DebugProtocol.CompletionsArguments): Promise<{ targets: DebugProtocol.CompletionItem[] }>;
+	protected abstract dataBreakpointInfo(args: DebugProtocol.DataBreakpointInfoArguments): Promise<{ dataId: string | null, description: string, accessTypes?: DebugProtocol.DataBreakpointAccessType[], canPersist?: boolean }>;
+	protected abstract setDataBreakpoints(args: DebugProtocol.SetDataBreakpointsArguments): Promise<{ breakpoints: DebugProtocol.Breakpoint[] }>;
 	protected abstract reloadAddon(): Promise<void>;
 	protected abstract toggleSkippingFile(url: string): Promise<void>;
 	protected abstract setPopupAutohide(popupAutohide: boolean): Promise<void>;
@@ -109,6 +111,14 @@ export abstract class DebugAdapterBase extends DebugSession {
 
 	protected completionsRequest(response: DebugProtocol.CompletionsResponse, args: DebugProtocol.CompletionsArguments): void {
 		this.handleRequestAsync(response, () => this.getCompletions(args));
+	}
+
+	protected dataBreakpointInfoRequest(response: DebugProtocol.DataBreakpointInfoResponse, args: DebugProtocol.DataBreakpointInfoArguments): void {
+		this.handleRequestAsync(response, () => this.dataBreakpointInfo(args));
+	}
+
+	protected setDataBreakpointsRequest(response: DebugProtocol.SetDataBreakpointsResponse, args: DebugProtocol.SetDataBreakpointsArguments): void {
+		this.handleRequestAsync(response, () => this.setDataBreakpoints(args));
 	}
 
 	protected customRequest(command: string, response: DebugProtocol.Response, args: any): void {
