@@ -1,3 +1,7 @@
+### Version 2.2.0
+* add support for VS Code remote development
+* add support for data breakpoints on object properties if Firefox supports watchpoints (an upcoming Firefox feature that will appear in Nightlies soon)
+
 ### Version 2.1.0
 * add `timeout` launch configuration property
 
