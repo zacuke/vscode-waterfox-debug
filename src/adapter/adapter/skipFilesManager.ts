@@ -1,3 +1,4 @@
+import isAbsoluteUrl from 'is-absolute-url';
 import { Log } from '../util/log';
 import { isWindowsPlatform as detectWindowsPlatform } from '../../common/util';
 import { ThreadAdapter } from './thread';
@@ -25,23 +26,7 @@ export class SkipFilesManager {
 		private readonly threads: Registry<ThreadAdapter>
 	) {}
 
-	public shouldSkipPath(path: string): boolean {
-		return this.shouldSkip(path, true);
-	}
-
-	public shouldSkipUrl(url: string): boolean {
-		return this.shouldSkip(url, false);
-	}
-
-	public toggleSkippingPath(path: string): Promise<void> {
-		return this.toggleSkipping(path, true);
-	}
-
-	public toggleSkippingUrl(url: string): Promise<void> {
-		return this.toggleSkipping(url, false);
-	}
-
-	private shouldSkip(pathOrUrl: string, isPath: boolean): boolean {
+	public shouldSkip(pathOrUrl: string): boolean {
 
 		if (this.dynamicFiles.has(pathOrUrl)) {
 
@@ -55,7 +40,7 @@ export class SkipFilesManager {
 		}
 
 		let testee = pathOrUrl.replace('/./', '/');
-		if (isPath && this.isWindowsPlatform) {
+		if (this.isWindowsPlatform && !isAbsoluteUrl(pathOrUrl)) {
 			testee = testee.replace(/\\/g, '/');
 		}
 		for (let regExp of this.configuredFilesToSkip) {
@@ -77,9 +62,9 @@ export class SkipFilesManager {
 		return false;
 	}
 
-	private async toggleSkipping(pathOrUrl: string, isPath: boolean): Promise<void> {
+	public async toggleSkipping(pathOrUrl: string): Promise<void> {
 		
-		const skipFile = !this.shouldSkip(pathOrUrl, isPath);
+		const skipFile = !this.shouldSkip(pathOrUrl);
 		this.dynamicFiles.set(pathOrUrl, skipFile);
 
 		log.info(`Setting skipFile to ${skipFile} for ${pathOrUrl}`);

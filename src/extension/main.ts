@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import isAbsoluteUrl from 'is-absolute-url';
 import { LoadedScriptsProvider } from './loadedScripts/provider';
 import { ThreadStartedEventBody, ThreadExitedEventBody, NewSourceEventBody, RemoveSourcesEventBody, PopupAutohideEventBody } from '../common/customEvents';
 import { addPathMapping } from './addPathMapping';
@@ -134,7 +135,7 @@ function onCustomEvent(
 async function openScript(pathOrUri: string) {
 
 	let uri: vscode.Uri;
-	if (pathOrUri.startsWith('debug:')) {
+	if (isAbsoluteUrl(pathOrUri)) {
 		uri = vscode.Uri.parse(pathOrUri);
 	} else {
 		uri = vscode.Uri.file(pathOrUri);

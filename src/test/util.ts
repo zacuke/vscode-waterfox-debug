@@ -1,7 +1,7 @@
 import { delay, isWindowsPlatform } from '../common/util';
 import { DebugClient } from 'vscode-debugadapter-testsupport';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { LaunchConfiguration } from '../adapter/configuration';
+import { LaunchConfiguration } from '../common/configuration';
 import * as path from 'path';
 
 export async function initDebugClient(

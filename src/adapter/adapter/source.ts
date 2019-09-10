@@ -31,6 +31,7 @@ export class SourceAdapter {
 	public constructor(
 		sourceRegistry: Registry<SourceAdapter>,
 		public actor: ISourceActorProxy,
+		/** the path or url as seen by VS Code */
 		public readonly sourcePath: string | undefined,
 		public readonly threadAdapter: ThreadAdapter,
 		private readonly newBreakpointProtocol: boolean

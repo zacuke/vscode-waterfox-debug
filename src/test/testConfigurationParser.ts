@@ -1,4 +1,5 @@
-import { parseConfiguration, LaunchConfiguration, AttachConfiguration, NormalizedReloadConfiguration } from '../adapter/configuration';
+import { LaunchConfiguration, AttachConfiguration } from '../common/configuration';
+import { parseConfiguration, NormalizedReloadConfiguration } from '../adapter/configuration';
 import * as assert from 'assert';
 import * as path from 'path';
 import { isWindowsPlatform } from '../common/util';
