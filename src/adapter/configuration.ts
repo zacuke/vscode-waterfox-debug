@@ -299,14 +299,23 @@ function createFirefoxPreferences(
 
 	let preferences: FirefoxPreferences = {};
 
-	preferences['browser.shell.checkDefaultBrowser'] = false;
+	// Remote debugging settings
 	preferences['devtools.chrome.enabled'] = true;
 	preferences['devtools.debugger.prompt-connection'] = false;
 	preferences['devtools.debugger.remote-enabled'] = true;
 	preferences['extensions.autoDisableScopes'] = 10;
 	preferences['xpinstall.signatures.required'] = false;
 	preferences['extensions.sdk.console.logLevel'] = 'all';
-	preferences['toolkit.telemetry.reportingpolicy.firstRun'] = false;
+	// Skip check for default browser on startup
+	preferences['browser.shell.checkDefaultBrowser'] = false;
+	// Hide the telemetry infobar
+	preferences['toolkit.telemetry.reportingpolicy.firstRun'] = true;
+	// Do not redirect user when a milestone upgrade of Firefox is detected
+	preferences['browser.startup.homepage_override.mstone'] = 'ignore';
+	// Disable the UI tour
+	preferences['browser.uitour.enabled'] = false;
+	// Do not warn on quitting Firefox
+	preferences['browser.warnOnQuit'] = false;
 
 	if (additionalPreferences !== undefined) {
 		for (let key in additionalPreferences) {
