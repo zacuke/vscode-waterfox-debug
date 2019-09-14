@@ -57,7 +57,7 @@ describe('Debug console: The debugger', function() {
 		let vars = await dc.variablesRequest({ variablesReference: outputEvent.body.variablesReference! });
 
 		assert.equal(vars.body.variables.length, 2);
-		assert.equal(util.findVariable(vars.body.variables, '0').value, '"foo"');
+		assert.equal(util.findVariable(vars.body.variables, '0').value, 'foo');
 		assert.equal(util.findVariable(vars.body.variables, '1').value, '2');
 
 		util.evaluate(dc, 'console.log({"foo":"bar"})');
