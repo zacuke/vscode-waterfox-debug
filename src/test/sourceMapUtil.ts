@@ -40,8 +40,6 @@ export async function testSourcemaps(
 	await util.runCommandAndReceiveStoppedEvent(dc, () => dc.continueRequest({ threadId }));
 
 	await checkDebuggeeState(dc, threadId, gPath, 5, 'y', '4');
-
-	await dc.stop();
 }
 
 async function checkDebuggeeState(

@@ -12,11 +12,16 @@ const TESTDATA_PATH = path.join(__dirname, '../../testdata/web/sourceMaps/module
 describe('Webpack sourcemaps: The debugger', function() {
 
 	let dc: DebugClient | undefined;
+	let targetDir: string | undefined;
 
 	afterEach(async function() {
 		if (dc) {
 			await dc.stop();
 			dc = undefined;
+		}
+		if (targetDir) {
+			await fs.remove(targetDir);
+			targetDir = undefined;
 		}
 	});
 
@@ -53,8 +58,6 @@ describe('Webpack sourcemaps: The debugger', function() {
 			});
 
 			await sourceMapUtil.testSourcemaps(dc, targetDir, 1);
-
-			await fs.remove(targetDir);
 		});
 	}}
 });
