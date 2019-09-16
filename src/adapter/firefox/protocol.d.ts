@@ -211,7 +211,7 @@ declare namespace FirefoxDebugProtocol {
 
 	interface ThreadPausedReason {
 		type: 'attached' | 'interrupted' | 'resumeLimit' | 'debuggerStatement' | 'breakpoint' | 
-			'watchpoint' | 'clientEvaluated' | 'pauseOnDOMEvents' | 'alreadyPaused' | 'exception';
+			'getWatchpoint' | 'setWatchpoint' | 'clientEvaluated' | 'pauseOnDOMEvents' | 'alreadyPaused' | 'exception';
 		frameFinished?: CompletionValue; // if type is 'resumeLimit' or 'clientEvaluated'
 		exception?: Grip; // if type is 'exception'
 		actors?: string[]; // if type is 'breakpoint' or 'watchpoint'
