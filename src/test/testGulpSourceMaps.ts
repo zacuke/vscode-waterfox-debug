@@ -18,11 +18,16 @@ const TESTDATA_PATH = path.join(__dirname, '../../testdata/web/sourceMaps/script
 describe('Gulp sourcemaps: The debugger', function() {
 
 	let dc: DebugClient | undefined;
+	let targetDir: string | undefined;
 
 	afterEach(async function() {
 		if (dc) {
 			await dc.stop();
 			dc = undefined;
+		}
+		if (targetDir) {
+			await fs.remove(targetDir);
+			targetDir = undefined;
 		}
 	});
 
@@ -50,25 +55,24 @@ describe('Gulp sourcemaps: The debugger', function() {
 		}
 
 		// server-side source-maps are not supported with Firefox >= 66.0
-		if ((process.env['NEW_STEP_OUT_BEHAVIOR'] === 'true') && (sourceMaps === 'server')) {
+		if ((process.env['SERVER_SIDE_SOURCEMAPS'] !== 'true') && (sourceMaps === 'server')) {
 			it.skip(descr);
 			continue;
 		}
 
 		it(descr, async function() {
 
-			let { targetDir, srcDir, buildDir } = await prepareTargetDir(bundleScripts, separateBuildDir);
+			const targetPaths = await prepareTargetDir(bundleScripts, separateBuildDir);
+			targetDir = targetPaths.targetDir;
 
-			await build(buildDir, minifyScripts, bundleScripts, embedSourceMap, separateBuildDir);
+			await build(targetPaths.buildDir, minifyScripts, bundleScripts, embedSourceMap, separateBuildDir);
 
 			dc = await util.initDebugClient('', true, {
- 				file: path.join(buildDir, 'index.html'),
+ 				file: path.join(targetPaths.buildDir, 'index.html'),
  				sourceMaps
  			});
  
-			await sourceMapUtil.testSourcemaps(dc, srcDir);
-
-			await fs.remove(targetDir);
+			await sourceMapUtil.testSourcemaps(dc, targetPaths.srcDir);
 		});
 	}}}}}
 });

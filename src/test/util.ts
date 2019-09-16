@@ -21,6 +21,10 @@ export async function initDebugClient(
 		launchArgs.firefoxExecutable = process.env['FIREFOX_EXECUTABLE'];
 	}
 
+	if (process.env['FIREFOX_PROFILE']) {
+		launchArgs.profile = process.env['FIREFOX_PROFILE'];
+	}
+
 	if (extraLaunchArgs !== undefined) {
 		launchArgs = Object.assign(launchArgs, extraLaunchArgs);
 	}
@@ -66,6 +70,10 @@ export async function initDebugClientForAddon(
 
 	if (process.env['FIREFOX_EXECUTABLE']) {
 		dcArgs.firefoxExecutable = process.env['FIREFOX_EXECUTABLE'];
+	}
+
+	if (process.env['FIREFOX_PROFILE']) {
+		dcArgs.profile = process.env['FIREFOX_PROFILE'];
 	}
 
 	let dc = new DebugClient('node', './dist/adapter.bundle.js', 'firefox');
