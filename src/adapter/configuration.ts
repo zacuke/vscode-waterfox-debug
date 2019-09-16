@@ -309,7 +309,7 @@ function createFirefoxPreferences(
 	// Skip check for default browser on startup
 	preferences['browser.shell.checkDefaultBrowser'] = false;
 	// Hide the telemetry infobar
-	preferences['toolkit.telemetry.reportingpolicy.firstRun'] = true;
+	preferences['datareporting.policy.dataSubmissionPolicyBypassNotification'] = true;
 	// Do not redirect user when a milestone upgrade of Firefox is detected
 	preferences['browser.startup.homepage_override.mstone'] = 'ignore';
 	// Disable the UI tour
