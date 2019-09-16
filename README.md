@@ -13,20 +13,20 @@
   <a href="https://marketplace.visualstudio.com/items?itemName=firefox-devtools.vscode-firefox-debug"><img src="https://vsmarketplacebadge.apphb.com/version/firefox-devtools.vscode-firefox-debug.svg?label=Debugger%20for%20Firefox" alt="Marketplace bagde"></a>
 </p>
 
-A VS Code extension to debug web applications and extensions running in the [Mozilla Firefox browser](https://www.mozilla.org/en-US/firefox/developer/). [Install from VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=firefox-devtools.vscode-firefox-debug).
+A VS Code extension to debug web applications and extensions running in the [Mozilla Firefox browser](https://www.mozilla.org/en-US/firefox/developer/?utm_medium=vscode_extension&utm_source=devtools). [📦 Install from VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=firefox-devtools.vscode-firefox-debug).
 
 ### Supported features
 
 * Pause [breakpoints](https://code.visualstudio.com/docs/editor/debugging#_breakpoints), including advanced [conditional](https://code.visualstudio.com/docs/editor/debugging#_conditional-breakpoints) and [inline](https://code.visualstudio.com/docs/editor/debugging#_inline-breakpoints) modes
 * Inject logging during debugging using [logpoints](https://code.visualstudio.com/docs/editor/debugging#_logpoints)
-* **🔥New:** Pausing on variable changes using [data points/watchpoints](https://code.visualstudio.com/docs/editor/debugging#_data-breakpoints)
 * Debugging eval scripts, script tags, and scripts that are added dynamically and/or source mapped
-* *Variables* pane for inspecting values
+* *Variables* pane for inspecting and setting values
 * *Watch* pane for evaluating and watching expressions
 * *Console* for logging and REPL
 * Debugging Firefox extensions
 * Debugging Web Workers
 * **🔥New:** Compatible with [remote development](https://code.visualstudio.com/docs/remote/remote-overview)
+* **🔥Upcoming:** Pause on object property changes with [Data points](https://code.visualstudio.com/docs/editor/debugging#_data-breakpoints) (🦊 Requires [Firefox Dev Edition 70.0b7](https://www.mozilla.org/en-US/firefox/developer/?utm_medium=vscode_extension&utm_source=devtools) or higher)
 
 ## Getting Started
 
