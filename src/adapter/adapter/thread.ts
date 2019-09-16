@@ -4,7 +4,7 @@ import { ConsoleActorProxy } from '../firefox/actorProxy/console';
 import { ISourceActorProxy } from '../firefox/actorProxy/source';
 import { FrameAdapter } from './frame';
 import { ScopeAdapter } from './scope';
-import { SourceAdapter } from './source';
+import { SourceAdapter, convertLogpointMessage } from './source';
 import { ObjectGripAdapter } from './objectGrip';
 import { VariablesProvider } from './variablesProvider';
 import { VariableAdapter } from './variable';
@@ -139,9 +139,9 @@ export class ThreadAdapter extends EventEmitter {
 							const frames = await this.fetchAllStackFrames();
 							const frameActor = (frames.length > 0) ? frames[0].frame.actor : undefined;
 
-							// support for Firefox' log points hasn't been implemented yet, so we
-							// implement this feature by evaluating a `console.log()` call in Firefox
-							this.evaluate(`console.log(\`${logMessage.replace('{', '${')}\`)`, false, frameActor);
+							// on old versions of Firefox, native log points are not supported,
+							// so we implement them here
+							this.evaluate(`console.log(...${convertLogpointMessage(logMessage)})`, false, frameActor);
 
 							this.resume();
 							return;

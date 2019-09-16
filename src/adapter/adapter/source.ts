@@ -157,7 +157,7 @@ export class SourceAdapter {
 
 					let logValue: string | undefined;
 					if (breakpointInfo.requestedBreakpoint.logMessage) {
-						logValue = `\`${breakpointInfo.requestedBreakpoint.logMessage.replace('{', '${')}\``;
+						logValue = '...' + convertLogpointMessage(breakpointInfo.requestedBreakpoint.logMessage);
 					}
 
 					await this.threadAdapter.actor.setBreakpoint(
@@ -225,4 +225,38 @@ export class SourceAdapter {
 	public dispose(): void {
 		this.actor.dispose();
 	}
+}
+
+/**
+ * convert the message of a logpoint (which can contain javascript expressions in curly braces)
+ * to a javascript expression that evaluates to an array of values to be displayed in the debug console
+ * (doesn't support escaping or nested curly braces)
+ */
+export function convertLogpointMessage(msg: string): string {
+
+	// split `msg` into string literals and javascript expressions
+	const items: string[] = [];
+	let currentPos = 0;
+	while (true) {
+
+		const leftBrace = msg.indexOf('{', currentPos);
+
+		if (leftBrace < 0) {
+
+			items.push(JSON.stringify(msg.substring(currentPos)));
+			break;
+
+		} else {
+
+			let rightBrace = msg.indexOf('}', leftBrace + 1);
+			if (rightBrace < 0) rightBrace = msg.length;
+
+			items.push(JSON.stringify(msg.substring(currentPos, leftBrace)));
+			items.push(msg.substring(leftBrace + 1, rightBrace));
+			currentPos = rightBrace + 1;
+		}
+	}
+
+	// the appended `reduce()` call will convert all non-object values to strings and concatenate consecutive strings
+	return `[${items.join(',')}].reduce((a,c)=>{if(typeof c==='object'&&c){a.push(c,'')}else{a.push(a.pop()+c)}return a},[''])`;
 }

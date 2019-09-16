@@ -2,6 +2,7 @@ import { DebugClient } from 'vscode-debugadapter-testsupport';
 import * as path from 'path';
 import * as util from './util';
 import * as assert from 'assert';
+import { DebugProtocol } from 'vscode-debugprotocol';
 
 describe('Hitting breakpoints: The debugger', function() {
 
@@ -165,5 +166,28 @@ describe('Hitting breakpoints: The debugger', function() {
 		assert.equal(outputEvents[0].body.output.trimRight(), 'factorial(3)');
 		assert.equal(outputEvents[1].body.output.trimRight(), 'factorial(2)');
 		assert.equal(outputEvents[2].body.output.trimRight(), 'factorial(1)');
+	});
+
+	it('should support objects in the output from logpoints', async function() {
+
+		let sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		await util.setBreakpoints(dc, sourcePath, [ { line: 24, logMessage: 'obj is {obj}' } ]);
+
+		util.evaluate(dc, 'factorial(1)');
+		const outputEvent = await dc.waitForEvent('output') as DebugProtocol.OutputEvent;
+
+		assert.notEqual(outputEvent.body.variablesReference, undefined);
+		let vars = await dc.variablesRequest({ variablesReference: outputEvent.body.variablesReference! });
+
+		assert.equal(vars.body.variables.length, 2);
+		assert.equal(util.findVariable(vars.body.variables, '0').value, 'obj is ');
+		const objVar = util.findVariable(vars.body.variables, '1');
+		assert.equal(objVar.value, '{x: 17, y: Object}');
+
+		assert.notEqual(objVar.variablesReference, undefined);
+		vars = await dc.variablesRequest({ variablesReference: objVar.variablesReference! });
+
+		assert.equal(util.findVariable(vars.body.variables, 'x').value, '17');
+		assert.equal(util.findVariable(vars.body.variables, 'y').value, '{z: "xyz"}');
 	});
 });

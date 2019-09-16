@@ -540,8 +540,17 @@ export class FirefoxDebugSession {
 
 			} else {
 
-				let args = consoleEvent.arguments.map((grip, index) =>
-					VariableAdapter.fromGrip(String(index), undefined, undefined, grip, true, threadAdapter));
+				let args = consoleEvent.arguments.map((grip, index) => {
+					if (typeof grip !== 'object') {
+						return new VariableAdapter(String(index), undefined, undefined, String(grip), threadAdapter);
+					} else {
+						return VariableAdapter.fromGrip(String(index), undefined, undefined, grip, true, threadAdapter);
+					}
+				});
+
+				if ((consoleEvent.level === 'logPoint') && (args[args.length - 1].displayValue === '')) {
+					args.pop();
+				}
 
 				if (this.config.showConsoleCallLocation) {
 					let filename = this.pathMapper.convertFirefoxUrlToPath(consoleEvent.filename);

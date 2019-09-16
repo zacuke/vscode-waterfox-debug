@@ -419,8 +419,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 					this.pendingEmptyResponseRequests.resolveOne(undefined);
 				}
 
-			} else if (response['type'] === 'willInterrupt') {
-				log.debug(`Received willInterrupt event from ${this.name} (ignoring)`);
+			} else if ((response['type'] === 'willInterrupt') || (response['type'] === 'interrupt')) {
+				log.debug(`Received ${response['type']} event from ${this.name} (ignoring)`);
 			} else {
 				log.warn("Unknown message from ThreadActor: " + JSON.stringify(response));
 			}

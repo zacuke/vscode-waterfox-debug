@@ -164,7 +164,7 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 			log.debug(`Received ResultID message`);
 			this.pendingResultIDRequests.resolveOne(response['resultID']);
 
-		} else if (response['matches']) {
+		} else if (response['matches'] !== undefined) {
 
 			log.debug(`Received autoComplete response`);
 			this.pendingAutoCompleteRequests.resolveOne(
