@@ -26,7 +26,7 @@ A VS Code extension to debug web applications and extensions running in the [Moz
 * Debugging Firefox extensions
 * Debugging Web Workers
 * **🔥New:** Compatible with [remote development](https://code.visualstudio.com/docs/remote/remote-overview)
-* **🔥Upcoming:** Pause on getting/setting variable values with [Data points](https://code.visualstudio.com/docs/editor/debugging#_data-breakpoints) (🦊 Requires [Firefox Dev Edition 70.0b7](https://www.mozilla.org/en-US/firefox/developer/?utm_medium=vscode_extension&utm_source=devtools) or higher)
+* **🔥Upcoming:** Pause on object property changes with [Data points](https://code.visualstudio.com/docs/editor/debugging#_data-breakpoints) (🦊 Requires [Firefox Dev Edition 70.0b7](https://www.mozilla.org/en-US/firefox/developer/?utm_medium=vscode_extension&utm_source=devtools) or higher)
 
 ## Getting Started
 
