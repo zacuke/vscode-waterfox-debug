@@ -1,3 +1,8 @@
+### Version 2.3.0
+* disable the prompt to configure telemetry in temporary debug profiles
+* objects referenced in logpoints can now be inspected in the debug console
+* add support for the BigInt primitive type
+
 ### Version 2.2.0
 * add support for VS Code remote development
 * add support for data breakpoints on object properties if Firefox supports watchpoints (an upcoming Firefox feature that will appear in Nightlies soon)
