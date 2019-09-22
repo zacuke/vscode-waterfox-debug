@@ -1,3 +1,6 @@
+### Version 2.3.1
+* update README.md
+
 ### Version 2.3.0
 * disable the prompt to configure telemetry in temporary debug profiles
 * objects referenced in logpoints can now be inspected in the debug console
