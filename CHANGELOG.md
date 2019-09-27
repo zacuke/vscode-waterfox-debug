@@ -1,3 +1,6 @@
+### Version 2.3.2
+* fix support for data breakpoints with Firefox 70
+
 ### Version 2.3.1
 * update README.md
 
