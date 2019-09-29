@@ -18,6 +18,9 @@ export class SourceAdapter {
 
 	public readonly id: number;
 	public readonly source: Source;
+	public get actor(): ISourceActorProxy {
+		return this._actor;
+	}
 
 	/** the breakpoints for this source that have been set in Firefox */
 	private currentBreakpoints: BreakpointAdapter[] = [];
@@ -30,14 +33,14 @@ export class SourceAdapter {
 
 	public constructor(
 		sourceRegistry: Registry<SourceAdapter>,
-		public actor: ISourceActorProxy,
+		private _actor: ISourceActorProxy,
 		/** the path or url as seen by VS Code */
 		public readonly sourcePath: string | undefined,
 		public readonly threadAdapter: ThreadAdapter,
 		private readonly newBreakpointProtocol: boolean
 	) {
 		this.id = sourceRegistry.register(this);
-		this.source = SourceAdapter.createSource(actor, sourcePath, this.id);
+		this.source = SourceAdapter.createSource(_actor, sourcePath, this.id);
 	}
 
 	private static createSource(
@@ -72,6 +75,17 @@ export class SourceAdapter {
 
 	public updateBreakpoints(breakpoints: BreakpointInfo[]): void {
 		this.desiredBreakpoints = breakpoints;
+		this.checkAndSyncBreakpoints();
+	}
+
+	public async replaceActor(newActor: ISourceActorProxy): Promise<void> {
+
+		await Promise.all(this.currentBreakpoints.map(breakpoint => breakpoint.delete()));
+
+		this._actor = newActor;
+
+		this.desiredBreakpoints = this.currentBreakpoints.map(bp => bp.breakpointInfo);
+		this.currentBreakpoints = [];
 		this.checkAndSyncBreakpoints();
 	}
 
