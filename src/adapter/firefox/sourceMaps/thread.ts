@@ -326,7 +326,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		column: number
 	): Promise<UrlLocation | undefined> {
 
-		for (const infoPromise of this.sourceMappingInfos.values()) {
+		for (const infoPromise of [ ...this.sourceMappingInfos.values() ].reverse()) {
 			const info = await infoPromise;
 			for (const originalSource of info.sources) {
 				if (sourceUrl === originalSource.url) {
