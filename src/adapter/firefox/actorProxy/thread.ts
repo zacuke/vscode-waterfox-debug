@@ -415,7 +415,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 			if (propertyCount === 1) {
 
 				if (this.pendingEmptyResponseRequests.isEmpty()) {
-					log.info('Received unexpected response, this is probably due to Firefox bug #1577996');
+					log.debug('Received unexpected response, this is probably due to Firefox bug #1577996');
 				} else {
 					log.debug('Received setBreakpoint or removeBreakpoint or pauseOnExceptions response');
 					this.pendingEmptyResponseRequests.resolveOne(undefined);
