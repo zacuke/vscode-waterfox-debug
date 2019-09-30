@@ -490,7 +490,7 @@ export class FirefoxDebugSession {
 		let sourceAdapter = threadAdapter.findCorrespondingSourceAdapter(source.url || undefined);
 
 		if (sourceAdapter !== undefined) {
-			sourceAdapter.actor = sourceActor;
+			sourceAdapter.replaceActor(sourceActor);
 			this.sendNewSourceEvent(threadAdapter, sourceAdapter);
 			return;
 		}

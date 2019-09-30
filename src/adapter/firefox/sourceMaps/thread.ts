@@ -20,6 +20,8 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 	private sourceMappingInfos = new Map<string, Promise<SourceMappingInfo>>();
 	private pendingSources = new Map<string, PendingRequest<SourceMappingInfo>>();
 
+	private newSourceCallback: (actor: ISourceActorProxy) => void = () => undefined;
+
 	public constructor(
 		private readonly underlyingActorProxy: IThreadActorProxy,
 		private readonly pathMapper: PathMapper,
@@ -27,15 +29,8 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 	) {
 		super();
 
-		underlyingActorProxy.onNewSource(async (generatedSourceActor) => {
-			let sourceMappingInfo = await this.getOrCreateSourceMappingInfo(generatedSourceActor.source);
-			for (let originalSourceActor of sourceMappingInfo.sources) {
-				this.emit('newSource', originalSourceActor);
-			}
-			if (!sourceMappingInfo.sources.some(actor => actor === generatedSourceActor)) {
-				this.emit('newSource', generatedSourceActor);
-			}
-		});
+		underlyingActorProxy.onNewSource(
+			generatedSourceActor => this.getOrCreateSourceMappingInfo(generatedSourceActor.source));
 	}
 
 	public get name(): string {
@@ -100,6 +95,8 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		let sourceActor = this.connection.getOrCreate(
 			source.actor, () => new SourceActorProxy(source, this.connection));
 
+		this.newSourceCallback(sourceActor);
+
 		let sourceMapUrl = source.sourceMapURL;
 		if (!sourceMapUrl) {
 			return new SourceMappingInfo([sourceActor], sourceActor);
@@ -156,6 +153,8 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 
 			let sourceMappingSourceActor = new SourceMappingSourceActorProxy(
 				sourceMappingSource, sourceMappingInfo);
+
+			this.newSourceCallback(sourceMappingSourceActor);
 
 			sourceMappingSourceActors.push(sourceMappingSourceActor);
 		}
@@ -326,7 +325,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		column: number
 	): Promise<UrlLocation | undefined> {
 
-		for (const infoPromise of this.sourceMappingInfos.values()) {
+		for (const infoPromise of [ ...this.sourceMappingInfos.values() ].reverse()) {
 			const info = await infoPromise;
 			for (const originalSource of info.sources) {
 				if (sourceUrl === originalSource.url) {
@@ -370,8 +369,13 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		this.underlyingActorProxy.onWrongState(cb);
 	}
 
+	/**
+	 * Register a callback for the newSource event - note that only one such callback can be registered.
+	 * The callback will be called synchronously to ensure that `SourceAdapter`s are available when
+	 * they're needed to create `FrameAdapter`s.
+	 */
 	public onNewSource(cb: (newSource: ISourceActorProxy) => void): void {
-		this.on('newSource', cb);
+		this.newSourceCallback = cb;
 	}
 
 	public onNewGlobal(cb: () => void): void {
