@@ -1,3 +1,7 @@
+### Version 2.3.3
+* fix for hot module replacement: when a module was replaced, breakpoints in that module stopped working
+* fix for callstacks sometimes showing an error message "Couldn't find source adapter"
+
 ### Version 2.3.2
 * fix support for data breakpoints with Firefox 70
 
