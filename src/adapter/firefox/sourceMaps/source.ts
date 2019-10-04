@@ -55,8 +55,6 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 
 					originalBreakpointPositions[originalLocation.line].push(originalLocation.column);
 
-				} else {
-					if (log.isDebugEnabled) log.debug(`Got ${originalLocation.line}:${originalLocation.column} as original location for ${generatedLine}:${generatedColumn} in ${this.url}`);
 				}
 			}
 		}
