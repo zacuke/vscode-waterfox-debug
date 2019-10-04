@@ -1,3 +1,6 @@
+### Version 2.3.4
+* fix a performance issue when reloading the page in the browser
+
 ### Version 2.3.3
 * fix for hot module replacement: when a module was replaced, breakpoints in that module stopped working
 * fix for callstacks sometimes showing an error message "Couldn't find source adapter"
