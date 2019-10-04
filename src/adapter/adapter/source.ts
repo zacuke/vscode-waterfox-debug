@@ -85,6 +85,9 @@ export class SourceAdapter {
 		this._actor = newActor;
 
 		this.desiredBreakpoints = this.currentBreakpoints.map(bp => bp.breakpointInfo);
+		if (this.desiredBreakpoints.length === 0) {
+			this.desiredBreakpoints = undefined;
+		}
 		this.currentBreakpoints = [];
 		this.checkAndSyncBreakpoints();
 	}
