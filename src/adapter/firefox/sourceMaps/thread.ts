@@ -1,11 +1,11 @@
 import { EventEmitter } from 'events';
 import * as url from 'url';
+import * as fs from 'fs-extra';
 import isAbsoluteUrl from 'is-absolute-url';
-import pathToFileUri from 'file-url';
 import { SourceMapConsumer, RawSourceMap } from 'source-map';
 import { Log } from '../../util/log';
 import { PathMapper } from '../../util/pathMapper';
-import { getUri, urlDirname, canGetUri } from '../../util/net';
+import { getUri, urlDirname } from '../../util/net';
 import { PendingRequest } from '../../util/pendingRequests';
 import { DebugConnection } from '../connection';
 import { ISourceActorProxy, SourceActorProxy } from '../actorProxy/source';
@@ -111,30 +111,36 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 			}
 		}
 
-		if (!canGetUri(sourceMapUrl)) {
-			const sourceMapPath = this.pathMapper.convertFirefoxUrlToPath(sourceMapUrl);
-			if (sourceMapPath) {
-				sourceMapUrl = pathToFileUri(sourceMapPath, { resolve: false });
-			} else {
-				log.warn(`Failed fetching sourcemap from ${sourceMapUrl} - giving up`);
-				return new SourceMappingInfo([sourceActor], sourceActor);
-			}
-		}
-
-		let rawSourceMap: RawSourceMap;
+		let rawSourceMap: RawSourceMap | undefined = undefined;
 		try {
-			const sourceMapString = await getUri(sourceMapUrl);
-			log.debug('Received sourcemap');
-			rawSourceMap = JSON.parse(sourceMapString);
-			log.debug('Parsed sourcemap');
+
+			const sourceMapPath = this.pathMapper.convertFirefoxUrlToPath(sourceMapUrl);
+			if (sourceMapPath && !isAbsoluteUrl(sourceMapPath)) {
+				try {
+					const sourceMapString = await fs.readFile(sourceMapPath, 'utf8');
+					log.debug('Loaded sourcemap from disk');
+					rawSourceMap = JSON.parse(sourceMapString);
+					log.debug('Parsed sourcemap');
+				} catch(e) {
+					log.debug(`Failed reading sourcemap from ${sourceMapPath} - trying to fetch it from ${sourceMapUrl}`);
+				}
+			}
+
+			if (!rawSourceMap) {
+				const sourceMapString = await getUri(sourceMapUrl);
+				log.debug('Received sourcemap');
+				rawSourceMap = JSON.parse(sourceMapString);
+				log.debug('Parsed sourcemap');
+			}
+
 		} catch(e) {
 			log.warn(`Failed fetching sourcemap from ${sourceMapUrl} - giving up`);
 			return new SourceMappingInfo([sourceActor], sourceActor);
 		}
 
-		let sourceMapConsumer = await new SourceMapConsumer(rawSourceMap);
+		let sourceMapConsumer = await new SourceMapConsumer(rawSourceMap!);
 		let sourceMappingSourceActors: SourceMappingSourceActorProxy[] = [];
-		let sourceRoot = rawSourceMap.sourceRoot;
+		let sourceRoot = rawSourceMap!.sourceRoot;
 		if (!sourceRoot && source.url) {
 			sourceRoot = urlDirname(source.url);
 		} else if ((sourceRoot !== undefined) && !isAbsoluteUrl(sourceRoot)) {

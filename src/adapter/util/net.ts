@@ -71,6 +71,10 @@ export async function getUri(uri: string): Promise<string> {
 		return await fs.readFile(fileUriToPath(uri), 'utf8');
 	}
 
+	if (!uri.startsWith('http:') && !uri.startsWith('https:')) {
+		throw new Error(`Fetching ${uri} not supported`);
+	}
+
 	return await new Promise<string>((resolve, reject) => {
 		const parsedUrl = url.parse(uri);
 		const get = (parsedUrl.protocol === 'https:') ? https.get : http.get;
@@ -92,9 +96,4 @@ export async function getUri(uri: string): Promise<string> {
 			reject(e);
 		});
 	});
-}
-
-export function canGetUri(uri: string): boolean {
-	return uri.startsWith('data:') || uri.startsWith('file:') ||
-		uri.startsWith('http:') || uri.startsWith('https:');
 }
