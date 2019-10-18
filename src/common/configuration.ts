@@ -35,6 +35,7 @@ export interface CommonConfiguration {
 	webRoot?: string;
 	reloadOnAttach?: boolean;
 	reloadOnChange?: ReloadConfiguration;
+	clearConsoleOnReload?: boolean;
 	pathMappings?: { url: string, path: string | null }[];
 	skipFiles?: string[];
 	showConsoleCallLocation?: boolean;

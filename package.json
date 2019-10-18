@@ -421,6 +421,11 @@
                   "ignore": "**/node_modules/**"
                 }
               },
+              "clearConsoleOnReload": {
+                "type": "boolean",
+                "description": "Clear the debug console in VS Code when the page is reloaded in Firefox",
+                "default": false
+              },
               "pathMappings": {
                 "type": "array",
                 "description": "Additional mappings from URLs (as seen by Firefox) to filesystem paths (as seen by VS Code)",
@@ -639,6 +644,11 @@
                   "watch": "${workspaceFolder}/**/*.js",
                   "ignore": "**/node_modules/**"
                 }
+              },
+              "clearConsoleOnReload": {
+                "type": "boolean",
+                "description": "Clear the debug console in VS Code when the page is reloaded in Firefox",
+                "default": false
               },
               "pathMappings": {
                 "type": "array",

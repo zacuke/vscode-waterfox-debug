@@ -260,6 +260,7 @@ popup auto-hide" (`extension.firefox.enablePopupAutohide` / `disablePopupAutohid
   ```json
   "reloadOnChange": "${workspaceFolder}/lib/*.js"
   ```
+* `clearConsoleOnReload`: Clear the debug console in VS Code when the page is reloaded in Firefox.
 * `profileDir`, `profile`: You can specify a Firefox profile directory or the name of a profile
   created with the Firefox profile manager. The extension will create a copy of this profile in the
   system's temporary directory and modify the settings in this copy to allow remote debugging.
