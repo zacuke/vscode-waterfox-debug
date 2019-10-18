@@ -388,6 +388,9 @@ export class FirefoxDebugSession {
 			this.sendEvent(new Event('removeSources', <RemoveSourcesEventBody>{
 				threadId: threadAdapter.id
 			}));
+			if (this.config.clearConsoleOnReload) {
+				this.sendEvent(new OutputEvent('\x1b[2J'));
+			}
 		});
 
 		if (tabId != null) {
@@ -526,6 +529,11 @@ export class FirefoxDebugSession {
 
 		consoleActor.onConsoleAPICall(async (consoleEvent) => {
 			consoleActorLog.debug(`Console API: ${JSON.stringify(consoleEvent)}`);
+
+			if (consoleEvent.level === 'clear') {
+				this.sendEvent(new OutputEvent('\x1b[2J'));
+				return;
+			}
 
 			let category = (consoleEvent.level === 'error') ? 'stderr' :
 				(consoleEvent.level === 'warn') ? 'console' : 'stdout';
