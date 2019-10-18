@@ -22,9 +22,10 @@ declare namespace FirefoxDebugProtocol {
 	interface InitialResponse extends Response {
 		applicationType: string;
 		traits: {
-			breakpointWhileRunning: boolean,
-			nativeLogpoints: boolean,
-			watchpoints: boolean
+			breakpointWhileRunning?: boolean,
+			nativeLogpoints?: boolean,
+			watchpoints?: boolean,
+			webExtensionAddonConnect?: boolean
 		};
 	}
 

@@ -33,11 +33,21 @@ export class WebExtensionActorProxy extends EventEmitter implements ActorProxy {
 
 	public connect(): Promise<[TabActorProxy, ConsoleActorProxy]> {
 
-		log.debug('Connecting');
+		log.debug('Connecting using connect request');
 
 		return new Promise<[TabActorProxy, ConsoleActorProxy]>((resolve, reject) => {
 			this.pendingConnectRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'connect' });
+		})
+	}
+
+	public getTarget(): Promise<[TabActorProxy, ConsoleActorProxy]> {
+
+		log.debug('Connecting using getTarget request');
+
+		return new Promise<[TabActorProxy, ConsoleActorProxy]>((resolve, reject) => {
+			this.pendingConnectRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'getTarget' });
 		})
 	}
 

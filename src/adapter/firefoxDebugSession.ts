@@ -147,7 +147,10 @@ export class FirefoxDebugSession {
 
 				if (this.addonManager) {
 					if (actors.addons) {
-						this.addonManager.sessionStarted(rootActor, actors.addons, actors.preference, this);
+						this.addonManager.sessionStarted(
+							rootActor, actors.addons, actors.preference,
+							!!initialResponse.traits.webExtensionAddonConnect
+						);
 					} else {
 						reject('No AddonsActor received from Firefox');
 					}
