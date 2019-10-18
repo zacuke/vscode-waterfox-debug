@@ -1,3 +1,9 @@
+### Version 2.4.0
+* add support for `console.clear()`
+* add `clearConsoleOnReload` configuration property
+* try to load sourcemaps from disk first
+* fix WebExtension debugging in Firefox 71
+
 ### Version 2.3.4
 * fix a performance issue when reloading the page in the browser
 
