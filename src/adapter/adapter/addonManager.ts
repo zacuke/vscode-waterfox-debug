@@ -32,7 +32,7 @@ export class AddonManager {
 		rootActor: RootActorProxy,
 		addonsActor: AddonsActorProxy,
 		preferenceActor: PreferenceActorProxy,
-		debugSession: FirefoxDebugSession
+		useConnect: boolean
 	): Promise<void> {
 
 		let result = await addonsActor.installAddon(this.config.path);
@@ -40,11 +40,11 @@ export class AddonManager {
 			this.config.id = result.addon.id;
 		}
 
-		this.fetchAddonsAndAttach(rootActor);
+		this.fetchAddonsAndAttach(rootActor, useConnect);
 
 		if (this.config.popupAutohideButton) {
 			const popupAutohide = !(await preferenceActor.getBoolPref(popupAutohidePreferenceKey));
-			debugSession.sendCustomEvent('popupAutohide', <PopupAutohideEventBody>{ popupAutohide });
+			this.debugSession.sendCustomEvent('popupAutohide', <PopupAutohideEventBody>{ popupAutohide });
 		}
 	}
 
@@ -56,7 +56,7 @@ export class AddonManager {
 		await this.addonActor.reload();
 	}
 
-	private async fetchAddonsAndAttach(rootActor: RootActorProxy): Promise<void> {
+	private async fetchAddonsAndAttach(rootActor: RootActorProxy, useConnect: boolean): Promise<void> {
 
 		if (this.addonAttached) return;
 
@@ -74,7 +74,12 @@ export class AddonManager {
 					let webExtensionActor = new WebExtensionActorProxy(
 						addon, sourceMaps, this.debugSession.pathMapper,
 						this.debugSession.firefoxDebugConnection);
-					[this.addonActor, consoleActor] = await webExtensionActor.connect();
+
+					if (useConnect) {
+						[this.addonActor, consoleActor] = await webExtensionActor.connect();
+					} else {
+						[this.addonActor, consoleActor] = await webExtensionActor.getTarget();
+					}
 
 					let threadAdapter = await this.debugSession.attachTabOrAddon(
 						this.addonActor, consoleActor, 'Addon');
