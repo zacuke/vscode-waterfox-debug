@@ -29,9 +29,6 @@ export async function testSourcemaps(
 	await checkDebuggeeState(dc, threadId, gPath, 5, 'y', '2');
 
 	await util.runCommandAndReceiveStoppedEvent(dc, () => dc.stepOutRequest({ threadId }));
-	if (process.env['NEW_STEP_OUT_BEHAVIOR'] !== 'true') {
-		await util.runCommandAndReceiveStoppedEvent(dc, () => dc.stepOutRequest({ threadId }));
-	}
 
 	await checkDebuggeeState(dc, threadId, fPath, 8, 'x', '4');
 

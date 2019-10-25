@@ -18,7 +18,6 @@ export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 	constructor(
 		public readonly name: string,
 		public readonly url: string,
-		private readonly sourceMaps: 'client' | 'server',
 		private readonly pathMapper: PathMapper,
 		private readonly connection: DebugConnection
 	) {
@@ -97,9 +96,7 @@ export class WorkerActorProxy extends EventEmitter implements ActorProxy {
 					connectedResponse.threadActor, 
 					() => new ThreadActorProxy(connectedResponse.threadActor, this.connection));
 
-				if (this.sourceMaps === 'client') {
-					threadActor = new SourceMappingThreadActorProxy(threadActor, this.pathMapper, this.connection);
-				}
+				threadActor = new SourceMappingThreadActorProxy(threadActor, this.pathMapper, this.connection);
 
 				let consoleActor = this.connection.getOrCreate(
 					connectedResponse.consoleActor,

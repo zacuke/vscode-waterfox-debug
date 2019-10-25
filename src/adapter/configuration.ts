@@ -26,7 +26,6 @@ export interface ParsedConfiguration {
 	filesToSkip: RegExp[];
 	reloadOnChange?: NormalizedReloadConfiguration,
 	clearConsoleOnReload: boolean,
-	sourceMaps: 'client' | 'server';
 	showConsoleCallLocation: boolean;
 	liftAccessorsFromPrototypes: number;
 }
@@ -167,13 +166,12 @@ export async function parseConfiguration(
 
 	const clearConsoleOnReload = !!config.clearConsoleOnReload;
 
-	let sourceMaps = config.sourceMaps || 'client';
 	let showConsoleCallLocation = config.showConsoleCallLocation || false;
 	let liftAccessorsFromPrototypes = config.liftAccessorsFromPrototypes || 0;
 
 	return {
 		attach, launch, addon, pathMappings, filesToSkip, reloadOnChange, clearConsoleOnReload,
-		sourceMaps, showConsoleCallLocation, liftAccessorsFromPrototypes
+		showConsoleCallLocation, liftAccessorsFromPrototypes
 	}
 }
 

@@ -56,9 +56,6 @@ export class FirefoxDebugSession {
 	public firefoxDebugConnection!: DebugConnection;
 	private firefoxDebugSocketClosed = false;
 
-	private _newBreakpointProtocol = false;
-	public get newBreakpointProtocol(): boolean { return this._newBreakpointProtocol; }
-
 	public preferenceActor!: PreferenceActorProxy;
 	private addonsActor?: AddonsActorProxy;
 
@@ -105,7 +102,7 @@ export class FirefoxDebugSession {
 				return;
 			}
 
-			this.firefoxDebugConnection = new DebugConnection(this.config.sourceMaps, this.pathMapper, socket);
+			this.firefoxDebugConnection = new DebugConnection(this.pathMapper, socket);
 			let rootActor = this.firefoxDebugConnection.rootActor;
 
 			// attach to all tabs, register the corresponding threads and inform VSCode about them
@@ -124,13 +121,9 @@ export class FirefoxDebugSession {
 
 			rootActor.onInit(async (initialResponse) => {
 
-				if (initialResponse.traits.breakpointWhileRunning && (this.config.sourceMaps === 'server')) {
-					reject('Server-side sourcemaps are not supported in Firefox 66+ anymore');
+				if (!initialResponse.traits.nativeLogpoints) {
+					reject('Your version of Firefox is not supported anymore - please upgrade to Firefox 68 or later');
 					return;
-				}
-
-				if (initialResponse.traits.nativeLogpoints) {
-					this._newBreakpointProtocol = true;
 				}
 
 				if (initialResponse.traits.watchpoints) {
@@ -502,7 +495,7 @@ export class FirefoxDebugSession {
 		}
 
 		const sourcePath = this.pathMapper.convertFirefoxSourceToPath(source);
-		sourceAdapter = threadAdapter.createSourceAdapter(sourceActor, sourcePath, this.newBreakpointProtocol);
+		sourceAdapter = threadAdapter.createSourceAdapter(sourceActor, sourcePath);
 
 		this.sendNewSourceEvent(threadAdapter, sourceAdapter);
 

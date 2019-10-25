@@ -8,7 +8,6 @@ import { ISourceActorProxy, SourceActorProxy, Location } from './source';
 let log = Log.create('ThreadActorProxy');
 
 export interface AttachOptions {
-	useSourceMaps?: boolean,
 	pauseOnExceptions?: boolean,
 	ignoreCaughtExceptions?: boolean
 }

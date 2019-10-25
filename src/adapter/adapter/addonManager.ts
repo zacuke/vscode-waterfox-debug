@@ -64,15 +64,13 @@ export class AddonManager {
 
 		if (this.addonAttached) return;
 
-		const sourceMaps = this.debugSession.config.sourceMaps;
-
 		addons.forEach((addon) => {
 			if (addon.id === this.config.id) {
 				(async () => {
 
 					let consoleActor: ConsoleActorProxy;
 					let webExtensionActor = new WebExtensionActorProxy(
-						addon, sourceMaps, this.debugSession.pathMapper,
+						addon, this.debugSession.pathMapper,
 						this.debugSession.firefoxDebugConnection);
 
 					if (useConnect) {

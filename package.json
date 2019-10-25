@@ -480,15 +480,6 @@
                 "description": "Show a button in the status bar for toggling popup auto-hide (WebExtension debugging)",
                 "default": false
               },
-              "sourceMaps": {
-                "type": "string",
-                "enum": [
-                  "client",
-                  "server"
-                ],
-                "description": "Set to \"server\" for sourcemaps to be handled by Firefox, or \"client\" for them to be handled by this debug adapter",
-                "default": "server"
-              },
               "liftAccessorsFromPrototypes": {
                 "type": "number",
                 "description": "The number of prototype levels that should be scanned for accessor properties",
@@ -694,15 +685,6 @@
                 "type": "boolean",
                 "description": "Show a button in the status bar for toggling popup auto-hide (WebExtension debugging)",
                 "default": false
-              },
-              "sourceMaps": {
-                "type": "string",
-                "enum": [
-                  "client",
-                  "server"
-                ],
-                "description": "Set to \"server\" for source-maps to be handled by Firefox, or \"client\" for them to be handled by this debug adapter",
-                "default": "server"
               },
               "liftAccessorsFromPrototypes": {
                 "type": "number",

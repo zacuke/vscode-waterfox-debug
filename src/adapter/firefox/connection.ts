@@ -17,13 +17,12 @@ export class DebugConnection {
 	public readonly rootActor: RootActorProxy;
 
 	constructor(
-		sourceMaps: 'client' | 'server',
 		pathMapper: PathMapper,
 		socket: Socket
 	) {
 
 		this.actors = new Map<string, ActorProxy>();
-		this.rootActor = new RootActorProxy(sourceMaps, pathMapper, this);
+		this.rootActor = new RootActorProxy(pathMapper, this);
 		this.transport = new DebugProtocolTransport(socket);
 
 		this.transport.on('message', (response: FirefoxDebugProtocol.Response) => {

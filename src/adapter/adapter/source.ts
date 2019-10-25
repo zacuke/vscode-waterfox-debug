@@ -4,7 +4,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { Source } from 'vscode-debugadapter';
 import { ThreadAdapter } from './thread';
 import { Registry } from './registry';
-import { BreakpointInfo, BreakpointAdapter, OldProtocolBreakpointAdapter, NewProtocolBreakpointAdapter } from './breakpoint';
+import { BreakpointInfo, BreakpointAdapter } from './breakpoint';
 import { findNextBreakpointPosition } from '../firefox/sourceMaps/info';
 
 const log = Log.create('SourceAdapter');
@@ -36,8 +36,7 @@ export class SourceAdapter {
 		private _actor: ISourceActorProxy,
 		/** the path or url as seen by VS Code */
 		public readonly sourcePath: string | undefined,
-		public readonly threadAdapter: ThreadAdapter,
-		private readonly newBreakpointProtocol: boolean
+		public readonly threadAdapter: ThreadAdapter
 	) {
 		this.id = sourceRegistry.register(this);
 		this.source = SourceAdapter.createSource(_actor, sourcePath, this.id);
@@ -92,12 +91,6 @@ export class SourceAdapter {
 		this.checkAndSyncBreakpoints();
 	}
 
-	public findBreakpointAdapterForActorName(actorName: string): BreakpointAdapter | undefined {
-		return this.currentBreakpoints.find(
-			breakpointAdapter => (breakpointAdapter.actorName === actorName)
-		);
-	}
-
 	public findBreakpointAdapterForLocation(location: FirefoxDebugProtocol.SourceLocation): BreakpointAdapter | undefined {
 		return this.currentBreakpoints.find(
 			breakpointAdapter => 
@@ -108,11 +101,7 @@ export class SourceAdapter {
 
 	private checkAndSyncBreakpoints(): void {
 		if ((this.desiredBreakpoints !== undefined) && !this.isSyncingBreakpoints) {
-			if (this.newBreakpointProtocol) {
-				this.syncBreakpoints();
-			} else {
-				this.threadAdapter.coordinator.runOnPausedThread(() => this.syncBreakpoints());
-			}
+			this.syncBreakpoints();
 		}
 	}
 
@@ -156,82 +145,50 @@ export class SourceAdapter {
 
 		if (log.isDebugEnabled) log.debug(`Going to add ${breakpointsToAdd.length} breakpoints`);
 
-		let addedBreakpoints: BreakpointAdapter[];
-		if (this.newBreakpointProtocol) {
+		const breakpointPositions = await this.actor.getBreakpointPositions();
 
-			const breakpointPositions = await this.actor.getBreakpointPositions();
+		const additionPromises = breakpointsToAdd.map(
+			async breakpointInfo => {
 
-			const additionPromises = breakpointsToAdd.map(
-				async breakpointInfo => {
+				const actualLocation = findNextBreakpointPosition(
+					breakpointInfo.requestedBreakpoint.line,
+					breakpointInfo.requestedBreakpoint.column || 0,
+					breakpointPositions
+				);
+				breakpointInfo.actualLine = actualLocation.line;
+				breakpointInfo.actualColumn = actualLocation.column;
 
-					const actualLocation = findNextBreakpointPosition(
-						breakpointInfo.requestedBreakpoint.line,
-						breakpointInfo.requestedBreakpoint.column || 0,
-						breakpointPositions
-					);
-					breakpointInfo.actualLine = actualLocation.line;
-					breakpointInfo.actualColumn = actualLocation.column;
-
-					let logValue: string | undefined;
-					if (breakpointInfo.requestedBreakpoint.logMessage) {
-						logValue = '...' + convertLogpointMessage(breakpointInfo.requestedBreakpoint.logMessage);
-					}
-
-					await this.threadAdapter.actor.setBreakpoint(
-						breakpointInfo.actualLine,
-						breakpointInfo.actualColumn,
-						this.actor.url!,
-						breakpointInfo.requestedBreakpoint.condition,
-						logValue
-					);
+				let logValue: string | undefined;
+				if (breakpointInfo.requestedBreakpoint.logMessage) {
+					logValue = '...' + convertLogpointMessage(breakpointInfo.requestedBreakpoint.logMessage);
 				}
-			);
-	
-			await Promise.all(additionPromises);
-	
-			const breakpointsManager = this.threadAdapter.debugSession.breakpointsManager;
-	
-			addedBreakpoints = breakpointsToAdd.map(
-				breakpointInfo => {
-	
-					breakpointsManager.verifyBreakpoint(
-						breakpointInfo, 
-						breakpointInfo.actualLine,
-						breakpointInfo.actualColumn
-					);
-	
-					return new NewProtocolBreakpointAdapter(breakpointInfo, this);
-				}
-			);
 
-		} else {
+				await this.threadAdapter.actor.setBreakpoint(
+					breakpointInfo.actualLine,
+					breakpointInfo.actualColumn,
+					this.actor.url!,
+					breakpointInfo.requestedBreakpoint.condition,
+					logValue
+				);
+			}
+		);
 
-			const additionPromises = breakpointsToAdd.map(
-				breakpointInfo => this.actor.setBreakpoint({ 
-					line: breakpointInfo.requestedBreakpoint.line,
-					column: breakpointInfo.requestedBreakpoint.column
-				}, breakpointInfo.requestedBreakpoint.condition)
-			);
-	
-			const additionResults = await Promise.all(additionPromises);
-	
-			const breakpointsManager = this.threadAdapter.debugSession.breakpointsManager;
-	
-			addedBreakpoints = additionResults.map(
-				(setBreakpointResult, index) => {
-	
-					const desiredBreakpoint = breakpointsToAdd[index];
-					const actualLocation = setBreakpointResult.actualLocation;
-					const actualLine = actualLocation ? actualLocation.line : desiredBreakpoint.requestedBreakpoint.line;
-					const actualColumn = actualLocation ? actualLocation.column : desiredBreakpoint.requestedBreakpoint.column;
-	
-					breakpointsManager.verifyBreakpoint(desiredBreakpoint, actualLine, actualColumn);
-	
-					return new OldProtocolBreakpointAdapter(desiredBreakpoint, setBreakpointResult.breakpointActor);
-				}
-			);
-		}
+		await Promise.all(additionPromises);
 
+		const breakpointsManager = this.threadAdapter.debugSession.breakpointsManager;
+
+		const addedBreakpoints = breakpointsToAdd.map(
+			breakpointInfo => {
+
+				breakpointsManager.verifyBreakpoint(
+					breakpointInfo, 
+					breakpointInfo.actualLine,
+					breakpointInfo.actualColumn
+				);
+
+				return new BreakpointAdapter(breakpointInfo, this);
+			}
+		);
 
 		this.currentBreakpoints = breakpointsToKeep.concat(addedBreakpoints);
 		this.isSyncingBreakpoints = false;

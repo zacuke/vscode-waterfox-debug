@@ -26,7 +26,6 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.addon, undefined);
 		assert.deepEqual(parsedConfiguration.filesToSkip, []);
 		assert.equal(parsedConfiguration.reloadOnChange, undefined);
-		assert.equal(parsedConfiguration.sourceMaps, 'client');
 		assert.equal(parsedConfiguration.showConsoleCallLocation, false);
 		assert.equal(parsedConfiguration.liftAccessorsFromPrototypes, 0);
 
@@ -53,7 +52,6 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.addon, undefined);
 		assert.deepEqual(parsedConfiguration.filesToSkip, []);
 		assert.equal(parsedConfiguration.reloadOnChange, undefined);
-		assert.equal(parsedConfiguration.sourceMaps, 'client');
 		assert.equal(parsedConfiguration.showConsoleCallLocation, false);
 		assert.equal(parsedConfiguration.liftAccessorsFromPrototypes, 0);
 
@@ -505,17 +503,6 @@ describe('The configuration parser', function() {
 		});
 
 		assert.equal(parsedConfiguration.showConsoleCallLocation, true);
-	});
-
-	it('should copy the "sourceMaps" value', async function() {
-
-		let parsedConfiguration = await parseConfiguration({
-			request: 'launch',
-			file: '/home/user/project/index.html',
-			sourceMaps: 'client'
-		});
-
-		assert.equal(parsedConfiguration.sourceMaps, 'client');
 	});
 
 	it('should copy the "liftAccessorsFromPrototypes" value', async function() {
