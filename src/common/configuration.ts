@@ -42,7 +42,6 @@ export interface CommonConfiguration {
 	log?: LogConfiguration;
 	addonPath?: string;
 	popupAutohideButton?: boolean;
-	sourceMaps?: 'client' | 'server';
 	liftAccessorsFromPrototypes?: number;
 }
 

@@ -107,8 +107,7 @@ describe('Debug console: The debugger', function() {
 			showConsoleCallLocation: true
 		});
 
-		let expectedMessageEnding = 'testdata/web/main.js:80:' +
-			((process.env['NEW_BREAKPOINT_PROTOCOL'] === 'true') ? '10)' : '2)');
+		let expectedMessageEnding = 'testdata/web/main.js:80:10)';
 		if (isWindowsPlatform()) {
 			expectedMessageEnding = expectedMessageEnding.replace(/\//g, '\\');
 		}

@@ -1,5 +1,5 @@
 import { Log } from '../../util/log';
-import { ISourceActorProxy, SetBreakpointResult, Location } from '../actorProxy/source';
+import { ISourceActorProxy } from '../actorProxy/source';
 import { SourceMappingInfo } from './info';
 import { getUri } from '../../util/net';
 
@@ -60,38 +60,6 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 		}
 
 		return originalBreakpointPositions;
-	}
-
-	public async setBreakpoint(location: Location, condition: string): Promise<SetBreakpointResult> {
-
-		if (log.isDebugEnabled) log.debug(`Computing generated location for ${this.url}:${location.line}:${location.column}`);
-		let generatedLocation = this.sourceMappingInfo.generatedLocationFor({
-			source: this.url, line: location.line, column: location.column || 0
-		});
-		if (log.isDebugEnabled) log.debug(`Got generated location ${generatedLocation.line}:${generatedLocation.column}`);
-
-		const generatedLine = generatedLocation.line;
-		if (generatedLine === null) {
-			throw 'Couldn\'t find generated location';
-		}
-
-		let result = await this.sourceMappingInfo.underlyingSource.setBreakpoint(
-			{ line: generatedLine, column: generatedLocation.column || undefined }, condition);
-		let actualGeneratedLocation = result.actualLocation || generatedLocation;
-		if (log.isDebugEnabled) log.debug(`Computing original location for ${actualGeneratedLocation.line}:${actualGeneratedLocation.column}`);
-		let actualOriginalLocation = this.sourceMappingInfo.originalLocationFor({
-			line: actualGeneratedLocation.line || 1,
-			column: actualGeneratedLocation.column || 1
-		});
-		if (log.isDebugEnabled) log.debug(`Got original location ${actualOriginalLocation.line}:${actualOriginalLocation.column}`);
-
-		result.actualLocation = {
-			source: this.source,
-			line: actualOriginalLocation.line || undefined,
-			column: actualOriginalLocation.column || undefined
-		};
-
-		return result;
 	}
 
 	public async fetchSource(): Promise<FirefoxDebugProtocol.Grip> {

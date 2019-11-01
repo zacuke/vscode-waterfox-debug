@@ -1,4 +1,3 @@
-import { BreakpointActorProxy } from '../firefox/actorProxy/breakpoint';
 import { SourceAdapter } from './source';
 import { DebugProtocol } from 'vscode-debugprotocol';
 
@@ -40,40 +39,7 @@ export class BreakpointInfo {
 	}
 }
 
-export interface BreakpointAdapter {
-	readonly breakpointInfo: BreakpointInfo;
-	readonly actorName: string | undefined;
-	hitCount: number;
-	delete(): Promise<void>;
-}
-
-/**
- * Adapter class for a breakpoint in Firefox < 67
- */
-export class OldProtocolBreakpointAdapter implements BreakpointAdapter {
-
-	public hitCount: number;
-
-	public get actorName(): string {
-		return this.actor.name;
-	}
-
-	public constructor(
-		public readonly breakpointInfo: BreakpointInfo,
-		private readonly actor: BreakpointActorProxy
-	) {
-		this.hitCount = 0;
-	}
-
-	delete(): Promise<void> {
-		return this.actor.delete();
-	}
-}
-
-/**
- * Adapter class for a breakpoint in Firefox >= 67
- */
-export class NewProtocolBreakpointAdapter implements BreakpointAdapter {
+export class BreakpointAdapter {
 
 	public hitCount: number;
 

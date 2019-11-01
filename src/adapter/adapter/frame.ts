@@ -58,12 +58,7 @@ export class FrameAdapter {
 
 					} else {
 
-						if (this.threadAdapter.debugSession.newBreakpointProtocol) {
-							name = '[anonymous function]';
-						} else {
-							log.error(`Unexpected callee in call frame: ${JSON.stringify(callee)}`);
-							name = '[unknown]';
-						}
+						name = '[anonymous function]';
 
 					}
 				}

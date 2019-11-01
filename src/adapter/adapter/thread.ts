@@ -4,11 +4,10 @@ import { ConsoleActorProxy } from '../firefox/actorProxy/console';
 import { ISourceActorProxy } from '../firefox/actorProxy/source';
 import { FrameAdapter } from './frame';
 import { ScopeAdapter } from './scope';
-import { SourceAdapter, convertLogpointMessage } from './source';
+import { SourceAdapter } from './source';
 import { ObjectGripAdapter } from './objectGrip';
 import { VariablesProvider } from './variablesProvider';
 import { VariableAdapter } from './variable';
-import { BreakpointAdapter } from './breakpoint';
 import { ThreadCoordinator } from '../coordinator/thread';
 import { ThreadPauseCoordinator } from '../coordinator/threadPause';
 import { Variable } from 'vscode-debugadapter';
@@ -79,18 +78,7 @@ export class ThreadAdapter extends EventEmitter {
 
 		this.coordinator.onPaused(async (event) => {
 
-			// Firefox doesn't apply source-maps to the sources in pausedEvents for exceptions
-			const distrustSourceInPausedEvent =
-				((event.why.type === 'exception') &&
-				 (debugSession.config.sourceMaps === 'server'));
-
-			let sourceLocation: FirefoxDebugProtocol.SourceLocation;
-			if (!distrustSourceInPausedEvent) {
-				sourceLocation = event.frame.where;
-			} else {
-				let frames = await this.fetchAllStackFrames();
-				sourceLocation = frames[0].frame.where;
-			}
+			const sourceLocation = event.frame.where;
 
 			const sourceActor = sourceLocation.actor || sourceLocation.source!.actor;
 			const sourceAdapter = this.findSourceAdapterForActorName(sourceActor);
@@ -111,12 +99,7 @@ export class ThreadAdapter extends EventEmitter {
 				if ((event.why.type === 'breakpoint') &&
 					event.why.actors && (event.why.actors.length > 0)) {
 
-					let breakpointAdapter: BreakpointAdapter | undefined;
-					if (this.debugSession.newBreakpointProtocol) {
-						breakpointAdapter = sourceAdapter.findBreakpointAdapterForLocation(sourceLocation);
-					} else {
-						breakpointAdapter = sourceAdapter.findBreakpointAdapterForActorName(event.why.actors[0]);
-					}
+					const breakpointAdapter = sourceAdapter.findBreakpointAdapterForLocation(sourceLocation);
 
 					if (breakpointAdapter) {
 
@@ -131,21 +114,6 @@ export class ThreadAdapter extends EventEmitter {
 								return;
 
 							}
-						}
-
-						const logMessage = breakpointAdapter.breakpointInfo.requestedBreakpoint.logMessage;
-						if (logMessage && !this.debugSession.newBreakpointProtocol) {
-
-							const frames = await this.fetchAllStackFrames();
-							const frameActor = (frames.length > 0) ? frames[0].frame.actor : undefined;
-
-							// on old versions of Firefox, native log points are not supported,
-							// so we implement them here
-							this.evaluate(`console.log(...${convertLogpointMessage(logMessage)})`, false, frameActor);
-
-							this.resume();
-							return;
-
 						}
 					}
 				}
@@ -188,16 +156,10 @@ export class ThreadAdapter extends EventEmitter {
 	 */
 	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
 
-		const attachOptions: AttachOptions = {};
-		if (this.debugSession.config.sourceMaps === 'server') {
-			attachOptions.useSourceMaps = true;
-		}
-		if (this.debugSession.newBreakpointProtocol) {
-			attachOptions.pauseOnExceptions = (exceptionBreakpoints !== ExceptionBreakpoints.None);
-			attachOptions.ignoreCaughtExceptions = (exceptionBreakpoints !== ExceptionBreakpoints.All);
-		} else {
-			this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
-		}
+		const attachOptions: AttachOptions = {
+			pauseOnExceptions: (exceptionBreakpoints !== ExceptionBreakpoints.None),
+			ignoreCaughtExceptions: (exceptionBreakpoints !== ExceptionBreakpoints.All)
+		};
 
 		await this.pauseCoordinator.requestInterrupt(this.id, this.name, 'auto');
 		try {
@@ -213,8 +175,8 @@ export class ThreadAdapter extends EventEmitter {
 		await this.coordinator.resume();
 	}
 
-	public createSourceAdapter(actor: ISourceActorProxy, path: string | undefined, newBreakpointProtocol: boolean): SourceAdapter {
-		let adapter = new SourceAdapter(this.debugSession.sources, actor, path, this, newBreakpointProtocol);
+	public createSourceAdapter(actor: ISourceActorProxy, path: string | undefined): SourceAdapter {
+		let adapter = new SourceAdapter(this.debugSession.sources, actor, path, this);
 		this.sources.push(adapter);
 		return adapter;
 	}
@@ -337,13 +299,9 @@ export class ThreadAdapter extends EventEmitter {
 	}
 
 	public setExceptionBreakpoints(exceptionBreakpoints: ExceptionBreakpoints) {
-		if (this.debugSession.newBreakpointProtocol) {
-			const pauseOnExceptions = (exceptionBreakpoints !== ExceptionBreakpoints.None);
-			const ignoreCaughtExceptions = (exceptionBreakpoints !== ExceptionBreakpoints.All);
-			this.actor.pauseOnExceptions(pauseOnExceptions, ignoreCaughtExceptions);
-		} else {
-			this.coordinator.setExceptionBreakpoints(exceptionBreakpoints);
-		}
+		const pauseOnExceptions = (exceptionBreakpoints !== ExceptionBreakpoints.None);
+		const ignoreCaughtExceptions = (exceptionBreakpoints !== ExceptionBreakpoints.All);
+		this.actor.pauseOnExceptions(pauseOnExceptions, ignoreCaughtExceptions);
 	}
 
 	private fetchAllStackFrames(): Promise<FrameAdapter[]> {

@@ -31,7 +31,6 @@ describe('Gulp sourcemaps: The debugger', function() {
 		}
 	});
 
-	for (let sourceMaps of [ 'server', 'client' ]) {
 	for (let minifyScripts of [false, true]) {
 	for (let bundleScripts of [false, true]) {
 	for (let embedSourceMap of [false, true]) {
@@ -46,19 +45,7 @@ describe('Gulp sourcemaps: The debugger', function() {
 		let descr = 
 			`should map ${transformations.join(', ')} scripts ` +
 			`to their original sources in ${separateBuildDir ? 'a different' : 'the same'} directory ` +
-			`using an ${embedSourceMap ? 'embedded' : 'external'} source-map handled by the ${sourceMaps}`;
-
-		if ((process.env['NEW_STEP_OUT_BEHAVIOR'] !== 'true') && minifyScripts && (sourceMaps === 'client')) {
-			// tests with minified scripts and client-side source-maps disabled for Firefox < 66.0 due to Firefox bug #1373632
-			it.skip(descr);
-			continue;
-		}
-
-		// server-side source-maps are not supported with Firefox >= 66.0
-		if ((process.env['SERVER_SIDE_SOURCEMAPS'] !== 'true') && (sourceMaps === 'server')) {
-			it.skip(descr);
-			continue;
-		}
+			`using an ${embedSourceMap ? 'embedded' : 'external'} source-map`;
 
 		it(descr, async function() {
 
@@ -68,13 +55,12 @@ describe('Gulp sourcemaps: The debugger', function() {
 			await build(targetPaths.buildDir, minifyScripts, bundleScripts, embedSourceMap, separateBuildDir);
 
 			dc = await util.initDebugClient('', true, {
- 				file: path.join(targetPaths.buildDir, 'index.html'),
- 				sourceMaps
- 			});
- 
+				file: path.join(targetPaths.buildDir, 'index.html')
+			});
+
 			await sourceMapUtil.testSourcemaps(dc, targetPaths.srcDir);
 		});
-	}}}}}
+	}}}}
 });
 
 interface TargetPaths {
