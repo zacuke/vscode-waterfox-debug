@@ -88,7 +88,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		source: FirefoxDebugProtocol.Source
 	): Promise<SourceMappingInfo> {
 
-		if (log.isDebugEnabled) {
+		if (log.isDebugEnabled()) {
 			log.debug(`Trying to sourcemap ${JSON.stringify(source)}`);
 		}
 
@@ -251,12 +251,12 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 
 	public async setBreakpoint(line: number, column: number, sourceUrl: string, condition?: string, logValue?: string): Promise<void> {
 
-		if (log.isDebugEnabled) log.debug(`Computing generated location for ${line}:${column} in ${sourceUrl}`);
+		if (log.isDebugEnabled()) log.debug(`Computing generated location for ${line}:${column} in ${sourceUrl}`);
 		let generatedLocation = await this.findGeneratedLocation(sourceUrl, line, column);
 		if (generatedLocation) {
-			if (log.isDebugEnabled) log.debug(`Got generated location ${generatedLocation.line}:${generatedLocation.column}`);
+			if (log.isDebugEnabled()) log.debug(`Got generated location ${generatedLocation.line}:${generatedLocation.column}`);
 		} else {
-			if (log.isWarnEnabled) log.warn(`Couldn't find generated location for ${line}:${column} in ${sourceUrl}`);
+			if (log.isWarnEnabled()) log.warn(`Couldn't find generated location for ${line}:${column} in ${sourceUrl}`);
 			return;
 		}
 
@@ -265,12 +265,12 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 
 	public async removeBreakpoint(line: number, column: number, sourceUrl: string): Promise<void> {
 
-		if (log.isDebugEnabled) log.debug(`Computing generated location for ${line}:${column} in ${sourceUrl}`);
+		if (log.isDebugEnabled()) log.debug(`Computing generated location for ${line}:${column} in ${sourceUrl}`);
 		let generatedLocation = await this.findGeneratedLocation(sourceUrl, line, column);
 		if (generatedLocation) {
-			if (log.isDebugEnabled) log.debug(`Got generated location ${generatedLocation.line}:${generatedLocation.column}`);
+			if (log.isDebugEnabled()) log.debug(`Got generated location ${generatedLocation.line}:${generatedLocation.column}`);
 		} else {
-			if (log.isWarnEnabled) log.warn(`Couldn't find generated location for ${line}:${column} in ${sourceUrl}`);
+			if (log.isWarnEnabled()) log.warn(`Couldn't find generated location for ${line}:${column} in ${sourceUrl}`);
 			return;
 		}
 

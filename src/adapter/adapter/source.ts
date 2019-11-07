@@ -128,7 +128,7 @@ export class SourceAdapter {
 			}
 		}
 
-		if (log.isDebugEnabled) log.debug(`Going to delete ${breakpointsToDelete.length} breakpoints`);
+		if (log.isDebugEnabled()) log.debug(`Going to delete ${breakpointsToDelete.length} breakpoints`);
 
 		const deletionPromises = breakpointsToDelete.map(
 			breakpointAdapter => breakpointAdapter.delete()
@@ -143,7 +143,7 @@ export class SourceAdapter {
 			)
 		);
 
-		if (log.isDebugEnabled) log.debug(`Going to add ${breakpointsToAdd.length} breakpoints`);
+		if (log.isDebugEnabled()) log.debug(`Going to add ${breakpointsToAdd.length} breakpoints`);
 
 		const breakpointPositions = await this.actor.getBreakpointPositions();
 

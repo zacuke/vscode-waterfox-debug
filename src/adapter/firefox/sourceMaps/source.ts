@@ -33,10 +33,10 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 
 	private async getBreakpointPositionsInt(): Promise<FirefoxDebugProtocol.BreakpointPositions> {
 
-		if (log.isDebugEnabled) log.debug(`Fetching generated breakpoint positions for ${this.url}`);
+		if (log.isDebugEnabled()) log.debug(`Fetching generated breakpoint positions for ${this.url}`);
 		let generatedBreakpointPositions = await this.sourceMappingInfo.underlyingSource.getBreakpointPositions();
 
-		if (log.isDebugEnabled) log.debug(`Computing original breakpoint positions for ${Object.keys(generatedBreakpointPositions).length} generated lines`);
+		if (log.isDebugEnabled()) log.debug(`Computing original breakpoint positions for ${Object.keys(generatedBreakpointPositions).length} generated lines`);
 		const originalBreakpointPositions: FirefoxDebugProtocol.BreakpointPositions = {};
 		for (const generatedLine in generatedBreakpointPositions) {
 			for (const generatedColumn of generatedBreakpointPositions[generatedLine]) {
@@ -63,14 +63,14 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 	}
 
 	public async fetchSource(): Promise<FirefoxDebugProtocol.Grip> {
-		if (log.isDebugEnabled) log.debug(`Fetching source for ${this.url}`);
+		if (log.isDebugEnabled()) log.debug(`Fetching source for ${this.url}`);
 		let embeddedSource = this.sourceMappingInfo.sourceMapConsumer!.sourceContentFor(this.url);
 		if (embeddedSource) {
-			if (log.isDebugEnabled) log.debug(`Got embedded source for ${this.url}`);
+			if (log.isDebugEnabled()) log.debug(`Got embedded source for ${this.url}`);
 			return embeddedSource;
 		} else {
 			const source = await getUri(this.url);
-			if (log.isDebugEnabled) log.debug(`Got non-embedded source for ${this.url}`);
+			if (log.isDebugEnabled()) log.debug(`Got non-embedded source for ${this.url}`);
 			return source;
 		}
 	}
