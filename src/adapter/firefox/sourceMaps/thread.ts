@@ -10,8 +10,9 @@ import { PendingRequest } from '../../util/pendingRequests';
 import { DebugConnection } from '../connection';
 import { ISourceActorProxy, SourceActorProxy } from '../actorProxy/source';
 import { SourceMappingSourceActorProxy } from './source';
-import { IThreadActorProxy, ExceptionBreakpoints, UrlLocation, AttachOptions } from '../actorProxy/thread';
-import { SourceMappingInfo, findNextBreakpointPosition } from './info';
+import { IThreadActorProxy, ExceptionBreakpoints, AttachOptions } from '../actorProxy/thread';
+import { SourceMappingInfo } from './info';
+import { MappedLocation, UrlLocation } from '../../location';
 
 let log = Log.create('SourceMappingThreadActorProxy');
 
@@ -201,28 +202,20 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 	private async applySourceMapToFrame(frame: FirefoxDebugProtocol.Frame): Promise<void> {
 
 		let sourceMappingInfo: SourceMappingInfo | undefined;
-		let source = frame.where.source;
-		if (source) {
-			sourceMappingInfo = await this.getOrCreateSourceMappingInfo(source);
-		} else {
-			const sourceMappingInfoPromise = this.getSourceMappingInfo(frame.where.actor!);
-			sourceMappingInfo = await sourceMappingInfoPromise;
-			source = sourceMappingInfo.underlyingSource.source;
-		}
+		const sourceMappingInfoPromise = this.getSourceMappingInfo(frame.where.actor);
+		sourceMappingInfo = await sourceMappingInfoPromise;
+		const source = sourceMappingInfo.underlyingSource.source;
 
-		if (sourceMappingInfo && sourceMappingInfo.sourceMapUri && sourceMappingInfo.sourceMapConsumer) {
+		if (source && sourceMappingInfo && sourceMappingInfo.hasSourceMap && frame.where.line) {
 
 			let originalLocation = sourceMappingInfo.originalLocationFor({
-				line: frame.where.line!, column: frame.where.column!
+				line: frame.where.line, column: frame.where.column || 0
 			});
 
-			if (originalLocation.source !== null) {
+			if (originalLocation && originalLocation.url) {
 
-				let originalSource = this.createOriginalSource(
-					source!, originalLocation.source, sourceMappingInfo.sourceMapUri);
-	
 				frame.where = {
-					source: originalSource,
+					actor: `${source.actor}!${originalLocation.url}`,
 					line: originalLocation.line || undefined,
 					column: originalLocation.column || undefined
 				}
@@ -249,32 +242,20 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		}
 	}
 
-	public async setBreakpoint(line: number, column: number, sourceUrl: string, condition?: string, logValue?: string): Promise<void> {
-
-		if (log.isDebugEnabled()) log.debug(`Computing generated location for ${line}:${column} in ${sourceUrl}`);
-		let generatedLocation = await this.findGeneratedLocation(sourceUrl, line, column);
-		if (generatedLocation) {
-			if (log.isDebugEnabled()) log.debug(`Got generated location ${generatedLocation.line}:${generatedLocation.column}`);
+	public async setBreakpoint(location: MappedLocation, sourceActor: ISourceActorProxy, condition?: string, logValue?: string): Promise<void> {
+		if (location.generated && (sourceActor instanceof SourceMappingSourceActorProxy)) {
+			await this.underlyingActorProxy.setBreakpoint(location.generated, sourceActor.underlyingActor, condition, logValue);
 		} else {
-			if (log.isWarnEnabled()) log.warn(`Couldn't find generated location for ${line}:${column} in ${sourceUrl}`);
-			return;
+			await this.underlyingActorProxy.setBreakpoint(location, sourceActor, condition, logValue);
 		}
-
-		await this.underlyingActorProxy.setBreakpoint(generatedLocation.line, generatedLocation.column!, generatedLocation.url, condition, logValue);
 	}
 
-	public async removeBreakpoint(line: number, column: number, sourceUrl: string): Promise<void> {
-
-		if (log.isDebugEnabled()) log.debug(`Computing generated location for ${line}:${column} in ${sourceUrl}`);
-		let generatedLocation = await this.findGeneratedLocation(sourceUrl, line, column);
-		if (generatedLocation) {
-			if (log.isDebugEnabled()) log.debug(`Got generated location ${generatedLocation.line}:${generatedLocation.column}`);
+	public async removeBreakpoint(location: MappedLocation, sourceUrl?: string): Promise<void> {
+		if (location.generated) {
+			await this.underlyingActorProxy.removeBreakpoint(location.generated, sourceUrl);
 		} else {
-			if (log.isWarnEnabled()) log.warn(`Couldn't find generated location for ${line}:${column} in ${sourceUrl}`);
-			return;
+			await this.underlyingActorProxy.removeBreakpoint(location, sourceUrl);
 		}
-
-		await this.underlyingActorProxy.removeBreakpoint(generatedLocation.line, generatedLocation.column!, generatedLocation.url);
 	}
 
 	public pauseOnExceptions(pauseOnExceptions: boolean, ignoreCaughtExceptions: boolean): Promise<void> {
@@ -310,45 +291,14 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 			const info = await infoPromise;
 			if (generatedUrl === info.underlyingSource.url) {
 
-				const originalLocation = info.originalLocationFor({ line, column: column || 1 });
+				const originalLocation = info.originalLocationFor({ line, column: column || 0 });
 
-				if (originalLocation.source && originalLocation.line) {
+				if (originalLocation && originalLocation.url && originalLocation.line) {
 					return {
-						url: originalLocation.source, 
+						url: originalLocation.url,
 						line: originalLocation.line,
-						column: originalLocation.column || undefined
+						column: originalLocation.column || 0
 					};
-				}
-			}
-		}
-
-		return undefined;
-	}
-
-	private async findGeneratedLocation(
-		sourceUrl: string,
-		line: number,
-		column: number
-	): Promise<UrlLocation | undefined> {
-
-		for (const infoPromise of [ ...this.sourceMappingInfos.values() ].reverse()) {
-			const info = await infoPromise;
-			for (const originalSource of info.sources) {
-				if (sourceUrl === originalSource.url) {
-
-					const generatedLocation = info.generatedLocationFor({ source: sourceUrl, line, column });
-	
-					if ((generatedLocation.line !== null) && (generatedLocation.column !== null)) {
-						const { line, column } = findNextBreakpointPosition(
-							generatedLocation.line, generatedLocation.column,
-							await info.underlyingSource.getBreakpointPositions()
-						);
-						return {
-							url: info.underlyingSource.url!,
-							line,
-							column
-						};
-					}
 				}
 			}
 		}

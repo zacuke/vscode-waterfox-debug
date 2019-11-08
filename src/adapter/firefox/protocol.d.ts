@@ -218,6 +218,10 @@ declare namespace FirefoxDebugProtocol {
 		actors?: string[]; // if type is 'breakpoint' or 'watchpoint'
 	}
 
+	interface GetBreakableLinesResponse extends Response {
+		lines: number[];
+	}
+
 	interface GetBreakpointPositionsCompressedResponse extends Response {
 		positions: BreakpointPositions;
 	}
@@ -259,8 +263,7 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface CallFrame extends Frame {
-		callee?: Grip; // Firefox < 67.0
-		displayName?: string; // Firefox >= 67.0
+		displayName?: string;
 		arguments: Grip[];
 	}
 
@@ -271,8 +274,7 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface SourceLocation {
-		source?: Source; // Firefox < 66.0
-		actor?: string; // Firefox >= 66.0
+		actor: string;
 		line?: number;
 		column?: number;
 	}

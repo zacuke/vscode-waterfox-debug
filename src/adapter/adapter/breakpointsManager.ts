@@ -59,24 +59,16 @@ export class BreakpointsManager {
 	 * called by [`SourceAdapter#syncBreakpoints()`](./source.ts) whenever a breakpoint has been set
 	 * in Firefox
 	 */
-	public verifyBreakpoint(
-		breakpointInfo: BreakpointInfo,
-		actualLine: number | undefined,
-		actualColumn: number | undefined
-	): void {
+	public verifyBreakpoint(breakpointInfo: BreakpointInfo): void {
 
-		if ((breakpointInfo.actualLine !== actualLine) ||
-			(breakpointInfo.actualColumn !== actualColumn) ||
-			!breakpointInfo.verified
-		) {
-			let breakpoint: DebugProtocol.Breakpoint = new Breakpoint(true, actualLine, actualColumn);
-			breakpoint.id = breakpointInfo.id;
-			this.sendEvent(new BreakpointEvent('changed', breakpoint));
+		if (!breakpointInfo.actualLocation) return;
 
-			breakpointInfo.actualLine = actualLine;
-			breakpointInfo.actualColumn = actualColumn;
-			breakpointInfo.verified = true;
-		}
+		let breakpoint: DebugProtocol.Breakpoint = new Breakpoint(
+			true, breakpointInfo.actualLocation.line, breakpointInfo.actualLocation.column + 1);
+		breakpoint.id = breakpointInfo.id;
+		this.sendEvent(new BreakpointEvent('changed', breakpoint));
+
+		breakpointInfo.verified = true;
 	}
 
 	/**
