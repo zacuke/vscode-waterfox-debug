@@ -65,7 +65,7 @@ export class FirefoxDebugSession {
 	public readonly frames = new Registry<FrameAdapter>();
 	public readonly variablesProviders = new Registry<VariablesProvider>();
 
-	private exceptionBreakpoints: ExceptionBreakpoints = ExceptionBreakpoints.All;
+	private exceptionBreakpoints: ExceptionBreakpoints = ExceptionBreakpoints.Uncaught;
 
 	private reloadTabs = false;
 
