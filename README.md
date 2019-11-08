@@ -25,8 +25,9 @@ A VS Code extension to debug web applications and extensions running in the [Moz
 * *Console* for logging and REPL
 * Debugging Firefox extensions
 * Debugging Web Workers
-* **🔥New:** Compatible with [remote development](https://code.visualstudio.com/docs/remote/remote-overview)
-* **🔥Upcoming:** Pause on object property changes with [Data breakpoints](https://code.visualstudio.com/docs/editor/debugging#_data-breakpoints) (🦊 Works with the current [Firefox Nightly](https://www.mozilla.org/en-US/firefox/channel/desktop/?utm_medium=vscode_extension&utm_source=devtools#nightly), with support in other Firefox editions coming soon)
+* Compatible with [remote development](https://code.visualstudio.com/docs/remote/remote-overview)
+* **🔥New:** Pause on object property changes with [Data breakpoints](https://code.visualstudio.com/docs/editor/debugging#_data-breakpoints) (🦊 Works with Firefox 70)
+* **🔥New:** Use VS Code's [new UI for column breakpoints](https://code.visualstudio.com/updates/v1_39#_improved-ui-for-column-breakpoints)
 
 ## Getting Started
 
@@ -111,8 +112,18 @@ subdirectory of your project, e.g. `http://localhost/login/index.html`.
 
 ### Attach
 To use attach mode, you have to launch Firefox manually from a terminal with remote debugging enabled.
-Note that you must first configure Firefox to allow remote debugging. To do this, open the Firefox 
-configuration page by entering `about:config` in the address bar, search for **devtools.debugger.remote-enabled** and toggle it to **true**. 
+Note that if you don't use Firefox Developer Edition, you must first configure Firefox to allow
+remote debugging. To do this, open the Developer Tools Settings and check the checkboxes labeled
+"Enable browser chrome and add-on debugging toolboxes" and "Enable remote debugging"
+(as described [here](https://developer.mozilla.org/en-US/docs/Tools/Remote_Debugging/Debugging_Firefox_Desktop#Enable_remote_debugging)).
+Alternatively you can set the following values in `about:config`:
+
+Preference Name                       | Value   | Comment
+--------------------------------------|---------|---------
+`devtools.debugger.remote-enabled`    | `true`  | Required
+`devtools.chrome.enabled`             | `true`  | Required
+`devtools.debugger.prompt-connection` | `false` | Recommended
+`devtools.debugger.force-local`       | `false` | Set this only if you want to attach VS Code to Firefox running on a different machine (using the `host` property in the `attach` configuration)
 
 Then close Firefox and start it from a terminal like this:
 
