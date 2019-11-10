@@ -1,19 +1,13 @@
 import { SourceAdapter } from './source';
 import { DebugProtocol } from 'vscode-debugprotocol';
+import { MappedLocation } from '../location';
 
 export class BreakpointInfo {
 
 	/**
-	 * the actual line where the breakpoint was set (which may be different from the requested line
-	 * in `requestedBreakpoint.line`)
+	 * the actual location where the breakpoint was set (which may be different from the requested location)
 	 */
-	public actualLine: number | undefined;
-
-	/**
-	 * the actual column where the breakpoint was set (which may be different from the requested
-	 * column in `requestedBreakpoint.column`)
-	 */
-	public actualColumn: number | undefined;
+	public actualLocation: MappedLocation | undefined;
 
 	/** true if the breakpoint was successfully set */
 	public verified: boolean;
@@ -26,7 +20,7 @@ export class BreakpointInfo {
 		public readonly requestedBreakpoint: DebugProtocol.SourceBreakpoint
 	) {
 		this.verified = false;
-		this.hitCount = parseInt(requestedBreakpoint.hitCondition || '') || 0;
+		this.hitCount = +(requestedBreakpoint.hitCondition || '');
 	}
 
 	public isEquivalent(other: BreakpointInfo | DebugProtocol.SourceBreakpoint): boolean {
@@ -55,10 +49,15 @@ export class BreakpointAdapter {
 	}
 
 	delete(): Promise<void> {
-		return this.sourceAdapter.threadAdapter.actor.removeBreakpoint(
-			this.breakpointInfo.actualLine!,
-			this.breakpointInfo.actualColumn!,
-			this.sourceAdapter.actor.url!
-		);
+		if (this.breakpointInfo.actualLocation) {
+
+			return this.sourceAdapter.threadAdapter.actor.removeBreakpoint(
+				this.breakpointInfo.actualLocation,
+				this.sourceAdapter.actor.url || undefined
+			);
+
+		} else {
+			return Promise.resolve();
+		}
 	}
 }

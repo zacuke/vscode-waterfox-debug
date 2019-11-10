@@ -1,11 +1,11 @@
 import { Log } from '../util/log';
+import { MappedLocation } from '../location';
 import { ISourceActorProxy } from '../firefox/actorProxy/source';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { Source } from 'vscode-debugadapter';
 import { ThreadAdapter } from './thread';
 import { Registry } from './registry';
 import { BreakpointInfo, BreakpointAdapter } from './breakpoint';
-import { findNextBreakpointPosition } from '../firefox/sourceMaps/info';
 
 const log = Log.create('SourceAdapter');
 
@@ -93,9 +93,11 @@ export class SourceAdapter {
 
 	public findBreakpointAdapterForLocation(location: FirefoxDebugProtocol.SourceLocation): BreakpointAdapter | undefined {
 		return this.currentBreakpoints.find(
-			breakpointAdapter => 
-				(breakpointAdapter.breakpointInfo.actualLine === location.line) &&
-				(breakpointAdapter.breakpointInfo.actualColumn === location.column)
+			breakpointAdapter =>
+				breakpointAdapter.breakpointInfo &&
+				breakpointAdapter.breakpointInfo.actualLocation &&
+				(breakpointAdapter.breakpointInfo.actualLocation.line === location.line) &&
+				(breakpointAdapter.breakpointInfo.actualLocation.column === location.column)
 		);
 	}
 
@@ -128,7 +130,7 @@ export class SourceAdapter {
 			}
 		}
 
-		if (log.isDebugEnabled) log.debug(`Going to delete ${breakpointsToDelete.length} breakpoints`);
+		if (log.isDebugEnabled()) log.debug(`Going to delete ${breakpointsToDelete.length} breakpoints`);
 
 		const deletionPromises = breakpointsToDelete.map(
 			breakpointAdapter => breakpointAdapter.delete()
@@ -143,57 +145,77 @@ export class SourceAdapter {
 			)
 		);
 
-		if (log.isDebugEnabled) log.debug(`Going to add ${breakpointsToAdd.length} breakpoints`);
+		if (log.isDebugEnabled()) log.debug(`Going to add ${breakpointsToAdd.length} breakpoints`);
 
-		const breakpointPositions = await this.actor.getBreakpointPositions();
+		const breakpointsManager = this.threadAdapter.debugSession.breakpointsManager;
 
 		const additionPromises = breakpointsToAdd.map(
 			async breakpointInfo => {
 
-				const actualLocation = findNextBreakpointPosition(
+				const actualLocation = await this.findNextBreakableLocation(
 					breakpointInfo.requestedBreakpoint.line,
-					breakpointInfo.requestedBreakpoint.column || 0,
-					breakpointPositions
+					(breakpointInfo.requestedBreakpoint.column || 1) - 1
 				);
-				breakpointInfo.actualLine = actualLocation.line;
-				breakpointInfo.actualColumn = actualLocation.column;
+				breakpointInfo.actualLocation = actualLocation;
 
-				let logValue: string | undefined;
-				if (breakpointInfo.requestedBreakpoint.logMessage) {
-					logValue = '...' + convertLogpointMessage(breakpointInfo.requestedBreakpoint.logMessage);
+				if (breakpointInfo.actualLocation) {
+
+					let logValue: string | undefined;
+					if (breakpointInfo.requestedBreakpoint.logMessage) {
+						logValue = '...' + convertLogpointMessage(breakpointInfo.requestedBreakpoint.logMessage);
+					}
+
+					await this.threadAdapter.actor.setBreakpoint(
+						breakpointInfo.actualLocation,
+						this.actor,
+						breakpointInfo.requestedBreakpoint.condition,
+						logValue
+					);
+
+					breakpointsManager.verifyBreakpoint(breakpointInfo);
 				}
-
-				await this.threadAdapter.actor.setBreakpoint(
-					breakpointInfo.actualLine,
-					breakpointInfo.actualColumn,
-					this.actor.url!,
-					breakpointInfo.requestedBreakpoint.condition,
-					logValue
-				);
-			}
-		);
-
-		await Promise.all(additionPromises);
-
-		const breakpointsManager = this.threadAdapter.debugSession.breakpointsManager;
-
-		const addedBreakpoints = breakpointsToAdd.map(
-			breakpointInfo => {
-
-				breakpointsManager.verifyBreakpoint(
-					breakpointInfo, 
-					breakpointInfo.actualLine,
-					breakpointInfo.actualColumn
-				);
 
 				return new BreakpointAdapter(breakpointInfo, this);
 			}
 		);
 
+		const addedBreakpoints = await Promise.all(additionPromises);
+
 		this.currentBreakpoints = breakpointsToKeep.concat(addedBreakpoints);
 		this.isSyncingBreakpoints = false;
 
 		this.checkAndSyncBreakpoints();
+	}
+
+	private async findNextBreakableLocation(
+		requestedLine: number,
+		requestedColumn: number
+	): Promise<MappedLocation | undefined> {
+
+		let breakableLocations = await this.actor.getBreakableLocations(requestedLine);
+		for (const location of breakableLocations) {
+			if (location.column >= requestedColumn) {
+				return location;
+			}
+		}
+
+		const breakableLines = await this.actor.getBreakableLines();
+		for (const line of breakableLines) {
+			if (line > requestedLine) {
+				breakableLocations = await this.actor.getBreakableLocations(line);
+				if (breakableLocations.length > 0) {
+					return breakableLocations[0];
+				}
+			}
+		}
+
+		for (let i = breakableLines.length - 1; i >= 0; i--)
+		breakableLocations = await this.actor.getBreakableLocations(breakableLines[i]);
+		if (breakableLocations.length > 0) {
+			return breakableLocations[breakableLocations.length -1];
+		}
+
+		return undefined;
 	}
 
 	public dispose(): void {

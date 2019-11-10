@@ -1,9 +1,15 @@
 import { Log } from '../../util/log';
-import { ISourceActorProxy } from '../actorProxy/source';
+import { ISourceActorProxy, SourceActorProxy } from '../actorProxy/source';
 import { SourceMappingInfo } from './info';
 import { getUri } from '../../util/net';
+import { MappedLocation, Range } from '../../location';
 
 const log = Log.create('SourceMappingSourceActorProxy');
+
+interface Breakables {
+	lines: number[];
+	locations: Map<number, MappedLocation[]>;
+}
 
 export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 
@@ -15,62 +21,144 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 		return this.source.url!;
 	}
 
-	private getBreakpointPositionsPromise?: Promise<FirefoxDebugProtocol.BreakpointPositions>;
+	public get underlyingActor(): SourceActorProxy { return this.sourceMappingInfo.underlyingSource; }
+
+	private allBreakablesPromise?: Promise<Breakables>;
 
 	public constructor(
 		public readonly source: FirefoxDebugProtocol.Source,
 		private readonly sourceMappingInfo: SourceMappingInfo
 	) {}
 
-	public async getBreakpointPositions(): Promise<FirefoxDebugProtocol.BreakpointPositions> {
+	public async getBreakableLines(): Promise<number[]> {
 
-		if (!this.getBreakpointPositionsPromise) {
-			this.getBreakpointPositionsPromise = this.getBreakpointPositionsInt();
+		if (!this.allBreakablesPromise) {
+			this.allBreakablesPromise = this.getAllBreakables();
 		}
 
-		return this.getBreakpointPositionsPromise;
+		const allBreakables = await this.allBreakablesPromise;
+		return allBreakables.lines;
 	}
 
-	private async getBreakpointPositionsInt(): Promise<FirefoxDebugProtocol.BreakpointPositions> {
+	public async getBreakableLocations(line: number): Promise<MappedLocation[]> {
 
-		if (log.isDebugEnabled) log.debug(`Fetching generated breakpoint positions for ${this.url}`);
-		let generatedBreakpointPositions = await this.sourceMappingInfo.underlyingSource.getBreakpointPositions();
+		if (!this.allBreakablesPromise) {
+			this.allBreakablesPromise = this.getAllBreakables();
+		}
 
-		if (log.isDebugEnabled) log.debug(`Computing original breakpoint positions for ${Object.keys(generatedBreakpointPositions).length} generated lines`);
-		const originalBreakpointPositions: FirefoxDebugProtocol.BreakpointPositions = {};
-		for (const generatedLine in generatedBreakpointPositions) {
-			for (const generatedColumn of generatedBreakpointPositions[generatedLine]) {
+		const allBreakableLocations = await this.allBreakablesPromise;
+		return allBreakableLocations.locations.get(line) || [];
+	}
 
-				const originalLocation = this.sourceMappingInfo.originalLocationFor({
-					line: parseInt(generatedLine),
-					column: generatedColumn
-				});
+	private async getAllBreakables(): Promise<Breakables> {
 
-				if ((originalLocation.line !== null) && (originalLocation.column !== null) &&
-					(originalLocation.source === this.url)) {
+		this.sourceMappingInfo.computeColumnSpans();
 
-					if (originalBreakpointPositions[originalLocation.line] === undefined) {
-						originalBreakpointPositions[originalLocation.line] = [];
+		if (log.isDebugEnabled()) log.debug(`Calculating ranges for ${this.url} within its generated source`);
+		const unresolvedSource = this.sourceMappingInfo.findUnresolvedSource(this.source.url!);
+		const generatedRanges: Range[] = [];
+		let currentRange: Range | undefined = undefined;
+		this.sourceMappingInfo.eachMapping(mapping => {
+
+			if (mapping.source === unresolvedSource) {
+
+				if (!currentRange) {
+					currentRange = {
+						start: {
+							line: mapping.generatedLine,
+							column: mapping.generatedColumn
+						},
+						end: {
+							line: mapping.generatedLine,
+							column: mapping.lastGeneratedColumn || 0
+						}
+					}
+				} else {
+					const lastGeneratedColumn = (mapping as any).lastGeneratedColumn || mapping.generatedColumn;
+					currentRange.end = {
+						line: mapping.generatedLine,
+						column: lastGeneratedColumn
+					}
+				}
+
+			} else {
+
+				if (currentRange) {
+					generatedRanges.push(currentRange);
+					currentRange = undefined;
+				}
+			}
+		});
+		if (currentRange) {
+			generatedRanges.push(currentRange);
+		}
+
+		const mappedBreakableLocations = new Map<number, MappedLocation[]>();
+		const originalBreakableColumns = new Map<number, Set<number>>();
+		for (const range of generatedRanges) {
+
+			if (log.isDebugEnabled()) log.debug(`Fetching generated breakpoint locations for ${this.url}, ${range.start.line}:${range.start.column} - ${range.end.line}:${range.end.column}`);
+			const generatedBreakableLocations =
+				await this.sourceMappingInfo.underlyingSource.getBreakpointPositionsForRange(range);
+
+			if (log.isDebugEnabled()) log.debug(`Computing original breakpoint locations for ${Object.keys(generatedBreakableLocations).length} generated lines`);
+			for (const generatedLineString in generatedBreakableLocations) {
+				for (const generatedColumn of generatedBreakableLocations[generatedLineString]) {
+
+					const generatedLine = +generatedLineString;
+					const originalLocation = this.sourceMappingInfo.originalLocationFor({
+						line: generatedLine,
+						column: generatedColumn
+					});
+					if ((originalLocation === undefined) ||
+						(originalLocation.line === null) ||
+						(originalLocation.url !== this.url)) {
+						continue;
 					}
 
-					originalBreakpointPositions[originalLocation.line].push(originalLocation.column);
+					if (!mappedBreakableLocations.has(originalLocation.line)) {
+						mappedBreakableLocations.set(originalLocation.line, []);
+						originalBreakableColumns.set(originalLocation.line, new Set<number>());
+					}
 
+					const originalColumn = originalLocation.column || 1;
+					if (!originalBreakableColumns.get(originalLocation.line)!.has(originalColumn)) {
+						mappedBreakableLocations.get(originalLocation.line)!.push({
+							line: originalLocation.line,
+							column: originalColumn,
+							generated: {
+								line: generatedLine,
+								column: generatedColumn
+							}
+						});
+					}
 				}
 			}
 		}
 
-		return originalBreakpointPositions;
+		const breakableLines: number[] = [];
+		for (const line of mappedBreakableLocations.keys()) {
+			if (mappedBreakableLocations.get(line)!.length > 0) {
+				breakableLines.push(+line);
+			}
+		}
+		breakableLines.sort();
+
+		return {
+			lines: breakableLines,
+			locations: mappedBreakableLocations
+		};
 	}
 
 	public async fetchSource(): Promise<FirefoxDebugProtocol.Grip> {
-		if (log.isDebugEnabled) log.debug(`Fetching source for ${this.url}`);
-		let embeddedSource = this.sourceMappingInfo.sourceMapConsumer!.sourceContentFor(this.url);
+		if (log.isDebugEnabled()) log.debug(`Fetching source for ${this.url}`);
+		let embeddedSource = this.sourceMappingInfo.sourceContentFor(this.url);
 		if (embeddedSource) {
-			if (log.isDebugEnabled) log.debug(`Got embedded source for ${this.url}`);
+			if (log.isDebugEnabled()) log.debug(`Got embedded source for ${this.url}`);
 			return embeddedSource;
 		} else {
 			const source = await getUri(this.url);
-			if (log.isDebugEnabled) log.debug(`Got non-embedded source for ${this.url}`);
+			if (log.isDebugEnabled()) log.debug(`Got non-embedded source for ${this.url}`);
 			return source;
 		}
 	}

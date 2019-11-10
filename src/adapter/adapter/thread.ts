@@ -14,7 +14,7 @@ import { Variable } from 'vscode-debugadapter';
 import { Log } from '../util/log';
 import { FirefoxDebugSession } from '../firefoxDebugSession';
 import { pathsAreEqual } from '../util/misc';
-import { Location } from '../firefox/actorProxy/source';
+import { Location } from '../location';
 import { AttachOptions } from '../firefox/actorProxy/thread';
 
 let log = Log.create('ThreadAdapter');
@@ -80,7 +80,7 @@ export class ThreadAdapter extends EventEmitter {
 
 			const sourceLocation = event.frame.where;
 
-			const sourceActor = sourceLocation.actor || sourceLocation.source!.actor;
+			const sourceActor = sourceLocation.actor;
 			const sourceAdapter = this.findSourceAdapterForActorName(sourceActor);
 
 			if (sourceAdapter) {
@@ -125,14 +125,12 @@ export class ThreadAdapter extends EventEmitter {
 				let startFrame = (frames.length > 0) ? frames[frames.length - 1] : undefined;
 				if (startFrame) {
 
-					let source = startFrame.frame.where.source;
-					if (!source) {
-						const sourceAdapter = this.findSourceAdapterForActorName(startFrame.frame.where.actor!);
-						if (sourceAdapter) {
-							source = sourceAdapter.actor.source;
-						} else {
-							log.warn(`Couldn't find SourceAdapter for ${startFrame.frame.where.actor}`);
-						}
+					let source: FirefoxDebugProtocol.Source | undefined;
+					const sourceAdapter = this.findSourceAdapterForActorName(startFrame.frame.where.actor);
+					if (sourceAdapter) {
+						source = sourceAdapter.actor.source;
+					} else {
+						log.warn(`Couldn't find SourceAdapter for ${startFrame.frame.where.actor}`);
 					}
 
 					if (source && source.introductionType === 'debugger eval') {

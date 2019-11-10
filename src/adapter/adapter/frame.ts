@@ -30,7 +30,7 @@ export class FrameAdapter {
 
 	public getStackframe(): StackFrame {
 
-		let sourceActorName = this.frame.where.actor || this.frame.where.source!.actor;
+		let sourceActorName = this.frame.where.actor;
 		let sourceAdapter = this.threadAdapter.findSourceAdapterForActorName(sourceActorName);
 		if (!sourceAdapter) {
 			throw new Error(`Couldn't find source adapter for ${sourceActorName}`);
@@ -41,27 +41,7 @@ export class FrameAdapter {
 
 			case 'call':
 				const callFrame = this.frame as FirefoxDebugProtocol.CallFrame;
-
-				if (callFrame.displayName) {
-
-					name = callFrame.displayName;
-
-				} else {
-
-					let callee = callFrame.callee;
-					if ((typeof callee === 'object') && (callee.type === 'object') &&
-						((<FirefoxDebugProtocol.ObjectGrip>callee).class === 'Function')) {
-
-						let functionGrip = (<FirefoxDebugProtocol.FunctionGrip>callee);
-						let calleeName = functionGrip.name || functionGrip.displayName;
-						name = (calleeName !== undefined) ? calleeName : '[anonymous function]';
-
-					} else {
-
-						name = '[anonymous function]';
-
-					}
-				}
+				name = callFrame.displayName || '[anonymous function]';
 				break;
 
 			case 'global':
@@ -83,7 +63,8 @@ export class FrameAdapter {
 				break;
 		}
 
-		return new StackFrame(this.id, name, sourceAdapter.source, this.frame.where.line, this.frame.where.column || 1);
+		return new StackFrame(this.id, name, sourceAdapter.source,
+			this.frame.where.line, (this.frame.where.column || 0) + 1);
 	}
 
 	public dispose(): void {

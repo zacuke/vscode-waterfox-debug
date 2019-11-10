@@ -42,6 +42,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			supportsHitConditionalBreakpoints: true,
 			supportsLogPoints: true,
 			supportsDataBreakpoints: true,
+			supportsBreakpointLocationsRequest: true,
 			exceptionBreakpointFilters: [
 				{
 					filter: 'all',
@@ -72,6 +73,24 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		let parsedConfig = await parseConfiguration(config);
 		this.session = new FirefoxDebugSession(parsedConfig, (ev) => this.sendEvent(ev));
 		await this.session.start();
+	}
+
+	protected async breakpointLocations(
+		args: DebugProtocol.BreakpointLocationsArguments
+	): Promise<{ breakpoints: DebugProtocol.BreakpointLocation[]; }> {
+
+		for (const [ _, source ] of this.session.sources) {
+			if (source.sourcePath === args.source.path) {
+				const positions = await source.actor.getBreakableLocations(args.line);
+				const breakpoints: DebugProtocol.BreakpointLocation[] = [];
+				for (const position of positions) {
+					breakpoints.push({ line: position.line, column: position.column + 1 });
+				}
+				return { breakpoints };
+			}
+		}
+
+		return { breakpoints: [] };
 	}
 
 	protected setBreakpoints(args: DebugProtocol.SetBreakpointsArguments): { breakpoints: DebugProtocol.Breakpoint[] } {

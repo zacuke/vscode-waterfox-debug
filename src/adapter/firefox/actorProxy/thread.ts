@@ -3,7 +3,8 @@ import { EventEmitter } from 'events';
 import { DebugConnection } from '../connection';
 import { PendingRequest, PendingRequests } from '../../util/pendingRequests';
 import { ActorProxy } from './interface';
-import { ISourceActorProxy, SourceActorProxy, Location } from './source';
+import { ISourceActorProxy, SourceActorProxy } from './source';
+import { MappedLocation, UrlLocation } from '../../location';
 
 let log = Log.create('ThreadActorProxy');
 
@@ -20,9 +21,9 @@ export interface IThreadActorProxy {
 	detach(): Promise<void>;
 	fetchSources(): Promise<FirefoxDebugProtocol.Source[]>;
 	fetchStackFrames(start?: number, count?: number): Promise<FirefoxDebugProtocol.Frame[]>;
-	setBreakpoint(line: number, column: number, sourceUrl: string, condition?: string, logValue?: string): Promise<void>;
+	setBreakpoint(location: MappedLocation, sourceActor: ISourceActorProxy, condition?: string, logValue?: string): Promise<void>;
 	pauseOnExceptions(pauseOnExceptions: boolean, ignoreCaughtExceptions: boolean): Promise<void>;
-	removeBreakpoint(line: number, column: number, sourceUrl: string): Promise<void>;
+	removeBreakpoint(location: MappedLocation, sourceUrl?: string): Promise<void>;
 	findOriginalLocation(generatedUrl: string, line: number, column?: number): Promise<UrlLocation | undefined>
 	onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedResponse) => void): void;
 	onResumed(cb: () => void): void;
@@ -31,10 +32,6 @@ export interface IThreadActorProxy {
 	onNewSource(cb: (newSource: ISourceActorProxy) => void): void;
 	onNewGlobal(cb: () => void): void;
 	dispose(): void;
-}
-
-export interface UrlLocation extends Location {
-	url: string;
 }
 
 export enum ExceptionBreakpoints {
@@ -174,27 +171,27 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 		return this.detachPromise;
 	}
 
-	public setBreakpoint(line: number, column: number, sourceUrl: string, condition?: string, logValue?: string): Promise<void> {
-		log.debug(`Setting breakpoint at ${line}:${column} in ${sourceUrl}`);
+	public setBreakpoint(location: MappedLocation, sourceActor: ISourceActorProxy, condition?: string, logValue?: string): Promise<void> {
+		log.debug(`Setting breakpoint at ${location.line}:${location.column} in ${sourceActor.url}`);
 
 		return new Promise<void>((resolve, reject) => {
 			this.pendingEmptyResponseRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({
 				to: this.name, type: 'setBreakpoint',
-				location: { line, column, sourceUrl },
+				location: { line: location.line, column: location.column, sourceUrl: sourceActor.url },
 				options: { condition, logValue }
 			});
 		})
 	}
 
-	public removeBreakpoint(line: number, column: number, sourceUrl: string): Promise<void> {
-		log.debug(`Removing breakpoint at ${line}:${column} in ${sourceUrl}`);
+	public removeBreakpoint(location: MappedLocation, sourceUrl?: string): Promise<void> {
+		log.debug(`Removing breakpoint at ${location.line}:${location.column} in ${sourceUrl}`);
 
 		return new Promise<void>((resolve, reject) => {
 			this.pendingEmptyResponseRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({
 				to: this.name, type: 'removeBreakpoint',
-				location: { line, column, sourceUrl }
+				location: { line: location.line, column: location.column, sourceUrl }
 			});
 		})
 	}
@@ -242,7 +239,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	public async findOriginalLocation(
 		url: string,
 		line: number,
-		column?: number
+		column: number
 	): Promise<UrlLocation | undefined> {
 		return { url, line, column };
 	}

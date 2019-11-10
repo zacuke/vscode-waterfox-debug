@@ -1,62 +1,56 @@
 import * as url from 'url';
+import { Log } from '../../util/log';
 import { isWindowsPlatform as detectWindowsPlatform } from '../../../common/util';
-import { ISourceActorProxy } from '../actorProxy/source';
-import { SourceMapConsumer, Position, MappedPosition, NullablePosition, NullableMappedPosition, BasicSourceMapConsumer } from 'source-map';
+import { ISourceActorProxy, SourceActorProxy } from '../actorProxy/source';
+import { SourceMapConsumer, BasicSourceMapConsumer, MappingItem } from 'source-map';
+import { UrlLocation, LocationWithColumn } from '../../location';
 
-let LEAST_UPPER_BOUND = SourceMapConsumer.LEAST_UPPER_BOUND;
 let GREATEST_LOWER_BOUND = SourceMapConsumer.GREATEST_LOWER_BOUND;
+let LEAST_UPPER_BOUND = SourceMapConsumer.LEAST_UPPER_BOUND;
 
 const isWindowsPlatform = detectWindowsPlatform();
 const windowsAbsolutePathRegEx = /^[a-zA-Z]:[\/\\]/;
 
+declare module "source-map" {
+	interface MappingItem {
+		lastGeneratedColumn?: number | null;
+	}
+}
+
+const log = Log.create('SourceMappingInfo');
+
 export class SourceMappingInfo {
+
+	private columnSpansComputed = false;
+
+	public get hasSourceMap(): boolean { return !!this.sourceMapConsumer; }
 
 	public constructor(
 		public readonly sources: ISourceActorProxy[],
-		public readonly underlyingSource: ISourceActorProxy,
+		public readonly underlyingSource: SourceActorProxy,
 		public readonly sourceMapUri?: string,
-		public readonly sourceMapConsumer?: BasicSourceMapConsumer,
+		private readonly sourceMapConsumer?: BasicSourceMapConsumer,
 		private readonly sourceRoot?: string
 	) {}
 
-	public generatedLocationFor(originalLocation: MappedPosition): NullablePosition {
-
-		if (!this.sourceMapConsumer) {
-			return { 
-				line: originalLocation.line,
-				column: originalLocation.column,
-				lastColumn: null
-			};
+	public computeColumnSpans(): void {
+		if (this.sourceMapConsumer && !this.columnSpansComputed) {
+			this.sourceMapConsumer.computeColumnSpans();
+			this.columnSpansComputed = true;
 		}
-
-		const originalSource = this.findUnresolvedSource(originalLocation.source);
-		if (!originalSource) {
-			throw 'Couldn\'t find original source';
-		}
-
-		let consumerArgs = Object.assign({ bias: LEAST_UPPER_BOUND }, originalLocation);
-		consumerArgs.source = originalSource;
-		let generatedLocation = this.sourceMapConsumer.generatedPositionFor(consumerArgs);
-
-		if (generatedLocation.line === null) {
-			consumerArgs.bias = GREATEST_LOWER_BOUND;
-			generatedLocation = this.sourceMapConsumer.generatedPositionFor(consumerArgs);
-		}
-
-		if (this.underlyingSource.source.introductionType === 'wasm') {
-			return { line: generatedLocation.column, column: 0, lastColumn: null };
-		}
-
-		return generatedLocation;
 	}
 
-	public originalLocationFor(generatedLocation: Position): NullableMappedPosition {
+	public originalLocationFor(generatedLocation: LocationWithColumn): UrlLocation | undefined {
 
 		if (!this.sourceMapConsumer) {
-			return Object.assign({ source: this.sources[0]!.url, name: null }, generatedLocation);
+			return { ...generatedLocation, url: this.sources[0].url || undefined };
 		}
 
-		let consumerArgs = Object.assign({ bias: GREATEST_LOWER_BOUND }, generatedLocation);
+		let consumerArgs = {
+			line: generatedLocation.line,
+			column: generatedLocation.column || 0,
+			bias: LEAST_UPPER_BOUND
+		};
 
 		if (this.underlyingSource.source.introductionType === 'wasm') {
 			consumerArgs.column = consumerArgs.line;
@@ -65,20 +59,52 @@ export class SourceMappingInfo {
 
 		let originalLocation = this.sourceMapConsumer.originalPositionFor(consumerArgs);
 
-		if (originalLocation.line === null) {
-			consumerArgs.bias = LEAST_UPPER_BOUND;
+		if (originalLocation.source === null) {
+			consumerArgs.bias = GREATEST_LOWER_BOUND;
 			originalLocation = this.sourceMapConsumer.originalPositionFor(consumerArgs);
 		}
 
-		if (originalLocation.source) {
-			originalLocation.source = this.resolveSource(originalLocation.source);
+		if (originalLocation.source === null) {
+			log.warn(`Got original location ${JSON.stringify(originalLocation)} for generated location ${JSON.stringify(generatedLocation)}`);
+			return undefined;
 		}
+
+		originalLocation.source = this.resolveSource(originalLocation.source);
 
 		if ((this.underlyingSource.source.introductionType === 'wasm') && originalLocation.line) {
 			originalLocation.line--;
 		}
 
-		return originalLocation;
+		if (originalLocation.line !== null) {
+			return {
+				url: originalLocation.source,
+				line: originalLocation.line,
+				column: (originalLocation.column !== null) ? originalLocation.column : undefined
+			};
+		} else {
+			return undefined;
+		}
+	}
+
+	public eachMapping(callback: (mapping: MappingItem) => void): void {
+		if (this.sourceMapConsumer) {
+			this.sourceMapConsumer.eachMapping(mappingItem => {
+				const lastGeneratedColumn = (mappingItem.lastGeneratedColumn !== undefined) ? (mappingItem.lastGeneratedColumn || mappingItem.generatedColumn) : undefined;
+				callback({
+					...mappingItem,
+					originalColumn: mappingItem.originalColumn,
+					generatedColumn: mappingItem.generatedColumn,
+					lastGeneratedColumn
+				});
+			}, undefined, SourceMapConsumer.GENERATED_ORDER);
+		}
+	}
+
+	public sourceContentFor(source: string): string | undefined {
+		if (this.sourceMapConsumer) {
+			return this.sourceMapConsumer.sourceContentFor(source) || undefined;
+		}
+		return undefined;
 	}
 
 	public syncBlackboxFlag(): void {
@@ -129,7 +155,7 @@ export class SourceMappingInfo {
 			return sourceUrl;
 	}
 
-	private findUnresolvedSource(resolvedSource: string): string | undefined {
+	public findUnresolvedSource(resolvedSource: string): string | undefined {
 		if (!this.sourceMapConsumer) return undefined;
 
 		for (const source of this.sourceMapConsumer.sources) {
@@ -143,38 +169,4 @@ export class SourceMappingInfo {
 
 		return undefined;
 	}
-}
-
-export function findNextBreakpointPosition(
-	requestedLine: number,
-	requestedColumn: number,
-	breakpointPositions: FirefoxDebugProtocol.BreakpointPositions
-): { line: number, column: number } {
-
-	let line = Number.MAX_SAFE_INTEGER;
-	let lastLine = 0;
-	for (const l in breakpointPositions) {
-		const possibleLine = parseInt(l);
-		if ((possibleLine >= requestedLine) && (possibleLine < line)) {
-			line = possibleLine;
-		}
-		if (possibleLine > lastLine) {
-			lastLine = possibleLine;
-		}
-	}
-
-	if (line === Number.MAX_SAFE_INTEGER) {
-		line = lastLine;
-	}
-
-	if (line === requestedLine) {
-		for (const column of breakpointPositions[line]) {
-			if (column >= requestedColumn) {
-				return { line, column };
-			}
-		}
-	}
-
-	const column = breakpointPositions[line][0];
-	return { line, column };
 }

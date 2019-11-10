@@ -32,7 +32,7 @@ export class SkipFilesManager {
 
 			let result = this.dynamicFiles.get(pathOrUrl)!;
 
-			if (log.isDebugEnabled) {
+			if (log.isDebugEnabled()) {
 				log.debug(`skipFile is set dynamically to ${result} for ${pathOrUrl}`);
 			}
 
@@ -47,7 +47,7 @@ export class SkipFilesManager {
 
 			if (regExp.test(testee)) {
 
-				if (log.isDebugEnabled) {
+				if (log.isDebugEnabled()) {
 					log.debug(`skipFile is set per configuration to true for ${pathOrUrl}`);
 				}
 
@@ -55,7 +55,7 @@ export class SkipFilesManager {
 			}
 		}
 
-		if (log.isDebugEnabled) {
+		if (log.isDebugEnabled()) {
 			log.debug(`skipFile is not set for ${pathOrUrl}`);
 		}
 

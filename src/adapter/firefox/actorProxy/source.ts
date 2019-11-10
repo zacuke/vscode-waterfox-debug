@@ -2,6 +2,7 @@ import { Log } from '../../util/log';
 import { DebugConnection } from '../connection';
 import { PendingRequests, PendingRequest } from '../../util/pendingRequests';
 import { ActorProxy } from './interface';
+import { MappedLocation, Range } from '../../location';
 
 let log = Log.create('SourceActorProxy');
 
@@ -9,15 +10,11 @@ export interface ISourceActorProxy {
 	name: string;
 	source: FirefoxDebugProtocol.Source;
 	url: string | null;
-	getBreakpointPositions(): Promise<FirefoxDebugProtocol.BreakpointPositions>;
+	getBreakableLines(): Promise<number[]>;
+	getBreakableLocations(line: number): Promise<MappedLocation[]>;
 	fetchSource(): Promise<FirefoxDebugProtocol.Grip>;
 	setBlackbox(blackbox: boolean): Promise<void>;
 	dispose(): void;
-}
-
-export interface Location {
-	line: number,
-	column?: number
 }
 
 /**
@@ -27,8 +24,9 @@ export interface Location {
  */
 export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 
-	private pendingGetBreakpointPositionsRequest?: PendingRequest<FirefoxDebugProtocol.BreakpointPositions>;
-	private getBreakpointPositionsPromise?: Promise<FirefoxDebugProtocol.BreakpointPositions>;
+	private pendingGetBreakableLinesRequest?: PendingRequest<number[]>;
+	private getBreakableLinesPromise?: Promise<number[]>;
+	private pendingGetBreakpointPositionsRequests = new PendingRequests<FirefoxDebugProtocol.BreakpointPositions>();
 	private pendingFetchSourceRequests = new PendingRequests<FirefoxDebugProtocol.Grip>();
 	private pendingBlackboxRequests = new PendingRequests<void>();
 	
@@ -47,17 +45,54 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 		return this.source.url;
 	}
 
-	public getBreakpointPositions(): Promise<FirefoxDebugProtocol.BreakpointPositions> {
-		if (!this.getBreakpointPositionsPromise) {
-			log.debug(`Fetching breakpointPositions of ${this.url}`);
+	public getBreakableLines(): Promise<number[]> {
 
-			this.getBreakpointPositionsPromise = new Promise<FirefoxDebugProtocol.BreakpointPositions>((resolve, reject) => {
-				this.pendingGetBreakpointPositionsRequest = { resolve, reject };
-				this.connection.sendRequest({ to: this.name, type: 'getBreakpointPositionsCompressed' });
+		if (!this.getBreakableLinesPromise) {
+
+			log.debug(`Fetching breakableLines of ${this.url}`);
+
+			this.getBreakableLinesPromise = new Promise<number[]>((resolve, reject) => {
+				this.pendingGetBreakableLinesRequest = { resolve, reject };
+				this.connection.sendRequest({ to: this.name, type: 'getBreakableLines' });
 			});
 		}
 
-		return this.getBreakpointPositionsPromise;
+		return this.getBreakableLinesPromise;
+	}
+
+	public async getBreakableLocations(line: number): Promise<MappedLocation[]> {
+
+		log.debug(`Fetching breakpointPositions of ${this.url}`);
+
+		const positions = await this.getBreakpointPositionsForRange({
+			start: { line, column: 0 },
+			end: { line, column: Number.MAX_SAFE_INTEGER }
+		});
+
+		if (positions[line]) {
+			return (positions[line].map(column => ({ line, column })));
+		} else {
+			return [];
+		}
+	}
+
+	public getBreakpointPositionsForRange(range: Range): Promise<FirefoxDebugProtocol.BreakpointPositions> {
+
+		log.debug(`Fetching breakpoint positions of ${this.url} for range: ${JSON.stringify(range)}`);
+
+		return new Promise<FirefoxDebugProtocol.BreakpointPositions>((resolve, reject) => {
+			this.pendingGetBreakpointPositionsRequests.enqueue({ resolve, reject });
+
+			const request: any = { to: this.name, type: 'getBreakpointPositionsCompressed' };
+			if (range) {
+				request.query = {
+					start: { line: range.start.line, column: range.start.column },
+					end: { line: range.end.line, column: range.end.column },
+				};
+			}
+
+			this.connection.sendRequest(request);
+		});
 	}
 
 	public fetchSource(): Promise<FirefoxDebugProtocol.Grip> {
@@ -89,17 +124,24 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 
-		if (response['positions'] !== undefined) {
+		if (response['lines'] !== undefined) {
+
+			log.debug('Received getBreakableLines response');
+
+			let breakableLinesResponse = <FirefoxDebugProtocol.GetBreakableLinesResponse>response;
+			if (this.pendingGetBreakableLinesRequest) {
+				this.pendingGetBreakableLinesRequest.resolve(breakableLinesResponse.lines);
+				this.pendingGetBreakableLinesRequest = undefined;
+			} else {
+				log.warn(`Got BreakableLines for ${this.url} without a corresponding request`);
+			}
+
+		} else if (response['positions'] !== undefined) {
 
 			log.debug('Received getBreakpointPositions response');
 
 			let breakpointPositionsResponse = <FirefoxDebugProtocol.GetBreakpointPositionsCompressedResponse>response;
-			if (this.pendingGetBreakpointPositionsRequest) {
-				this.pendingGetBreakpointPositionsRequest.resolve(breakpointPositionsResponse.positions);
-				this.pendingGetBreakpointPositionsRequest = undefined;
-			} else {
-				log.warn(`Got BreakpointPositions ${this.url} without a corresponding request`);
-			}
+			this.pendingGetBreakpointPositionsRequests.resolveOne(breakpointPositionsResponse.positions);
 
 		} else if (response['source'] !== undefined) {
 
