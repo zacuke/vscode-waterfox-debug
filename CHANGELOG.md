@@ -1,3 +1,8 @@
+### Version 2.5.0
+* performance improvement for setting breakpoints in bundled sources
+* add support for the new column breakpoint UI introduced in VS Code 1.39
+* remove support for Firefox <68
+
 ### Version 2.4.0
 * add support for `console.clear()`
 * add `clearConsoleOnReload` configuration property
