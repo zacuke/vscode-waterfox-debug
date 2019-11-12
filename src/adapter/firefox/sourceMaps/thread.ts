@@ -250,11 +250,11 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		}
 	}
 
-	public async removeBreakpoint(location: MappedLocation, sourceUrl?: string): Promise<void> {
-		if (location.generated) {
-			await this.underlyingActorProxy.removeBreakpoint(location.generated, sourceUrl);
+	public async removeBreakpoint(location: MappedLocation, sourceActor: ISourceActorProxy): Promise<void> {
+		if (location.generated && (sourceActor instanceof SourceMappingSourceActorProxy)) {
+			await this.underlyingActorProxy.removeBreakpoint(location.generated, sourceActor.underlyingActor);
 		} else {
-			await this.underlyingActorProxy.removeBreakpoint(location, sourceUrl);
+			await this.underlyingActorProxy.removeBreakpoint(location, sourceActor);
 		}
 	}
 

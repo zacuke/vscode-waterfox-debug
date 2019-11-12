@@ -53,7 +53,7 @@ export class BreakpointAdapter {
 
 			return this.sourceAdapter.threadAdapter.actor.removeBreakpoint(
 				this.breakpointInfo.actualLocation,
-				this.sourceAdapter.actor.url || undefined
+				this.sourceAdapter.actor
 			);
 
 		} else {
