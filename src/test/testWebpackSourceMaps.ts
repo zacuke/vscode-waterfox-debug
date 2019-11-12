@@ -2,6 +2,7 @@ import * as os from 'os';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as uuid from 'uuid';
+import * as assert from 'assert';
 import * as util from './util';
 import * as sourceMapUtil from './sourceMapUtil';
 import webpack from 'webpack';
@@ -48,6 +49,18 @@ describe('Webpack sourcemaps: The debugger', function() {
 				file: path.join(targetDir, 'index.html'),
 				pathMappings: [{ url: 'webpack:///', path: targetDir + '/' }]
 			});
+
+			// test breakpoint locations if the devtool provides column breakpoints
+			if ((devtool.indexOf('cheap') < 0) && (devtool.indexOf('source-map') >= 0)) {
+				const breakpointLocations = await dc.customRequest('breakpointLocations', {
+					source: { path: path.join(targetDir, 'f.js') },
+					line: 7
+				});
+				assert.deepStrictEqual(breakpointLocations.body.breakpoints, [
+					{ line: 7, column: 1 },
+					{ line: 7, column: 6 }
+				]);
+			}
 
 			await sourceMapUtil.testSourcemaps(dc, targetDir, 1);
 		});
