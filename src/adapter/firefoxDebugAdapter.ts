@@ -428,7 +428,11 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 	protected async setDataBreakpoints(args: DebugProtocol.SetDataBreakpointsArguments): Promise<{ breakpoints: DebugProtocol.Breakpoint[] }> {
 		if (!this.session.dataBreakpointsManager) {
-			throw "Your version of Firefox doesn't support watchpoints / data breakpoints";
+			if (args.breakpoints.length === 0) {
+				return { breakpoints: [] };
+			} else {
+				throw "Your version of Firefox doesn't support watchpoints / data breakpoints";
+			}
 		}
 
 		await this.session.dataBreakpointsManager.setDataBreakpoints(args.breakpoints);
