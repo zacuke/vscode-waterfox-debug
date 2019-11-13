@@ -17,6 +17,25 @@ describe('Setting breakpoints: The debugger', function() {
 		await dc.stop();
 	});
 
+	it('should provide breakpoint locations in sources without sourcemaps', async function() {
+
+		await util.receivePageLoadedEvent(dc);
+
+		const sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
+		const locations = await dc.customRequest('breakpointLocations', {
+			source: { path: sourcePath },
+			line: 17
+		});
+
+		assert.deepStrictEqual(locations.body.breakpoints, [
+			{ line: 17, column: 14 },
+			{ line: 17, column: 20 },
+			{ line: 17, column: 49 },
+			{ line: 17, column: 56 },
+			{ line: 17, column: 89 }
+		]);
+	});
+
 	it('should eventually verify a breakpoint set on a loaded file', async function() {
 
 		await util.receivePageLoadedEvent(dc);

@@ -23,7 +23,7 @@ export interface IThreadActorProxy {
 	fetchStackFrames(start?: number, count?: number): Promise<FirefoxDebugProtocol.Frame[]>;
 	setBreakpoint(location: MappedLocation, sourceActor: ISourceActorProxy, condition?: string, logValue?: string): Promise<void>;
 	pauseOnExceptions(pauseOnExceptions: boolean, ignoreCaughtExceptions: boolean): Promise<void>;
-	removeBreakpoint(location: MappedLocation, sourceUrl?: string): Promise<void>;
+	removeBreakpoint(location: MappedLocation, sourceActor: ISourceActorProxy): Promise<void>;
 	findOriginalLocation(generatedUrl: string, line: number, column?: number): Promise<UrlLocation | undefined>
 	onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedResponse) => void): void;
 	onResumed(cb: () => void): void;
@@ -184,14 +184,14 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 		})
 	}
 
-	public removeBreakpoint(location: MappedLocation, sourceUrl?: string): Promise<void> {
-		log.debug(`Removing breakpoint at ${location.line}:${location.column} in ${sourceUrl}`);
+	public removeBreakpoint(location: MappedLocation, sourceActor: ISourceActorProxy): Promise<void> {
+		log.debug(`Removing breakpoint at ${location.line}:${location.column} in ${sourceActor.url}`);
 
 		return new Promise<void>((resolve, reject) => {
 			this.pendingEmptyResponseRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({
 				to: this.name, type: 'removeBreakpoint',
-				location: { line: location.line, column: location.column, sourceUrl }
+				location: { line: location.line, column: location.column, sourceUrl: sourceActor.url }
 			});
 		})
 	}

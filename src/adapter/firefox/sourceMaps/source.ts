@@ -121,7 +121,7 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 						originalBreakableColumns.set(originalLocation.line, new Set<number>());
 					}
 
-					const originalColumn = originalLocation.column || 1;
+					const originalColumn = originalLocation.column || 0;
 					if (!originalBreakableColumns.get(originalLocation.line)!.has(originalColumn)) {
 						mappedBreakableLocations.get(originalLocation.line)!.push({
 							line: originalLocation.line,
@@ -131,6 +131,7 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 								column: generatedColumn
 							}
 						});
+						originalBreakableColumns.get(originalLocation.line)!.add(originalColumn);
 					}
 				}
 			}

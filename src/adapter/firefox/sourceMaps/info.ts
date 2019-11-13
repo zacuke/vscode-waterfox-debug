@@ -49,7 +49,7 @@ export class SourceMappingInfo {
 		let consumerArgs = {
 			line: generatedLocation.line,
 			column: generatedLocation.column || 0,
-			bias: LEAST_UPPER_BOUND
+			bias: GREATEST_LOWER_BOUND
 		};
 
 		if (this.underlyingSource.source.introductionType === 'wasm') {
@@ -60,7 +60,7 @@ export class SourceMappingInfo {
 		let originalLocation = this.sourceMapConsumer.originalPositionFor(consumerArgs);
 
 		if (originalLocation.source === null) {
-			consumerArgs.bias = GREATEST_LOWER_BOUND;
+			consumerArgs.bias = LEAST_UPPER_BOUND;
 			originalLocation = this.sourceMapConsumer.originalPositionFor(consumerArgs);
 		}
 
