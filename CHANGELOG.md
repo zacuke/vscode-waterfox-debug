@@ -1,3 +1,9 @@
+### Version 2.5.1
+* fix removal of breakpoints from sourcemapped sources
+* improved default `pathMappings` for Angular CLI projects
+* sourcemapping accuracy improvements
+* fix initialization of exception breakpoints
+
 ### Version 2.5.0
 * performance improvement for setting breakpoints in bundled sources
 * add support for the new column breakpoint UI introduced in VS Code 1.39
