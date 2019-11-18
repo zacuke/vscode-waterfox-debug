@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { ParsedAddonConfiguration } from '../configuration';
 import { RootActorProxy } from '../firefox/actorProxy/root';
 import { AddonsActorProxy } from '../firefox/actorProxy/addons';
@@ -7,6 +8,7 @@ import { WebExtensionActorProxy } from '../firefox/actorProxy/webExtension';
 import { TabActorProxy } from '../firefox/actorProxy/tab';
 import { FirefoxDebugSession } from '../firefoxDebugSession';
 import { PopupAutohideEventBody } from '../../common/customEvents';
+import { isWindowsPlatform } from '../../common/util';
 
 export const popupAutohidePreferenceKey = 'ui.popup.disable_autohide';
 
@@ -35,7 +37,8 @@ export class AddonManager {
 		useConnect: boolean
 	): Promise<void> {
 
-		let result = await addonsActor.installAddon(this.config.path);
+		const addonPath = isWindowsPlatform() ? path.normalize(this.config.path) : this.config.path;
+		let result = await addonsActor.installAddon(addonPath);
 		if (!this.config.id) {
 			this.config.id = result.addon.id;
 		}
