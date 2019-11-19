@@ -238,7 +238,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		return { stackFrames, totalFrames };
 	}
 
-	protected getScopes(args: DebugProtocol.ScopesArguments): { scopes: DebugProtocol.Scope[] } {
+	protected async getScopes(args: DebugProtocol.ScopesArguments): Promise<{ scopes: DebugProtocol.Scope[] }> {
 
 		let frameAdapter = this.session.frames.find(args.frameId);
 		if (!frameAdapter) {
@@ -247,7 +247,8 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		this.session.setActiveThread(frameAdapter.threadAdapter);
 
-		let scopes = frameAdapter.scopeAdapters.map((scopeAdapter) => scopeAdapter.getScope());
+		const scopeAdapters = await frameAdapter.getScopeAdapters();
+		const scopes = scopeAdapters.map((scopeAdapter) => scopeAdapter.getScope());
 
 		return { scopes };
 	}

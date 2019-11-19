@@ -4,6 +4,7 @@ import { EnvironmentAdapter } from './environment';
 import { ScopeAdapter } from './scope';
 import { StackFrame } from 'vscode-debugadapter';
 import { Registry } from './registry';
+import { FrameActorProxy } from '../firefox/actorProxy/frame';
 
 let log = Log.create('FrameAdapter');
 
@@ -13,7 +14,7 @@ let log = Log.create('FrameAdapter');
 export class FrameAdapter {
 
 	public readonly id: number;
-	public readonly scopeAdapters: ScopeAdapter[];
+	private _scopeAdapters?: ScopeAdapter[];
 
 	public constructor(
 		private readonly frameRegistry: Registry<FrameAdapter>,
@@ -21,11 +22,6 @@ export class FrameAdapter {
 		public readonly threadAdapter: ThreadAdapter
 	) {
 		this.id = frameRegistry.register(this);
-		let environmentAdapter = EnvironmentAdapter.from(this.frame.environment);
-		this.scopeAdapters = environmentAdapter.getScopeAdapters(this);
-		if (this.frame.this !== undefined) {
-			this.scopeAdapters[0].addThis(this.frame.this);
-		}
 	}
 
 	public getStackframe(): StackFrame {
@@ -65,6 +61,24 @@ export class FrameAdapter {
 
 		return new StackFrame(this.id, name, sourceAdapter.source,
 			this.frame.where.line, (this.frame.where.column || 0) + 1);
+	}
+
+	public async getScopeAdapters(): Promise<ScopeAdapter[]> {
+
+		if (!this._scopeAdapters) {
+
+			const frameActor = new FrameActorProxy(this.frame, this.threadAdapter.debugSession.firefoxDebugConnection);
+			const environment = await frameActor.getEnvironment();
+			frameActor.dispose();
+
+			const environmentAdapter = EnvironmentAdapter.from(environment);
+			this._scopeAdapters = environmentAdapter.getScopeAdapters(this);
+			if (this.frame.this !== undefined) {
+				this._scopeAdapters[0].addThis(this.frame.this);
+			}
+		}
+
+		return this._scopeAdapters;
 	}
 
 	public dispose(): void {

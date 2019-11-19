@@ -26,7 +26,7 @@ export abstract class DebugAdapterBase extends DebugSession {
 	protected abstract getSource(args: DebugProtocol.SourceArguments): Promise<{ content: string, mimeType?: string }>;
 	protected abstract getThreads(): { threads: DebugProtocol.Thread[] };
 	protected abstract getStackTrace(args: DebugProtocol.StackTraceArguments): Promise<{ stackFrames: DebugProtocol.StackFrame[], totalFrames?: number }>;
-	protected abstract getScopes(args: DebugProtocol.ScopesArguments): { scopes: DebugProtocol.Scope[] };
+	protected abstract getScopes(args: DebugProtocol.ScopesArguments): Promise<{ scopes: DebugProtocol.Scope[] }>;
 	protected abstract getVariables(args: DebugProtocol.VariablesArguments): Promise<{ variables: DebugProtocol.Variable[] }>;
 	protected abstract setVariable(args: DebugProtocol.SetVariableArguments): Promise<{ value: string, variablesReference?: number }>;
 	protected abstract evaluate(args: DebugProtocol.EvaluateArguments): Promise<{ result: string, type?: string, variablesReference: number, namedVariables?: number, indexedVariables?: number }>;
@@ -99,7 +99,7 @@ export abstract class DebugAdapterBase extends DebugSession {
 	}
 
 	protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): void {
-		this.handleRequest(response, () => this.getScopes(args));
+		this.handleRequestAsync(response, () => this.getScopes(args));
 	}
 
 	protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): void {

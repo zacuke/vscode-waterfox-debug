@@ -255,7 +255,7 @@ declare namespace FirefoxDebugProtocol {
 		depth: number;
 		this?: Grip;
 		where: SourceLocation;
-		environment: Environment;
+		environment?: Environment;
 	}
 
 	interface GlobalFrame extends Frame {

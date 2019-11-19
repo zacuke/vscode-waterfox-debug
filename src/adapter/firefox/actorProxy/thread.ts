@@ -9,8 +9,9 @@ import { MappedLocation, UrlLocation } from '../../location';
 let log = Log.create('ThreadActorProxy');
 
 export interface AttachOptions {
-	pauseOnExceptions?: boolean,
-	ignoreCaughtExceptions?: boolean
+	ignoreFrameEnvironment?: boolean;
+	pauseOnExceptions?: boolean;
+	ignoreCaughtExceptions?: boolean;
 }
 
 export interface IThreadActorProxy {
