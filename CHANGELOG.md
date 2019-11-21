@@ -1,3 +1,8 @@
+### Version 2.5.2
+* improve stepping performance
+* fix for debugging a WebExtension in a workspace subfolder on Windows
+* fix for debugging in a remote workspace on Windows
+
 ### Version 2.5.1
 * fix removal of breakpoints from sourcemapped sources
 * improved default `pathMappings` for Angular CLI projects
