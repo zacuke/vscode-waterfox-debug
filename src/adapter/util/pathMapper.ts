@@ -96,7 +96,7 @@ export class PathMapper {
 					}
 
 					let thePath = this.removeQueryString(to + decodeURIComponent(url.substr(from.length)));
-					if (isWindowsPlatform) {
+					if (isWindowsPlatform && !isAbsoluteUrl(thePath)) {
 						thePath = path.normalize(thePath);
 					}
 
@@ -115,7 +115,7 @@ export class PathMapper {
 					}
 
 					let thePath = this.removeQueryString(to + decodeURIComponent(match[1]));
-					if (isWindowsPlatform) {
+					if (isWindowsPlatform && !isAbsoluteUrl(thePath)) {
 						thePath = path.normalize(thePath);
 					}
 
