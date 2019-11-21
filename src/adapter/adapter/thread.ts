@@ -155,6 +155,7 @@ export class ThreadAdapter extends EventEmitter {
 	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
 
 		const attachOptions: AttachOptions = {
+			ignoreFrameEnvironment: true,
 			pauseOnExceptions: (exceptionBreakpoints !== ExceptionBreakpoints.None),
 			ignoreCaughtExceptions: (exceptionBreakpoints !== ExceptionBreakpoints.All)
 		};
@@ -317,23 +318,25 @@ export class ThreadAdapter extends EventEmitter {
 					let threadPausedReason = this.coordinator.threadPausedReason;
 					if ((threadPausedReason !== undefined) && (frameAdapters.length > 0)) {
 
+						const scopeAdapters = await frameAdapters[0].getScopeAdapters();
+
 						if (threadPausedReason.frameFinished !== undefined) {
 
 							if (threadPausedReason.frameFinished.return !== undefined) {
 
-								frameAdapters[0].scopeAdapters[0].addReturnValue(
+								scopeAdapters[0].addReturnValue(
 									threadPausedReason.frameFinished.return);
 
 							} else if (threadPausedReason.frameFinished.throw !== undefined) {
 
-								frameAdapters[0].scopeAdapters.unshift(ScopeAdapter.fromGrip(
+								scopeAdapters.unshift(ScopeAdapter.fromGrip(
 									'Exception', threadPausedReason.frameFinished.throw, frameAdapters[0]));
 							}
 
 						} else if (threadPausedReason.exception !== undefined) {
 
-								frameAdapters[0].scopeAdapters.unshift(ScopeAdapter.fromGrip(
-									'Exception', threadPausedReason.exception, frameAdapters[0]));
+							scopeAdapters.unshift(ScopeAdapter.fromGrip(
+								'Exception', threadPausedReason.exception, frameAdapters[0]));
 						}
 					}
 
