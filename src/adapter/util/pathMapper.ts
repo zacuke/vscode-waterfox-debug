@@ -9,6 +9,7 @@ import { urlDirname } from './net';
 let log = Log.create('PathConversion');
 
 let isWindowsPlatform = detectWindowsPlatform();
+const windowsAbsolutePathRegEx = /^[a-zA-Z]:[\/\\]/;
 
 /**
  * This class is used to map the URLs as seen by Firefox to local paths as seen by VS Code.
@@ -96,7 +97,7 @@ export class PathMapper {
 					}
 
 					let thePath = this.removeQueryString(to + decodeURIComponent(url.substr(from.length)));
-					if (isWindowsPlatform && !isAbsoluteUrl(thePath)) {
+					if (isWindowsPlatform && windowsAbsolutePathRegEx.test(thePath)) {
 						thePath = path.normalize(thePath);
 					}
 
@@ -115,7 +116,7 @@ export class PathMapper {
 					}
 
 					let thePath = this.removeQueryString(to + decodeURIComponent(match[1]));
-					if (isWindowsPlatform && !isAbsoluteUrl(thePath)) {
+					if (isWindowsPlatform && windowsAbsolutePathRegEx.test(thePath)) {
 						thePath = path.normalize(thePath);
 					}
 
