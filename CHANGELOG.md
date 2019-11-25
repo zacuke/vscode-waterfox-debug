@@ -1,3 +1,6 @@
+### Version 2.5.3
+* fix for create-react-app projects on Windows
+
 ### Version 2.5.2
 * improve stepping performance
 * fix for debugging a WebExtension in a workspace subfolder on Windows
