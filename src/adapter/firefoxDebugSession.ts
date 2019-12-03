@@ -121,7 +121,8 @@ export class FirefoxDebugSession {
 
 			rootActor.onInit(async (initialResponse) => {
 
-				if (!initialResponse.traits.nativeLogpoints) {
+				if (initialResponse.traits.webExtensionAddonConnect &&
+					!initialResponse.traits.nativeLogpoints) {
 					reject('Your version of Firefox is not supported anymore - please upgrade to Firefox 68 or later');
 					return;
 				}
