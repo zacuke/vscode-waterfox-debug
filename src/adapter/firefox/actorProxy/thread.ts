@@ -225,7 +225,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	/**
 	 * Fetch StackFrames. This can only be called while the thread is paused.
 	 */
-	public fetchStackFrames(start?: number, count?: number): Promise<FirefoxDebugProtocol.Frame[]> {
+	public fetchStackFrames(start = 0, count = 1000): Promise<FirefoxDebugProtocol.Frame[]> {
 		log.debug(`Fetching stackframes from thread ${this.name}`);
 
 		return new Promise<FirefoxDebugProtocol.Frame[]>((resolve, reject) => {
