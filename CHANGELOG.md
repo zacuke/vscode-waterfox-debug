@@ -1,3 +1,6 @@
+### Version 2.5.5
+* debug protocol fix for Firefox 72
+
 ### Version 2.5.4
 * fix version detection for Firefox 72
 
