@@ -73,6 +73,13 @@ export class RootNode extends TreeNode {
 
 	}
 
+	public getSourceUrls(sessionId: string): string[] | undefined {
+
+		const sessionNode = this.children.find(child => (child.id === sessionId));
+		return sessionNode ? sessionNode.getSourceUrls() : undefined;
+
+	}
+
 	public getChildren(): TreeNode[] {
 
 		this.treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;

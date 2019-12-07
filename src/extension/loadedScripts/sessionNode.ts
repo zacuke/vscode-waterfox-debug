@@ -14,7 +14,8 @@ export class SessionNode extends TreeNode {
 
 	protected children: ThreadNode[] = [];
 	private showThreads = false;
-	
+	private sourceUrls: string[] = [];
+
 	public get id() {
 		return this.session.id;
 	}
@@ -51,6 +52,8 @@ export class SessionNode extends TreeNode {
 
 		if (!sourceInfo.url) return undefined;
 
+		this.sourceUrls.push(sourceInfo.url);
+
 		let threadItem = this.children.find((child) => (child.id === sourceInfo.threadId));
 
 		if (threadItem) {
@@ -67,9 +70,15 @@ export class SessionNode extends TreeNode {
 
 	public removeSources(threadId: number): TreeNode | undefined {
 
+		this.sourceUrls = [];
+
 		let threadItem = this.children.find((child) => (child.id === threadId));
 		return threadItem ? threadItem.removeSources() : undefined;
 
+	}
+
+	public getSourceUrls(): string[] {
+		return this.sourceUrls;
 	}
 
 	public getChildren(): TreeNode[] {

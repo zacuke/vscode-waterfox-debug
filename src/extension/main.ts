@@ -5,6 +5,7 @@ import { ThreadStartedEventBody, ThreadExitedEventBody, NewSourceEventBody, Remo
 import { addPathMapping } from './addPathMapping';
 import { PopupAutohideManager } from './popupAutohideManager';
 import { DebugConfigurationProvider } from './debugConfigurationProvider';
+import { createPathMappingForActiveTextEditor, createPathMappingForPath } from './pathMappingWizard';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -46,6 +47,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand(
 		'extension.firefox.togglePopupAutohide', () => popupAutohideManager.togglePopupAutohide()
+	));
+
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'extension.firefox.pathMappingWizard', () => createPathMappingForActiveTextEditor(loadedScriptsProvider)
 	));
 
 	context.subscriptions.push(vscode.debug.onDidReceiveDebugSessionCustomEvent(
@@ -127,6 +132,10 @@ function onCustomEvent(
 
 			case 'popupAutohide':
 				popupAutohideManager.enableButton((<PopupAutohideEventBody>event.body).popupAutohide);
+				break;
+
+			case 'unknownSource':
+				createPathMappingForPath(event.body, event.session, loadedScriptsProvider);
 				break;
 		}
 	}

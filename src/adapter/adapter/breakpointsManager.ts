@@ -5,7 +5,7 @@ import { ThreadAdapter } from './thread';
 import { Registry } from './registry';
 import { BreakpointInfo } from './breakpoint';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { Breakpoint, BreakpointEvent } from 'vscode-debugadapter';
+import { Breakpoint, BreakpointEvent, Event } from 'vscode-debugadapter';
 
 let log = Log.create('BreakpointsManager');
 
@@ -45,11 +45,17 @@ export class BreakpointsManager {
 
 		this.breakpointsBySourcePathOrUrl.set(key, breakpointInfos);
 
+		let sourceAdapterFound = false;
 		for (const [, threadAdapter] of this.threads) {
 			const sourceAdapters = threadAdapter.findSourceAdaptersForPathOrUrl(sourcePathOrUrl);
 			for (const sourceAdapter of sourceAdapters) {
+				sourceAdapterFound = true;
 				sourceAdapter.updateBreakpoints(breakpointInfos);
 			}
+		}
+
+		if (!sourceAdapterFound) {
+			this.sendEvent(new Event('unknownSource', sourcePathOrUrl));
 		}
 
 		return breakpointInfos;

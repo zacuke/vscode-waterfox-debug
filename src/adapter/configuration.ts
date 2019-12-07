@@ -180,7 +180,8 @@ export async function parseConfiguration(
 
 function harmonizeTrailingSlashes(pathMapping: PathMapping): PathMapping {
 
-	if ((typeof pathMapping.url === 'string') && (typeof pathMapping.path === 'string')) {
+	if ((typeof pathMapping.url === 'string') && (typeof pathMapping.path === 'string') &&
+		(pathMapping.path.length > 0)) {
 
 		if (pathMapping.url.endsWith('/')) {
 			if (pathMapping.path.endsWith('/')) {

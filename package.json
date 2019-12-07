@@ -160,6 +160,10 @@
       {
         "command": "extension.firefox.togglePopupAutohide",
         "title": "Firefox: Toggle popup auto-hide"
+      },
+      {
+        "command": "extension.firefox.pathMappingWizard",
+        "title": "Firefox: Run the path mapping wizard"
       }
     ],
     "menus": {
@@ -176,6 +180,10 @@
         }
       ],
       "commandPalette": [
+        {
+          "command": "extension.firefox.pathMappingWizard",
+          "when": "editorIsOpen && inDebugMode && debugType == 'firefox'"
+        },
         {
           "command": "extension.firefox.toggleSkippingFile",
           "when": "false"

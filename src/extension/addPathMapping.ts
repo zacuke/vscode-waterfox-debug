@@ -53,7 +53,7 @@ export async function addPathMapping(treeNode: TreeNode): Promise<void> {
 	vscode.window.showWarningMessage('Configuration was modified - please restart your debug session for the changes to take effect');
 }
 
-function findLaunchConfig(
+export function findLaunchConfig(
 	workspaceFolders: vscode.WorkspaceFolder[],
 	activeDebugSession: vscode.DebugSession
 ): LaunchConfigReference | undefined {
@@ -74,7 +74,7 @@ function findLaunchConfig(
 	return undefined;
 }
 
-function addPathMappingToLaunchConfig(
+export function addPathMappingToLaunchConfig(
 	launchConfigReference: LaunchConfigReference,
 	url: string,
 	path: string
@@ -98,7 +98,7 @@ function addPathMappingToLaunchConfig(
 	launchConfigReference.launchConfigFile.update('configurations', configurations, vscode.ConfigurationTarget.WorkspaceFolder);
 }
 
-async function showLaunchConfig(workspaceFolder: vscode.WorkspaceFolder): Promise<void> {
+export async function showLaunchConfig(workspaceFolder: vscode.WorkspaceFolder): Promise<void> {
 	const file = path.join(workspaceFolder.uri.fsPath, '.vscode/launch.json');
 	const document = await vscode.workspace.openTextDocument(file);
 	await vscode.window.showTextDocument(document);
