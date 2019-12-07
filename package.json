@@ -150,6 +150,10 @@
         "title": "Map to local directory"
       },
       {
+        "command": "extension.firefox.addFilePathMapping",
+        "title": "Map to local file"
+      },
+      {
         "command": "extension.firefox.enablePopupAutohide",
         "title": "Firefox: Enable popup auto-hide"
       },
@@ -177,6 +181,10 @@
         {
           "command": "extension.firefox.addPathMapping",
           "when": "view == extension.firefox.loadedScripts && viewItem == directory"
+        },
+        {
+          "command": "extension.firefox.addFilePathMapping",
+          "when": "view == extension.firefox.loadedScripts && viewItem == file"
         }
       ],
       "commandPalette": [
@@ -194,6 +202,10 @@
         },
         {
           "command": "extension.firefox.addPathMapping",
+          "when": "false"
+        },
+        {
+          "command": "extension.firefox.addFilePathMapping",
           "when": "false"
         }
       ]

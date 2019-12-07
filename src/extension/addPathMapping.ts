@@ -35,18 +35,21 @@ export async function addPathMapping(treeNode: TreeNode): Promise<void> {
 	}
 
 	const openDialogResult = await vscode.window.showOpenDialog({
-		canSelectFiles: false,
-		canSelectFolders: true,
+		canSelectFiles: (treeNode.treeItem.contextValue === 'file'),
+		canSelectFolders: (treeNode.treeItem.contextValue === 'directory'),
 		canSelectMany: false,
 		defaultUri: launchConfigReference.workspaceFolder.uri,
-		openLabel: 'Map to this directory'
+		openLabel: 'Map to this ' + treeNode.treeItem.contextValue
 	});
 	if (!openDialogResult || (openDialogResult.length === 0)) {
 		return;
 	}
-	const path = openDialogResult[0].fsPath;
 
-	addPathMappingToLaunchConfig(launchConfigReference, treeNode.getFullPath(), path + '/');
+	let path = (openDialogResult[0].scheme === 'file') ? openDialogResult[0].fsPath : openDialogResult[0].toString();
+	if (treeNode.treeItem.contextValue === 'directory') {
+		path += '/';
+	}
+	addPathMappingToLaunchConfig(launchConfigReference, treeNode.getFullPath(), path);
 
 	await showLaunchConfig(launchConfigReference.workspaceFolder);
 
