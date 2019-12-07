@@ -15,24 +15,8 @@ interface LaunchConfigReference {
 
 export async function addPathMapping(treeNode: TreeNode): Promise<void> {
 
-	const debugSession = vscode.debug.activeDebugSession;
-	if (!debugSession) {
-		vscode.window.showErrorMessage('No active debug session');
-		return;
-	}
-
-	const workspaceFolders = vscode.workspace.workspaceFolders;
-	if (!workspaceFolders) {
-		vscode.window.showErrorMessage('No open folder');
-		return;
-	}
-
-	const launchConfigReference = findLaunchConfig(workspaceFolders, debugSession);
-
-	if (!launchConfigReference) {
-		vscode.window.showErrorMessage(`Couldn't find configuration for active debug session '${debugSession.name}'`);
-		return;
-	}
+	const launchConfigReference = _findLaunchConfig();
+	if (!launchConfigReference) return;
 
 	const openDialogResult = await vscode.window.showOpenDialog({
 		canSelectFiles: (treeNode.treeItem.contextValue === 'file'),
@@ -54,6 +38,41 @@ export async function addPathMapping(treeNode: TreeNode): Promise<void> {
 	await showLaunchConfig(launchConfigReference.workspaceFolder);
 
 	vscode.window.showWarningMessage('Configuration was modified - please restart your debug session for the changes to take effect');
+}
+
+export async function addNullPathMapping(treeNode: TreeNode): Promise<void> {
+
+	const launchConfigReference = _findLaunchConfig();
+	if (!launchConfigReference) return;
+
+	addPathMappingToLaunchConfig(launchConfigReference, treeNode.getFullPath(), null);
+
+	await showLaunchConfig(launchConfigReference.workspaceFolder);
+
+	vscode.window.showWarningMessage('Configuration was modified - please restart your debug session for the changes to take effect');
+}
+
+function _findLaunchConfig(): LaunchConfigReference | undefined {
+
+	const debugSession = vscode.debug.activeDebugSession;
+	if (!debugSession) {
+		vscode.window.showErrorMessage('No active debug session');
+		return undefined;
+	}
+
+	const workspaceFolders = vscode.workspace.workspaceFolders;
+	if (!workspaceFolders) {
+		vscode.window.showErrorMessage('No open folder');
+		return undefined;
+	}
+
+	const launchConfigReference = findLaunchConfig(workspaceFolders, debugSession);
+
+	if (!launchConfigReference) {
+		vscode.window.showErrorMessage(`Couldn't find configuration for active debug session '${debugSession.name}'`);
+	}
+
+	return launchConfigReference;
 }
 
 export function findLaunchConfig(
@@ -80,7 +99,7 @@ export function findLaunchConfig(
 export function addPathMappingToLaunchConfig(
 	launchConfigReference: LaunchConfigReference,
 	url: string,
-	path: string
+	path: string | null
 ): void {
 
 	const configurations = <any[]>launchConfigReference.launchConfigFile.get('configurations');
@@ -91,7 +110,7 @@ export function addPathMappingToLaunchConfig(
 	}
 
 	const workspacePath = launchConfigReference.workspaceFolder.uri.fsPath;
-	if (path.startsWith(workspacePath)) {
+	if (path && path.startsWith(workspacePath)) {
 		path = '${workspaceFolder}' + path.substr(workspacePath.length);
 	}
 

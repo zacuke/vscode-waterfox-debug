@@ -154,6 +154,14 @@
         "title": "Map to local file"
       },
       {
+        "command": "extension.firefox.addNullPathMapping",
+        "title": "Don't map this directory"
+      },
+      {
+        "command": "extension.firefox.addNullFilePathMapping",
+        "title": "Don't map this file"
+      },
+      {
         "command": "extension.firefox.enablePopupAutohide",
         "title": "Firefox: Enable popup auto-hide"
       },
@@ -180,10 +188,22 @@
       "view/item/context": [
         {
           "command": "extension.firefox.addPathMapping",
+          "group": "addPathMapping@1",
           "when": "view == extension.firefox.loadedScripts && viewItem == directory"
         },
         {
           "command": "extension.firefox.addFilePathMapping",
+          "group": "addPathMapping@1",
+          "when": "view == extension.firefox.loadedScripts && viewItem == file"
+        },
+        {
+          "command": "extension.firefox.addNullPathMapping",
+          "group": "addPathMapping@2",
+          "when": "view == extension.firefox.loadedScripts && viewItem == directory"
+        },
+        {
+          "command": "extension.firefox.addNullFilePathMapping",
+          "group": "addPathMapping@2",
           "when": "view == extension.firefox.loadedScripts && viewItem == file"
         }
       ],
@@ -206,6 +226,14 @@
         },
         {
           "command": "extension.firefox.addFilePathMapping",
+          "when": "false"
+        },
+        {
+          "command": "extension.firefox.addNullPathMapping",
+          "when": "false"
+        },
+        {
+          "command": "extension.firefox.addNullFilePathMapping",
           "when": "false"
         }
       ]

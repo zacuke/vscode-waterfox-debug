@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import isAbsoluteUrl from 'is-absolute-url';
 import { LoadedScriptsProvider } from './loadedScripts/provider';
 import { ThreadStartedEventBody, ThreadExitedEventBody, NewSourceEventBody, RemoveSourcesEventBody, PopupAutohideEventBody } from '../common/customEvents';
-import { addPathMapping } from './addPathMapping';
+import { addPathMapping, addNullPathMapping } from './addPathMapping';
 import { PopupAutohideManager } from './popupAutohideManager';
 import { DebugConfigurationProvider } from './debugConfigurationProvider';
 import { createPathMappingForActiveTextEditor, createPathMappingForPath } from './pathMappingWizard';
@@ -39,6 +39,14 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand(
 		'extension.firefox.addFilePathMapping', addPathMapping
+	));
+
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'extension.firefox.addNullPathMapping', addNullPathMapping
+	));
+
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'extension.firefox.addNullFilePathMapping', addNullPathMapping
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
