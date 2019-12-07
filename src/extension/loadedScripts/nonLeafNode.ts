@@ -15,6 +15,7 @@ export abstract class NonLeafNode extends TreeNode {
 	public addSource(
 		filename: string,
 		path: string[],
+		description: string | undefined,
 		sourceInfo: NewSourceEventBody,
 		sessionId: string
 	): TreeNode | undefined {
@@ -22,7 +23,7 @@ export abstract class NonLeafNode extends TreeNode {
 		if (path.length === 0) {
 
 			// add the source file to this directory (not a subdirectory)
-			this.addChild(new FileNode(filename, sourceInfo, this, sessionId));
+			this.addChild(new FileNode(filename, description, sourceInfo, this, sessionId));
 			return this;
 
 		}
@@ -38,7 +39,7 @@ export abstract class NonLeafNode extends TreeNode {
 			// there is no subdirectory that shares an initial path segment with the path to be added,
 			// so we create a SourceDirectoryTreeItem for the path and add the source file to it
 			let directoryItem = new DirectoryNode(path, this);
-			directoryItem.addSource(filename, [], sourceInfo, sessionId);
+			directoryItem.addSource(filename, [], description, sourceInfo, sessionId);
 			this.addChild(directoryItem);
 			return this;
 
@@ -60,14 +61,14 @@ export abstract class NonLeafNode extends TreeNode {
 
 			// the entire path of the subdirectory item is contained in the path of the file to be
 			// added, so we add the file with the pathRest to the subdirectory item
-			return item.addSource(filename, pathRest, sourceInfo, sessionId);
+			return item.addSource(filename, pathRest, description, sourceInfo, sessionId);
 
 		}
 
 		// only a part of the path of the subdirectory item is contained in the path of the file to
 		// be added, so we split the subdirectory item into two and add the file to the first item
 		item.split(pathMatchLength);
-		item.addSource(filename, pathRest, sourceInfo, sessionId);
+		item.addSource(filename, pathRest, description, sourceInfo, sessionId);
 		return item;
 
 	}

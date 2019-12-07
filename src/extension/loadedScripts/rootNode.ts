@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ThreadStartedEventBody, NewSourceEventBody } from '../../common/customEvents';
 import { TreeNode } from './treeNode';
-import { SessionInfo, SessionNode } from './sessionNode';
+import { SessionNode } from './sessionNode';
 
 export class RootNode extends TreeNode {
 
@@ -13,7 +13,7 @@ export class RootNode extends TreeNode {
 		this.treeItem.contextValue = 'root';
 	}
 
-	public addSession(session: SessionInfo): TreeNode | undefined {
+	public addSession(session: vscode.DebugSession): TreeNode | undefined {
 
 		if (!this.children.some((child) => (child.id === session.id))) {
 

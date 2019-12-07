@@ -7,9 +7,11 @@ export abstract class TreeNode {
 	public constructor(
 		label: string,
 		public parent?: TreeNode,
+		description?: string,
 		collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.Collapsed
 	) {
 		this.treeItem = new vscode.TreeItem(label, collapsibleState);
+		this.treeItem.description = description;
 	}
 
 	public getFullPath(): string {

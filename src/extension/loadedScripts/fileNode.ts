@@ -7,11 +7,12 @@ export class FileNode extends TreeNode {
 
 	public constructor(
 		filename: string,
+		description: string | undefined,
 		sourceInfo: NewSourceEventBody,
 		parent: NonLeafNode,
 		sessionId: string
 	) {
-		super((filename.length > 0) ? filename : '(index)', parent, vscode.TreeItemCollapsibleState.None);
+		super((filename.length > 0) ? filename : '(index)', parent, description, vscode.TreeItemCollapsibleState.None);
 		this.treeItem.contextValue = 'file';
 
 		let pathOrUri: string;

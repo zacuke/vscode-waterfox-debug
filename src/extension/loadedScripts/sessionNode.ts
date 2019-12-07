@@ -4,12 +4,6 @@ import { RootNode } from './rootNode';
 import { ThreadNode } from './nonLeafNode';
 import { ThreadStartedEventBody, NewSourceEventBody } from '../../common/customEvents';
 
-export interface SessionInfo {
-	id: string;
-	type: string;
-	name: string;
-}
-
 export class SessionNode extends TreeNode {
 
 	protected children: ThreadNode[] = [];
@@ -20,7 +14,7 @@ export class SessionNode extends TreeNode {
 		return this.session.id;
 	}
 
-	public constructor(private session: SessionInfo, parent: RootNode) {
+	public constructor(private session: vscode.DebugSession, parent: RootNode) {
 		super(session.name, parent);
 		this.treeItem.contextValue = 'session';
 	}
@@ -61,7 +55,24 @@ export class SessionNode extends TreeNode {
 			let path = splitURL(sourceInfo.url);
 			let filename = path.pop()!;
 
-			return this.fixChangedItem(threadItem.addSource(filename, path, sourceInfo, this.id));
+			let description: string | undefined;
+			if (sourceInfo.path) {
+
+				description = sourceInfo.path;
+
+				if (this.session.workspaceFolder) {
+					const workspaceUri = this.session.workspaceFolder.uri;
+					let workspacePath = (workspaceUri.scheme === 'file') ? workspaceUri.fsPath : workspaceUri.toString();
+					workspacePath += '/';
+					if (description.startsWith(workspacePath)) {
+						description = description.substring(workspacePath.length);
+					}
+				}
+
+				description = ` → ${description}`;
+			}
+
+			return this.fixChangedItem(threadItem.addSource(filename, path, description, sourceInfo, this.id));
 
 		} else {
 			return undefined;
