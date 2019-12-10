@@ -25,6 +25,7 @@ The debug adapter sends these custom events:
 * `threadExited` : sent when a thread-like actor exited
 * `newSource` : sent when Firefox loaded a new source file
 * `removeSources` : sent when a thread-like actor discards its previously loaded sources, i.e. when a Tab is navigated to a new URL
+* `unknownSource` : sent when the user tries to set a breakpoint in a file that could not be mapped to a URL loaded by Firefox
 
 The event body types are defined [here](../src/common/customEvents.ts).
 The source events may be replaced by the [LoadedSourceEvent](https://microsoft.github.io/debug-adapter-protocol/specification#Events_LoadedSource) in the future.

@@ -150,6 +150,18 @@
         "title": "Map to local directory"
       },
       {
+        "command": "extension.firefox.addFilePathMapping",
+        "title": "Map to local file"
+      },
+      {
+        "command": "extension.firefox.addNullPathMapping",
+        "title": "Don't map this directory"
+      },
+      {
+        "command": "extension.firefox.addNullFilePathMapping",
+        "title": "Don't map this file"
+      },
+      {
         "command": "extension.firefox.enablePopupAutohide",
         "title": "Firefox: Enable popup auto-hide"
       },
@@ -160,6 +172,10 @@
       {
         "command": "extension.firefox.togglePopupAutohide",
         "title": "Firefox: Toggle popup auto-hide"
+      },
+      {
+        "command": "extension.firefox.pathMappingWizard",
+        "title": "Firefox: Run the path mapping wizard"
       }
     ],
     "menus": {
@@ -172,10 +188,30 @@
       "view/item/context": [
         {
           "command": "extension.firefox.addPathMapping",
+          "group": "addPathMapping@1",
           "when": "view == extension.firefox.loadedScripts && viewItem == directory"
+        },
+        {
+          "command": "extension.firefox.addFilePathMapping",
+          "group": "addPathMapping@1",
+          "when": "view == extension.firefox.loadedScripts && viewItem == file"
+        },
+        {
+          "command": "extension.firefox.addNullPathMapping",
+          "group": "addPathMapping@2",
+          "when": "view == extension.firefox.loadedScripts && viewItem == directory"
+        },
+        {
+          "command": "extension.firefox.addNullFilePathMapping",
+          "group": "addPathMapping@2",
+          "when": "view == extension.firefox.loadedScripts && viewItem == file"
         }
       ],
       "commandPalette": [
+        {
+          "command": "extension.firefox.pathMappingWizard",
+          "when": "editorIsOpen && inDebugMode && debugType == 'firefox'"
+        },
         {
           "command": "extension.firefox.toggleSkippingFile",
           "when": "false"
@@ -186,6 +222,18 @@
         },
         {
           "command": "extension.firefox.addPathMapping",
+          "when": "false"
+        },
+        {
+          "command": "extension.firefox.addFilePathMapping",
+          "when": "false"
+        },
+        {
+          "command": "extension.firefox.addNullPathMapping",
+          "when": "false"
+        },
+        {
+          "command": "extension.firefox.addNullFilePathMapping",
           "when": "false"
         }
       ]

@@ -49,8 +49,12 @@ export class LoadedScriptsProvider implements vscode.TreeDataProvider<TreeNode> 
 	}
 
 	public removeSources(threadId: number, sessionId: string) {
-		let changedItem = this.root.removeSources(threadId, sessionId);
+		let changedItem = this.root.removeSources(threadId, sessionId);		
 		this.sendTreeDataChangedEvent(changedItem);
+	}
+
+	public getSourceUrls(sessionId: string): string[] | undefined {
+		return this.root.getSourceUrls(sessionId);
 	}
 
 	private sendTreeDataChangedEvent(changedItem: TreeNode | undefined) {
