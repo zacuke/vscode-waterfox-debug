@@ -1,3 +1,7 @@
+### Version 2.6.0
+* add the Path Mapping Wizard
+* extend the Loaded Scripts Explorer
+
 ### Version 2.5.5
 * debug protocol fix for Firefox 72
 
