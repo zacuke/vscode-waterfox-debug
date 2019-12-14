@@ -61,7 +61,6 @@ export class DataBreakpointsManager {
 
 			log.debug(`Adding data breakpoint for property ${property} of object #${variablesProviderId}`);
 
-			variablesProvider.threadAdapter.threadLifetime(variablesProvider);
 			await variablesProvider.actor.addWatchpoint(property, dataId, type);
 
 		} else {

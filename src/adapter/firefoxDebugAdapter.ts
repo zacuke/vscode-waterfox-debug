@@ -413,6 +413,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			const provider = this.session.variablesProviders.find(args.variablesReference);
 			if (provider instanceof ObjectGripAdapter) {
 
+				provider.threadAdapter.threadLifetime(provider);
+				await provider.actor.threadLifetime();
+
 				return {
 					dataId: DataBreakpointsManager.encodeDataId(args.variablesReference, args.name),
 					description: args.name,
