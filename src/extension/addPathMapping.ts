@@ -121,7 +121,7 @@ export function addPathMappingToLaunchConfig(
 }
 
 export async function showLaunchConfig(workspaceFolder: vscode.WorkspaceFolder): Promise<void> {
-	const file = path.join(workspaceFolder.uri.fsPath, '.vscode/launch.json');
-	const document = await vscode.workspace.openTextDocument(file);
+	const uri = workspaceFolder.uri.with({ path: path.posix.join(workspaceFolder.uri.path, '.vscode/launch.json') });
+	const document = await vscode.workspace.openTextDocument(uri);
 	await vscode.window.showTextDocument(document);
 }
