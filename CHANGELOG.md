@@ -1,3 +1,7 @@
+### Version 2.6.1
+* fix for showing the launch configuration in a remote workspace
+* fix for re-enabling a watchpoint
+
 ### Version 2.6.0
 * add the Path Mapping Wizard
 * extend the Loaded Scripts Explorer
