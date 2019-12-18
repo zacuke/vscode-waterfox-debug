@@ -113,7 +113,7 @@ export async function createPathMapping(
 	const bestMatch = findBestMatch(vscPath, ffUrls);
 	if (!bestMatch) return undefined;
 
-	const pathMapping = await createPathMappingForMatch(vscPath, bestMatch, ffUrls);
+	const pathMapping = await createPathMappingForMatch(vscPath, bestMatch, [ ...ffUrls ]);
 
 	if (workspaceFolder) {
 		const workspaceFolderPath = vscodeUriToPath(workspaceFolder.uri);
