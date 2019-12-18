@@ -15,7 +15,7 @@ export class ObjectGripActorProxy implements ActorProxy {
 	private _refCount = 0;
 
  	private pendingPrototypeAndPropertiesRequests = new PendingRequests<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>();
- 	private pendingWatchpointRequests = new PendingRequests<void>();
+ 	private pendingVoidRequests = new PendingRequests<void>();
 
 	constructor(
 		private grip: FirefoxDebugProtocol.ObjectGrip,
@@ -62,7 +62,7 @@ export class ObjectGripActorProxy implements ActorProxy {
 		}
 
 		return new Promise<void>((resolve, reject) => {
-			this.pendingWatchpointRequests.enqueue({ resolve, reject });
+			this.pendingVoidRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({
 				to: this.name, type: 'addWatchpoint',
 				property, label, watchpointType
@@ -77,11 +77,23 @@ export class ObjectGripActorProxy implements ActorProxy {
 		}
 
 		return new Promise<void>((resolve, reject) => {
-			this.pendingWatchpointRequests.enqueue({ resolve, reject });
+			this.pendingVoidRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({
 				to: this.name, type: 'removeWatchpoint',
 				property
 			});
+		});
+	}
+
+	public threadLifetime(): Promise<void> {
+
+		if (log.isDebugEnabled()) {
+			log.debug(`Extending lifetime of ${this.name}`);
+		}
+
+		return new Promise<void>((resolve, reject) => {
+			this.pendingVoidRequests.enqueue({ resolve, reject });
+			this.connection.sendRequest({ to: this.name, type: 'threadGrip' });
 		});
 	}
 
@@ -96,7 +108,10 @@ export class ObjectGripActorProxy implements ActorProxy {
 
 		} else if (Object.keys(response).length === 1) {
 
-			this.pendingWatchpointRequests.resolveOne(undefined);
+			if (log.isDebugEnabled()) {
+				log.debug(`Void response from ${this.name}`);
+			}
+			this.pendingVoidRequests.resolveOne(undefined);
 
 		} else if (response['error'] === 'noSuchActor') {
 
