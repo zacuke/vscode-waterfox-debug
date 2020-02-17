@@ -7,7 +7,7 @@
   "description": "Debug your web application or browser extension in Firefox",
   "icon": "icon.png",
   "engines": {
-    "vscode": "^1.39.0"
+    "vscode": "^1.40.0"
   },
   "categories": [
     "Debuggers"
@@ -126,7 +126,9 @@
     "url": "https://github.com/firefox-devtools/vscode-firefox-debug/issues"
   },
   "homepage": "https://github.com/firefox-devtools/vscode-firefox-debug",
-  "extensionKind": "ui",
+  "extensionKind": [
+    "ui"
+  ],
   "main": "./dist/extension.bundle.js",
   "activationEvents": [
     "onDebug"
