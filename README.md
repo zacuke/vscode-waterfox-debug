@@ -314,6 +314,10 @@ popup auto-hide" (`extension.firefox.enablePopupAutohide` / `disablePopupAutohid
   executed with `this` set to the object's prototype instead of the object itself. This property
   lets you set the number of prototype levels that should be scanned for accessor properties to lift.
   Note that this will slow the debugger down, so it's set to `0` by default.
+* `suggestPathMappingWizard`: Suggest using the Path Mapping Wizard when you try to set a
+  breakpoint in an unmapped source during a debug session. You may want to turn this off if some
+  of the sources in your project are loaded on-demand (e.g. if you create multiple bundles with
+  webpack and some of these bundles are only loaded as needed).
 
 ### Overriding configuration properties in your settings
 You can override some of the `launch.json` configuration properties in your user, workspace or

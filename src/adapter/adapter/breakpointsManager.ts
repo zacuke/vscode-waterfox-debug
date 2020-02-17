@@ -23,6 +23,7 @@ export class BreakpointsManager {
 
 	constructor(
 		private readonly threads: Registry<ThreadAdapter>,
+		private readonly suggestPathMappingWizard: boolean,
 		private readonly sendEvent: (ev: DebugProtocol.Event) => void
 	) {}
 
@@ -54,7 +55,7 @@ export class BreakpointsManager {
 			}
 		}
 
-		if (!sourceAdapterFound) {
+		if (!sourceAdapterFound && this.suggestPathMappingWizard) {
 			this.sendEvent(new Event('unknownSource', sourcePathOrUrl));
 		}
 

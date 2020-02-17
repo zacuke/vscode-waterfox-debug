@@ -80,7 +80,8 @@ export class FirefoxDebugSession {
 		private readonly sendEvent: (ev: DebugProtocol.Event) => void
 	) {
 		this.pathMapper = new PathMapper(this.config.pathMappings, this.config.addon);
-		this.breakpointsManager = new BreakpointsManager(this.threads, this.sendEvent);
+		this.breakpointsManager = new BreakpointsManager(
+			this.threads, this.config.suggestPathMappingWizard, this.sendEvent);
 		this.skipFilesManager = new SkipFilesManager(this.config.filesToSkip, this.threads);
 		if (this.config.addon) {
 			this.addonManager = new AddonManager(this);

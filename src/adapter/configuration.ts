@@ -28,6 +28,7 @@ export interface ParsedConfiguration {
 	clearConsoleOnReload: boolean,
 	showConsoleCallLocation: boolean;
 	liftAccessorsFromPrototypes: number;
+	suggestPathMappingWizard: boolean;
 }
 
 export interface ParsedAttachConfiguration {
@@ -171,10 +172,14 @@ export async function parseConfiguration(
 
 	let showConsoleCallLocation = config.showConsoleCallLocation || false;
 	let liftAccessorsFromPrototypes = config.liftAccessorsFromPrototypes || 0;
+	let suggestPathMappingWizard = config.suggestPathMappingWizard;
+	if (suggestPathMappingWizard === undefined) {
+		suggestPathMappingWizard = true;
+	}
 
 	return {
 		attach, launch, addon, pathMappings, filesToSkip, reloadOnChange, clearConsoleOnReload,
-		showConsoleCallLocation, liftAccessorsFromPrototypes
+		showConsoleCallLocation, liftAccessorsFromPrototypes, suggestPathMappingWizard
 	}
 }
 
