@@ -61,13 +61,12 @@ export class ObjectGripActorProxy implements ActorProxy {
 			log.debug(`Adding watchpoint for ${property} on ${this.name}`);
 		}
 
-		return new Promise<void>((resolve, reject) => {
-			this.pendingVoidRequests.enqueue({ resolve, reject });
-			this.connection.sendRequest({
-				to: this.name, type: 'addWatchpoint',
-				property, label, watchpointType
-			});
+		this.connection.sendRequest({
+			to: this.name, type: 'addWatchpoint',
+			property, label, watchpointType
 		});
+
+		return Promise.resolve();
 	}
 
 	public removeWatchpoint(property: string): Promise<void> {
@@ -76,13 +75,12 @@ export class ObjectGripActorProxy implements ActorProxy {
 			log.debug(`Removing watchpoint for ${property} on ${this.name}`);
 		}
 
-		return new Promise<void>((resolve, reject) => {
-			this.pendingVoidRequests.enqueue({ resolve, reject });
-			this.connection.sendRequest({
-				to: this.name, type: 'removeWatchpoint',
-				property
-			});
+		this.connection.sendRequest({
+			to: this.name, type: 'removeWatchpoint',
+			property
 		});
+
+		return Promise.resolve();
 	}
 
 	public threadLifetime(): Promise<void> {
