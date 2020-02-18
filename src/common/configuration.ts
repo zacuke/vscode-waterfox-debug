@@ -43,6 +43,7 @@ export interface CommonConfiguration {
 	addonPath?: string;
 	popupAutohideButton?: boolean;
 	liftAccessorsFromPrototypes?: number;
+	suggestPathMappingWizard?: boolean;
 }
 
 export type ReloadConfiguration = string | string[] | DetailedReloadConfiguration;

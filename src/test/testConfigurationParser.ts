@@ -28,6 +28,7 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.reloadOnChange, undefined);
 		assert.equal(parsedConfiguration.showConsoleCallLocation, false);
 		assert.equal(parsedConfiguration.liftAccessorsFromPrototypes, 0);
+		assert.equal(parsedConfiguration.suggestPathMappingWizard, true);
 
 		assert.ok(parsedConfiguration.launch!.firefoxExecutable);
 		assert.equal([...parsedConfiguration.launch!.firefoxArgs].pop(), fileUrl);
@@ -54,6 +55,7 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.reloadOnChange, undefined);
 		assert.equal(parsedConfiguration.showConsoleCallLocation, false);
 		assert.equal(parsedConfiguration.liftAccessorsFromPrototypes, 0);
+		assert.equal(parsedConfiguration.suggestPathMappingWizard, true);
 
 		assert.equal(parsedConfiguration.attach!.port, 6000);
 		assert.equal(parsedConfiguration.attach!.host, 'localhost');
@@ -514,6 +516,17 @@ describe('The configuration parser', function() {
 		});
 
 		assert.equal(parsedConfiguration.liftAccessorsFromPrototypes, 1);
+	});
+
+	it('should copy the "suggestPathMappingWizard" value', async function() {
+
+		let parsedConfiguration = await parseConfiguration({
+			request: 'launch',
+			file: '/home/user/project/index.html',
+			suggestPathMappingWizard: false
+		});
+
+		assert.equal(parsedConfiguration.suggestPathMappingWizard, false);
 	});
 
 	it('should not allow both "profile" and "profileDir" to be specified', async function() {

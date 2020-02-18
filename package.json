@@ -535,6 +535,11 @@
                 "description": "The number of prototype levels that should be scanned for accessor properties",
                 "default": 0
               },
+              "suggestPathMappingWizard": {
+                "type": "boolean",
+                "description": "Suggest using the Path Mapping Wizard when the user tries to set a breakpoint in an unmapped source during a debug session",
+                "default": true
+              },
               "log": {
                 "type": "object",
                 "description": "Configuration for diagnostic logging of the debug adapter",
@@ -740,6 +745,11 @@
                 "type": "number",
                 "description": "The number of prototype levels that should be scanned for accessor properties",
                 "default": 0
+              },
+              "suggestPathMappingWizard": {
+                "type": "boolean",
+                "description": "Suggest using the Path Mapping Wizard when the user tries to set a breakpoint in an unmapped source during a debug session",
+                "default": true
               },
               "log": {
                 "type": "object",
