@@ -159,6 +159,9 @@ export async function parseConfiguration(
 		pathMappings.push({ url: 'webpack:///node_modules/', path: webRoot + '/node_modules/' });
 		pathMappings.push({ url: 'webpack:///webpack', path: null });
 		pathMappings.push({ url: 'webpack:///(webpack)', path: null });
+		pathMappings.push({ url: 'webpack:///pages/', path: webRoot + '/pages/' });
+		pathMappings.push({ url: 'webpack://[name]_[chunkhash]/node_modules/', path: webRoot + '/node_modules/' });
+		pathMappings.push({ url: 'webpack://[name]_[chunkhash]/', path: null });
 	}
 	pathMappings.push({ url: (isWindowsPlatform() ? 'webpack:///' : 'webpack://'), path: '' });
 
