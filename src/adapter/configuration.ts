@@ -2,6 +2,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as uuid from 'uuid';
 import isAbsoluteUrl from 'is-absolute-url';
+import RegExpEscape from 'escape-string-regexp';
 import { Log } from './util/log';
 import { findAddonId, normalizePath } from './util/misc';
 import { isExecutable } from './util/fs';
@@ -142,7 +143,7 @@ export async function parseConfiguration(
 	}
 
 	if (config.pathMappings) {
-		pathMappings.push(...config.pathMappings.map(harmonizeTrailingSlashes));
+		pathMappings.push(...config.pathMappings.map(harmonizeTrailingSlashes).map(handleWildcards));
 	}
 
 	if (config.addonPath) {
@@ -204,6 +205,22 @@ function harmonizeTrailingSlashes(pathMapping: PathMapping): PathMapping {
 				return pathMapping;
 			}
 		}
+
+	} else {
+		return pathMapping;
+	}
+}
+
+function handleWildcards(pathMapping: PathMapping): PathMapping {
+
+	if ((typeof pathMapping.url === 'string') && (pathMapping.url.indexOf('*') >= 0)) {
+
+		const regexp = '^' + pathMapping.url.split('*').map(RegExpEscape).join('[^/]*') + '(.*)$';
+
+		return {
+			url: new RegExp(regexp),
+			path: pathMapping.path
+		};
 
 	} else {
 		return pathMapping;
