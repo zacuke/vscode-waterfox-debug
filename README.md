@@ -224,6 +224,9 @@ that dynamically generate their content on the server (e.g. PHP scripts) or if t
 server is different from the local file content. For these URLs the debugger will show the content
 fetched from the server instead of the local file content.
 
+You can also use `*` as a wildcard in the `url` of a pathMapping. It will match any number of
+arbitrary characters except `/`.
+
 ### Debugging WebExtensions
 Here's an example configuration for WebExtension debugging:
 ```json
