@@ -110,10 +110,17 @@ export async function createPathMapping(
 	workspaceFolder?: vscode.WorkspaceFolder
 ): Promise<PathMapping | undefined> {
 
-	const bestMatch = findBestMatch(vscPath, ffUrls);
+	const parsedFfUrls: URL[] = [];
+	for (const ffUrl of ffUrls) {
+		try {
+			parsedFfUrls.push(new URL(ffUrl));
+		} catch {}
+	}
+
+	const bestMatch = findBestMatch(vscPath, parsedFfUrls);
 	if (!bestMatch) return undefined;
 
-	const pathMapping = await createPathMappingForMatch(vscPath, bestMatch, [ ...ffUrls ]);
+	const pathMapping = await createPathMappingForMatch(vscPath, bestMatch, parsedFfUrls);
 
 	if (workspaceFolder) {
 		const workspaceFolderPath = vscodeUriToPath(workspaceFolder.uri);
@@ -127,18 +134,17 @@ export async function createPathMapping(
 	return pathMapping;
 }
 
-function findBestMatch(vscPath: string, ffUrls: string[]): string | undefined {
+function findBestMatch(vscPath: string, ffUrls: URL[]): URL | undefined {
 
 	const vscPathSegments = vscodePathToUri(vscPath).path.split('/');
 	const vscFilename = vscPathSegments.pop()!;
 
-	let bestMatch: string | undefined;
+	let bestMatch: URL | undefined;
 	let bestScore = -1;
 
 	for (const ffUrl of ffUrls) {
 
-		const parsedFfUrl = new URL(ffUrl);
-		const ffPathSegments = parsedFfUrl.pathname.split('/');
+		const ffPathSegments = ffUrl.pathname.split('/');
 		const ffFilename = ffPathSegments.pop()!;
 
 		if (ffFilename !== vscFilename) continue;
@@ -167,13 +173,12 @@ function findBestMatch(vscPath: string, ffUrls: string[]): string | undefined {
 
 async function createPathMappingForMatch(
 	vscPath: string,
-	matchingFfUrl: string,
-	allFfUrls: string[]
+	matchingFfUrl: URL,
+	allFfUrls: URL[]
 ): Promise<PathMapping> {
 
-	const parsedFfUrl = new URL(matchingFfUrl);
 	let pathMapping: PathMapping = {
-		url: parsedFfUrl.protocol + '//' + parsedFfUrl.host + parsedFfUrl.pathname,
+		url: matchingFfUrl.protocol + '//' + matchingFfUrl.host + matchingFfUrl.pathname,
 		path: vscPath
 	};
 
@@ -204,12 +209,12 @@ function generalizePathMapping(pathMapping: PathMapping): PathMapping | undefine
 	}
 }
 
-async function checkPathMapping(pathMapping: PathMapping, ffUrls: string[]): Promise<boolean> {
+async function checkPathMapping(pathMapping: PathMapping, ffUrls: URL[]): Promise<boolean> {
 
 	for (let i = 0; i < ffUrls.length;) {
 
-		const parsedFfUrl = new URL(ffUrls[i]);
-		const ffUrlWithoutQuery = parsedFfUrl.protocol + '//' + parsedFfUrl.host + parsedFfUrl.pathname;
+		const ffUrl = ffUrls[i];
+		const ffUrlWithoutQuery = ffUrl.protocol + '//' + ffUrl.host + ffUrl.pathname;
 		const vscPath = applyPathMapping(ffUrlWithoutQuery, pathMapping);
 
 		if (vscPath) {

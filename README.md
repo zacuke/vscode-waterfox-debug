@@ -213,6 +213,9 @@ setups:
 { "url": "webpack:///node_modules/", "path": "${webRoot}/node_modules/" }
 { "url": "webpack:///webpack", "path": null }
 { "url": "webpack:///(webpack)", "path": null }
+{ "url": "webpack:///pages/", "path": "${webRoot}/pages/" }
+{ "url": "webpack://[name]_[chunkhash]/node_modules/", "path": "${webRoot}/node_modules/" }
+{ "url": "webpack://[name]_[chunkhash]/", "path": null }
 { "url": "webpack:///", "path": "" }
 ```
 

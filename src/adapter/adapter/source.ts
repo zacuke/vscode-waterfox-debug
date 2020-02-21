@@ -156,9 +156,10 @@ export class SourceAdapter {
 					breakpointInfo.requestedBreakpoint.line,
 					(breakpointInfo.requestedBreakpoint.column || 1) - 1
 				);
-				breakpointInfo.actualLocation = actualLocation;
 
-				if (breakpointInfo.actualLocation) {
+				if (actualLocation) {
+
+					breakpointInfo.actualLocation = actualLocation;
 
 					let logValue: string | undefined;
 					if (breakpointInfo.requestedBreakpoint.logMessage) {
@@ -173,13 +174,16 @@ export class SourceAdapter {
 					);
 
 					breakpointsManager.verifyBreakpoint(breakpointInfo);
+
+					return new BreakpointAdapter(breakpointInfo, this);
 				}
 
-				return new BreakpointAdapter(breakpointInfo, this);
+				return undefined;
 			}
 		);
 
-		const addedBreakpoints = await Promise.all(additionPromises);
+		const addedBreakpoints = (await Promise.all(additionPromises))
+			.filter(bp => bp) as BreakpointAdapter[];
 
 		this.currentBreakpoints = breakpointsToKeep.concat(addedBreakpoints);
 		this.isSyncingBreakpoints = false;
@@ -207,12 +211,6 @@ export class SourceAdapter {
 					return breakableLocations[0];
 				}
 			}
-		}
-
-		for (let i = breakableLines.length - 1; i >= 0; i--)
-		breakableLocations = await this.actor.getBreakableLocations(breakableLines[i]);
-		if (breakableLocations.length > 0) {
-			return breakableLocations[breakableLocations.length -1];
 		}
 
 		return undefined;
