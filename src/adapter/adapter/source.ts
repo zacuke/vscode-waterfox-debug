@@ -81,6 +81,7 @@ export class SourceAdapter {
 
 		await Promise.all(this.currentBreakpoints.map(breakpoint => breakpoint.delete()));
 
+		this.threadAdapter.replaceSourceActor(this._actor.name, newActor.name);
 		this._actor = newActor;
 
 		this.desiredBreakpoints = this.currentBreakpoints.map(bp => bp.breakpointInfo);

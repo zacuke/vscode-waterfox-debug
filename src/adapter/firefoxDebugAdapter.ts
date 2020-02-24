@@ -233,7 +233,9 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		let [frameAdapters, totalFrames] =
 			await threadAdapter.fetchStackFrames(args.startFrame || 0, args.levels || 0);
 
-		let stackFrames = frameAdapters.map((frameAdapter) => frameAdapter.getStackframe());
+		let stackFrames = await Promise.all(
+			frameAdapters.map((frameAdapter) => frameAdapter.getStackframe())
+		);
 
 		return { stackFrames, totalFrames };
 	}
