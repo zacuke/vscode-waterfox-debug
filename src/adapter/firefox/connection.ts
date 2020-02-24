@@ -51,7 +51,11 @@ export class DebugConnection {
 	public unregister(actor: ActorProxy): void {
 		this.actors.delete(actor.name);
 	}
-	
+
+	public has(actorName: string): boolean {
+		return this.actors.has(actorName);
+	}
+
 	public getOrCreate<T extends ActorProxy>(actorName: string, createActor: () => T): T {
 		if (this.actors.has(actorName)) {
 			return <T>this.actors.get(actorName);

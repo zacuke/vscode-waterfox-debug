@@ -340,18 +340,20 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 			this.pendingSourcesRequests.resolveOne(sources);
 
 			for (let source of sources) {
-				let sourceActor = this.connection.getOrCreate(source.actor, 
-					() => new SourceActorProxy(source, this.connection));
-				this.emit('newSource', sourceActor);
+				if (!this.connection.has(source.actor)) {
+					const sourceActor = new SourceActorProxy(source, this.connection);
+					this.emit('newSource', sourceActor);
+				}
 			}
 
 		} else if (response['type'] === 'newSource') {
 
 			let source = <FirefoxDebugProtocol.Source>(response['source']);
 			log.debug(`New source ${source.url} on thread ${this.name}`);
-			let sourceActor = this.connection.getOrCreate(source.actor,
-				() => new SourceActorProxy(source, this.connection));
-			this.emit('newSource', sourceActor);
+			if (!this.connection.has(source.actor)) {
+				const sourceActor = new SourceActorProxy(source, this.connection);
+				this.emit('newSource', sourceActor);
+			}
 
 		} else if (response['frames']) {
 
