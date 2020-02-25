@@ -1,3 +1,10 @@
+### Version 2.7.0
+* bugfix for breakpoints in Vue.js projects
+* add default pathMappings for Next.js projects
+* add support for wildcards in pathMappings
+* add `suggestPathMappingWizard` configuration property
+* various bugfixes
+
 ### Version 2.6.1
 * fix for showing the launch configuration in a remote workspace
 * fix for re-enabling a watchpoint
