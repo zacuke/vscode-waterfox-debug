@@ -24,13 +24,10 @@ export class FrameAdapter {
 		this.id = frameRegistry.register(this);
 	}
 
-	public getStackframe(): StackFrame {
+	public async getStackframe(): Promise<StackFrame> {
 
 		let sourceActorName = this.frame.where.actor;
-		let sourceAdapter = this.threadAdapter.findSourceAdapterForActorName(sourceActorName);
-		if (!sourceAdapter) {
-			throw new Error(`Couldn't find source adapter for ${sourceActorName}`);
-		}
+		let sourceAdapter = await this.threadAdapter.findSourceAdapterForActorName(sourceActorName);
 
 		let name: string;
 		switch (this.frame.type) {

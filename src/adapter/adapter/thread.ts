@@ -16,6 +16,7 @@ import { FirefoxDebugSession } from '../firefoxDebugSession';
 import { pathsAreEqual } from '../util/misc';
 import { Location } from '../location';
 import { AttachOptions } from '../firefox/actorProxy/thread';
+import { PendingRequest } from '../util/pendingRequests';
 
 let log = Log.create('ThreadAdapter');
 
@@ -39,6 +40,14 @@ export class ThreadAdapter extends EventEmitter {
 	 * All `SourceAdapter`s for this thread. They will be disposed when this `ThreadAdapter` is disposed.
 	 */
 	private sources: SourceAdapter[] = [];
+
+	/**
+	 * Sometimes `SourceActor`s are referenced in stack frames before the corresponding `newSource`
+	 * event was sent by Firefox. In this case the `ThreadAdapter` returns a `Promise` for the
+	 * corresponding `SourceAdapter` which is resolved when the `newSource` event was received.
+	 */
+	private sourcePromises = new Map<string, Promise<SourceAdapter>>();
+	private pendingSources = new Map<string, PendingRequest<SourceAdapter>>();
 
 	/**
 	 * When the thread is paused, this is set to a Promise that resolves to the `FrameAdapter`s for
@@ -80,11 +89,10 @@ export class ThreadAdapter extends EventEmitter {
 
 			const sourceLocation = event.frame.where;
 
-			const sourceActor = sourceLocation.actor;
-			const sourceAdapter = this.findSourceAdapterForActorName(sourceActor);
+			try {
 
-			if (sourceAdapter) {
-
+				const sourceAdapter = await this.findSourceAdapterForActorName(sourceLocation.actor);
+	
 				if (sourceAdapter.actor.source.isBlackBoxed) {
 
 					// skipping (or blackboxing) source files is usually done by Firefox itself,
@@ -117,6 +125,8 @@ export class ThreadAdapter extends EventEmitter {
 						}
 					}
 				}
+			} catch(err) {
+				log.warn(err);
 			}
 
 			if (event.why.type === 'exception') {
@@ -124,21 +134,19 @@ export class ThreadAdapter extends EventEmitter {
 				let frames = await this.fetchAllStackFrames();
 				let startFrame = (frames.length > 0) ? frames[frames.length - 1] : undefined;
 				if (startFrame) {
+					try {
 
-					let source: FirefoxDebugProtocol.Source | undefined;
-					const sourceAdapter = this.findSourceAdapterForActorName(startFrame.frame.where.actor);
-					if (sourceAdapter) {
-						source = sourceAdapter.actor.source;
-					} else {
-						log.warn(`Couldn't find SourceAdapter for ${startFrame.frame.where.actor}`);
-					}
+						const sourceAdapter = await this.findSourceAdapterForActorName(startFrame.frame.where.actor);
 
-					if (source && source.introductionType === 'debugger eval') {
+						if (sourceAdapter.actor.source.introductionType === 'debugger eval') {
 
-						// skip exceptions triggered by debugger eval code
-						this.resume();
-						return;
-
+							// skip exceptions triggered by debugger eval code
+							this.resume();
+							return;
+	
+						}
+					} catch(err) {
+						log.warn(err);
 					}
 				}
 			}
@@ -175,9 +183,48 @@ export class ThreadAdapter extends EventEmitter {
 	}
 
 	public createSourceAdapter(actor: ISourceActorProxy, path: string | undefined): SourceAdapter {
+
 		let adapter = new SourceAdapter(this.debugSession.sources, actor, path, this);
+
 		this.sources.push(adapter);
+
+		if (this.pendingSources.has(actor.name)) {
+			this.pendingSources.get(actor.name)!.resolve(adapter);
+			this.pendingSources.delete(actor.name);
+		} else {
+			this.sourcePromises.set(actor.name, Promise.resolve(adapter));
+		}
+
 		return adapter;
+	}
+
+	public replaceSourceActor(oldActor: string, newActor: string): void {
+
+		if (this.sourcePromises.has(oldActor)) {
+
+			const adapterPromise = this.sourcePromises.get(oldActor)!;
+			this.sourcePromises.set(newActor, adapterPromise);
+
+			if (this.pendingSources.has(newActor)) {
+				(async () => {
+					try {
+
+						const adapter = await adapterPromise;
+
+						if (this.pendingSources.has(newActor)) {
+							this.pendingSources.get(newActor)!.resolve(adapter);
+							this.pendingSources.delete(newActor);
+						}
+
+					} catch(err) {
+						log.warn(err);
+					}
+				})();
+			}
+
+		} else {
+			log.warn(`SourceAdapter for ${oldActor} (replaced by ${newActor}) not found`);
+		}
 	}
 
 	public registerScopeAdapter(scopeAdapter: ScopeAdapter) {
@@ -245,15 +292,24 @@ export class ThreadAdapter extends EventEmitter {
 		});
 	}
 
-	public findSourceAdapterForActorName(actorName: string): SourceAdapter | undefined {
+	public findSourceAdapterForActorName(actorName: string): Promise<SourceAdapter> {
 
-		for (let i = 0; i < this.sources.length; i++) {
-			if (this.sources[i].actor.name === actorName) {
-				return this.sources[i];
-			}
+		if (!this.sourcePromises.has(actorName)) {
+
+			this.sourcePromises.set(actorName, new Promise<SourceAdapter>((resolve, reject) => {
+
+				this.pendingSources.set(actorName, { resolve, reject });
+
+				setTimeout(() => {
+					if (this.pendingSources.has(actorName)) {
+						this.pendingSources.get(actorName)!.reject(`Couldn't find source adapter for ${actorName}`);
+						this.pendingSources.delete(actorName);
+					}
+				}, 1000);
+			}));
 		}
 
-		return undefined;
+		return this.sourcePromises.get(actorName)!;
 	}
 
 	public async findOriginalSourceLocation(
