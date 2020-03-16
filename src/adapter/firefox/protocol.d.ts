@@ -30,7 +30,7 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface TabsResponse extends Response {
-		tabs: Tab[];
+		tabs: (Tab | TabDescriptor)[];
 		selected: number;
 		preferenceActor: string;
 		addonsActor?: string;
@@ -41,6 +41,14 @@ declare namespace FirefoxDebugProtocol {
 		title: string;
 		url: string;
 		consoleActor: string;
+	}
+
+	interface TabDescriptor {
+		actor: string;
+	}
+
+	interface TabDescriptorTargetResponse extends Response {
+		frame: Tab;
 	}
 
 	interface AddonsResponse extends Response {

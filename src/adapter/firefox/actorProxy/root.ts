@@ -4,6 +4,7 @@ import { PendingRequests } from '../../util/pendingRequests';
 import { PathMapper } from '../../util/pathMapper';
 import { ActorProxy } from './interface';
 import { TabActorProxy } from './tab';
+import { TabDescriptorActorProxy } from './tabDescriptor';
 import { ConsoleActorProxy } from './console';
 import { PreferenceActorProxy } from './preference';
 import { AddonsActorProxy } from './addons';
@@ -98,7 +99,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 			// convert the Tab array into a map of TabActorProxies, re-using already 
 			// existing proxies and emitting tabOpened events for new ones
-			tabsResponse.tabs.forEach((tab) => {
+			tabsResponse.tabs.forEach(async tab => {
 
 				let actorsForTab: [TabActorProxy, ConsoleActorProxy];
 				if (this.tabs.has(tab.actor)) {
@@ -109,11 +110,23 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 					log.debug(`Tab ${tab.actor} opened`);
 
-					actorsForTab = [
-						new TabActorProxy(
-							tab.actor, tab.title, tab.url, this.pathMapper, this.connection),
-						new ConsoleActorProxy(tab.consoleActor, this.connection)
-					];
+					if ((tab as FirefoxDebugProtocol.Tab).consoleActor) {
+
+						const _tab = tab as FirefoxDebugProtocol.Tab;
+						actorsForTab = [
+							new TabActorProxy(
+								tab.actor, _tab.title, _tab.url, this.pathMapper, this.connection),
+							new ConsoleActorProxy(_tab.consoleActor, this.connection)
+						];
+
+					} else {
+
+						const tabDescriptorActor = new TabDescriptorActorProxy(
+							tab.actor, this.pathMapper, this.connection);
+						actorsForTab = await tabDescriptorActor.getTarget();
+
+					}
+
 					this.emit('tabOpened', actorsForTab);
 
 				}
