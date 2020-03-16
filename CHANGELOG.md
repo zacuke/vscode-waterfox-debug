@@ -1,3 +1,6 @@
+### Version 2.7.1
+* debug protocol fix for Firefox 75
+
 ### Version 2.7.0
 * bugfix for breakpoints in Vue.js projects
 * add default pathMappings for Next.js projects
