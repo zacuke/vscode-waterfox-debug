@@ -1,3 +1,6 @@
+### Version 2.7.2
+* debug protocol fixes for Firefox 76
+
 ### Version 2.7.1
 * debug protocol fix for Firefox 75
 
