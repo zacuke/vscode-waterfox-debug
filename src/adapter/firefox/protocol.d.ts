@@ -29,11 +29,13 @@ declare namespace FirefoxDebugProtocol {
 		};
 	}
 
-	interface TabsResponse extends Response {
-		tabs: (Tab | TabDescriptor)[];
-		selected: number;
+	interface RootResponse extends Response {
 		preferenceActor: string;
 		addonsActor?: string;
+	}
+
+	interface TabsResponse extends Response {
+		tabs: (Tab | TabDescriptor)[];
 	}
 
 	interface Tab {
