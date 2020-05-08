@@ -506,9 +506,9 @@ export class FirefoxDebugSession {
 		if (sourcePath !== undefined) {
 			skipThisSource = this.skipFilesManager.shouldSkip(sourcePath);
 		} else if (source.generatedUrl && (!source.url || !isAbsoluteUrl(source.url))) {
-			skipThisSource = this.skipFilesManager.shouldSkip(source.generatedUrl);
+			skipThisSource = this.skipFilesManager.shouldSkip(this.pathMapper.removeQueryString(source.generatedUrl));
 		} else if (source.url) {
-			skipThisSource = this.skipFilesManager.shouldSkip(source.url);
+			skipThisSource = this.skipFilesManager.shouldSkip(this.pathMapper.removeQueryString(source.url));
 		}
 
 		if (skipThisSource !== undefined) {
