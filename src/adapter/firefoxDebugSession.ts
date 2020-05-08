@@ -132,10 +132,7 @@ export class FirefoxDebugSession {
 					this.dataBreakpointsManager = new DataBreakpointsManager(this.variablesProviders);
 				}
 
-				// early beta versions of Firefox 60 sometimes stop working when we fetch the tabs too early
-				await delay(200);
-
-				let actors = await rootActor.fetchTabs();
+				const actors = await rootActor.fetchRoot();
 
 				this.preferenceActor = actors.preference;
 				this.addonsActor = actors.addons;
@@ -150,6 +147,8 @@ export class FirefoxDebugSession {
 						reject('No AddonsActor received from Firefox');
 					}
 				}
+
+				await rootActor.fetchTabs();
 
 				this.reloadTabs = false;
 

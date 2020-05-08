@@ -1,6 +1,6 @@
 import { Log } from '../../util/log';
 import { EventEmitter } from 'events';
-import { PendingRequests } from '../../util/pendingRequests';
+import { PendingRequests, PendingRequest } from '../../util/pendingRequests';
 import { PathMapper } from '../../util/pathMapper';
 import { ActorProxy } from './interface';
 import { TabActorProxy } from './tab';
@@ -12,11 +12,10 @@ import { DebugConnection } from '../connection';
 
 let log = Log.create('RootActorProxy');
 
-export type FetchTabsResult = {
-	tabs: Map<string, [TabActorProxy, ConsoleActorProxy]>,
+export interface FetchRootResult {
 	preference: PreferenceActorProxy,
 	addons: AddonsActorProxy | undefined
-};
+}
 
 /**
  * Proxy class for a root actor
@@ -26,8 +25,10 @@ export type FetchTabsResult = {
 export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 	private tabs = new Map<string, [TabActorProxy, ConsoleActorProxy]>();
+	private pendingRootRequest?: PendingRequest<FetchRootResult>;
+	private rootPromise?: Promise<FetchRootResult>;
 	private pendingProcessRequests = new PendingRequests<[TabActorProxy, ConsoleActorProxy]>();
-	private pendingTabsRequests = new PendingRequests<FetchTabsResult>();
+	private pendingTabsRequests = new PendingRequests<Map<string, [TabActorProxy, ConsoleActorProxy]>>();
 	private pendingAddonsRequests = new PendingRequests<FirefoxDebugProtocol.Addon[]>();
 
 	constructor(
@@ -42,6 +43,20 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 		return 'root';
 	}
 
+	public fetchRoot(): Promise<FetchRootResult> {
+		if (!this.rootPromise) {
+
+			log.debug('Fetching root');
+
+			this.rootPromise = new Promise<FetchRootResult>((resolve, reject) => {
+				this.pendingRootRequest = { resolve, reject };
+				this.connection.sendRequest({ to: this.name, type: 'getRoot' });
+			});
+		}
+
+		return this.rootPromise;
+	}
+
 	public fetchProcess(): Promise<[TabActorProxy, ConsoleActorProxy]> {
 
 		log.debug('Fetching process');
@@ -52,11 +67,11 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 		})
 	}
 
-	public fetchTabs(): Promise<FetchTabsResult> {
+	public fetchTabs(): Promise<Map<string, [TabActorProxy, ConsoleActorProxy]>> {
 
 		log.debug('Fetching tabs');
 
-		return new Promise<FetchTabsResult>((resolve, reject) => {
+		return new Promise<Map<string, [TabActorProxy, ConsoleActorProxy]>>((resolve, reject) => {
 			this.pendingTabsRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'listTabs' });
 		})
@@ -139,25 +154,38 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 					log.debug(`Tab ${actorsForTab[0].name} closed`);
 					this.emit('tabClosed', actorsForTab);
 				}
-			});					
+			});
 
 			this.tabs = currentTabs;
-
-			let preferenceActor = this.connection.getOrCreate(tabsResponse.preferenceActor,
-				() => new PreferenceActorProxy(tabsResponse.preferenceActor, this.connection));
-
-			let addonsActor: AddonsActorProxy | undefined;
-			const addonsActorName = tabsResponse.addonsActor;
-			if (addonsActorName) {
-				addonsActor = this.connection.getOrCreate(addonsActorName,
-					() => new AddonsActorProxy(addonsActorName, this.connection));
-			}
 	
-			this.pendingTabsRequests.resolveOne({
-				tabs: currentTabs, 
-				preference: preferenceActor, 
-				addons: addonsActor
-			});
+			this.pendingTabsRequests.resolveOne(currentTabs);
+
+		} else if (response['preferenceActor']) {
+
+			log.debug('Received root response');
+
+			let rootResponse = <FirefoxDebugProtocol.RootResponse>response;
+			if (this.pendingRootRequest) {
+
+				let preferenceActor = this.connection.getOrCreate(rootResponse.preferenceActor,
+					() => new PreferenceActorProxy(rootResponse.preferenceActor, this.connection));
+	
+				let addonsActor: AddonsActorProxy | undefined;
+				const addonsActorName = rootResponse.addonsActor;
+				if (addonsActorName) {
+					addonsActor = this.connection.getOrCreate(addonsActorName,
+						() => new AddonsActorProxy(addonsActorName, this.connection));
+				}
+
+				this.pendingRootRequest.resolve({ 
+					preference: preferenceActor,
+					addons: addonsActor
+				});
+				this.pendingRootRequest = undefined;
+
+			} else {
+				log.warn('Received root response without a corresponding request');
+			}
 
 		} else if (response['type'] === 'tabListChanged') {
 
