@@ -577,6 +577,18 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.launch!.srcProfileDir, undefined);
 	});
 
+	it('should use the specified tmpDir', async function() {
+
+		const tmpDir = '/home/user/tmp';
+		const parsedConfiguration = await parseConfiguration({
+			request: 'launch',
+			file: '/home/user/project/index.html',
+			tmpDir
+		});
+
+		assert.ok(parsedConfiguration.launch!.profileDir.startsWith(tmpDir + '/vscode-firefox-debug-profile-'));
+	});
+
 	it('should parse user-specified Firefox preferences', async function() {
 
 		let parsedConfiguration = await parseConfiguration({

@@ -385,6 +385,10 @@
                 "type": "string",
                 "description": "Absolute path to the Firefox executable"
               },
+              "tmpDir": {
+                "type": "string",
+                "description": "The path of the directory to use for temporary files"
+              },
               "profileDir": {
                 "type": "string",
                 "description": "The path of the Firefox profile directory to use"

@@ -7,6 +7,7 @@ export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.
 	request: 'launch';
 	file?: string;
 	firefoxExecutable?: string;
+	tmpDir?: string;
 	profileDir?: string;
 	profile?: string;
 	keepProfileChanges?: boolean;

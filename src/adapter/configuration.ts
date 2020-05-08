@@ -301,7 +301,8 @@ async function parseProfileConfiguration(config: LaunchConfiguration, tmpDirs: s
 			throw 'To enable "keepProfileChanges" you need to set either "profile" or "profileDir"';
 		}
 	} else {
-		profileDir = path.join(os.tmpdir(), `vscode-firefox-debug-profile-${uuid.v4()}`);
+		const tmpDir = config.tmpDir || os.tmpdir();
+		profileDir = path.join(tmpDir, `vscode-firefox-debug-profile-${uuid.v4()}`);
 		tmpDirs.push(profileDir);
 	}
 
