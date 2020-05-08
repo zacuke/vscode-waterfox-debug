@@ -1,3 +1,9 @@
+### Version 2.8.0
+* debug protocol fix for Firefox 77
+* add `tmpDir` configuration property
+* fix for skipping external URLs containing a query string
+* fixes for object previews
+
 ### Version 2.7.2
 * debug protocol fixes for Firefox 76
 
