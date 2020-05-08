@@ -83,6 +83,19 @@ function renderObjectPreview(preview: FirefoxDebugProtocol.ObjectPreview, classN
 		}
 	}
 
+	if (i < maxProperties) {
+		for (const symbolProperty of preview.ownSymbols) {
+
+			const renderedValue = renderGrip(symbolProperty.descriptor.value);
+			renderedProperties.push(`Symbol(${symbolProperty.name}): ${renderedValue}`);
+
+			if (++i >= maxProperties) {
+				renderedProperties.push('\u2026');
+				break;
+			}
+		}
+	}
+
 	const renderedObject = `{${renderedProperties.join(', ')}}`;
 
 	if (className === 'Object') {
