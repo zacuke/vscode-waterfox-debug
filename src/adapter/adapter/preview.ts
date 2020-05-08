@@ -32,7 +32,7 @@ export function renderPreview(objectGrip: FirefoxDebugProtocol.ObjectGrip): stri
 
 		} else if (preview.kind === 'ArrayLike') {
 
-			return renderArrayLikePreview(preview);
+			return renderArrayLikePreview(preview, objectGrip.class);
 
 		} else if ((objectGrip.class === 'Date') && (preview.kind === undefined)) {
 
@@ -118,9 +118,9 @@ function renderDOMElementPreview(preview: FirefoxDebugProtocol.DOMNodePreview): 
 	}
 }
 
-function renderArrayLikePreview(preview: FirefoxDebugProtocol.ArrayLikePreview): string {
+function renderArrayLikePreview(preview: FirefoxDebugProtocol.ArrayLikePreview, className: string): string {
 
-	let result = `Array(${preview.length})`;
+	let result = `${className}(${preview.length})`;
 
 	if (preview.items && preview.items.length > 0) {
 
