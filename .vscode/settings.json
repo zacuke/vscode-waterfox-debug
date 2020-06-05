@@ -8,6 +8,5 @@
 	},
 	"editor.rulers": [100],
 	"typescript.tsdk": "./node_modules/typescript/lib",
-	"mochaExplorer.optsFile": "src/test/mocha.opts",
 	"mochaExplorer.envPath": "src/test/.env"
 }
