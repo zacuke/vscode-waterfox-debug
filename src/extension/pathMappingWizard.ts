@@ -95,8 +95,10 @@ export async function createPathMappingForPath(
 
 	const message =
 		"This file's path isn't mapped to any url that was loaded by Firefox. " +
-		"Perhaps your debug configuration needs a pathMapping for this file - " +
-		"do you want to let the Path Mapping Wizard try to create one for you?";
+		"Either this file hasn't been loaded by Firefox yet or " +
+		"your debug configuration needs a pathMapping for this file - " +
+		"do you think the file has already been loaded and want to let the " +
+		"Path Mapping Wizard try to create a pathMapping for you?";
 	const yesOrNo = await vscode.window.showInformationMessage(message, 'Yes', 'No');
 
 	if (yesOrNo === 'Yes') {
