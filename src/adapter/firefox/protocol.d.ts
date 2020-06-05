@@ -135,11 +135,21 @@ declare namespace FirefoxDebugProtocol {
 		consoleActor: string;
 	}
 
-	interface GetCachedMessagesResponse extends Response {
-		messages:
-			((ConsoleAPICallResponseBody & { _type: 'ConsoleAPI' }) |
-			 (PageErrorResponseBody & { _type: 'PageError' }))[];
+	interface LegacyGetCachedMessagesResponse extends Response {
+		messages: LegacyCachedMessage[];
 	}
+
+	type LegacyCachedMessage =
+		(ConsoleAPICallResponseBody & { _type: 'ConsoleAPI' }) |
+		(PageErrorResponseBody & { _type: 'PageError' });
+
+	interface GetCachedMessagesResponse extends Response {
+		messages: CachedMessage[];
+	}
+
+	type CachedMessage =
+		{ type: 'consoleAPICall', message: ConsoleAPICallResponseBody } |
+		{ type: 'pageError', pageError: PageErrorResponseBody };
 
 	interface PageErrorResponse extends TypedResponse {
 		pageError: PageErrorResponseBody;
