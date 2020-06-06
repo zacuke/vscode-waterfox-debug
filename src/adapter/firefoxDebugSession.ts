@@ -68,6 +68,7 @@ export class FirefoxDebugSession {
 	private exceptionBreakpoints: ExceptionBreakpoints = ExceptionBreakpoints.Uncaught;
 
 	private reloadTabs = false;
+	private attachToFirstTab = false;
 
 	/**
 	 * The ID of the last thread that the user interacted with. This thread will be used when the
@@ -299,6 +300,9 @@ export class FirefoxDebugSession {
 			}
 
 			socket = await waitForSocket(this.config.launch!.port, this.config.launch!.timeout);
+
+			// we ignore the tabFilter for the first tab after launching Firefox
+			this.attachToFirstTab = true;
 		}
 
 		return socket;
@@ -358,6 +362,17 @@ export class FirefoxDebugSession {
 		threadName: string,
 		tabId?: number
 	): Promise<ThreadAdapter | undefined> {
+
+		if (tabId !== undefined) {
+
+			if (!this.attachToFirstTab &&
+				(!this.config.tabFilter.include.some(tabFilter => tabFilter.test(tabActor.url)) ||
+				 this.config.tabFilter.exclude.some(tabFilter => tabFilter.test(tabActor.url)))) {
+				return undefined;
+			}
+
+			this.attachToFirstTab = false;
+		}
 
 		let reload = (tabId != null) && this.reloadTabs;
 
