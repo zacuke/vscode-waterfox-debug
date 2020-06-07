@@ -30,6 +30,7 @@ export interface ParsedConfiguration {
 	showConsoleCallLocation: boolean;
 	liftAccessorsFromPrototypes: number;
 	suggestPathMappingWizard: boolean;
+	terminate: boolean;
 }
 
 export interface ParsedAttachConfiguration {
@@ -127,7 +128,14 @@ export async function parseConfiguration(
 			timeout = config.timeout;
 		}
 
-		let detached = !!config.reAttach;
+		let detached = true;
+		if (os.platform() === 'darwin') {
+			if (!config.reAttach) {
+				detached = false;
+			} else if (config.keepProfileChanges) {
+				throw 'On MacOS, "keepProfileChanges" is only allowed with "reAttach" because your profile may get damaged otherwise';
+			}
+		}
 
 		launch = {
 			firefoxExecutable, firefoxArgs, profileDir, srcProfileDir,
@@ -180,10 +188,11 @@ export async function parseConfiguration(
 	if (suggestPathMappingWizard === undefined) {
 		suggestPathMappingWizard = true;
 	}
+	const terminate = (config.request === 'launch') && !config.reAttach;
 
 	return {
 		attach, launch, addon, pathMappings, filesToSkip, reloadOnChange, clearConsoleOnReload,
-		showConsoleCallLocation, liftAccessorsFromPrototypes, suggestPathMappingWizard
+		showConsoleCallLocation, liftAccessorsFromPrototypes, suggestPathMappingWizard, terminate
 	}
 }
 

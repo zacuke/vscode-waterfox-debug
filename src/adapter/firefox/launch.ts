@@ -6,8 +6,9 @@ import { ParsedLaunchConfiguration } from '../configuration';
 
 /**
  * Launches Firefox after preparing the debug profile.
- * If Firefox is launched "detached" (when the `reAttach` flag in the launch configuration is set
- * to `true`), it creates one or even two intermediate child processes for launching Firefox:
+ * If Firefox is launched "detached" (the default unless we are on MacOS and the `reAttach` flag
+ * in the launch configuration is set to `false`), it creates one or even two intermediate
+ * child processes for launching Firefox:
  * * one of them will wait for the Firefox process to exit and then remove any temporary directories
  *   created by this debug adapter
  * * the other one is used to work around a bug in the node version that is distributed with VS Code

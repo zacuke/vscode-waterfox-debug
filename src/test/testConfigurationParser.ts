@@ -1,3 +1,4 @@
+import * as os from 'os';
 import { LaunchConfiguration, AttachConfiguration } from '../common/configuration';
 import { parseConfiguration, NormalizedReloadConfiguration } from '../adapter/configuration';
 import * as assert from 'assert';
@@ -297,6 +298,28 @@ describe('The configuration parser', function() {
 		});
 
 		assert.equal(parsedConfiguration.attach!.reloadTabs, true);
+	});
+
+	it('should not allow both "reAttach" and "keepProfileChanges" to be true on MacOS', async function() {
+
+		if (os.platform() !== 'darwin') {
+			this.skip();
+			return;
+		}
+
+		try {
+			await parseConfiguration({
+				request: 'launch',
+				file: '/home/user/project/index.html',
+				reAttach: true,
+				profileDir: path.join(os.tmpdir(), 'dummy'),
+				keepProfileChanges: true
+			});
+		} catch {
+			return;
+		}
+
+		throw new Error('This configuration should have been rejected');
 	});
 
 	it('should create a corresponding NormalizedReloadConfiguration if "reloadOnChange" is set to a string', async function() {
