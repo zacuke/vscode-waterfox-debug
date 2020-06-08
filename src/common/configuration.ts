@@ -36,6 +36,7 @@ export interface CommonConfiguration {
 	webRoot?: string;
 	reloadOnAttach?: boolean;
 	reloadOnChange?: ReloadConfiguration;
+	tabFilter?: TabFilterConfiguration;
 	clearConsoleOnReload?: boolean;
 	pathMappings?: { url: string, path: string | null }[];
 	skipFiles?: string[];
@@ -53,6 +54,13 @@ export interface DetailedReloadConfiguration {
 	watch: string | string[];
 	ignore?: string | string[];
 	debounce?: number | boolean;
+}
+
+export type TabFilterConfiguration = string | string[] | DetailedTabFilterConfiguration;
+
+export interface DetailedTabFilterConfiguration {
+	include?: string | string[];
+	exclude?: string | string[];
 }
 
 export declare type LogLevel = 'Debug' | 'Info' | 'Warn' | 'Error';

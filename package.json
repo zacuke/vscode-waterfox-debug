@@ -520,6 +520,42 @@
                   ]
                 }
               },
+              "tabFilter": {
+                "description": "Only attach to tabs whose URL matches this",
+                "type": [
+                  "string",
+                  "array",
+                  "object"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "properties": {
+                  "include": {
+                    "description": "URLs to attach to",
+                    "type": [
+                      "string",
+                      "array"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": "*"
+                  },
+                  "exclude": {
+                    "description": "URLs not to attach to",
+                    "type": [
+                      "string",
+                      "array"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": []
+                  }
+                },
+                "default": "*"
+              },
               "showConsoleCallLocation": {
                 "type": "boolean",
                 "description": "Show the location of console API calls",
@@ -730,6 +766,42 @@
                 "default": [
                   "${workspaceFolder}/node_modules/**/*"
                 ]
+              },
+              "tabFilter": {
+                "description": "Only attach to tabs whose URL matches this",
+                "type": [
+                  "string",
+                  "array",
+                  "object"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "properties": {
+                  "include": {
+                    "description": "URLs to attach to",
+                    "type": [
+                      "string",
+                      "array"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": "*"
+                  },
+                  "exclude": {
+                    "description": "URLs not to attach to",
+                    "type": [
+                      "string",
+                      "array"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": []
+                  }
+                },
+                "default": "*"
               },
               "showConsoleCallLocation": {
                 "type": "boolean",
