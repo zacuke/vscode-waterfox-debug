@@ -54,7 +54,7 @@ describe('Terminate and cleanup: The debugger', function() {
 		const parsedConfig = await parseConfiguration({ request: 'attach' });
 		const ds = new FirefoxDebugSession(parsedConfig, () => undefined);
 		await ds.start();
-		ds.addonsActor!.installAddon(path.resolve(__dirname, '../../terminator'));
+		ds.addonsActor!.installAddon(path.resolve(__dirname, '../../dist/terminator'));
 
 		// check repeatedly if the temporary profile has been deleted and fail after 5 seconds if it hasn't
 		var startTime = Date.now();
