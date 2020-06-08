@@ -27,6 +27,7 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.addon, undefined);
 		assert.deepEqual(parsedConfiguration.filesToSkip, []);
 		assert.equal(parsedConfiguration.reloadOnChange, undefined);
+		assert.deepEqual(parsedConfiguration.tabFilter, { include: [ /.*/ ], exclude: [] });
 		assert.equal(parsedConfiguration.showConsoleCallLocation, false);
 		assert.equal(parsedConfiguration.liftAccessorsFromPrototypes, 0);
 		assert.equal(parsedConfiguration.suggestPathMappingWizard, true);
@@ -54,6 +55,7 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.addon, undefined);
 		assert.deepEqual(parsedConfiguration.filesToSkip, []);
 		assert.equal(parsedConfiguration.reloadOnChange, undefined);
+		assert.deepEqual(parsedConfiguration.tabFilter, { include: [ /.*/ ], exclude: [] });
 		assert.equal(parsedConfiguration.showConsoleCallLocation, false);
 		assert.equal(parsedConfiguration.liftAccessorsFromPrototypes, 0);
 		assert.equal(parsedConfiguration.suggestPathMappingWizard, true);
@@ -517,6 +519,79 @@ describe('The configuration parser', function() {
 		});
 
 		assert.equal(parsedConfiguration.filesToSkip.length, 1);
+	});
+
+	it('should create a corresponding ParsedTabFilterConfiguration if "tabFilter" is set to a string', async function() {
+
+		let parsedConfiguration = await parseConfiguration({
+			request: 'launch',
+			file: '/home/user/project/index.html',
+			tabFilter: 'http://localhost:3000'
+		});
+
+		assert.deepEqual(parsedConfiguration.tabFilter, {
+			include: [ /^http:\/\/localhost:3000$/ ],
+			exclude: []
+		});
+	});
+
+	it('should create a corresponding ParsedTabFilterConfiguration if "tabFilter" is set to a string array', async function() {
+
+		let parsedConfiguration = await parseConfiguration({
+			request: 'launch',
+			file: '/home/user/project/index.html',
+			tabFilter: [ 'http://localhost:3000', 'about:newtab' ]
+		});
+
+		assert.deepEqual(parsedConfiguration.tabFilter, {
+			include: [ /^http:\/\/localhost:3000$/, /^about:newtab$/ ],
+			exclude: []
+		});
+	});
+
+	it('should add "exclude" to a detailed "tabFilter" containing only "include"', async function() {
+
+		let parsedConfiguration = await parseConfiguration({
+			request: 'launch',
+			file: '/home/user/project/index.html',
+			tabFilter: { include: '*localhost*' }
+		});
+
+		assert.deepEqual(parsedConfiguration.tabFilter, {
+			include: [ /^.*localhost.*$/ ],
+			exclude: []
+		});
+	});
+
+	it('should add "include" to a detailed "tabFilter" containing only "exclude"', async function() {
+
+		let parsedConfiguration = await parseConfiguration({
+			request: 'launch',
+			file: '/home/user/project/index.html',
+			tabFilter: { exclude: 'https://developer.mozilla.org/*' }
+		});
+
+		assert.deepEqual(parsedConfiguration.tabFilter, {
+			include: [ /.*/ ],
+			exclude: [ /^https:\/\/developer\.mozilla\.org\/.*$/ ]
+		});
+	});
+
+	it('should copy a detailed "tabFilter"', async function() {
+
+		let parsedConfiguration = await parseConfiguration({
+			request: 'launch',
+			file: '/home/user/project/index.html',
+			tabFilter: {
+				include: [ '*localhost*' ],
+				exclude: [ 'https://developer.mozilla.org/*' ]
+			}
+		});
+
+		assert.deepEqual(parsedConfiguration.tabFilter, {
+			include: [ /^.*localhost.*$/ ],
+			exclude: [ /^https:\/\/developer\.mozilla\.org\/.*$/ ]
+		});
 	});
 
 	it('should copy the "showConsoleCallLocation" value', async function() {

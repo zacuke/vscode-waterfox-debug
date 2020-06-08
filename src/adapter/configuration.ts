@@ -9,7 +9,7 @@ import { isExecutable } from './util/fs';
 import { Minimatch } from 'minimatch';
 import FirefoxProfile from 'firefox-profile';
 import { isWindowsPlatform } from '../common/util';
-import { LaunchConfiguration, AttachConfiguration, CommonConfiguration, ReloadConfiguration, DetailedReloadConfiguration } from '../common/configuration';
+import { LaunchConfiguration, AttachConfiguration, CommonConfiguration, ReloadConfiguration, DetailedReloadConfiguration, TabFilterConfiguration } from '../common/configuration';
 
 let log = Log.create('ParseConfiguration');
 
@@ -19,6 +19,11 @@ export interface NormalizedReloadConfiguration {
 	debounce: number;
 }
 
+export interface ParsedTabFilterConfiguration {
+	include: RegExp[];
+	exclude: RegExp[];
+}
+
 export interface ParsedConfiguration {
 	attach?: ParsedAttachConfiguration;
 	launch?: ParsedLaunchConfiguration;
@@ -26,6 +31,7 @@ export interface ParsedConfiguration {
 	pathMappings: PathMappings;
 	filesToSkip: RegExp[];
 	reloadOnChange?: NormalizedReloadConfiguration,
+	tabFilter: ParsedTabFilterConfiguration,
 	clearConsoleOnReload: boolean,
 	showConsoleCallLocation: boolean;
 	liftAccessorsFromPrototypes: number;
@@ -180,6 +186,8 @@ export async function parseConfiguration(
 
 	let reloadOnChange = parseReloadConfiguration(config.reloadOnChange);
 
+	const tabFilter = parseTabFilterConfiguration(config.tabFilter);
+
 	const clearConsoleOnReload = !!config.clearConsoleOnReload;
 
 	let showConsoleCallLocation = config.showConsoleCallLocation || false;
@@ -191,7 +199,7 @@ export async function parseConfiguration(
 	const terminate = (config.request === 'launch') && !config.reAttach;
 
 	return {
-		attach, launch, addon, pathMappings, filesToSkip, reloadOnChange, clearConsoleOnReload,
+		attach, launch, addon, pathMappings, filesToSkip, reloadOnChange, tabFilter, clearConsoleOnReload,
 		showConsoleCallLocation, liftAccessorsFromPrototypes, suggestPathMappingWizard, terminate
 	}
 }
@@ -487,6 +495,44 @@ function parseReloadConfiguration(
 		}
 
 		return { watch, ignore, debounce };
+	}
+}
+
+function parseTabFilterConfiguration(
+	tabFilterConfig?: TabFilterConfiguration
+): ParsedTabFilterConfiguration {
+
+	if (tabFilterConfig === undefined) {
+
+		return { include: [ /.*/ ], exclude: [] };
+
+	}
+
+	if ((typeof tabFilterConfig === 'string') || Array.isArray(tabFilterConfig)) {
+
+		return { include: parseTabFilter(tabFilterConfig), exclude: [] }
+
+	} else {
+
+		return {
+			include: (tabFilterConfig.include !== undefined) ? parseTabFilter(tabFilterConfig.include) : [ /.*/ ],
+			exclude: (tabFilterConfig.exclude !== undefined) ? parseTabFilter(tabFilterConfig.exclude) : []
+		}
+	}
+}
+
+function parseTabFilter(tabFilter: string | string[]): RegExp[] {
+
+	if (typeof tabFilter === 'string') {
+
+		const parts = tabFilter.split('*').map(part => RegExpEscape(part));
+		const regExp = new RegExp(`^${parts.join('.*')}$`);
+		return [ regExp ];
+
+	} else {
+
+		return tabFilter.map(f => parseTabFilter(f)[0]);
+
 	}
 }
 
