@@ -1,4 +1,5 @@
 import * as path from 'path';
+import * as fs from 'fs-extra';
 import { Socket } from 'net';
 import { ChildProcess } from 'child_process';
 import * as chokidar from 'chokidar';
@@ -32,7 +33,6 @@ import { ThreadPauseCoordinator } from './coordinator/threadPause';
 import { ParsedConfiguration } from './configuration';
 import { PathMapper } from './util/pathMapper';
 import { isWindowsPlatform as detectWindowsPlatform, delay } from '../common/util';
-import { tryRemoveRepeatedly } from './util/fs';
 import { connect, waitForSocket } from './util/net';
 import { NewSourceEventBody, ThreadStartedEventBody, ThreadExitedEventBody, RemoveSourcesEventBody } from '../common/customEvents';
 import { PreferenceActorProxy } from './firefox/actorProxy/preference';
@@ -57,7 +57,7 @@ export class FirefoxDebugSession {
 	private firefoxDebugSocketClosed = false;
 
 	public preferenceActor!: PreferenceActorProxy;
-	private addonsActor?: AddonsActorProxy;
+	public addonsActor?: AddonsActorProxy;
 
 	public readonly tabs = new Registry<TabActorProxy>();
 	public readonly threads = new Registry<ThreadAdapter>();
@@ -315,23 +315,24 @@ export class FirefoxDebugSession {
 			this.reloadWatcher = undefined;
 		}
 
-		if (!this.firefoxClosedPromise) {
-			// Firefox is running detached and should not be terminated
+		if (!this.config.terminate) {
 			await this.firefoxDebugConnection.disconnect();
 			return;
 		}
 
-		if (!this.firefoxDebugSocketClosed && this.addonsActor) {
-			log.debug('Trying to close Firefox using the Terminator WebExtension');
-			const terminatorPath = path.resolve(__dirname, '../terminator');
-			await this.addonsActor.installAddon(terminatorPath);
-			await Promise.race([ this.firefoxClosedPromise, delay(1000) ]);
-		}
+		if (this.firefoxProc) {
 
-		if (!this.firefoxDebugSocketClosed && this.firefoxProc) {
-			log.warn('Trying to kill Firefox using a SIGTERM signal');
+			log.debug('Trying to kill Firefox using a SIGTERM signal');
 			this.firefoxProc.kill('SIGTERM');
 			await Promise.race([ this.firefoxClosedPromise, delay(1000) ]);
+
+		} else if (!this.firefoxDebugSocketClosed && this.addonsActor) {
+
+			log.debug('Trying to close Firefox using the Terminator WebExtension');
+			const terminatorPath = path.join(__dirname, 'terminator');
+			await this.addonsActor.installAddon(terminatorPath);
+			await Promise.race([ this.firefoxClosedPromise, delay(1000) ]);
+
 		}
 
 		if (!this.firefoxDebugSocketClosed) {
@@ -342,14 +343,14 @@ export class FirefoxDebugSession {
 
 		if (this.config.launch && (this.config.launch.tmpDirs.length > 0)) {
 
-			// after closing all connections to this debug adapter Firefox will still be writing
-			// to the temporary profile directory before exiting
-			await delay(2000);
+			// after closing all connections to this debug adapter Firefox will still be using
+			// the temporary profile directory for a short while before exiting
+			await delay(500);
 
 			log.debug("Removing " + this.config.launch.tmpDirs.join(" , "));
 			try {
 				await Promise.all(this.config.launch.tmpDirs.map(
-					(tmpDir) => tryRemoveRepeatedly(tmpDir)));
+					(tmpDir) => fs.remove(tmpDir)));
 			} catch (err) {
 				log.warn(`Failed to remove temporary directory: ${err}`);
 			}
