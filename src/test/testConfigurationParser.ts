@@ -3,6 +3,7 @@ import { LaunchConfiguration, AttachConfiguration } from '../common/configuratio
 import { parseConfiguration, NormalizedReloadConfiguration } from '../adapter/configuration';
 import * as assert from 'assert';
 import * as path from 'path';
+import RegExpEscape from 'escape-string-regexp';
 import { isWindowsPlatform } from '../common/util';
 
 describe('The configuration parser', function() {
@@ -11,12 +12,15 @@ describe('The configuration parser', function() {
 
 		let filePath: string;
 		let fileUrl: string;
+		let tabFilter: string;
 		if (isWindowsPlatform()) {
 			filePath = 'c:\\Users\\user\\project\\index.html';
 			fileUrl = 'file:///c:/Users/user/project/index.html';
+			tabFilter = 'file:\/\/\/c:\/Users\/user\/project\/.*';
 		} else {
 			filePath = '/home/user/project/index.html';
 			fileUrl = 'file:///home/user/project/index.html';
+			tabFilter = 'file:\/\/\/home\/user\/project\/.*';
 		}
 		let parsedConfiguration = await parseConfiguration({
 			request: 'launch',
@@ -27,7 +31,7 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.addon, undefined);
 		assert.deepEqual(parsedConfiguration.filesToSkip, []);
 		assert.equal(parsedConfiguration.reloadOnChange, undefined);
-		assert.deepEqual(parsedConfiguration.tabFilter, { include: [ /.*/ ], exclude: [] });
+		assert.deepEqual(parsedConfiguration.tabFilter, { include: [ new RegExp(tabFilter) ], exclude: [] });
 		assert.equal(parsedConfiguration.showConsoleCallLocation, false);
 		assert.equal(parsedConfiguration.liftAccessorsFromPrototypes, 0);
 		assert.equal(parsedConfiguration.suggestPathMappingWizard, true);
@@ -55,7 +59,7 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.addon, undefined);
 		assert.deepEqual(parsedConfiguration.filesToSkip, []);
 		assert.equal(parsedConfiguration.reloadOnChange, undefined);
-		assert.deepEqual(parsedConfiguration.tabFilter, { include: [ /.*/ ], exclude: [] });
+		assert.deepEqual(parsedConfiguration.tabFilter, { include: [ /https:\/\/mozilla\.org\/.*/ ], exclude: [] });
 		assert.equal(parsedConfiguration.showConsoleCallLocation, false);
 		assert.equal(parsedConfiguration.liftAccessorsFromPrototypes, 0);
 		assert.equal(parsedConfiguration.suggestPathMappingWizard, true);

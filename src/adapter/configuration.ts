@@ -10,6 +10,7 @@ import { Minimatch } from 'minimatch';
 import FirefoxProfile from 'firefox-profile';
 import { isWindowsPlatform } from '../common/util';
 import { LaunchConfiguration, AttachConfiguration, CommonConfiguration, ReloadConfiguration, DetailedReloadConfiguration, TabFilterConfiguration } from '../common/configuration';
+import { urlDirname } from './util/net';
 
 let log = Log.create('ParseConfiguration');
 
@@ -84,6 +85,7 @@ export async function parseConfiguration(
 	let port = config.port || 6000;
 	let timeout = 5;
 	let pathMappings: PathMappings = [];
+	let url: string | undefined = undefined;
 
 	if (config.request === 'launch') {
 
@@ -121,9 +123,11 @@ export async function parseConfiguration(
 				fileUrl = 'file://' + fileUrl;
 			}
 			firefoxArgs.push(fileUrl);
+			url = fileUrl;
 
 		} else if (config.url) {
 			firefoxArgs.push(config.url);
+			url = config.url;
 		} else if (config.addonPath) {
 			firefoxArgs.push('about:blank');
 		} else {
@@ -154,6 +158,7 @@ export async function parseConfiguration(
 			host: config.host || 'localhost', port,
 			reloadTabs: !!config.reloadOnAttach
 		};
+		url = config.url;
 	}
 
 	if (config.pathMappings) {
@@ -186,7 +191,7 @@ export async function parseConfiguration(
 
 	let reloadOnChange = parseReloadConfiguration(config.reloadOnChange);
 
-	const tabFilter = parseTabFilterConfiguration(config.tabFilter);
+	const tabFilter = parseTabFilterConfiguration(config.tabFilter, url);
 
 	const clearConsoleOnReload = !!config.clearConsoleOnReload;
 
@@ -544,12 +549,17 @@ function parseReloadConfiguration(
 }
 
 function parseTabFilterConfiguration(
-	tabFilterConfig?: TabFilterConfiguration
+	tabFilterConfig?: TabFilterConfiguration,
+	url?: string
 ): ParsedTabFilterConfiguration {
 
 	if (tabFilterConfig === undefined) {
 
-		return { include: [ /.*/ ], exclude: [] };
+		if (url) {
+			return { include: [ new RegExp(RegExpEscape(urlDirname(url)) + '.*') ], exclude: [] };
+		} else {
+			return { include: [ /.*/ ], exclude: [] };
+		}
 
 	}
 
