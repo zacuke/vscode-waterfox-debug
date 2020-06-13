@@ -43,6 +43,8 @@ export interface ParsedConfiguration {
 export interface ParsedAttachConfiguration {
 	host: string;
 	port: number;
+	firefoxExecutable?: string;
+	profileDir?: string;
 	reloadTabs: boolean;
 }
 
@@ -154,8 +156,10 @@ export async function parseConfiguration(
 
 	} else { // config.request === 'attach'
 
+		const firefoxExecutable = config.firefoxExecutable ? await findFirefoxExecutable(config.firefoxExecutable) : undefined;
+
 		attach = {
-			host: config.host || 'localhost', port,
+			host: config.host || 'localhost', port, firefoxExecutable, profileDir: config.profileDir,
 			reloadTabs: !!config.reloadOnAttach
 		};
 		url = config.url;

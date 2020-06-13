@@ -671,6 +671,14 @@
                 "description": "If the 'url' property is specified, this property specifies the workspace absolute path corresponding to the path of the url",
                 "default": "${workspaceFolder}"
               },
+              "firefoxExecutable": {
+                "type": "string",
+                "description": "Absolute path to the Firefox executable"
+              },
+              "profileDir": {
+                "type": "string",
+                "description": "The path of the Firefox profile directory to use"
+              },
               "port": {
                 "type": "number",
                 "description": "The remote debugging port to use",
