@@ -8,13 +8,15 @@ import { TabDescriptorActorProxy } from './tabDescriptor';
 import { ConsoleActorProxy } from './console';
 import { PreferenceActorProxy } from './preference';
 import { AddonsActorProxy } from './addons';
+import { DeviceActorProxy } from './device';
 import { DebugConnection } from '../connection';
 
 let log = Log.create('RootActorProxy');
 
 export interface FetchRootResult {
 	preference: PreferenceActorProxy,
-	addons: AddonsActorProxy | undefined
+	addons: AddonsActorProxy | undefined,
+	device: DeviceActorProxy
 }
 
 /**
@@ -177,9 +179,13 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 						() => new AddonsActorProxy(addonsActorName, this.connection));
 				}
 
+				const deviceActor = this.connection.getOrCreate(rootResponse.deviceActor,
+					() => new DeviceActorProxy(rootResponse.deviceActor, this.connection));
+
 				this.pendingRootRequest.resolve({ 
 					preference: preferenceActor,
-					addons: addonsActor
+					addons: addonsActor,
+					device: deviceActor
 				});
 				this.pendingRootRequest = undefined;
 

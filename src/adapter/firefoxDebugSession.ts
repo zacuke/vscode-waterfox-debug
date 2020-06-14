@@ -36,6 +36,7 @@ import { isWindowsPlatform as detectWindowsPlatform, delay } from '../common/uti
 import { connect, waitForSocket } from './util/net';
 import { NewSourceEventBody, ThreadStartedEventBody, ThreadExitedEventBody, RemoveSourcesEventBody } from '../common/customEvents';
 import { PreferenceActorProxy } from './firefox/actorProxy/preference';
+import { DeviceActorProxy } from './firefox/actorProxy/device';
 
 let log = Log.create('FirefoxDebugSession');
 let consoleActorLog = Log.create('ConsoleActor');
@@ -58,6 +59,7 @@ export class FirefoxDebugSession {
 
 	public preferenceActor!: PreferenceActorProxy;
 	public addonsActor?: AddonsActorProxy;
+	public deviceActor!: DeviceActorProxy;
 
 	public readonly tabs = new Registry<TabActorProxy>();
 	public readonly threads = new Registry<ThreadAdapter>();
@@ -137,6 +139,7 @@ export class FirefoxDebugSession {
 
 				this.preferenceActor = actors.preference;
 				this.addonsActor = actors.addons;
+				this.deviceActor = actors.device;
 
 				if (this.addonManager) {
 					if (actors.addons) {

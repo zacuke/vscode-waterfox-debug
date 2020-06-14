@@ -32,6 +32,7 @@ declare namespace FirefoxDebugProtocol {
 	interface RootResponse extends Response {
 		preferenceActor: string;
 		addonsActor?: string;
+		deviceActor: string;
 	}
 
 	interface TabsResponse extends Response {
@@ -86,6 +87,15 @@ declare namespace FirefoxDebugProtocol {
 			url: string;
 			consoleActor: string;
 		}
+	}
+
+	interface DeviceDescriptionResponse extends Response {
+		value: DeviceDescription;
+	}
+
+	interface DeviceDescription {
+		profile: string;
+		channel: string;
 	}
 
 	interface TabAttachedResponse extends TypedResponse {
