@@ -43,6 +43,7 @@ export interface ParsedConfiguration {
 export interface ParsedAttachConfiguration {
 	host: string;
 	port: number;
+	url?: string;
 	firefoxExecutable?: string;
 	profileDir?: string;
 	reloadTabs: boolean;
@@ -158,11 +159,11 @@ export async function parseConfiguration(
 
 		const firefoxExecutable = config.firefoxExecutable ? await findFirefoxExecutable(config.firefoxExecutable) : undefined;
 
+		url = config.url;
 		attach = {
-			host: config.host || 'localhost', port, firefoxExecutable, profileDir: config.profileDir,
+			host: config.host || 'localhost', port, url, firefoxExecutable, profileDir: config.profileDir,
 			reloadTabs: !!config.reloadOnAttach
 		};
-		url = config.url;
 	}
 
 	if (config.pathMappings) {
@@ -277,7 +278,7 @@ async function findFirefoxExecutable(configuredPath?: string): Promise<string> {
 	throw 'Couldn\'t find the Firefox executable. Please specify the path by setting "firefoxExecutable" in your launch configuration.';
 }
 
-function getExecutableCandidates(edition?: 'stable' | 'developer' | 'nightly'): string[] {
+export function getExecutableCandidates(edition?: 'stable' | 'developer' | 'nightly'): string[] {
 
 	if (edition === undefined) {
 		return [ ...getExecutableCandidates('developer'), ...getExecutableCandidates('stable') ];
@@ -437,7 +438,7 @@ function parseWebRootConfiguration(config: CommonConfiguration, pathMappings: Pa
 
 	if (config.url) {
 		if (!config.webRoot) {
-			if (!config.pathMappings) {
+			if ((config.request === 'launch') && !config.pathMappings) {
 				throw `If you set "url" you also have to set "webRoot" or "pathMappings" in the ${config.request} configuration`;
 			}
 			return undefined;
