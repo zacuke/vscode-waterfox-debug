@@ -3,6 +3,7 @@ import { LaunchConfiguration, AttachConfiguration } from '../common/configuratio
 import { parseConfiguration, NormalizedReloadConfiguration } from '../adapter/configuration';
 import * as assert from 'assert';
 import * as path from 'path';
+import RegExpEscape from 'escape-string-regexp';
 import { isWindowsPlatform } from '../common/util';
 
 describe('The configuration parser', function() {
@@ -11,12 +12,15 @@ describe('The configuration parser', function() {
 
 		let filePath: string;
 		let fileUrl: string;
+		let tabFilter: string;
 		if (isWindowsPlatform()) {
 			filePath = 'c:\\Users\\user\\project\\index.html';
 			fileUrl = 'file:///c:/Users/user/project/index.html';
+			tabFilter = 'file:\/\/\/c:\/Users\/user\/project\/.*';
 		} else {
 			filePath = '/home/user/project/index.html';
 			fileUrl = 'file:///home/user/project/index.html';
+			tabFilter = 'file:\/\/\/home\/user\/project\/.*';
 		}
 		let parsedConfiguration = await parseConfiguration({
 			request: 'launch',
@@ -27,7 +31,7 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.addon, undefined);
 		assert.deepEqual(parsedConfiguration.filesToSkip, []);
 		assert.equal(parsedConfiguration.reloadOnChange, undefined);
-		assert.deepEqual(parsedConfiguration.tabFilter, { include: [ /.*/ ], exclude: [] });
+		assert.deepEqual(parsedConfiguration.tabFilter, { include: [ new RegExp(tabFilter) ], exclude: [] });
 		assert.equal(parsedConfiguration.showConsoleCallLocation, false);
 		assert.equal(parsedConfiguration.liftAccessorsFromPrototypes, 0);
 		assert.equal(parsedConfiguration.suggestPathMappingWizard, true);
@@ -55,7 +59,7 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.addon, undefined);
 		assert.deepEqual(parsedConfiguration.filesToSkip, []);
 		assert.equal(parsedConfiguration.reloadOnChange, undefined);
-		assert.deepEqual(parsedConfiguration.tabFilter, { include: [ /.*/ ], exclude: [] });
+		assert.deepEqual(parsedConfiguration.tabFilter, { include: [ /https:\/\/mozilla\.org\/.*/ ], exclude: [] });
 		assert.equal(parsedConfiguration.showConsoleCallLocation, false);
 		assert.equal(parsedConfiguration.liftAccessorsFromPrototypes, 0);
 		assert.equal(parsedConfiguration.suggestPathMappingWizard, true);
@@ -78,14 +82,14 @@ describe('The configuration parser', function() {
 		}), 'The "file" property in the launch configuration has to be an absolute path');
 	});
 
-	for (let request of [ 'launch', 'attach' ]) {
-		it(`should require "webRoot" or "pathMappings" if "url" is specified in a ${request} configuration`, async function() {
-			await assertPromiseRejects(parseConfiguration(<any>{
-				request,
-				url: 'https://mozilla.org/'
-			}), `If you set "url" you also have to set "webRoot" or "pathMappings" in the ${request} configuration`);
-		});
+	it(`should require "webRoot" or "pathMappings" if "url" is specified in a launch configuration`, async function() {
+		await assertPromiseRejects(parseConfiguration(<any>{
+			request: 'launch',
+			url: 'https://mozilla.org/'
+		}), `If you set "url" you also have to set "webRoot" or "pathMappings" in the launch configuration`);
+	});
 
+	for (let request of [ 'launch', 'attach' ]) {
 		it(`should require "webRoot" to be an absolute path in a ${request} configuration`, async function() {
 			await assertPromiseRejects(parseConfiguration(<any>{
 				request,

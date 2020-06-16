@@ -8,13 +8,15 @@ import { TabDescriptorActorProxy } from './tabDescriptor';
 import { ConsoleActorProxy } from './console';
 import { PreferenceActorProxy } from './preference';
 import { AddonsActorProxy } from './addons';
+import { DeviceActorProxy } from './device';
 import { DebugConnection } from '../connection';
 
 let log = Log.create('RootActorProxy');
 
 export interface FetchRootResult {
 	preference: PreferenceActorProxy,
-	addons: AddonsActorProxy | undefined
+	addons: AddonsActorProxy | undefined,
+	device: DeviceActorProxy
 }
 
 /**
@@ -114,7 +116,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 			// convert the Tab array into a map of TabActorProxies, re-using already 
 			// existing proxies and emitting tabOpened events for new ones
-			tabsResponse.tabs.forEach(async tab => {
+			Promise.all(tabsResponse.tabs.map(async tab => {
 
 				let actorsForTab: [TabActorProxy, ConsoleActorProxy];
 				if (this.tabs.has(tab.actor)) {
@@ -143,22 +145,24 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 					}
 
 					this.emit('tabOpened', actorsForTab);
-
 				}
+
 				currentTabs.set(tab.actor, actorsForTab);
-			});
 
-			// emit tabClosed events for tabs that have disappeared
-			this.tabs.forEach((actorsForTab) => {
-				if (!currentTabs.has(actorsForTab[0].name)) {
-					log.debug(`Tab ${actorsForTab[0].name} closed`);
-					this.emit('tabClosed', actorsForTab);
-				}
-			});
+			})).then(() => {
 
-			this.tabs = currentTabs;
-	
-			this.pendingTabsRequests.resolveOne(currentTabs);
+				// emit tabClosed events for tabs that have disappeared
+				this.tabs.forEach((actorsForTab, tabActorName) => {
+					if (!currentTabs.has(tabActorName)) {
+						log.debug(`Tab ${tabActorName} closed`);
+						this.emit('tabClosed', actorsForTab);
+					}
+				});
+
+				this.tabs = currentTabs;
+		
+				this.pendingTabsRequests.resolveOne(currentTabs);
+			});
 
 		} else if (response['preferenceActor']) {
 
@@ -177,9 +181,13 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 						() => new AddonsActorProxy(addonsActorName, this.connection));
 				}
 
+				const deviceActor = this.connection.getOrCreate(rootResponse.deviceActor,
+					() => new DeviceActorProxy(rootResponse.deviceActor, this.connection));
+
 				this.pendingRootRequest.resolve({ 
 					preference: preferenceActor,
-					addons: addonsActor
+					addons: addonsActor,
+					device: deviceActor
 				});
 				this.pendingRootRequest = undefined;
 

@@ -9,7 +9,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, ContinuedEvent, Event } from 'vscode-debugadapter';
 import { Log } from './util/log';
 import { AddonManager } from './adapter/addonManager';
-import { launchFirefox } from './firefox/launch';
+import { launchFirefox, openNewTab } from './firefox/launch';
 import { DebugConnection } from './firefox/connection';
 import { TabActorProxy } from './firefox/actorProxy/tab';
 import { WorkerActorProxy } from './firefox/actorProxy/worker';
@@ -36,6 +36,7 @@ import { isWindowsPlatform as detectWindowsPlatform, delay } from '../common/uti
 import { connect, waitForSocket } from './util/net';
 import { NewSourceEventBody, ThreadStartedEventBody, ThreadExitedEventBody, RemoveSourcesEventBody } from '../common/customEvents';
 import { PreferenceActorProxy } from './firefox/actorProxy/preference';
+import { DeviceActorProxy } from './firefox/actorProxy/device';
 
 let log = Log.create('FirefoxDebugSession');
 let consoleActorLog = Log.create('ConsoleActor');
@@ -58,6 +59,7 @@ export class FirefoxDebugSession {
 
 	public preferenceActor!: PreferenceActorProxy;
 	public addonsActor?: AddonsActorProxy;
+	public deviceActor!: DeviceActorProxy;
 
 	public readonly tabs = new Registry<TabActorProxy>();
 	public readonly threads = new Registry<ThreadAdapter>();
@@ -68,7 +70,7 @@ export class FirefoxDebugSession {
 	private exceptionBreakpoints: ExceptionBreakpoints = ExceptionBreakpoints.Uncaught;
 
 	private reloadTabs = false;
-	private attachToFirstTab = false;
+	private attachToNextTab = false;
 
 	/**
 	 * The ID of the last thread that the user interacted with. This thread will be used when the
@@ -109,7 +111,18 @@ export class FirefoxDebugSession {
 
 			// attach to all tabs, register the corresponding threads and inform VSCode about them
 			rootActor.onTabOpened(async ([tabActor, consoleActor]) => {
+
 				log.info(`Tab opened with url ${tabActor.url}`);
+
+				if (!this.attachToNextTab &&
+					(!this.config.tabFilter.include.some(tabFilter => tabFilter.test(tabActor.url)) ||
+					 this.config.tabFilter.exclude.some(tabFilter => tabFilter.test(tabActor.url)))) {
+					log.info('Not attaching to this tab');
+					return;
+				}
+
+				this.attachToNextTab = false;
+
 				let tabId = this.tabs.register(tabActor);
 				let threadAdapter = await this.attachTabOrAddon(tabActor, consoleActor, `Tab ${tabId}`, tabId);
 				if (threadAdapter !== undefined) {
@@ -137,6 +150,7 @@ export class FirefoxDebugSession {
 
 				this.preferenceActor = actors.preference;
 				this.addonsActor = actors.addons;
+				this.deviceActor = actors.device;
 
 				if (this.addonManager) {
 					if (actors.addons) {
@@ -152,6 +166,14 @@ export class FirefoxDebugSession {
 				await rootActor.fetchTabs();
 
 				this.reloadTabs = false;
+
+				if (this.config.attach && (this.tabs.count === 0)) {
+					this.attachToNextTab = true;
+					if (!await openNewTab(this.config.attach, await this.deviceActor.getDescription())) {
+						reject('None of the tabs opened in Firefox match the given URL. If you specify the path to Firefox by setting "firefoxExecutable" in your attach configuration, a new tab for the given URL will be opened automatically.');
+						return;
+					}
+				}
 
 				resolve();
 			});
@@ -302,7 +324,7 @@ export class FirefoxDebugSession {
 			socket = await waitForSocket(this.config.launch!.port, this.config.launch!.timeout);
 
 			// we ignore the tabFilter for the first tab after launching Firefox
-			this.attachToFirstTab = true;
+			this.attachToNextTab = true;
 		}
 
 		return socket;
@@ -363,17 +385,6 @@ export class FirefoxDebugSession {
 		threadName: string,
 		tabId?: number
 	): Promise<ThreadAdapter | undefined> {
-
-		if (tabId !== undefined) {
-
-			if (!this.attachToFirstTab &&
-				(!this.config.tabFilter.include.some(tabFilter => tabFilter.test(tabActor.url)) ||
-				 this.config.tabFilter.exclude.some(tabFilter => tabFilter.test(tabActor.url)))) {
-				return undefined;
-			}
-
-			this.attachToFirstTab = false;
-		}
 
 		let reload = (tabId != null) && this.reloadTabs;
 

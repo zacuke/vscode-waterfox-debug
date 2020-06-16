@@ -6,9 +6,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.LaunchRequestArguments {
 	request: 'launch';
 	file?: string;
-	firefoxExecutable?: string;
 	tmpDir?: string;
-	profileDir?: string;
 	profile?: string;
 	keepProfileChanges?: boolean;
 	preferences?: { [key: string]: boolean | number | string | null };
@@ -34,6 +32,8 @@ export interface CommonConfiguration {
 	request: 'launch' | 'attach';
 	url?: string;
 	webRoot?: string;
+	firefoxExecutable?: string;
+	profileDir?: string;
 	reloadOnAttach?: boolean;
 	reloadOnChange?: ReloadConfiguration;
 	tabFilter?: TabFilterConfiguration;
