@@ -38,6 +38,7 @@ export interface ParsedConfiguration {
 	liftAccessorsFromPrototypes: number;
 	suggestPathMappingWizard: boolean;
 	terminate: boolean;
+	enableCRAWorkaround: boolean;
 }
 
 export interface ParsedAttachConfiguration {
@@ -207,11 +208,13 @@ export async function parseConfiguration(
 		suggestPathMappingWizard = true;
 	}
 	const terminate = (config.request === 'launch') && !config.reAttach;
+	const enableCRAWorkaround = !!config.enableCRAWorkaround;
 
 	return {
 		attach, launch, addon, pathMappings, filesToSkip, reloadOnChange, tabFilter, clearConsoleOnReload,
-		showConsoleCallLocation, liftAccessorsFromPrototypes, suggestPathMappingWizard, terminate
-	}
+		showConsoleCallLocation, liftAccessorsFromPrototypes, suggestPathMappingWizard, terminate,
+		enableCRAWorkaround
+	};
 }
 
 function harmonizeTrailingSlashes(pathMapping: PathMapping): PathMapping {
