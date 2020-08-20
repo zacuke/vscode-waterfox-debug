@@ -145,8 +145,9 @@ export async function parseConfiguration(
 		if (os.platform() === 'darwin') {
 			if (!config.reAttach) {
 				detached = false;
-			} else if (config.keepProfileChanges) {
-				throw 'On MacOS, "keepProfileChanges" is only allowed with "reAttach" because your profile may get damaged otherwise';
+				if (config.keepProfileChanges) {
+					throw 'On MacOS, "keepProfileChanges" is only allowed with "reAttach" because your profile may get damaged otherwise';
+				}
 			}
 		}
 
