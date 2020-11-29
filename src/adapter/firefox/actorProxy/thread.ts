@@ -19,7 +19,6 @@ export interface IThreadActorProxy {
 	attach(options: AttachOptions): Promise<void>;
 	resume(exceptionBreakpoints: ExceptionBreakpoints | undefined, resumeLimitType?: 'next' | 'step' | 'finish'): Promise<void>;
 	interrupt(immediately?: boolean): Promise<void>;
-	detach(): Promise<void>;
 	fetchSources(): Promise<FirefoxDebugProtocol.Source[]>;
 	fetchStackFrames(start?: number, count?: number): Promise<FirefoxDebugProtocol.Frame[]>;
 	setBreakpoint(location: MappedLocation, sourceActor: ISourceActorProxy, condition?: string, logValue?: string): Promise<void>;
@@ -62,8 +61,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	private resumePromise?: Promise<void>;
 	private pendingInterruptRequest?: PendingRequest<void>;
 	private interruptPromise?: Promise<void>;
-	private pendingDetachRequest?: PendingRequest<void>;
-	private detachPromise?: Promise<void>;
 
 	private pendingSourcesRequests = new PendingRequests<FirefoxDebugProtocol.Source[]>();
 	private pendingStackFramesRequests = new PendingRequests<FirefoxDebugProtocol.Frame[]>();
@@ -82,7 +79,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 					to: this.name, type: 'attach', options
 				});
 			});
-			this.detachPromise = undefined;
 
 		} else {
 			log.warn('Attaching this thread has already been requested!');
@@ -150,27 +146,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 		}
 
 		return this.interruptPromise;
-	}
-
-	/**
-	 * Detach the thread if it is attached
-	 */
-	public detach(): Promise<void> {
-
-		if (!this.detachPromise) {
-			log.debug(`Detaching thread ${this.name}`);
-
-			this.detachPromise = new Promise<void>((resolve, reject) => {
-				this.pendingDetachRequest = { resolve, reject };
-				this.connection.sendRequest({ to: this.name, type: 'detach' });
-			});
-			this.attachPromise = undefined;
-
-		} else {
-			log.warn('Detaching this thread has already been requested!');
-		}
-
-		return this.detachPromise;
 	}
 
 	public setBreakpoint(location: MappedLocation, sourceActor: ISourceActorProxy, condition?: string, logValue?: string): Promise<void> {
@@ -321,19 +296,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 				this.resumePromise = Promise.resolve(undefined);
 				this.emit('resumed');
 			}
-
-		} else if (response['type'] === 'detached') {
-
-			log.debug(`Thread ${this.name} detached`);
-			if (this.pendingDetachRequest) {
-				this.pendingDetachRequest.resolve(undefined);
-				this.pendingDetachRequest = undefined;
-			} else {
-				log.warn(`Thread ${this.name} detached without a corresponding request`);
-			}
-
-			this.pendingStackFramesRequests.rejectAll('Detached');
-
 		} else if (response['sources']) {
 
 			let sources = <FirefoxDebugProtocol.Source[]>(response['sources']);
@@ -403,9 +365,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 			log.error(`No such actor ${JSON.stringify(this.name)}`);
 			if (this.pendingAttachRequest) {
 				this.pendingAttachRequest.reject('No such actor');
-			}
-			if (this.pendingDetachRequest) {
-				this.pendingDetachRequest.reject('No such actor');
 			}
 			if (this.pendingInterruptRequest) {
 				this.pendingInterruptRequest.reject('No such actor');
