@@ -265,7 +265,7 @@ function vscodePathToUri(path: string): vscode.Uri {
 	}
 }
 
-function vscodeUriToPath(uri: vscode.Uri): string {
+export function vscodeUriToPath(uri: vscode.Uri): string {
 	return (uri.scheme === 'file') ? uri.fsPath : uri.toString();
 }
 
