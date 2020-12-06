@@ -130,6 +130,8 @@ __Windows__
 
 `"C:\Program Files\Mozilla Firefox\firefox.exe" -start-debugger-server`
 
+(This syntax is for a regular command prompt (cmd.exe), not PowerShell!)
+
 __OS X__
 
 `/Applications/Firefox.app/Contents/MacOS/firefox -start-debugger-server`
