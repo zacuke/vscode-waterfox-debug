@@ -270,6 +270,11 @@
           "description": "Use the specified profile directly instead of a temporary copy",
           "type": "boolean",
           "scope": "resource"
+        },
+        "firefox.port": {
+          "description": "The remote debugging port to use",
+          "type": "number",
+          "scope": "resource"
         }
       }
     },

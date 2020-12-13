@@ -72,6 +72,11 @@ export class DebugConfigurationProvider implements vscode.DebugConfigurationProv
 		if (keepProfileChanges !== undefined) {
 			debugConfiguration.keepProfileChanges = keepProfileChanges;
 		}
+
+		const port = this.getSetting<number>(settings, 'port');
+		if (port !== undefined) {
+			debugConfiguration.port = port;
+		}
 	}
 
 	/**
