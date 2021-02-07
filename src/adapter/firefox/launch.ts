@@ -23,6 +23,14 @@ export async function launchFirefox(launch: ParsedLaunchConfiguration): Promise<
 
 	await prepareDebugProfile(launch);
 
+	// workaround for an issue with the snap version of VS Code
+	// (see e.g. https://github.com/microsoft/vscode/issues/85344)
+	const env = { ...process.env };
+	if (env.SNAP) {
+		delete env['GDK_PIXBUF_MODULE_FILE'];
+		delete env['GDK_PIXBUF_MODULEDIR'];
+	}
+
 	let childProc: ChildProcess | undefined = undefined;
 
 	if (launch.detached) {
@@ -51,11 +59,11 @@ export async function launchFirefox(launch: ParsedLaunchConfiguration): Promise<
 				break;
 		}
 
-		fork(forkedLauncherPath, forkArgs, { execArgv: [] });
+		fork(forkedLauncherPath, forkArgs, { env, execArgv: [] });
 
 	} else {
 
-		childProc = spawn(launch.firefoxExecutable, launch.firefoxArgs, { detached: true });
+		childProc = spawn(launch.firefoxExecutable, launch.firefoxArgs, { env, detached: true });
 
 		childProc.stdout.on('data', () => undefined);
 		childProc.stderr.on('data', () => undefined);
