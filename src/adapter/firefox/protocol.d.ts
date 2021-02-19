@@ -334,7 +334,9 @@ declare namespace FirefoxDebugProtocol {
 	}
 
 	interface FunctionEnvironment extends Environment {
-		function: Grip;
+		function: {
+			displayName: string;
+		};
 		bindings: FunctionBindings;
 	}
 

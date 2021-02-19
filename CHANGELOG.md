@@ -1,3 +1,11 @@
+### Version 2.9.2
+* fix terminating Firefox at the end of the debug session
+* fix function scopes being with the name `[unknown]`
+* show an error message if the path mapping wizard couldn't update the launch configuration
+* set the webRoot configuration property to its default if necessary
+* support overriding the debugging port in the settings
+* add workaround for the snap version of VS Code
+
 ### Version 2.9.1
 * add `enableCRAWorkaround` configuration property
 * fix the conditions for the `keepProfileChanges` configuration property on MacOS

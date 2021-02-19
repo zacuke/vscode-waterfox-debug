@@ -447,10 +447,6 @@ export class ThreadAdapter extends EventEmitter {
 		return await this.consoleActor.autoComplete(text, column, frameActorName);
 	}
 
-	public detach(): Promise<void> {
-		return this.actor.detach();
-	}
-
 	private variableFromGrip(grip: FirefoxDebugProtocol.Grip | undefined, threadLifetime: boolean): VariableAdapter {
 		if (grip !== undefined) {
 			return VariableAdapter.fromGrip('', undefined, undefined, grip, threadLifetime, this);

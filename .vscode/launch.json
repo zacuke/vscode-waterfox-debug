@@ -2,31 +2,22 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"type": "node",
+			"type": "pwa-node",
 			"request": "launch",
 			"name": "debug server",
 			"program": "${workspaceFolder}/dist/adapter.bundle.js",
 			"args": [ "--server=4711" ],
 			"cwd": "${workspaceFolder}",
-			"stopOnEntry": false,
-			"sourceMaps": true,
-			"outFiles": [
-				"${workspaceFolder}/dist"
-			]
+			"sourceMaps": true
 		},
 		{
-			"type": "extensionHost",
+			"type": "pwa-extensionHost",
 			"request": "launch",
 			"name": "extension host",
-			"runtimeExecutable": "${execPath}",
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}"
 			],
-			"stopOnEntry": false,
-			"sourceMaps": true,
-			"outFiles": [
-				"${workspaceFolder}/dist"
-			]
+			"sourceMaps": true
 		},
 		{
 			"type": "firefox",

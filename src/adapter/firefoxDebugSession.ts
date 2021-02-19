@@ -231,15 +231,6 @@ export class FirefoxDebugSession {
 	 * Terminate the debug session
 	 */
 	public async stop(): Promise<void> {
-
-		let detachPromises: Promise<void>[] = [];
-		if (!this.firefoxDebugSocketClosed) {
-			for (let [, threadAdapter] of this.threads) {
-				detachPromises.push(threadAdapter.detach());
-			}
-		}
-		await Promise.all(detachPromises);
-
 		await this.disconnectFirefoxAndCleanup();
 	}
 
