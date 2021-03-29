@@ -10,6 +10,10 @@ declare namespace FirefoxDebugProtocol {
 		from: string;
 	}
 
+	interface Event extends Response {
+		type: string;
+	}
+
 	interface TypedResponse extends Response {
 		type: string;
 	}
@@ -17,6 +21,10 @@ declare namespace FirefoxDebugProtocol {
 	interface ErrorResponse extends Response {
 		error: string;
 		message: string;
+	}
+
+	interface RequestTypesResponse extends Response {
+		requestTypes: string[];
 	}
 
 	interface InitialResponse extends Response {
