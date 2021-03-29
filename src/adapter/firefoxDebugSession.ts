@@ -46,7 +46,7 @@ export class FirefoxDebugSession {
 	public readonly isWindowsPlatform = detectWindowsPlatform();
 	public readonly pathMapper: PathMapper;
 	public readonly breakpointsManager: BreakpointsManager;
-	public dataBreakpointsManager?: DataBreakpointsManager;
+	public readonly dataBreakpointsManager: DataBreakpointsManager;
 	public readonly skipFilesManager: SkipFilesManager;
 	public readonly addonManager?: AddonManager;
 	private reloadWatcher?: chokidar.FSWatcher;
@@ -86,7 +86,9 @@ export class FirefoxDebugSession {
 	) {
 		this.pathMapper = new PathMapper(this.config.pathMappings, this.config.addon);
 		this.breakpointsManager = new BreakpointsManager(
-			this.threads, this.config.suggestPathMappingWizard, this.sendEvent);
+			this.threads, this.config.suggestPathMappingWizard, this.sendEvent
+		);
+		this.dataBreakpointsManager = new DataBreakpointsManager(this.variablesProviders);
 		this.skipFilesManager = new SkipFilesManager(this.config.filesToSkip, this.threads);
 		if (this.config.addon) {
 			this.addonManager = new AddonManager(config.enableCRAWorkaround, this);
@@ -145,10 +147,6 @@ export class FirefoxDebugSession {
 				}
 
 				this.noPauseOnThreadActorAttach = !!initialResponse.traits.noPauseOnThreadActorAttach;
-
-				if (initialResponse.traits.watchpoints) {
-					this.dataBreakpointsManager = new DataBreakpointsManager(this.variablesProviders);
-				}
 
 				const actors = await rootActor.fetchRoot();
 
