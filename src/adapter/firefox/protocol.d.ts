@@ -25,7 +25,8 @@ declare namespace FirefoxDebugProtocol {
 			breakpointWhileRunning?: boolean,
 			nativeLogpoints?: boolean,
 			watchpoints?: boolean,
-			webExtensionAddonConnect?: boolean
+			webExtensionAddonConnect?: boolean,
+			noPauseOnThreadActorAttach?: boolean
 		};
 	}
 

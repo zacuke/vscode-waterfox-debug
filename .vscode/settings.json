@@ -8,5 +8,6 @@
 	},
 	"editor.rulers": [100],
 	"typescript.tsdk": "./node_modules/typescript/lib",
-	"mochaExplorer.envPath": "src/test/.env"
+	"mochaExplorer.envPath": "src/test/.env",
+	"editor.tabSize": 4
 }

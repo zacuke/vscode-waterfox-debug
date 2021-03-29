@@ -61,6 +61,8 @@ export class FirefoxDebugSession {
 	public addonsActor?: AddonsActorProxy;
 	public deviceActor!: DeviceActorProxy;
 
+	private noPauseOnThreadActorAttach = false;
+
 	public readonly tabs = new Registry<TabActorProxy>();
 	public readonly threads = new Registry<ThreadAdapter>();
 	public readonly sources = new Registry<SourceAdapter>();
@@ -141,6 +143,8 @@ export class FirefoxDebugSession {
 					reject('Your version of Firefox is not supported anymore - please upgrade to Firefox 68 or later');
 					return;
 				}
+
+				this.noPauseOnThreadActorAttach = !!initialResponse.traits.noPauseOnThreadActorAttach;
 
 				if (initialResponse.traits.watchpoints) {
 					this.dataBreakpointsManager = new DataBreakpointsManager(this.variablesProviders);
@@ -443,7 +447,7 @@ export class FirefoxDebugSession {
 
 		try {
 
-			await threadAdapter.init(this.exceptionBreakpoints);
+			await threadAdapter.init(this.exceptionBreakpoints, !this.noPauseOnThreadActorAttach);
 
 			if (reload) {
 				await tabActor.reload();
@@ -471,7 +475,7 @@ export class FirefoxDebugSession {
 
 		this.attachThread(threadAdapter, threadActor.name);
 
-		await threadAdapter.init(this.exceptionBreakpoints);
+		await threadAdapter.init(this.exceptionBreakpoints, !this.noPauseOnThreadActorAttach);
 
 		workerActor.onClose(() => {
 			this.threads.unregister(threadAdapter.id);
