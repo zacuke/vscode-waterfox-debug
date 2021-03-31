@@ -46,7 +46,7 @@ export class FirefoxDebugSession {
 	public readonly isWindowsPlatform = detectWindowsPlatform();
 	public readonly pathMapper: PathMapper;
 	public readonly breakpointsManager: BreakpointsManager;
-	public dataBreakpointsManager?: DataBreakpointsManager;
+	public readonly dataBreakpointsManager: DataBreakpointsManager;
 	public readonly skipFilesManager: SkipFilesManager;
 	public readonly addonManager?: AddonManager;
 	private reloadWatcher?: chokidar.FSWatcher;
@@ -60,6 +60,8 @@ export class FirefoxDebugSession {
 	public preferenceActor!: PreferenceActorProxy;
 	public addonsActor?: AddonsActorProxy;
 	public deviceActor!: DeviceActorProxy;
+
+	private noPauseOnThreadActorAttach = false;
 
 	public readonly tabs = new Registry<TabActorProxy>();
 	public readonly threads = new Registry<ThreadAdapter>();
@@ -84,7 +86,9 @@ export class FirefoxDebugSession {
 	) {
 		this.pathMapper = new PathMapper(this.config.pathMappings, this.config.addon);
 		this.breakpointsManager = new BreakpointsManager(
-			this.threads, this.config.suggestPathMappingWizard, this.sendEvent);
+			this.threads, this.config.suggestPathMappingWizard, this.sendEvent
+		);
+		this.dataBreakpointsManager = new DataBreakpointsManager(this.variablesProviders);
 		this.skipFilesManager = new SkipFilesManager(this.config.filesToSkip, this.threads);
 		if (this.config.addon) {
 			this.addonManager = new AddonManager(config.enableCRAWorkaround, this);
@@ -142,9 +146,7 @@ export class FirefoxDebugSession {
 					return;
 				}
 
-				if (initialResponse.traits.watchpoints) {
-					this.dataBreakpointsManager = new DataBreakpointsManager(this.variablesProviders);
-				}
+				this.noPauseOnThreadActorAttach = !!initialResponse.traits.noPauseOnThreadActorAttach;
 
 				const actors = await rootActor.fetchRoot();
 
@@ -443,7 +445,7 @@ export class FirefoxDebugSession {
 
 		try {
 
-			await threadAdapter.init(this.exceptionBreakpoints);
+			await threadAdapter.init(this.exceptionBreakpoints, !this.noPauseOnThreadActorAttach);
 
 			if (reload) {
 				await tabActor.reload();
@@ -471,7 +473,7 @@ export class FirefoxDebugSession {
 
 		this.attachThread(threadAdapter, threadActor.name);
 
-		await threadAdapter.init(this.exceptionBreakpoints);
+		await threadAdapter.init(this.exceptionBreakpoints, !this.noPauseOnThreadActorAttach);
 
 		workerActor.onClose(() => {
 			this.threads.unregister(threadAdapter.id);

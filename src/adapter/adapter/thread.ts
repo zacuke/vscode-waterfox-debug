@@ -160,7 +160,7 @@ export class ThreadAdapter extends EventEmitter {
 	/**
 	 * Attach to the thread, fetch sources and resume.
 	 */
-	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
+	public async init(exceptionBreakpoints: ExceptionBreakpoints, isPaused: boolean): Promise<void> {
 
 		const attachOptions: AttachOptions = {
 			ignoreFrameEnvironment: true,
@@ -168,10 +168,14 @@ export class ThreadAdapter extends EventEmitter {
 			ignoreCaughtExceptions: (exceptionBreakpoints !== ExceptionBreakpoints.All)
 		};
 
-		await this.pauseCoordinator.requestInterrupt(this.id, this.name, 'auto');
+		if (isPaused) {
+			await this.pauseCoordinator.requestInterrupt(this.id, this.name, 'auto');
+		}
 		try {
 			await this.actor.attach(attachOptions);
-			this.pauseCoordinator.notifyInterrupted(this.id, this.name, 'auto');
+			if (isPaused) {
+				this.pauseCoordinator.notifyInterrupted(this.id, this.name, 'auto');
+			}
 		} catch(e) {
 			this.pauseCoordinator.notifyInterruptFailed(this.id, this.name);
 			throw e;
@@ -179,7 +183,9 @@ export class ThreadAdapter extends EventEmitter {
 
 		await this.actor.fetchSources();
 
-		await this.coordinator.resume();
+		if (isPaused) {
+			await this.coordinator.resume();
+		}
 	}
 
 	public createSourceAdapter(actor: ISourceActorProxy, path: string | undefined): SourceAdapter {

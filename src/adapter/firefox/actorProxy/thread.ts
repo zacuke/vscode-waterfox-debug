@@ -55,7 +55,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 		log.debug(`Created thread ${this.name}`);
 	}
 
-	private pendingAttachRequest?: PendingRequest<void>;
 	private attachPromise?: Promise<void>;
 	private pendingResumeRequest?: PendingRequest<void>;
 	private resumePromise?: Promise<void>;
@@ -74,7 +73,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 			log.debug(`Attaching thread ${this.name}`);
 
 			this.attachPromise = new Promise<void>((resolve, reject) => {
-				this.pendingAttachRequest = { resolve, reject };
+				this.pendingEmptyResponseRequests.enqueue({ resolve, reject });
 				this.connection.sendRequest({
 					to: this.name, type: 'attach', options
 				});
@@ -234,13 +233,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 
 			switch (pausedResponse.why.type) {
 				case 'attached':
-					if (this.pendingAttachRequest) {
-						this.pendingAttachRequest.resolve(undefined);
-						this.pendingAttachRequest = undefined;
-						this.interruptPromise = Promise.resolve(undefined);
-					} else {
-						log.warn('Received attached message without pending request');
-					}
 					break;
 
 				case 'interrupted':
@@ -363,9 +355,6 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 		} else if (response['error'] === 'noSuchActor') {
 
 			log.error(`No such actor ${JSON.stringify(this.name)}`);
-			if (this.pendingAttachRequest) {
-				this.pendingAttachRequest.reject('No such actor');
-			}
 			if (this.pendingInterruptRequest) {
 				this.pendingInterruptRequest.reject('No such actor');
 			}

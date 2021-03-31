@@ -1,3 +1,9 @@
+### Version 2.9.3
+* fix breakpoints only working after reloading the page
+* fix missing console messages
+* fix debugging WebWorkers
+* fix data breakpoints
+
 ### Version 2.9.2
 * fix terminating Firefox at the end of the debug session
 * fix function scopes being with the name `[unknown]`
