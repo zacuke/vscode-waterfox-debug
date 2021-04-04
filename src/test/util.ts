@@ -28,6 +28,10 @@ export async function initDebugClient(
 		launchArgs.profile = process.env['FIREFOX_PROFILE'];
 	}
 
+	if (process.env['HEADLESS'] === "true") {
+		launchArgs.firefoxArgs = ["-headless"];
+	}
+
 	if (extraLaunchArgs !== undefined) {
 		launchArgs = Object.assign(launchArgs, extraLaunchArgs);
 	}
@@ -79,6 +83,10 @@ export async function initDebugClientForAddon(
 
 	if (process.env['FIREFOX_PROFILE']) {
 		dcArgs.profile = process.env['FIREFOX_PROFILE'];
+	}
+
+	if (process.env['HEADLESS'] === "true") {
+		dcArgs.firefoxArgs = ["-headless"];
 	}
 
 	let dc = new DebugClient('node', './dist/adapter.bundle.js', 'firefox');
