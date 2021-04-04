@@ -391,8 +391,8 @@ export class FirefoxDebugSession {
 
 		log.debug(`Attached to tab ${tabActor.name}`);
 
-		let threadAdapter = new ThreadAdapter(threadActor, consoleActor,
-			this.threadPauseCoordinator, threadName, this);
+		let threadAdapter = new ThreadAdapter(threadActor, consoleActor, this.threadPauseCoordinator,
+			threadName, !this.noPauseOnThreadActorAttach, this);
 
 		this.sendThreadStartedEvent(threadAdapter);
 
@@ -466,8 +466,8 @@ export class FirefoxDebugSession {
 
 		log.debug(`Attached to worker ${workerActor.name}`);
 
-		let threadAdapter = new ThreadAdapter(threadActor, consoleActor,
-			this.threadPauseCoordinator, `Worker ${tabId}/${workerId}`, this);
+		let threadAdapter = new ThreadAdapter(threadActor, consoleActor, this.threadPauseCoordinator,
+			`Worker ${tabId}/${workerId}`, !this.noPauseOnThreadActorAttach, this);
 
 		this.sendThreadStartedEvent(threadAdapter);
 
