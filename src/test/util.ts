@@ -3,12 +3,15 @@ import { DebugClient } from 'vscode-debugadapter-testsupport';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { LaunchConfiguration } from '../common/configuration';
 import * as path from 'path';
+import * as net from 'net';
 
 export async function initDebugClient(
 	testDataPath: string,
 	waitForPageLoadedEvent: boolean,
 	extraLaunchArgs?: {}
 ): Promise<DebugClient> {
+
+	await waitForUnoccupiedPort(6000, 1000);
 
 	let dc = new DebugClient('node', './dist/adapter.bundle.js', 'firefox');
 
@@ -49,6 +52,8 @@ export async function initDebugClientForAddon(
 		addonDirectory?: string
 	}
 ): Promise<DebugClient> {
+
+	await waitForUnoccupiedPort(6000, 1000);
 
 	let addonPath: string;
 	if (options && options.addonDirectory) {
@@ -98,6 +103,36 @@ export async function initDebugClientForAddon(
 	}
 
 	return dc;
+}
+
+async function waitForUnoccupiedPort(port: number, timeout: number) {
+	if (!await isPortOccupied(port)) {
+		return;
+	}
+	for (let i = 0; i < timeout / 100; i++) {
+		await delay(100);
+		if (!await isPortOccupied(port)) {
+			return;
+		}
+	}
+	throw new Error(`Port ${port} is occupied`);
+}
+
+async function isPortOccupied(port: number): Promise<boolean> {
+	const server = net.createServer();
+	const occupied = await new Promise<boolean>((resolve, reject) => {
+		server.on('error', (err: any) => {
+			if (err.code === 'EADDRINUSE') {
+				resolve(true);
+			} else {
+				reject(err);
+			}
+		});
+		server.on('listening', () => resolve(false));
+		server.listen(port);
+	});
+	await new Promise<void>(resolve => server.close(() => resolve()));
+	return occupied;
 }
 
 export async function receivePageLoadedEvent(dc: DebugClient, lenient: boolean = false): Promise<void> {
