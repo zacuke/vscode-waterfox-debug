@@ -392,11 +392,15 @@ export class FirefoxDebugSession {
 		log.debug(`Attached to tab ${tabActor.name}`);
 
 		let threadAdapter = new ThreadAdapter(threadActor, consoleActor, this.threadPauseCoordinator,
-			threadName, !this.noPauseOnThreadActorAttach, this);
+			threadName, () => tabActor.url, !this.noPauseOnThreadActorAttach, this);
 
 		this.sendThreadStartedEvent(threadAdapter);
 
 		this.attachThread(threadAdapter, threadActor.name);
+
+		tabActor.onDidNavigate(() => {
+			this.sendEvent(new ThreadEvent('started', threadAdapter!.id));
+		});
 
 		tabActor.onFramesDestroyed(() => {
 			this.sendEvent(new Event('removeSources', <RemoveSourcesEventBody>{
@@ -467,7 +471,7 @@ export class FirefoxDebugSession {
 		log.debug(`Attached to worker ${workerActor.name}`);
 
 		let threadAdapter = new ThreadAdapter(threadActor, consoleActor, this.threadPauseCoordinator,
-			`Worker ${tabId}/${workerId}`, !this.noPauseOnThreadActorAttach, this);
+			`Worker ${tabId}/${workerId}`, () => workerActor.url, !this.noPauseOnThreadActorAttach, this);
 
 		this.sendThreadStartedEvent(threadAdapter);
 

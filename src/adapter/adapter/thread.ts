@@ -76,6 +76,7 @@ export class ThreadAdapter extends EventEmitter {
 		private readonly consoleActor: ConsoleActorProxy,
 		private readonly pauseCoordinator: ThreadPauseCoordinator,
 		public readonly name: string,
+		public readonly getUrl: () => string,
 		isPaused: boolean,
 		public readonly debugSession: FirefoxDebugSession
 	) {
