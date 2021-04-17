@@ -137,7 +137,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 				this.pendingInterruptRequest = { resolve, reject };
 				this.connection.sendRequest({
 					to: this.name, type: 'interrupt',
-					when: immediately ? undefined : 'onNext'
+					when: immediately ? '' : 'onNext'
 				});
 			});
 			this.resumePromise = undefined;

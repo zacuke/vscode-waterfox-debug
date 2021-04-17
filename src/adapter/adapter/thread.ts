@@ -76,14 +76,16 @@ export class ThreadAdapter extends EventEmitter {
 		private readonly consoleActor: ConsoleActorProxy,
 		private readonly pauseCoordinator: ThreadPauseCoordinator,
 		public readonly name: string,
+		public readonly getUrl: () => string,
+		isPaused: boolean,
 		public readonly debugSession: FirefoxDebugSession
 	) {
 		super();
 
 		this.id = debugSession.threads.register(this);
 
-		this.coordinator = new ThreadCoordinator(this.id, this.name, this.actor, this.consoleActor,
-			this.pauseCoordinator, () => this.disposePauseLifetimeAdapters());
+		this.coordinator = new ThreadCoordinator(this.id, this.name, isPaused, this.actor,
+			this.consoleActor, this.pauseCoordinator, () => this.disposePauseLifetimeAdapters());
 
 		this.coordinator.onPaused(async (event) => {
 

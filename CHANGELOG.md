@@ -1,3 +1,7 @@
+### Version 2.9.4
+* fix for breakpoints not being set in some situations
+* add the URL to a thread's name
+
 ### Version 2.9.3
 * fix breakpoints only working after reloading the page
 * fix missing console messages
