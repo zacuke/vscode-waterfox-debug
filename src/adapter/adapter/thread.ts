@@ -128,7 +128,7 @@ export class ThreadAdapter extends EventEmitter {
 					}
 				}
 			} catch(err) {
-				log.warn(err);
+				log.warn(String(err));
 			}
 
 			if (event.why.type === 'exception') {
@@ -148,7 +148,7 @@ export class ThreadAdapter extends EventEmitter {
 	
 						}
 					} catch(err) {
-						log.warn(err);
+						log.warn(String(err));
 					}
 				}
 			}
@@ -225,7 +225,7 @@ export class ThreadAdapter extends EventEmitter {
 						}
 
 					} catch(err) {
-						log.warn(err);
+						log.warn(String(err));
 					}
 				})();
 			}
