@@ -1,3 +1,6 @@
+### Version 2.9.5
+* compatibility fix for VS Code 1.62.1
+
 ### Version 2.9.4
 * fix for breakpoints not being set in some situations
 * add the URL to a thread's name
