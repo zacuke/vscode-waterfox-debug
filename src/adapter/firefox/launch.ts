@@ -46,14 +46,14 @@ export async function launchFirefox(launch: ParsedLaunchConfiguration): Promise<
 
 			case 1:
 				forkArgs = [
-					'spawnDetached', process.execPath, forkedLauncherPath,
+					'forkDetached', forkedLauncherPath,
 					'spawnAndRemove', launch.tmpDirs[0], launch.firefoxExecutable, ...launch.firefoxArgs
 				];
 				break;
 
 			default:
 				forkArgs = [
-					'spawnDetached', process.execPath, forkedLauncherPath,
+					'forkDetached', forkedLauncherPath,
 					'spawnAndRemove2', launch.tmpDirs[0], launch.tmpDirs[1], launch.firefoxExecutable, ...launch.firefoxArgs
 				];
 				break;

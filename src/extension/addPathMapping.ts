@@ -123,7 +123,7 @@ export async function addPathMappingToLaunchConfig(
 	try {
 		await launchConfigReference.launchConfigFile.update('configurations', configurations, vscode.ConfigurationTarget.WorkspaceFolder);
 		return true;
-	} catch(e) {
+	} catch(e: any) {
 		vscode.window.showErrorMessage(e.message);
 		return false;
 	}
