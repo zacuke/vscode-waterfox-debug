@@ -1,3 +1,6 @@
+### Version 2.9.6
+* debug protocol update for Firefox 96
+
 ### Version 2.9.5
 * compatibility fix for VS Code 1.62.1
 
