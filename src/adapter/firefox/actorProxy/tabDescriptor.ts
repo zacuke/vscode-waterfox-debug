@@ -53,7 +53,7 @@ export class TabDescriptorActorProxy implements ActorProxy {
 				this.pendingGetTargetRequest.resolve([
 					new TabActorProxy(
 						getTargetResponse.frame.actor, getTargetResponse.frame.title, getTargetResponse.frame.url,
-						this.enableCRAWorkaround, this.pathMapper, this.connection),
+						this.enableCRAWorkaround, this.pathMapper, this.connection, getTargetResponse.frame.threadActor),
 					new ConsoleActorProxy(getTargetResponse.frame.consoleActor, this.connection)
 				]);
 

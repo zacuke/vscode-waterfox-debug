@@ -60,7 +60,7 @@ export class WebExtensionActorProxy extends EventEmitter implements ActorProxy {
 			this.pendingConnectRequests.resolveOne([
 				new TabActorProxy(
 					connectResponse.form.actor, this.webExtensionInfo.name, connectResponse.form.url,
-					this.enableCRAWorkaround, this.pathMapper, this.connection),
+					this.enableCRAWorkaround, this.pathMapper, this.connection, connectResponse.form.threadActor),
 				new ConsoleActorProxy(connectResponse.form.consoleActor, this.connection)
 			]);
 

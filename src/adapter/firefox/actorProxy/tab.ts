@@ -28,7 +28,8 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 		private _url: string,
 		private readonly enableCRAWorkaround: boolean,
 		private readonly pathMapper: PathMapper,
-		private readonly connection: DebugConnection
+		private readonly connection: DebugConnection,
+		private readonly threadActorName?: string
 	) {
 		super();
 		this.connection.register(this);
@@ -45,6 +46,12 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 	public attach(): Promise<IThreadActorProxy> {
 
 		log.debug(`Attaching to tab ${this.name}`);
+
+		if (this.threadActorName) {
+			const threadActor = this.createThreadActor(this.threadActorName);
+			this.emit('attached', threadActor);
+			return Promise.resolve(threadActor);
+		}
 
 		return new Promise<IThreadActorProxy>((resolve, reject) => {
 			this.pendingAttachRequests.enqueue({ resolve, reject });
@@ -86,6 +93,14 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 		this.connection.unregister(this);
 	}
 
+	private createThreadActor(name: string) {
+		const threadActor: IThreadActorProxy = this.connection.getOrCreate(
+			name, 
+			() => new ThreadActorProxy(name, this.enableCRAWorkaround, this.connection));
+
+		return new SourceMappingThreadActorProxy(threadActor, this.pathMapper, this.connection);
+	}
+
 	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
 
 		if (response['threadActor']) {
@@ -93,11 +108,7 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 			log.debug(`Attached to tab ${this.name}`);
 			let tabAttachedResponse = <FirefoxDebugProtocol.TabAttachedResponse>response;
 
-			let threadActor: IThreadActorProxy = this.connection.getOrCreate(
-				tabAttachedResponse.threadActor, 
-				() => new ThreadActorProxy(tabAttachedResponse.threadActor, this.enableCRAWorkaround, this.connection));
-
-			threadActor = new SourceMappingThreadActorProxy(threadActor, this.pathMapper, this.connection);
+			const threadActor = this.createThreadActor(tabAttachedResponse.threadActor);
 
 			this.emit('attached', threadActor);
 			this.pendingAttachRequests.resolveOne(threadActor);

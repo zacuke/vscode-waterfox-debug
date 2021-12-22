@@ -53,6 +53,7 @@ declare namespace FirefoxDebugProtocol {
 		title: string;
 		url: string;
 		consoleActor: string;
+		threadActor?: string;
 	}
 
 	interface TabDescriptor {
@@ -95,6 +96,7 @@ declare namespace FirefoxDebugProtocol {
 			actor: string;
 			url: string;
 			consoleActor: string;
+			threadActor?: string;
 		}
 	}
 
