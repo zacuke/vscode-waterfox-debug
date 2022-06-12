@@ -16,6 +16,7 @@ export class WorkerActorProxy extends BaseActorProxy {
 	constructor(
 		name: string,
 		public readonly url: string,
+		private readonly doNotAttach: boolean,
 		private readonly enableCRAWorkaround: boolean,
 		private readonly pathMapper: PathMapper,
 		connection: DebugConnection
@@ -24,6 +25,10 @@ export class WorkerActorProxy extends BaseActorProxy {
 	}
 
 	public attach(): Promise<string> {
+		if (this.doNotAttach) {
+			return Promise.resolve(this.url);
+		}
+
 		if (!this.attachPromise) {
 			log.debug(`Attaching worker ${this.name}`);
 

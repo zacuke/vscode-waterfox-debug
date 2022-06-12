@@ -145,6 +145,9 @@ declare namespace FirefoxDebugProtocol {
 		actor: string;
 		url: string;
 		type: number;
+		traits: {
+			doNotAttach?: boolean;
+		}
 	}
 
 	interface WorkerAttachedResponse extends TypedResponse {

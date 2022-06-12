@@ -184,7 +184,8 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 					log.debug(`Worker ${worker.actor} started`);
 
 					workerActor = new WorkerActorProxy(
-						worker.actor, worker.url, this.enableCRAWorkaround, this.pathMapper, this.connection);
+						worker.actor, worker.url, !!worker.traits.doNotAttach,
+						this.enableCRAWorkaround, this.pathMapper, this.connection);
 					this.emit('workerStarted', workerActor);
 
 				}
