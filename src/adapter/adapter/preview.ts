@@ -83,7 +83,7 @@ function renderObjectPreview(preview: FirefoxDebugProtocol.ObjectPreview, classN
 		}
 	}
 
-	if (i < maxProperties) {
+	if (i < maxProperties && preview.ownSymbols) {
 		for (const symbolProperty of preview.ownSymbols) {
 
 			const renderedValue = renderGrip(symbolProperty.descriptor.value);
