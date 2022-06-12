@@ -40,13 +40,13 @@ export class ThreadCoordinator extends EventEmitter {
 	private exceptionBreakpoints: ExceptionBreakpoints | undefined;
 
 	/** the current state of the thread */
-	private threadState: ThreadState = 'paused';
+	private threadState: ThreadState = 'running';
 
 	/**
 	 * the desired state of the thread, the thread will be put into this state when no more actions
 	 * are queued or running
 	 */
-	private _threadTarget: ThreadTarget = 'paused';
+	private _threadTarget: ThreadTarget = 'running';
 	public get threadTarget(): ThreadTarget {
 		return this._threadTarget;
 	}
@@ -83,17 +83,12 @@ export class ThreadCoordinator extends EventEmitter {
 	constructor(
 		private threadId: number,
 		private threadName: string,
-		isPaused: boolean,
 		private threadActor: IThreadActorProxy,
 		private consoleActor: ConsoleActorProxy,
 		private pauseCoordinator: ThreadPauseCoordinator,
 		private prepareResume: () => Promise<void>
 	) {
 		super();
-
-		const state = isPaused ? 'paused' : 'running';
-		this.threadState = state;
-		this._threadTarget = state;
 
 		threadActor.onPaused((event) => {
 
