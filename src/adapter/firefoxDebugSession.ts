@@ -61,8 +61,6 @@ export class FirefoxDebugSession {
 	public addonsActor?: AddonsActorProxy;
 	public deviceActor!: DeviceActorProxy;
 
-	private noPauseOnThreadActorAttach = false;
-
 	public readonly tabs = new Registry<TabActorProxy>();
 	public readonly threads = new Registry<ThreadAdapter>();
 	public readonly sources = new Registry<SourceAdapter>();
@@ -145,8 +143,6 @@ export class FirefoxDebugSession {
 					reject('Your version of Firefox is not supported anymore - please upgrade to Firefox 68 or later');
 					return;
 				}
-
-				this.noPauseOnThreadActorAttach = !!initialResponse.traits.noPauseOnThreadActorAttach;
 
 				const actors = await rootActor.fetchRoot();
 
@@ -392,7 +388,7 @@ export class FirefoxDebugSession {
 		log.debug(`Attached to tab ${tabActor.name}`);
 
 		let threadAdapter = new ThreadAdapter(threadActor, consoleActor, this.threadPauseCoordinator,
-			threadName, () => tabActor.url, !this.noPauseOnThreadActorAttach, this);
+			threadName, () => tabActor.url, this);
 
 		this.sendThreadStartedEvent(threadAdapter);
 
@@ -449,7 +445,7 @@ export class FirefoxDebugSession {
 
 		try {
 
-			await threadAdapter.init(this.exceptionBreakpoints, !this.noPauseOnThreadActorAttach);
+			await threadAdapter.init(this.exceptionBreakpoints);
 
 			if (reload) {
 				await tabActor.reload();
@@ -471,13 +467,13 @@ export class FirefoxDebugSession {
 		log.debug(`Attached to worker ${workerActor.name}`);
 
 		let threadAdapter = new ThreadAdapter(threadActor, consoleActor, this.threadPauseCoordinator,
-			`Worker ${tabId}/${workerId}`, () => workerActor.url, !this.noPauseOnThreadActorAttach, this);
+			`Worker ${tabId}/${workerId}`, () => workerActor.url, this);
 
 		this.sendThreadStartedEvent(threadAdapter);
 
 		this.attachThread(threadAdapter, threadActor.name);
 
-		await threadAdapter.init(this.exceptionBreakpoints, !this.noPauseOnThreadActorAttach);
+		await threadAdapter.init(this.exceptionBreakpoints);
 
 		workerActor.onClose(() => {
 			this.threads.unregister(threadAdapter.id);

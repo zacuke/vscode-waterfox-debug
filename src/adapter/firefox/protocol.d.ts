@@ -145,6 +145,9 @@ declare namespace FirefoxDebugProtocol {
 		actor: string;
 		url: string;
 		type: number;
+		traits: {
+			doNotAttach?: boolean;
+		}
 	}
 
 	interface WorkerAttachedResponse extends TypedResponse {
@@ -427,9 +430,9 @@ declare namespace FirefoxDebugProtocol {
 		kind: 'Object';
 		ownProperties: { [name: string]: PropertyPreview };
 		ownPropertiesLength: number;
-		ownSymbols: NamedDataPropertyDescriptor[];
-		ownSymbolsLength: number;
-		safeGetterValues: { [name: string]: SafeGetterValuePreview };
+		ownSymbols?: NamedDataPropertyDescriptor[];
+		ownSymbolsLength?: number;
+		safeGetterValues?: { [name: string]: SafeGetterValuePreview };
 	}
 
 	interface PropertyPreview {

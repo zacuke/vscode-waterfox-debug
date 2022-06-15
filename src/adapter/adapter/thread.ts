@@ -77,14 +77,13 @@ export class ThreadAdapter extends EventEmitter {
 		private readonly pauseCoordinator: ThreadPauseCoordinator,
 		public readonly name: string,
 		public readonly getUrl: () => string,
-		isPaused: boolean,
 		public readonly debugSession: FirefoxDebugSession
 	) {
 		super();
 
 		this.id = debugSession.threads.register(this);
 
-		this.coordinator = new ThreadCoordinator(this.id, this.name, isPaused, this.actor,
+		this.coordinator = new ThreadCoordinator(this.id, this.name, this.actor,
 			this.consoleActor, this.pauseCoordinator, () => this.disposePauseLifetimeAdapters());
 
 		this.coordinator.onPaused(async (event) => {
@@ -162,7 +161,7 @@ export class ThreadAdapter extends EventEmitter {
 	/**
 	 * Attach to the thread, fetch sources and resume.
 	 */
-	public async init(exceptionBreakpoints: ExceptionBreakpoints, isPaused: boolean): Promise<void> {
+	public async init(exceptionBreakpoints: ExceptionBreakpoints): Promise<void> {
 
 		const attachOptions: AttachOptions = {
 			ignoreFrameEnvironment: true,
@@ -170,24 +169,14 @@ export class ThreadAdapter extends EventEmitter {
 			ignoreCaughtExceptions: (exceptionBreakpoints !== ExceptionBreakpoints.All)
 		};
 
-		if (isPaused) {
-			await this.pauseCoordinator.requestInterrupt(this.id, this.name, 'auto');
-		}
 		try {
 			await this.actor.attach(attachOptions);
-			if (isPaused) {
-				this.pauseCoordinator.notifyInterrupted(this.id, this.name, 'auto');
-			}
 		} catch(e) {
 			this.pauseCoordinator.notifyInterruptFailed(this.id, this.name);
 			throw e;
 		}
 
 		await this.actor.fetchSources();
-
-		if (isPaused) {
-			await this.coordinator.resume();
-		}
 	}
 
 	public createSourceAdapter(actor: ISourceActorProxy, path: string | undefined): SourceAdapter {

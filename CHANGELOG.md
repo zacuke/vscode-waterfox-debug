@@ -1,3 +1,6 @@
+### Version 2.9.7
+* debug protocol update for Firefox 102
+
 ### Version 2.9.6
 * debug protocol update for Firefox 96
 
