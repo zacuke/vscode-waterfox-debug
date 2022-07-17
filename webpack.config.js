@@ -20,7 +20,8 @@ module.exports = {
 		]
 	},
 	externals: {
-		vscode: 'commonjs vscode'
+		vscode: 'commonjs vscode',
+		fsevents: 'commonjs fsevents'
 	},
 	output: {
 		path: path.resolve(__dirname, 'dist'),
