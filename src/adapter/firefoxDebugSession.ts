@@ -461,7 +461,6 @@ export class FirefoxDebugSession {
 
 	private async attachWorker(workerActor: WorkerActorProxy, tabId: number, workerId: number): Promise<void> {
 
-		await workerActor.attach();
 		let [threadActor, consoleActor] = await workerActor.connect();
 
 		log.debug(`Attached to worker ${workerActor.name}`);
