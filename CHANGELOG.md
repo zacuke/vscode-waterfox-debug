@@ -1,3 +1,7 @@
+### Version 2.9.8
+* debug protocol update for Firefox 104
+* fix the build on MacOS
+
 ### Version 2.9.7
 * debug protocol update for Firefox 102
 

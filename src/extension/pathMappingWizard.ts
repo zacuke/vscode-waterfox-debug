@@ -95,7 +95,7 @@ export async function createPathMappingForPath(
 	}
 
 	const message =
-		"This file's path isn't mapped to any url that was loaded by Firefox. " +
+		`This file's path (${vscPath}) isn't mapped to any url that was loaded by Firefox. ` +
 		"Either this file hasn't been loaded by Firefox yet or " +
 		"your debug configuration needs a pathMapping for this file - " +
 		"do you think the file has already been loaded and want to let the " +

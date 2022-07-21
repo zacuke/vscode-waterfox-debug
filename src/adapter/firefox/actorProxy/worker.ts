@@ -10,37 +10,16 @@ let log = Log.create('WorkerActorProxy');
 
 export class WorkerActorProxy extends BaseActorProxy {
 
-	private attachPromise?: Promise<string>;
 	private connectPromise?: Promise<[IThreadActorProxy, ConsoleActorProxy]>;
 
 	constructor(
 		name: string,
 		public readonly url: string,
-		private readonly doNotAttach: boolean,
 		private readonly enableCRAWorkaround: boolean,
 		private readonly pathMapper: PathMapper,
 		connection: DebugConnection
 	) {
 		super(name, ['attached', 'connected'], connection);
-	}
-
-	public attach(): Promise<string> {
-		if (this.doNotAttach) {
-			return Promise.resolve(this.url);
-		}
-
-		if (!this.attachPromise) {
-			log.debug(`Attaching worker ${this.name}`);
-
-			this.attachPromise = this.sendRequest<any, FirefoxDebugProtocol.WorkerAttachedResponse>(
-				{ type: 'attach' }
-			).then(response => response.url);
-			
-		} else {
-			log.warn('Attaching this worker has already been requested!');
-		}
-		
-		return this.attachPromise;
 	}
 
 	public connect(): Promise<[IThreadActorProxy, ConsoleActorProxy]> {
