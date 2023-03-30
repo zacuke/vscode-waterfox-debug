@@ -3,6 +3,7 @@ import * as fs from 'fs-extra';
 import * as net from 'net';
 import * as http from 'http';
 import * as https from 'https';
+import { setDefaultResultOrder } from 'dns';
 import fileUriToPath from 'file-uri-to-path';
 import dataUriToBuffer from 'data-uri-to-buffer';
 import { Log } from './log';
@@ -14,6 +15,7 @@ let log = Log.create('net');
  * connect to a TCP port
  */
 export function connect(port: number, host?: string): Promise<net.Socket> {
+	setDefaultResultOrder("ipv4first");
 	return new Promise<net.Socket>((resolve, reject) => {
 		let socket = net.connect(port, host || 'localhost');
 		socket.on('connect', () => resolve(socket));
