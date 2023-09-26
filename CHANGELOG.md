@@ -1,3 +1,6 @@
+### Version 2.9.9
+* compatibility fix for Node 17 / VS Code 1.82
+
 ### Version 2.9.8
 * debug protocol update for Firefox 104
 * fix the build on MacOS
