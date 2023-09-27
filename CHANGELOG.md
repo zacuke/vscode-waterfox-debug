@@ -1,3 +1,6 @@
+### Version 2.9.10
+* fix marketplace badge link in the README
+
 ### Version 2.9.9
 * compatibility fix for Node 17 / VS Code 1.82
 
