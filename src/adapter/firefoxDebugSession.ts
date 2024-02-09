@@ -548,11 +548,23 @@ export class FirefoxDebugSession {
 				return;
 			}
 
+			if (consoleEvent.level === 'time' && !consoleEvent.timer?.error) {
+				// Match what is done in Firefox console and don't show anything when the timer starts
+				return;
+			}
+
 			let category = (consoleEvent.level === 'error') ? 'stderr' :
 				(consoleEvent.level === 'warn') ? 'console' : 'stdout';
 
 			let outputEvent: DebugProtocol.OutputEvent;
-			if ((consoleEvent.arguments.length === 1) && (typeof consoleEvent.arguments[0] !== 'object')) {
+
+			if (consoleEvent.level === 'time' && consoleEvent.timer?.error === "timerAlreadyExists") {
+				outputEvent = new OutputEvent(`Timer “${consoleEvent.timer.name}” already exists`, 'console');
+			} else if (consoleEvent.level === 'timeEnd' && consoleEvent.timer?.error === "timerDoesntExist") {
+				outputEvent = new OutputEvent(`Timer “${consoleEvent.timer.name}” already exists`, 'console');
+			} else if (consoleEvent.level === 'timeEnd' && consoleEvent.timer?.duration !== undefined) {
+				outputEvent = new OutputEvent(`${consoleEvent.timer.name}: ${consoleEvent.timer.duration}ms - timer ended`, 'stdout');
+			} else if ((consoleEvent.arguments.length === 1) && (typeof consoleEvent.arguments[0] !== 'object')) {
 
 				let msg = String(consoleEvent.arguments[0]);
 				if (this.config.showConsoleCallLocation) {
