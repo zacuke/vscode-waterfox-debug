@@ -560,8 +560,34 @@ export class FirefoxDebugSession {
 
 			if (consoleEvent.level === 'time' && consoleEvent.timer?.error === "timerAlreadyExists") {
 				outputEvent = new OutputEvent(`Timer “${consoleEvent.timer.name}” already exists`, 'console');
-			} else if (consoleEvent.level === 'timeEnd' && consoleEvent.timer?.error === "timerDoesntExist") {
-				outputEvent = new OutputEvent(`Timer “${consoleEvent.timer.name}” already exists`, 'console');
+			} else if (
+				(consoleEvent.level === 'timeLog' || consoleEvent.level === 'timeEnd') &&
+				consoleEvent.timer?.error === "timerDoesntExist"
+			) {
+				outputEvent = new OutputEvent(`Timer “${consoleEvent.timer.name}” doesn't exist`, 'console');
+			} else if (consoleEvent.level === 'timeLog' && consoleEvent.timer?.duration !== undefined) {
+				const args = consoleEvent.arguments.map((grip, index) => {
+					// The first argument is the timer name
+					if (index === 0) {
+						return new VariableAdapter(
+							String(index),
+							undefined,
+							undefined,
+							`${consoleEvent.timer.name}: ${consoleEvent.timer.duration}ms`,
+							threadAdapter
+						);
+					}
+
+					if (typeof grip !== 'object') {
+						return new VariableAdapter(String(index), undefined, undefined, String(grip), threadAdapter);
+					}
+
+					return VariableAdapter.fromGrip(String(index), undefined, undefined, grip, true, threadAdapter);
+				});
+
+				let { variablesProviderId } = new ConsoleAPICallAdapter(args, threadAdapter);
+				outputEvent = new OutputEvent('', 'stdout');
+				outputEvent.body.variablesReference = variablesProviderId;
 			} else if (consoleEvent.level === 'timeEnd' && consoleEvent.timer?.duration !== undefined) {
 				outputEvent = new OutputEvent(`${consoleEvent.timer.name}: ${consoleEvent.timer.duration}ms - timer ended`, 'stdout');
 			} else if ((consoleEvent.arguments.length === 1) && (typeof consoleEvent.arguments[0] !== 'object')) {
