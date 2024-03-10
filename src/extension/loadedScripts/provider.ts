@@ -7,8 +7,8 @@ export class LoadedScriptsProvider implements vscode.TreeDataProvider<TreeNode> 
 
 	private readonly root = new RootNode();
 
-	private readonly treeDataChanged = new vscode.EventEmitter<TreeNode>();
-	public readonly onDidChangeTreeData: vscode.Event<TreeNode>;
+	private readonly treeDataChanged = new vscode.EventEmitter<TreeNode | void>();
+	public readonly onDidChangeTreeData: vscode.Event<TreeNode | void>;
 
 	public constructor() {
 		this.onDidChangeTreeData = this.treeDataChanged.event;

@@ -65,8 +65,8 @@ export async function launchFirefox(launch: ParsedLaunchConfiguration): Promise<
 
 		childProc = spawn(launch.firefoxExecutable, launch.firefoxArgs, { env, detached: true });
 
-		childProc.stdout.on('data', () => undefined);
-		childProc.stderr.on('data', () => undefined);
+		childProc.stdout?.on('data', () => undefined);
+		childProc.stderr?.on('data', () => undefined);
 
 		childProc.unref();
 	}

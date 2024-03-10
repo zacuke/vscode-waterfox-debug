@@ -79,7 +79,7 @@ function _findLaunchConfig(): LaunchConfigReference | undefined {
 }
 
 export function findLaunchConfig(
-	workspaceFolders: vscode.WorkspaceFolder[],
+	workspaceFolders: readonly vscode.WorkspaceFolder[],
 	activeDebugSession: vscode.DebugSession
 ): LaunchConfigReference | undefined {
 
