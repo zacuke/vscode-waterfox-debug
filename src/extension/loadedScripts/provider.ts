@@ -33,8 +33,8 @@ export class LoadedScriptsProvider implements vscode.TreeDataProvider<TreeNode> 
 		this.sendTreeDataChangedEvent(changedItem);
 	}
 
-	public addThread(threadInfo: ThreadStartedEventBody, sessionId: string) {
-		let changedItem = this.root.addThread(threadInfo, sessionId);
+	public async addThread(threadInfo: ThreadStartedEventBody, sessionId: string) {
+		let changedItem = await this.root.addThread(threadInfo, sessionId);
 		this.sendTreeDataChangedEvent(changedItem);
 	}
 
@@ -43,8 +43,8 @@ export class LoadedScriptsProvider implements vscode.TreeDataProvider<TreeNode> 
 		this.sendTreeDataChangedEvent(changedItem);
 	}
 
-	public addSource(sourceInfo: NewSourceEventBody, sessionId: string) {
-		let changedItem = this.root.addSource(sourceInfo, sessionId);
+	public async addSource(sourceInfo: NewSourceEventBody, sessionId: string) {
+		let changedItem = await this.root.addSource(sourceInfo, sessionId);
 		this.sendTreeDataChangedEvent(changedItem);
 	}
 
