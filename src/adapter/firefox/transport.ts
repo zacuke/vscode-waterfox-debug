@@ -1,3 +1,4 @@
+import { Socket } from 'net';
 import { Log } from '../util/log';
 import { EventEmitter } from 'events';
 
@@ -16,7 +17,7 @@ export class DebugProtocolTransport extends EventEmitter {
 	private receivingHeader: boolean;
 
 	constructor(
-		private socket: SocketLike
+		private socket: Socket
 	) {
 		super();
 
@@ -85,11 +86,4 @@ export class DebugProtocolTransport extends EventEmitter {
 			this.socket.end();
 		});
 	}
-}
-
-export interface SocketLike {
-	on(event: string, listener: Function): EventEmitter;
-	write(buffer: Buffer): boolean;
-	write(str: string, encoding: string): boolean;
-	end(): void;
 }
