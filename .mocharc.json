@@ -1,5 +1,5 @@
 {
-	"require": "ts-node/register/transpile-only",
+	"require": "tsx",
 	"timeout": 20000,
 	"slow": 6000,
 	"exit": true,

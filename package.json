@@ -78,7 +78,7 @@
     "original-fs": "^1.2.0",
     "rimraf": "^5.0.1",
     "terser-webpack-plugin": "^5.3.9",
-    "ts-node": "^10.9.1",
+    "tsx": "^4.7.1",
     "typescript": "^5.2.2",
     "vsce": "^2.15.0",
     "vscode-debugadapter-testsupport": "^1.51.0",
