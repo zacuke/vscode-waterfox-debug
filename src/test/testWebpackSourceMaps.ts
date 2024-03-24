@@ -28,14 +28,21 @@ describe('Webpack sourcemaps: The debugger', function() {
 	});
 
 	for (const devtool of [
-		'source-map', 'inline-source-map', 'nosources-source-map', 'inline-nosources-source-map',
-		'eval-source-map', 'eval-cheap-source-map', 'eval-cheap-module-source-map',
-		'eval-nosources-source-map', 'eval-nosources-cheap-source-map', 'eval-nosources-cheap-module-source-map',
+		'source-map',
+		'inline-source-map',
+		'nosources-source-map',
+		'inline-nosources-source-map',
+		'eval-source-map',
+		'eval-cheap-source-map',
+		'eval-cheap-module-source-map',
+		'eval-nosources-source-map',
+		'eval-nosources-cheap-source-map',
+		'eval-nosources-cheap-module-source-map',
 	] satisfies Devtool[]) {
 
 		const description = `should map webpack-bundled modules with devtool "${devtool}" to their original sources`;
-		const isEvalSourcemap = devtool.indexOf('eval') >= 0;
-		const isCheapSourcemap = devtool.indexOf('cheap') >= 0;
+		const isEvalSourcemap = devtool.includes('eval');
+		const isCheapSourcemap = devtool.includes('cheap');
 
 		it(description, async function() {
 
