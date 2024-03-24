@@ -3,7 +3,6 @@ import { LaunchConfiguration, AttachConfiguration } from '../common/configuratio
 import { parseConfiguration, NormalizedReloadConfiguration } from '../adapter/configuration';
 import * as assert from 'assert';
 import * as path from 'path';
-import RegExpEscape from 'escape-string-regexp';
 import { isWindowsPlatform } from '../common/util';
 
 describe('The configuration parser', function() {
@@ -317,7 +316,7 @@ describe('The configuration parser', function() {
 			await parseConfiguration({
 				request: 'launch',
 				file: '/home/user/project/index.html',
-				reAttach: true,
+				reAttach: false,
 				profileDir: path.join(os.tmpdir(), 'dummy'),
 				keepProfileChanges: true
 			});
@@ -671,6 +670,7 @@ describe('The configuration parser', function() {
 		let parsedConfiguration = await parseConfiguration({
 			request: 'launch',
 			file: '/home/user/project/index.html',
+			reAttach: true,
 			profileDir,
 			keepProfileChanges: true
 		});
