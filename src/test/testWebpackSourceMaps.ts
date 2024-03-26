@@ -6,6 +6,7 @@ import * as assert from 'assert';
 import * as util from './util';
 import * as sourceMapUtil from './sourceMapUtil';
 import webpack from 'webpack';
+import TerserPlugin from 'terser-webpack-plugin';
 import { DebugClient } from 'vscode-debugadapter-testsupport';
 
 const TESTDATA_PATH = path.join(__dirname, '../../testdata/web/sourceMaps/modules');
@@ -26,24 +27,28 @@ describe('Webpack sourcemaps: The debugger', function() {
 		}
 	});
 
-	for (let devtool of [
-		'cheap-eval-source-map', 'cheap-source-map', 'cheap-module-eval-source-map', 'inline-source-map',
-		'cheap-module-source-map' , 'eval-source-map' , 'source-map' , 'nosources-source-map'
-	]) {
+	for (const devtool of [
+		'source-map',
+		'inline-source-map',
+		'nosources-source-map',
+		'inline-nosources-source-map',
+		'eval-source-map',
+		'eval-cheap-source-map',
+		'eval-cheap-module-source-map',
+		'eval-nosources-source-map',
+		'eval-nosources-cheap-source-map',
+		'eval-nosources-cheap-module-source-map',
+	] satisfies Devtool[]) {
 
 		const description = `should map webpack-bundled modules with devtool "${devtool}" to their original sources`;
-
-		// disable tests with webpack devtools that are known to be broken (webpack bug #5491)
-		if (devtool.indexOf('eval') < 0) {
-			it.skip(description);
-			continue;
-		}
+		const isEvalSourcemap = devtool.includes('eval');
+		const isCheapSourcemap = devtool.includes('cheap');
 
 		it(description, async function() {
 
 			let targetDir = await prepareTargetDir();
 
-			await build(targetDir, <Devtool>devtool);
+			await build(targetDir, devtool);
 
 			dc = await util.initDebugClient('', true, {
 				file: path.join(targetDir, 'index.html'),
@@ -51,34 +56,33 @@ describe('Webpack sourcemaps: The debugger', function() {
 			});
 
 			// test breakpoint locations if the devtool provides column breakpoints
-			if ((devtool.indexOf('cheap') < 0) && (devtool.indexOf('source-map') >= 0)) {
+			if (!isCheapSourcemap) {
 				const breakpointLocations = await dc.customRequest('breakpointLocations', {
 					source: { path: path.join(targetDir, 'f.js') },
 					line: 7
 				});
 				assert.deepStrictEqual(breakpointLocations.body.breakpoints, [
-					{ line: 7, column: 1 },
+					{ line: 7, column: isEvalSourcemap ? 1 : 2 },
 					{ line: 7, column: 6 }
 				]);
 			}
 
-			await sourceMapUtil.testSourcemaps(dc, targetDir, 1);
+			const breakpoint = { line: 7, column: isEvalSourcemap ? 1 : 6 };
+			await sourceMapUtil.testSourcemaps(dc, targetDir, breakpoint);
 		});
 	}
 });
 
 async function prepareTargetDir(): Promise<string> {
 
-	let targetDir = path.join(os.tmpdir(), `vscode-firefox-debug-test-${uuid.v4()}`);
+	let targetDir = path.join(await fs.realpath(os.tmpdir()), `vscode-firefox-debug-test-${uuid.v4()}`);
 	await fs.mkdir(targetDir);
 	await sourceMapUtil.copyFiles(TESTDATA_PATH, targetDir, ['index.html', 'f.js', 'g.js']);
 
 	return targetDir;
 }
 
-type Devtool = 
-	'cheap-eval-source-map' | 'cheap-source-map' | 'cheap-module-eval-source-map' | 'inline-source-map' |
-	'cheap-module-source-map' | 'eval-source-map' | 'source-map' | 'nosources-source-map';
+type Devtool = `${'inline-' | 'hidden-' | 'eval-' | ''}${'nosources-' | ''}${'cheap-module-' | 'cheap-' | ''}source-map`;
 
 function build(targetDir: string, devtool: Devtool): Promise<void> {
 	return new Promise<void>((resolve, reject) => {
@@ -89,7 +93,10 @@ function build(targetDir: string, devtool: Devtool): Promise<void> {
 				path: targetDir,
 				filename: 'bundle.js'
 			},
-			devtool: devtool
+			devtool: devtool,
+			optimization: {
+				minimizer: [new TerserPlugin({ terserOptions: { mangle: false } })],
+			}
 		}, (err, stats) => {
 			if (err) {
 				reject(err);

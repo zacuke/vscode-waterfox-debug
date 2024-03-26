@@ -3,18 +3,19 @@ import * as fs from 'fs-extra';
 import { Stream } from 'stream';
 import * as assert from 'assert';
 import { DebugClient } from 'vscode-debugadapter-testsupport';
+import { DebugProtocol } from 'vscode-debugprotocol';
 import * as util from './util';
 
 export async function testSourcemaps(
 	dc: DebugClient,
 	srcDir: string,
-	stepInRepeat = 1
+	breakpoint: DebugProtocol.SourceBreakpoint = { line: 7 }
 ): Promise<void> {
 
 	let fPath = path.join(srcDir, 'f.js');
 	let gPath = path.join(srcDir, 'g.js');
 
-	await util.setBreakpoints(dc, fPath, [ 7 ]);
+	await util.setBreakpoints(dc, fPath, [breakpoint]);
 
 	let stoppedEvent = await util.runCommandAndReceiveStoppedEvent(dc, () =>
 		util.evaluateDelayed(dc, 'f()', 0));
@@ -22,9 +23,7 @@ export async function testSourcemaps(
 
 	await checkDebuggeeState(dc, threadId, fPath, 7, 'x', '2');
 
-	for (let i = 0; i < stepInRepeat; i++) {
-		await util.runCommandAndReceiveStoppedEvent(dc, () => dc.stepInRequest({ threadId }));
-	}
+	await util.runCommandAndReceiveStoppedEvent(dc, () => dc.stepInRequest({ threadId }));
 
 	await checkDebuggeeState(dc, threadId, gPath, 5, 'y', '2');
 

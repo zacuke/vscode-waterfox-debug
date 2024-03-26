@@ -15,15 +15,6 @@ describe('Data breakpoints: The debug adapter', function() {
 
 	it('should add a data breakpoint and hit it', async function() {
 
-		if (process.env['WATCHPOINTS'] !== 'true') {
-			this.skip();
-			if (process.env['WATCHPOINTS'] !== 'true') {
-				this.skip();
-			}
-	
-			return;
-		}
-
 		dc = await util.initDebugClient(TESTDATA_PATH, false);
 		const sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
 		await setupDataBreakpoint(sourcePath);
@@ -36,11 +27,6 @@ describe('Data breakpoints: The debug adapter', function() {
 	});
 
 	it('should remove and re-add a data breakpoint and hit it', async function() {
-
-		if (process.env['WATCHPOINTS'] !== 'true') {
-			this.skip();
-			return;
-		}
 
 		dc = await util.initDebugClient(TESTDATA_PATH, false);
 		const sourcePath = path.join(TESTDATA_PATH, 'web/main.js');
