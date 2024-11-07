@@ -1,6 +1,6 @@
 {
   "name": "firefox-debugadapter",
-  "version": "2.9.10",
+  "version": "2.9.11",
   "author": "Holger Benl <hbenl@evandor.de>",
   "description": "Debug adapter for Firefox",
   "files": [

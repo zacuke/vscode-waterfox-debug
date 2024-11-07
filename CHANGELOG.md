@@ -1,3 +1,7 @@
+### Version 2.9.11
+* handle console.time/timeEnd
+* fix the loaded scripts panel
+
 ### Version 2.9.10
 * fix marketplace badge link in the README
 
