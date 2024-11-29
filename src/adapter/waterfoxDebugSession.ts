@@ -9,16 +9,16 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent, ContinuedEvent, Event } from 'vscode-debugadapter';
 import { Log } from './util/log';
 import { AddonManager } from './adapter/addonManager';
-import { launchFirefox, openNewTab } from './firefox/launch';
-import { DebugConnection } from './firefox/connection';
-import { TabActorProxy } from './firefox/actorProxy/tab';
-import { WorkerActorProxy } from './firefox/actorProxy/worker';
-import { ObjectGripActorProxy } from './firefox/actorProxy/objectGrip';
-import { LongStringGripActorProxy } from './firefox/actorProxy/longString';
-import { AddonsActorProxy } from './firefox/actorProxy/addons';
-import { ExceptionBreakpoints, IThreadActorProxy } from './firefox/actorProxy/thread';
-import { ConsoleActorProxy } from './firefox/actorProxy/console';
-import { ISourceActorProxy } from './firefox/actorProxy/source';
+import { launchWaterfox, openNewTab } from './waterfox/launch';
+import { DebugConnection } from './waterfox/connection';
+import { TabActorProxy } from './waterfox/actorProxy/tab';
+import { WorkerActorProxy } from './waterfox/actorProxy/worker';
+import { ObjectGripActorProxy } from './waterfox/actorProxy/objectGrip';
+import { LongStringGripActorProxy } from './waterfox/actorProxy/longString';
+import { AddonsActorProxy } from './waterfox/actorProxy/addons';
+import { ExceptionBreakpoints, IThreadActorProxy } from './waterfox/actorProxy/thread';
+import { ConsoleActorProxy } from './waterfox/actorProxy/console';
+import { ISourceActorProxy } from './waterfox/actorProxy/source';
 import { FrameAdapter } from './adapter/frame';
 import { SourceAdapter } from './adapter/source';
 import { VariablesProvider } from './adapter/variablesProvider';
@@ -35,13 +35,13 @@ import { PathMapper } from './util/pathMapper';
 import { isWindowsPlatform as detectWindowsPlatform, delay } from '../common/util';
 import { connect, waitForSocket } from './util/net';
 import { NewSourceEventBody, ThreadStartedEventBody, ThreadExitedEventBody, RemoveSourcesEventBody } from '../common/customEvents';
-import { PreferenceActorProxy } from './firefox/actorProxy/preference';
-import { DeviceActorProxy } from './firefox/actorProxy/device';
+import { PreferenceActorProxy } from './waterfox/actorProxy/preference';
+import { DeviceActorProxy } from './waterfox/actorProxy/device';
 
-let log = Log.create('FirefoxDebugSession');
+let log = Log.create('WaterfoxDebugSession');
 let consoleActorLog = Log.create('ConsoleActor');
 
-export class FirefoxDebugSession {
+export class WaterfoxDebugSession {
 
 	public readonly isWindowsPlatform = detectWindowsPlatform();
 	public readonly pathMapper: PathMapper;
@@ -52,10 +52,10 @@ export class FirefoxDebugSession {
 	private reloadWatcher?: chokidar.FSWatcher;
 	private threadPauseCoordinator = new ThreadPauseCoordinator();
 
-	private firefoxProc?: ChildProcess;
-	private firefoxClosedPromise?: Promise<void>;
-	public firefoxDebugConnection!: DebugConnection;
-	private firefoxDebugSocketClosed = false;
+	private waterfoxProc?: ChildProcess;
+	private waterfoxClosedPromise?: Promise<void>;
+	public waterfoxDebugConnection!: DebugConnection;
+	private waterfoxDebugSocketClosed = false;
 
 	public preferenceActor!: PreferenceActorProxy;
 	public addonsActor?: AddonsActorProxy;
@@ -94,22 +94,22 @@ export class FirefoxDebugSession {
 	}
 
 	/**
-	 * Connect to Firefox and start the debug session. Returns a Promise that is resolved when the
-	 * initial response from Firefox was processed.
+	 * Connect to Waterfox and start the debug session. Returns a Promise that is resolved when the
+	 * initial response from Waterfox was processed.
 	 */
 	public start(): Promise<void> {
 		return new Promise<void>(async (resolve, reject) => {
 
 			let socket: Socket;
 			try {
-				socket = await this.connectToFirefox();
+				socket = await this.connectToWaterfox();
 			} catch(err) {
 				reject(err);
 				return;
 			}
 
-			this.firefoxDebugConnection = new DebugConnection(this.config.enableCRAWorkaround, this.pathMapper, socket);
-			let rootActor = this.firefoxDebugConnection.rootActor;
+			this.waterfoxDebugConnection = new DebugConnection(this.config.enableCRAWorkaround, this.pathMapper, socket);
+			let rootActor = this.waterfoxDebugConnection.rootActor;
 
 			// attach to all tabs, register the corresponding threads and inform VSCode about them
 			rootActor.onTabOpened(async ([tabActor, consoleActor]) => {
@@ -140,7 +140,7 @@ export class FirefoxDebugSession {
 
 				if (initialResponse.traits.webExtensionAddonConnect &&
 					!initialResponse.traits.nativeLogpoints) {
-					reject('Your version of Firefox is not supported anymore - please upgrade to Firefox 68 or later');
+					reject('Your version of Waterfox is not supported anymore - please upgrade to Waterfox 68 or later');
 					return;
 				}
 
@@ -157,7 +157,7 @@ export class FirefoxDebugSession {
 							!!initialResponse.traits.webExtensionAddonConnect
 						);
 					} else {
-						reject('No AddonsActor received from Firefox');
+						reject('No AddonsActor received from Waterfox');
 					}
 				}
 
@@ -168,7 +168,7 @@ export class FirefoxDebugSession {
 				if (this.config.attach && (this.tabs.count === 0)) {
 					this.attachToNextTab = true;
 					if (!await openNewTab(this.config.attach, await this.deviceActor.getDescription())) {
-						reject('None of the tabs opened in Firefox match the given URL. If you specify the path to Firefox by setting "firefoxExecutable" in your attach configuration, a new tab for the given URL will be opened automatically.');
+						reject('None of the tabs opened in Waterfox match the given URL. If you specify the path to Waterfox by setting "waterfoxExecutable" in your attach configuration, a new tab for the given URL will be opened automatically.');
 						return;
 					}
 				}
@@ -177,8 +177,8 @@ export class FirefoxDebugSession {
 			});
 
 			socket.on('close', () => {
-				log.info('Connection to Firefox closed - terminating debug session');
-				this.firefoxDebugSocketClosed = true;
+				log.info('Connection to Waterfox closed - terminating debug session');
+				this.waterfoxDebugSocketClosed = true;
 				this.sendEvent(new TerminatedEvent());
 			});
 
@@ -229,7 +229,7 @@ export class FirefoxDebugSession {
 	 * Terminate the debug session
 	 */
 	public async stop(): Promise<void> {
-		await this.disconnectFirefoxAndCleanup();
+		await this.disconnectWaterfoxAndCleanup();
 	}
 
 	public setExceptionBreakpoints(exceptionBreakpoints: ExceptionBreakpoints) {
@@ -261,17 +261,17 @@ export class FirefoxDebugSession {
 		return undefined;
 	}
 
-	public getOrCreateObjectGripActorProxy(objectGrip: FirefoxDebugProtocol.ObjectGrip): ObjectGripActorProxy {
-		return this.firefoxDebugConnection.getOrCreate(objectGrip.actor, () =>
-			new ObjectGripActorProxy(objectGrip, this.firefoxDebugConnection));
+	public getOrCreateObjectGripActorProxy(objectGrip: WaterfoxDebugProtocol.ObjectGrip): ObjectGripActorProxy {
+		return this.waterfoxDebugConnection.getOrCreate(objectGrip.actor, () =>
+			new ObjectGripActorProxy(objectGrip, this.waterfoxDebugConnection));
 	}
 
-	public getOrCreateLongStringGripActorProxy(longStringGrip: FirefoxDebugProtocol.LongStringGrip): LongStringGripActorProxy {
-		return this.firefoxDebugConnection.getOrCreate(longStringGrip.actor, () =>
-			new LongStringGripActorProxy(longStringGrip, this.firefoxDebugConnection));
+	public getOrCreateLongStringGripActorProxy(longStringGrip: WaterfoxDebugProtocol.LongStringGrip): LongStringGripActorProxy {
+		return this.waterfoxDebugConnection.getOrCreate(longStringGrip.actor, () =>
+			new LongStringGripActorProxy(longStringGrip, this.waterfoxDebugConnection));
 	}
 
-	private async connectToFirefox(): Promise<Socket> {
+	private async connectToWaterfox(): Promise<Socket> {
 
 		let socket: Socket | undefined = undefined;
 
@@ -291,35 +291,35 @@ export class FirefoxDebugSession {
 
 		if (socket === undefined) {
 
-			const firefoxProc = await launchFirefox(this.config.launch!);
+			const waterfoxProc = await launchWaterfox(this.config.launch!);
 
-			if (firefoxProc && !this.config.launch!.detached) {
+			if (waterfoxProc && !this.config.launch!.detached) {
 
-				// set everything up so that Firefox can be terminated at the end of this debug session
-				this.firefoxProc = firefoxProc;
+				// set everything up so that Waterfox can be terminated at the end of this debug session
+				this.waterfoxProc = waterfoxProc;
 
-				// firefoxProc may be a short-lived startup process - we remove the reference to it
+				// waterfoxProc may be a short-lived startup process - we remove the reference to it
 				// when it exits so that we don't try to kill it with a SIGTERM signal (which may
 				// end up killing an unrelated process) at the end of this debug session
-				this.firefoxProc.once('exit', () => { this.firefoxProc = undefined; });
+				this.waterfoxProc.once('exit', () => { this.waterfoxProc = undefined; });
 
-				// the `close` event from firefoxProc seems to be the only reliable notification
-				// that Firefox is exiting
-				this.firefoxClosedPromise = new Promise<void>(resolve => {
-					this.firefoxProc!.once('close', resolve);
+				// the `close` event from waterfoxProc seems to be the only reliable notification
+				// that Waterfox is exiting
+				this.waterfoxClosedPromise = new Promise<void>(resolve => {
+					this.waterfoxProc!.once('close', resolve);
 				});
 			}
 
 			socket = await waitForSocket(this.config.launch!.port, this.config.launch!.timeout);
 
-			// we ignore the tabFilter for the first tab after launching Firefox
+			// we ignore the tabFilter for the first tab after launching Waterfox
 			this.attachToNextTab = true;
 		}
 
 		return socket;
 	}
 
-	private async disconnectFirefoxAndCleanup(): Promise<void> {
+	private async disconnectWaterfoxAndCleanup(): Promise<void> {
 
 		if (this.reloadWatcher !== undefined) {
 			this.reloadWatcher.close();
@@ -327,34 +327,34 @@ export class FirefoxDebugSession {
 		}
 
 		if (!this.config.terminate) {
-			await this.firefoxDebugConnection.disconnect();
+			await this.waterfoxDebugConnection.disconnect();
 			return;
 		}
 
-		if (this.firefoxProc) {
+		if (this.waterfoxProc) {
 
-			log.debug('Trying to kill Firefox using a SIGTERM signal');
-			this.firefoxProc.kill('SIGTERM');
-			await Promise.race([ this.firefoxClosedPromise, delay(1000) ]);
+			log.debug('Trying to kill Waterfox using a SIGTERM signal');
+			this.waterfoxProc.kill('SIGTERM');
+			await Promise.race([ this.waterfoxClosedPromise, delay(1000) ]);
 
-		} else if (!this.firefoxDebugSocketClosed && this.addonsActor) {
+		} else if (!this.waterfoxDebugSocketClosed && this.addonsActor) {
 
-			log.debug('Trying to close Firefox using the Terminator WebExtension');
+			log.debug('Trying to close Waterfox using the Terminator WebExtension');
 			const terminatorPath = path.join(__dirname, 'terminator');
 			await this.addonsActor.installAddon(terminatorPath);
-			await Promise.race([ this.firefoxClosedPromise, delay(1000) ]);
+			await Promise.race([ this.waterfoxClosedPromise, delay(1000) ]);
 
 		}
 
-		if (!this.firefoxDebugSocketClosed) {
-			log.warn("Couldn't terminate Firefox");
-			await this.firefoxDebugConnection.disconnect();
+		if (!this.waterfoxDebugSocketClosed) {
+			log.warn("Couldn't terminate Waterfox");
+			await this.waterfoxDebugConnection.disconnect();
 			return;
 		}
 
 		if (this.config.launch && (this.config.launch.tmpDirs.length > 0)) {
 
-			// after closing all connections to this debug adapter Firefox will still be using
+			// after closing all connections to this debug adapter Waterfox will still be using
 			// the temporary profile directory for a short while before exiting
 			await delay(500);
 
@@ -514,7 +514,7 @@ export class FirefoxDebugSession {
 			return;
 		}
 
-		const sourcePath = this.pathMapper.convertFirefoxSourceToPath(source);
+		const sourcePath = this.pathMapper.convertWaterfoxSourceToPath(source);
 		sourceAdapter = threadAdapter.createSourceAdapter(sourceActor, sourcePath);
 
 		this.sendNewSourceEvent(threadAdapter, sourceAdapter);
@@ -549,7 +549,7 @@ export class FirefoxDebugSession {
 			}
 
 			if (consoleEvent.level === 'time' && !consoleEvent.timer?.error) {
-				// Match what is done in Firefox console and don't show anything when the timer starts
+				// Match what is done in Waterfox console and don't show anything when the timer starts
 				return;
 			}
 
@@ -594,7 +594,7 @@ export class FirefoxDebugSession {
 
 				let msg = String(consoleEvent.arguments[0]);
 				if (this.config.showConsoleCallLocation) {
-					let filename = this.pathMapper.convertFirefoxUrlToPath(consoleEvent.filename);
+					let filename = this.pathMapper.convertWaterfoxUrlToPath(consoleEvent.filename);
 					msg += ` (${filename}:${consoleEvent.lineNumber}:${consoleEvent.columnNumber})`;
 				}
 
@@ -615,7 +615,7 @@ export class FirefoxDebugSession {
 				}
 
 				if (this.config.showConsoleCallLocation) {
-					let filename = this.pathMapper.convertFirefoxUrlToPath(consoleEvent.filename);
+					let filename = this.pathMapper.convertWaterfoxUrlToPath(consoleEvent.filename);
 					let locationVar = new VariableAdapter(
 						'location', undefined, undefined,
 						`(${filename}:${consoleEvent.lineNumber}:${consoleEvent.columnNumber})`,
@@ -672,7 +672,7 @@ export class FirefoxDebugSession {
 
 	public sendStoppedEvent(
 		threadAdapter: ThreadAdapter,
-		reason?: FirefoxDebugProtocol.ThreadPausedReason
+		reason?: WaterfoxDebugProtocol.ThreadPausedReason
 	): void {
 
 		let pauseType = reason ? reason.type : 'interrupt';
@@ -687,7 +687,7 @@ export class FirefoxDebugSession {
 
 			} else if ((typeof reason.exception === 'object') && (reason.exception.type === 'object')) {
 
-				let exceptionGrip = <FirefoxDebugProtocol.ObjectGrip>reason.exception;
+				let exceptionGrip = <WaterfoxDebugProtocol.ObjectGrip>reason.exception;
 				if (exceptionGrip.preview && (exceptionGrip.preview.kind === 'Error')) {
 					stoppedEvent.body.text = `${exceptionGrip.class}: ${exceptionGrip.preview.message}`;
 				} else {

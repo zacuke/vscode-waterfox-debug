@@ -14,55 +14,55 @@ export function activate(context: vscode.ExtensionContext) {
 	const debugConfigurationProvider = new DebugConfigurationProvider();
 
 	context.subscriptions.push(vscode.window.registerTreeDataProvider(
-		'extension.firefox.loadedScripts', loadedScriptsProvider
+		'extension.waterfox.loadedScripts', loadedScriptsProvider
 	));
 
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider(
-		'firefox', debugConfigurationProvider
+		'waterfox', debugConfigurationProvider
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.reloadAddon', () => sendCustomRequest('reloadAddon')
+		'extension.waterfox.reloadAddon', () => sendCustomRequest('reloadAddon')
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.toggleSkippingFile', (url) => sendCustomRequest('toggleSkippingFile', url)
+		'extension.waterfox.toggleSkippingFile', (url) => sendCustomRequest('toggleSkippingFile', url)
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.openScript', openScript
+		'extension.waterfox.openScript', openScript
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.addPathMapping', addPathMapping
+		'extension.waterfox.addPathMapping', addPathMapping
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.addFilePathMapping', addPathMapping
+		'extension.waterfox.addFilePathMapping', addPathMapping
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.addNullPathMapping', addNullPathMapping
+		'extension.waterfox.addNullPathMapping', addNullPathMapping
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.addNullFilePathMapping', addNullPathMapping
+		'extension.waterfox.addNullFilePathMapping', addNullPathMapping
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.enablePopupAutohide', () => popupAutohideManager.setPopupAutohide(true)
+		'extension.waterfox.enablePopupAutohide', () => popupAutohideManager.setPopupAutohide(true)
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.disablePopupAutohide', () => popupAutohideManager.setPopupAutohide(false)
+		'extension.waterfox.disablePopupAutohide', () => popupAutohideManager.setPopupAutohide(false)
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.togglePopupAutohide', () => popupAutohideManager.togglePopupAutohide()
+		'extension.waterfox.togglePopupAutohide', () => popupAutohideManager.togglePopupAutohide()
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand(
-		'extension.firefox.pathMappingWizard', () => createPathMappingForActiveTextEditor(loadedScriptsProvider)
+		'extension.waterfox.pathMappingWizard', () => createPathMappingForActiveTextEditor(loadedScriptsProvider)
 	));
 
 	context.subscriptions.push(vscode.debug.onDidReceiveDebugSessionCustomEvent(
@@ -80,26 +80,26 @@ export function activate(context: vscode.ExtensionContext) {
 
 async function sendCustomRequest(command: string, args?: any): Promise<any> {
 	let debugSession = vscode.debug.activeDebugSession;
-	if (debugSession && (debugSession.type === 'firefox')) {
+	if (debugSession && (debugSession.type === 'waterfox')) {
 		return await debugSession.customRequest(command, args);
 	} else {
 		if (debugSession) {
-			vscode.window.showErrorMessage('The active debug session is not of type "firefox"');
+			vscode.window.showErrorMessage('The active debug session is not of type "waterfox"');
 		} else {
 			vscode.window.showErrorMessage('There is no active debug session');
 		}
 	}
 }
 
-let activeFirefoxDebugSessions = 0;
+let activeWaterfoxDebugSessions = 0;
 
 function onDidStartSession(
 	session: vscode.DebugSession,
 	loadedScriptsProvider: LoadedScriptsProvider
 ) {
-	if (session.type === 'firefox') {
+	if (session.type === 'waterfox') {
 		loadedScriptsProvider.addSession(session);
-		activeFirefoxDebugSessions++;
+		activeWaterfoxDebugSessions++;
 	}
 }
 
@@ -108,10 +108,10 @@ function onDidTerminateSession(
 	loadedScriptsProvider: LoadedScriptsProvider,
 	popupAutohideManager: PopupAutohideManager
 ) {
-	if (session.type === 'firefox') {
+	if (session.type === 'waterfox') {
 		loadedScriptsProvider.removeSession(session.id);
-		activeFirefoxDebugSessions--;
-		if (activeFirefoxDebugSessions === 0) {
+		activeWaterfoxDebugSessions--;
+		if (activeWaterfoxDebugSessions === 0) {
 			popupAutohideManager.disableButton();
 		}
 	}
@@ -122,7 +122,7 @@ function onCustomEvent(
 	loadedScriptsProvider: LoadedScriptsProvider,
 	popupAutohideManager: PopupAutohideManager
 ) {
-	if (event.session.type === 'firefox') {
+	if (event.session.type === 'waterfox') {
 
 		switch (event.event) {
 

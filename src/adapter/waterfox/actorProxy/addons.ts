@@ -11,7 +11,7 @@ let log = Log.create('AddonsActorProxy');
  */
 export class AddonsActorProxy implements ActorProxy {
 
-	private pendingInstallRequests = new PendingRequests<FirefoxDebugProtocol.InstallAddonResponse>();
+	private pendingInstallRequests = new PendingRequests<WaterfoxDebugProtocol.InstallAddonResponse>();
 
 	constructor(
 		public readonly name: string,
@@ -20,11 +20,11 @@ export class AddonsActorProxy implements ActorProxy {
 		this.connection.register(this);
 	}
 
-	public installAddon(addonPath: string): Promise<FirefoxDebugProtocol.InstallAddonResponse> {
+	public installAddon(addonPath: string): Promise<WaterfoxDebugProtocol.InstallAddonResponse> {
 
 		log.debug(`Installing addon from ${addonPath}`);
 
-		return new Promise<FirefoxDebugProtocol.InstallAddonResponse>((resolve, reject) => {
+		return new Promise<WaterfoxDebugProtocol.InstallAddonResponse>((resolve, reject) => {
 			this.pendingInstallRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ 
 				to: this.name,
@@ -34,11 +34,11 @@ export class AddonsActorProxy implements ActorProxy {
 		});
 	}
 
-	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
+	public receiveResponse(response: WaterfoxDebugProtocol.Response): void {
 
 		if (response['addon']) {
 
-			let installAddonResponse = <FirefoxDebugProtocol.InstallAddonResponse>response;
+			let installAddonResponse = <WaterfoxDebugProtocol.InstallAddonResponse>response;
 			this.pendingInstallRequests.resolveOne(installAddonResponse);
 
 		} else if (response['error']) {

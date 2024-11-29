@@ -7,7 +7,7 @@ import { Log } from './util/log';
 import { findAddonId, normalizePath } from './util/misc';
 import { isExecutable } from './util/fs';
 import { Minimatch } from 'minimatch';
-import FirefoxProfile from 'firefox-profile';
+import WaterfoxProfile from 'waterfox-profile';
 import { isWindowsPlatform } from '../common/util';
 import { LaunchConfiguration, AttachConfiguration, CommonConfiguration, ReloadConfiguration, DetailedReloadConfiguration, TabFilterConfiguration } from '../common/configuration';
 import { urlDirname } from './util/net';
@@ -45,12 +45,12 @@ export interface ParsedAttachConfiguration {
 	host: string;
 	port: number;
 	url?: string;
-	firefoxExecutable?: string;
+	waterfoxExecutable?: string;
 	profileDir?: string;
 	reloadTabs: boolean;
 }
 
-export interface FirefoxPreferences {
+export interface WaterfoxPreferences {
 	[key: string]: boolean | number | string;
 }
 
@@ -58,11 +58,11 @@ type PathMapping = { url: string | RegExp, path: string | null };
 export type PathMappings = PathMapping[];
 
 export interface ParsedLaunchConfiguration {
-	firefoxExecutable: string;
-	firefoxArgs: string[];
+	waterfoxExecutable: string;
+	waterfoxArgs: string[];
 	profileDir: string;
 	srcProfileDir?: string;
-	preferences: FirefoxPreferences;
+	preferences: WaterfoxPreferences;
 	tmpDirs: string[];
 	port: number;
 	timeout: number;
@@ -102,18 +102,18 @@ export async function parseConfiguration(
 			};
 		}
 
-		let firefoxExecutable = await findFirefoxExecutable(config.firefoxExecutable);
+		let waterfoxExecutable = await findWaterfoxExecutable(config.waterfoxExecutable);
 
-		let firefoxArgs: string[] = [ '-start-debugger-server', String(port), '-no-remote' ];
-		if (config.firefoxArgs) {
-			firefoxArgs.push(...config.firefoxArgs);
+		let waterfoxArgs: string[] = [ '-start-debugger-server', String(port), '-no-remote' ];
+		if (config.waterfoxArgs) {
+			waterfoxArgs.push(...config.waterfoxArgs);
 		}
 
 		let { profileDir, srcProfileDir } = await parseProfileConfiguration(config, tmpDirs);
 
-		firefoxArgs.push('-profile', profileDir);
+		waterfoxArgs.push('-profile', profileDir);
 
-		let preferences = createFirefoxPreferences(config.preferences);
+		let preferences = createWaterfoxPreferences(config.preferences);
 
 		if (config.file) {
 			if (!path.isAbsolute(config.file)) {
@@ -126,14 +126,14 @@ export async function parseConfiguration(
 			} else {
 				fileUrl = 'file://' + fileUrl;
 			}
-			firefoxArgs.push(fileUrl);
+			waterfoxArgs.push(fileUrl);
 			url = fileUrl;
 
 		} else if (config.url) {
-			firefoxArgs.push(config.url);
+			waterfoxArgs.push(config.url);
 			url = config.url;
 		} else if (config.addonPath) {
-			firefoxArgs.push('about:blank');
+			waterfoxArgs.push('about:blank');
 		} else {
 			throw 'You need to set either "file" or "url" in the launch configuration';
 		}
@@ -153,17 +153,17 @@ export async function parseConfiguration(
 		}
 
 		launch = {
-			firefoxExecutable, firefoxArgs, profileDir, srcProfileDir,
+			waterfoxExecutable, waterfoxArgs, profileDir, srcProfileDir,
 			preferences, tmpDirs, port, timeout, detached
 		};
 
 	} else { // config.request === 'attach'
 
-		const firefoxExecutable = config.firefoxExecutable ? await findFirefoxExecutable(config.firefoxExecutable) : undefined;
+		const waterfoxExecutable = config.waterfoxExecutable ? await findWaterfoxExecutable(config.waterfoxExecutable) : undefined;
 
 		url = config.url;
 		attach = {
-			host: config.host || 'localhost', port, url, firefoxExecutable, profileDir: config.profileDir,
+			host: config.host || 'localhost', port, url, waterfoxExecutable, profileDir: config.profileDir,
 			reloadTabs: !!config.reloadOnAttach
 		};
 	}
@@ -258,7 +258,7 @@ function handleWildcards(pathMapping: PathMapping): PathMapping {
 	}
 }
 
-async function findFirefoxExecutable(configuredPath?: string): Promise<string> {
+async function findWaterfoxExecutable(configuredPath?: string): Promise<string> {
 
 	let candidates: string[];
 	if (configuredPath) {
@@ -267,7 +267,7 @@ async function findFirefoxExecutable(configuredPath?: string): Promise<string> {
 		} else if (await isExecutable(configuredPath)) {
 			return configuredPath;
 		} else {
-			throw 'Couldn\'t find the Firefox executable. Please correct the path given in your launch configuration.';
+			throw 'Couldn\'t find the Waterfox executable. Please correct the path given in your launch configuration.';
 		}
 	} else {
 		candidates = getExecutableCandidates();
@@ -279,7 +279,7 @@ async function findFirefoxExecutable(configuredPath?: string): Promise<string> {
 		}
 	}
 
-	throw 'Couldn\'t find the Firefox executable. Please specify the path by setting "firefoxExecutable" in your launch configuration.';
+	throw 'Couldn\'t find the Waterfox executable. Please specify the path by setting "waterfoxExecutable" in your launch configuration.';
 }
 
 export function getExecutableCandidates(edition?: 'stable' | 'developer' | 'nightly'): string[] {
@@ -296,18 +296,18 @@ export function getExecutableCandidates(edition?: 'stable' | 'developer' | 'nigh
 
 			case 'stable':
 				return [
-					...paths.map(dir => path.join(dir, 'firefox'))
+					...paths.map(dir => path.join(dir, 'waterfox'))
 				];
 
 			case 'developer':
 				return [
-					...paths.map(dir => path.join(dir, 'firefox-developer-edition')),
-					...paths.map(dir => path.join(dir, 'firefox-developer')),
+					...paths.map(dir => path.join(dir, 'waterfox-developer-edition')),
+					...paths.map(dir => path.join(dir, 'waterfox-developer')),
 				];
 
 			case 'nightly':
 				return [
-					...paths.map(dir => path.join(dir, 'firefox-nightly')),
+					...paths.map(dir => path.join(dir, 'waterfox-nightly')),
 				];
 		}
 	}
@@ -316,11 +316,11 @@ export function getExecutableCandidates(edition?: 'stable' | 'developer' | 'nigh
 
 		case 'stable':
 			if (platform === 'darwin') {
-				return [ '/Applications/Firefox.app/Contents/MacOS/firefox' ];
+				return [ '/Applications/Waterfox.app/Contents/MacOS/waterfox' ];
 			} else if (platform === 'win32') {
 				return [
-					'C:\\Program Files\\Mozilla Firefox\\firefox.exe',
-					'C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe'
+					'C:\\Program Files\\Mozilla Waterfox\\waterfox.exe',
+					'C:\\Program Files (x86)\\Mozilla Waterfox\\waterfox.exe'
 				];
 			}
 			break;
@@ -328,24 +328,24 @@ export function getExecutableCandidates(edition?: 'stable' | 'developer' | 'nigh
 		case 'developer':
 			if (platform === 'darwin') {
 				return [
-					'/Applications/Firefox Developer Edition.app/Contents/MacOS/firefox',
-					'/Applications/FirefoxDeveloperEdition.app/Contents/MacOS/firefox'
+					'/Applications/Waterfox Developer Edition.app/Contents/MacOS/waterfox',
+					'/Applications/WaterfoxDeveloperEdition.app/Contents/MacOS/waterfox'
 				];
 			} else if (platform === 'win32') {
 				return [
-					'C:\\Program Files\\Firefox Developer Edition\\firefox.exe',
-					'C:\\Program Files (x86)\\Firefox Developer Edition\\firefox.exe'
+					'C:\\Program Files\\Waterfox Developer Edition\\waterfox.exe',
+					'C:\\Program Files (x86)\\Waterfox Developer Edition\\waterfox.exe'
 				];
 			}
 			break;
 
 		case 'nightly':
 			if (platform === 'darwin') {
-				return [ '/Applications/Firefox Nightly.app/Contents/MacOS/firefox' ]
+				return [ '/Applications/Waterfox Nightly.app/Contents/MacOS/waterfox' ]
 			} else if (platform === 'win32') {
 				return [
-					'C:\\Program Files\\Firefox Nightly\\firefox.exe',
-					'C:\\Program Files (x86)\\Firefox Nightly\\firefox.exe'
+					'C:\\Program Files\\Waterfox Nightly\\waterfox.exe',
+					'C:\\Program Files (x86)\\Waterfox Nightly\\waterfox.exe'
 				];
 			}
 			break;
@@ -366,7 +366,7 @@ async function parseProfileConfiguration(config: LaunchConfiguration, tmpDirs: s
 		}
 		srcProfileDir = config.profileDir;
 	} else if (config.profile) {
-		srcProfileDir = await findFirefoxProfileDir(config.profile);
+		srcProfileDir = await findWaterfoxProfileDir(config.profile);
 	}
 
 	if (config.keepProfileChanges) {
@@ -378,17 +378,17 @@ async function parseProfileConfiguration(config: LaunchConfiguration, tmpDirs: s
 		}
 	} else {
 		const tmpDir = config.tmpDir || os.tmpdir();
-		profileDir = path.join(tmpDir, `vscode-firefox-debug-profile-${uuid.v4()}`);
+		profileDir = path.join(tmpDir, `vscode-waterfox-debug-profile-${uuid.v4()}`);
 		tmpDirs.push(profileDir);
 	}
 
 	return { profileDir, srcProfileDir };
 }
 
-function findFirefoxProfileDir(profileName: string): Promise<string | undefined> {
+function findWaterfoxProfileDir(profileName: string): Promise<string | undefined> {
 	return new Promise<string | undefined>((resolve, reject) => {
 
-		let finder = new FirefoxProfile.Finder();
+		let finder = new WaterfoxProfile.Finder();
 
 		finder.getPath(profileName, (err, path) => {
 			if (err) {
@@ -400,11 +400,11 @@ function findFirefoxProfileDir(profileName: string): Promise<string | undefined>
 	});
 }
 
-function createFirefoxPreferences(
+function createWaterfoxPreferences(
 	additionalPreferences?: { [key: string]: boolean | number | string | null }
-): FirefoxPreferences {
+): WaterfoxPreferences {
 
-	let preferences: FirefoxPreferences = {};
+	let preferences: WaterfoxPreferences = {};
 
 	// Remote debugging settings
 	preferences['devtools.chrome.enabled'] = true;
@@ -417,11 +417,11 @@ function createFirefoxPreferences(
 	preferences['browser.shell.checkDefaultBrowser'] = false;
 	// Hide the telemetry infobar
 	preferences['datareporting.policy.dataSubmissionPolicyBypassNotification'] = true;
-	// Do not redirect user when a milestone upgrade of Firefox is detected
+	// Do not redirect user when a milestone upgrade of Waterfox is detected
 	preferences['browser.startup.homepage_override.mstone'] = 'ignore';
 	// Disable the UI tour
 	preferences['browser.uitour.enabled'] = false;
-	// Do not warn on quitting Firefox
+	// Do not warn on quitting Waterfox
 	preferences['browser.warnOnQuit'] = false;
 
 	if (additionalPreferences !== undefined) {

@@ -4,21 +4,21 @@ import { DebugSession, StoppedEvent, OutputEvent, Thread, Variable, Breakpoint }
 import { Log } from './util/log';
 import { accessorExpression } from './util/misc';
 import { DebugAdapterBase } from './debugAdapterBase';
-import { ExceptionBreakpoints } from './firefox/actorProxy/thread';
+import { ExceptionBreakpoints } from './waterfox/actorProxy/thread';
 import { ThreadAdapter } from './adapter/thread';
 import { SourceAdapter } from './adapter/source';
 import { LaunchConfiguration, AttachConfiguration } from '../common/configuration';
 import { parseConfiguration } from './configuration';
-import { FirefoxDebugSession } from './firefoxDebugSession';
+import { WaterfoxDebugSession } from './waterfoxDebugSession';
 import { popupAutohidePreferenceKey } from './adapter/addonManager';
 import { ObjectGripAdapter } from './adapter/objectGrip';
 import { DataBreakpointsManager } from './adapter/dataBreakpointsManager';
 
-let log = Log.create('FirefoxDebugAdapter');
+let log = Log.create('WaterfoxDebugAdapter');
 
-export class FirefoxDebugAdapter extends DebugAdapterBase {
+export class WaterfoxDebugAdapter extends DebugAdapterBase {
 
-	private session!: FirefoxDebugSession;
+	private session!: WaterfoxDebugSession;
 
 	public constructor(debuggerLinesStartAt1: boolean, isServer: boolean = false) {
 		super(debuggerLinesStartAt1, isServer);
@@ -71,7 +71,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			Log.setConfig(config.log);
 		}
 		let parsedConfig = await parseConfiguration(config);
-		this.session = new FirefoxDebugSession(parsedConfig, (ev) => this.sendEvent(ev));
+		this.session = new WaterfoxDebugSession(parsedConfig, (ev) => this.sendEvent(ev));
 		await this.session.start();
 	}
 
@@ -101,7 +101,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			return { breakpoints: [] };
 		}
 
-		// a path for local sources or a url (as seen by either VS Code or Firefox) for remote sources
+		// a path for local sources or a url (as seen by either VS Code or Waterfox) for remote sources
 		const sourcePathOrUrl = args.source.path;
 		if (sourcePathOrUrl === undefined) {
 			throw 'Couldn\'t set breakpoint: unknown source path';
@@ -207,7 +207,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 		} else {
 
-			let longStringGrip = <FirefoxDebugProtocol.LongStringGrip>sourceGrip;
+			let longStringGrip = <WaterfoxDebugProtocol.LongStringGrip>sourceGrip;
 			let longStringActor = this.session.getOrCreateLongStringGripActorProxy(longStringGrip);
 			let content = await longStringActor.fetchContent();
 			return { content, mimeType: 'text/javascript' };
@@ -274,7 +274,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 
 			let msg: string;
 			if (err === 'No such actor') {
-				msg = 'Value can\'t be inspected - this is probably due to Firefox bug #1249962';
+				msg = 'Value can\'t be inspected - this is probably due to Waterfox bug #1249962';
 			} else {
 				msg = String(err);
 			}
@@ -406,7 +406,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 		if (!this.session.dataBreakpointsManager) {
 			return {
 				dataId: null,
-				description: "Your version of Firefox doesn't support watchpoints / data breakpoints"
+				description: "Your version of Waterfox doesn't support watchpoints / data breakpoints"
 			};
 		}
 
@@ -437,7 +437,7 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 			if (args.breakpoints.length === 0) {
 				return { breakpoints: [] };
 			} else {
-				throw "Your version of Firefox doesn't support watchpoints / data breakpoints";
+				throw "Your version of Waterfox doesn't support watchpoints / data breakpoints";
 			}
 		}
 
@@ -491,4 +491,4 @@ export class FirefoxDebugAdapter extends DebugAdapterBase {
 	}
 }
 
-DebugSession.run(FirefoxDebugAdapter);
+DebugSession.run(WaterfoxDebugAdapter);

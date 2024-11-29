@@ -22,8 +22,8 @@ export async function createPathMappingForActiveTextEditor(loadedScriptsProvider
 		vscode.window.showErrorMessage("There is no active debug session");
 		return;
 	}
-	if (debugSession.type !== 'firefox') {
-		vscode.window.showErrorMessage("The active debug session is not of type \"firefox\"");
+	if (debugSession.type !== 'waterfox') {
+		vscode.window.showErrorMessage("The active debug session is not of type \"waterfox\"");
 		return;
 	}
 
@@ -45,7 +45,7 @@ export async function createPathMappingForActiveTextEditor(loadedScriptsProvider
 		return;
 	}
 	if (ffUrls.length === 0) {
-		vscode.window.showWarningMessage("Firefox didn't load any sources in the active debug session yet");
+		vscode.window.showWarningMessage("Waterfox didn't load any sources in the active debug session yet");
 		return;
 	}
 
@@ -63,7 +63,7 @@ export async function createPathMappingForActiveTextEditor(loadedScriptsProvider
 
 	} else {
 		const vscFilename = editor.document.uri.path.split('/').pop()!;
-		vscode.window.showWarningMessage(`Firefox hasn't loaded any file named "${vscFilename}"`);
+		vscode.window.showWarningMessage(`Waterfox hasn't loaded any file named "${vscFilename}"`);
 	}
 }
 
@@ -95,8 +95,8 @@ export async function createPathMappingForPath(
 	}
 
 	const message =
-		`This file's path (${vscPath}) isn't mapped to any url that was loaded by Firefox. ` +
-		"Either this file hasn't been loaded by Firefox yet or " +
+		`This file's path (${vscPath}) isn't mapped to any url that was loaded by Waterfox. ` +
+		"Either this file hasn't been loaded by Waterfox yet or " +
 		"your debug configuration needs a pathMapping for this file - " +
 		"do you think the file has already been loaded and want to let the " +
 		"Path Mapping Wizard try to create a pathMapping for you?";

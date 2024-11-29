@@ -8,7 +8,7 @@ import { PathMapper } from '../util/pathMapper';
 let log = Log.create('DebugConnection');
 
 /**
- * Connects to a target supporting the Firefox Debugging Protocol and sends and receives messages
+ * Connects to a target supporting the Waterfox Debugging Protocol and sends and receives messages
  */
 export class DebugConnection {
 
@@ -26,7 +26,7 @@ export class DebugConnection {
 		this.rootActor = new RootActorProxy(enableCRAWorkaround, pathMapper, this);
 		this.transport = new DebugProtocolTransport(socket);
 
-		this.transport.on('message', (response: FirefoxDebugProtocol.Response) => {
+		this.transport.on('message', (response: WaterfoxDebugProtocol.Response) => {
 			if (this.actors.has(response.from)) {
 				if (log.isDebugEnabled()) {
 					log.debug(`Received response/event ${JSON.stringify(response)}`);
@@ -38,7 +38,7 @@ export class DebugConnection {
 		});
 	}
 
-	public sendRequest<T extends FirefoxDebugProtocol.Request>(request: T) {
+	public sendRequest<T extends WaterfoxDebugProtocol.Request>(request: T) {
 		if (log.isDebugEnabled()) {
 			log.debug(`Sending request ${JSON.stringify(request)}`);
 		}

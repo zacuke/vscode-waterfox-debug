@@ -14,7 +14,7 @@ const windowsAbsolutePathRegEx = /^[a-zA-Z]:\\/;
 
 /**
  * This class holds all breakpoints that have been set in VS Code and synchronizes them with all
- * sources in all threads in Firefox using [`SourceAdapter#updateBreakpoints()`](./source.ts).
+ * sources in all threads in Waterfox using [`SourceAdapter#updateBreakpoints()`](./source.ts).
  */
 export class BreakpointsManager {
 
@@ -28,7 +28,7 @@ export class BreakpointsManager {
 	) {}
 
 	/**
-	 * called by [`FirefoxDebugAdapter#setBreakpoints()`](../firefoxDebugAdapter.ts) whenever the
+	 * called by [`WaterfoxDebugAdapter#setBreakpoints()`](../waterfoxDebugAdapter.ts) whenever the
 	 * breakpoints have been changed by the user in VS Code
 	 */
 	public setBreakpoints(
@@ -64,7 +64,7 @@ export class BreakpointsManager {
 
 	/** 
 	 * called by [`SourceAdapter#syncBreakpoints()`](./source.ts) whenever a breakpoint has been set
-	 * in Firefox
+	 * in Waterfox
 	 */
 	public verifyBreakpoint(breakpointInfo: BreakpointInfo): void {
 
@@ -79,7 +79,7 @@ export class BreakpointsManager {
 	}
 
 	/**
-	 * called by [`FirefoxDebugSession#attachSource()`](../firefoxDebugSession.ts) whenever a new
+	 * called by [`WaterfoxDebugSession#attachSource()`](../waterfoxDebugSession.ts) whenever a new
 	 * javascript source was attached
 	 */
 	public onNewSource(sourceAdapter: SourceAdapter) {

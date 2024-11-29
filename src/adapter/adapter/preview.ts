@@ -9,16 +9,16 @@ const maxAttributes = 5;
 const maxParameters = 5;
 
 /** generates the preview string for an object shown in the debugger's Variables view */
-export function renderPreview(objectGrip: FirefoxDebugProtocol.ObjectGrip): string {
+export function renderPreview(objectGrip: WaterfoxDebugProtocol.ObjectGrip): string {
 	try {
 
 		if ((objectGrip.class === 'Function') || 
-			(objectGrip as FirefoxDebugProtocol.FunctionGrip).parameterNames) {
+			(objectGrip as WaterfoxDebugProtocol.FunctionGrip).parameterNames) {
 
 			if (objectGrip.class !== 'Function') {
 				log.warn(`Looks like a FunctionGrip but has a different class: ${JSON.stringify(objectGrip)}`);
 			}
-			return renderFunctionGrip(<FirefoxDebugProtocol.FunctionGrip>objectGrip);
+			return renderFunctionGrip(<WaterfoxDebugProtocol.FunctionGrip>objectGrip);
 		}
 
 		const preview = objectGrip.preview;
@@ -63,7 +63,7 @@ export function renderPreview(objectGrip: FirefoxDebugProtocol.ObjectGrip): stri
 	}
 }
 
-function renderObjectPreview(preview: FirefoxDebugProtocol.ObjectPreview, className: string): string {
+function renderObjectPreview(preview: WaterfoxDebugProtocol.ObjectPreview, className: string): string {
 
 	const renderedProperties: string[] = [];
 	let i = 0;
@@ -105,7 +105,7 @@ function renderObjectPreview(preview: FirefoxDebugProtocol.ObjectPreview, classN
 	}
 }
 
-function renderDOMElementPreview(preview: FirefoxDebugProtocol.DOMNodePreview): string {
+function renderDOMElementPreview(preview: WaterfoxDebugProtocol.DOMNodePreview): string {
 
 	if (!preview.attributes) {
 		return `<${preview.nodeName}>`;
@@ -131,7 +131,7 @@ function renderDOMElementPreview(preview: FirefoxDebugProtocol.DOMNodePreview): 
 	}
 }
 
-function renderArrayLikePreview(preview: FirefoxDebugProtocol.ArrayLikePreview, className: string): string {
+function renderArrayLikePreview(preview: WaterfoxDebugProtocol.ArrayLikePreview, className: string): string {
 
 	let result = `${className}(${preview.length})`;
 
@@ -152,7 +152,7 @@ function renderArrayLikePreview(preview: FirefoxDebugProtocol.ArrayLikePreview, 
 	return result;
 }
 
-function renderFunctionGrip(functionGrip: FirefoxDebugProtocol.FunctionGrip): string {
+function renderFunctionGrip(functionGrip: WaterfoxDebugProtocol.FunctionGrip): string {
 
 	let parameters = '';
 
@@ -172,7 +172,7 @@ function renderFunctionGrip(functionGrip: FirefoxDebugProtocol.FunctionGrip): st
 	return `${functionName}(${parameters}) {\u2026}`;
 }
 
-function renderGripOrNull(gripOrNull: FirefoxDebugProtocol.Grip | null): string {
+function renderGripOrNull(gripOrNull: WaterfoxDebugProtocol.Grip | null): string {
 	if (gripOrNull === null) {
 		return "_";
 	} else {
@@ -180,7 +180,7 @@ function renderGripOrNull(gripOrNull: FirefoxDebugProtocol.Grip | null): string 
 	}
 }
 
-function renderGrip(grip: FirefoxDebugProtocol.Grip): string {
+function renderGrip(grip: WaterfoxDebugProtocol.Grip): string {
 
 	if ((typeof grip === 'boolean') || (typeof grip === 'number')) {
 
@@ -209,11 +209,11 @@ function renderGrip(grip: FirefoxDebugProtocol.Grip): string {
 
 			case 'BigInt':
 
-				return `${(<FirefoxDebugProtocol.BigIntGrip>grip).text}n`;
+				return `${(<WaterfoxDebugProtocol.BigIntGrip>grip).text}n`;
 
 			case 'longString':
 
-				const initial = (<FirefoxDebugProtocol.LongStringGrip>grip).initial;
+				const initial = (<WaterfoxDebugProtocol.LongStringGrip>grip).initial;
 				if (initial.length > maxStringChars) {
 					return `${initial.substr(0, maxStringChars)}\u2026`;
 				} else {
@@ -222,12 +222,12 @@ function renderGrip(grip: FirefoxDebugProtocol.Grip): string {
 		
 			case 'symbol':
 
-				let symbolName = (<FirefoxDebugProtocol.SymbolGrip>grip).name;
+				let symbolName = (<WaterfoxDebugProtocol.SymbolGrip>grip).name;
 				return `Symbol(${symbolName})`;
 
 			case 'object':
 
-				let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
+				let objectGrip = <WaterfoxDebugProtocol.ObjectGrip>grip;
 				return renderPreview(objectGrip);
 
 			default:

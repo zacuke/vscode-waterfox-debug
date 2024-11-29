@@ -101,12 +101,12 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 		return new SourceMappingThreadActorProxy(threadActor, this.pathMapper, this.connection);
 	}
 
-	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
+	public receiveResponse(response: WaterfoxDebugProtocol.Response): void {
 
 		if (response['threadActor']) {
 
 			log.debug(`Attached to tab ${this.name}`);
-			let tabAttachedResponse = <FirefoxDebugProtocol.TabAttachedResponse>response;
+			let tabAttachedResponse = <WaterfoxDebugProtocol.TabAttachedResponse>response;
 
 			const threadActor = this.createThreadActor(tabAttachedResponse.threadActor);
 
@@ -138,13 +138,13 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 
 			if (response['state'] === 'start') {
 
-				this._url = (<FirefoxDebugProtocol.TabWillNavigateResponse>response).url;
+				this._url = (<WaterfoxDebugProtocol.TabWillNavigateResponse>response).url;
 				log.debug(`Tab ${this.name} will navigate to ${this._url}`);
 				this.emit('willNavigate');
 				
 			} else if (response['state'] === 'stop') {
 
-				let didNavigateResponse = <FirefoxDebugProtocol.TabDidNavigateResponse>response;
+				let didNavigateResponse = <WaterfoxDebugProtocol.TabDidNavigateResponse>response;
 				this._url = didNavigateResponse.url;
 				this._title = didNavigateResponse.title;
 				log.debug(`Tab ${this.name} did navigate to ${this._url}`);
@@ -165,7 +165,7 @@ export class TabActorProxy extends EventEmitter implements ActorProxy {
 			
 		} else if (response['workers']) {
 
-			let workersResponse = <FirefoxDebugProtocol.WorkersResponse>response;
+			let workersResponse = <WaterfoxDebugProtocol.WorkersResponse>response;
 			let currentWorkers = new Map<string, WorkerActorProxy>();
 			log.debug(`Received ${workersResponse.workers.length} workers`);
 

@@ -5,7 +5,7 @@ module.exports = {
 	context: path.resolve(__dirname, 'src'),
 	entry: {
 		extension: './extension/main.ts',
-		adapter: './adapter/firefoxDebugAdapter.ts',
+		adapter: './adapter/waterfoxDebugAdapter.ts',
 		launcher: './adapter/util/forkedLauncher.ts'
 	},
 	resolve: {

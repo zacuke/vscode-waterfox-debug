@@ -1,16 +1,16 @@
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import { spawn, fork, ChildProcess } from 'child_process';
-import FirefoxProfile from 'firefox-profile';
+import WaterfoxProfile from 'waterfox-profile';
 import { ParsedLaunchConfiguration, ParsedAttachConfiguration, getExecutableCandidates } from '../configuration';
 import { isExecutable } from '../util/fs';
 
 /**
- * Launches Firefox after preparing the debug profile.
- * If Firefox is launched "detached" (the default unless we are on MacOS and the `reAttach` flag
+ * Launches Waterfox after preparing the debug profile.
+ * If Waterfox is launched "detached" (the default unless we are on MacOS and the `reAttach` flag
  * in the launch configuration is set to `false`), it creates one or even two intermediate
- * child processes for launching Firefox:
- * * one of them will wait for the Firefox process to exit and then remove any temporary directories
+ * child processes for launching Waterfox:
+ * * one of them will wait for the Waterfox process to exit and then remove any temporary directories
  *   created by this debug adapter
  * * the other one is used to work around a bug in the node version that is distributed with VS Code
  *   (and that runs this debug adapter), which fails to properly detach from child processes.
@@ -19,7 +19,7 @@ import { isExecutable } from '../util/fs';
  * 
  * The intermediate child processes execute the [forkedLauncher](../util/forkedLauncher.ts) script.
  */
-export async function launchFirefox(launch: ParsedLaunchConfiguration): Promise<ChildProcess | undefined> {
+export async function launchWaterfox(launch: ParsedLaunchConfiguration): Promise<ChildProcess | undefined> {
 
 	await prepareDebugProfile(launch);
 
@@ -40,21 +40,21 @@ export async function launchFirefox(launch: ParsedLaunchConfiguration): Promise<
 		switch (launch.tmpDirs.length) {
 			case 0:
 				forkArgs = [
-					'spawnDetached', launch.firefoxExecutable, ...launch.firefoxArgs
+					'spawnDetached', launch.waterfoxExecutable, ...launch.waterfoxArgs
 				];
 				break;
 
 			case 1:
 				forkArgs = [
 					'forkDetached', forkedLauncherPath,
-					'spawnAndRemove', launch.tmpDirs[0], launch.firefoxExecutable, ...launch.firefoxArgs
+					'spawnAndRemove', launch.tmpDirs[0], launch.waterfoxExecutable, ...launch.waterfoxArgs
 				];
 				break;
 
 			default:
 				forkArgs = [
 					'forkDetached', forkedLauncherPath,
-					'spawnAndRemove2', launch.tmpDirs[0], launch.tmpDirs[1], launch.firefoxExecutable, ...launch.firefoxArgs
+					'spawnAndRemove2', launch.tmpDirs[0], launch.tmpDirs[1], launch.waterfoxExecutable, ...launch.waterfoxArgs
 				];
 				break;
 		}
@@ -63,7 +63,7 @@ export async function launchFirefox(launch: ParsedLaunchConfiguration): Promise<
 
 	} else {
 
-		childProc = spawn(launch.firefoxExecutable, launch.firefoxArgs, { env, detached: true });
+		childProc = spawn(launch.waterfoxExecutable, launch.waterfoxArgs, { env, detached: true });
 
 		childProc.stdout?.on('data', () => undefined);
 		childProc.stderr?.on('data', () => undefined);
@@ -76,45 +76,45 @@ export async function launchFirefox(launch: ParsedLaunchConfiguration): Promise<
 
 export async function openNewTab(
 	config: ParsedAttachConfiguration,
-	description: FirefoxDebugProtocol.DeviceDescription
+	description: WaterfoxDebugProtocol.DeviceDescription
 ): Promise<boolean> {
 
 	if (!config.url) return true;
 
-	let firefoxExecutable = config.firefoxExecutable;
-	if (!firefoxExecutable) {
+	let waterfoxExecutable = config.waterfoxExecutable;
+	if (!waterfoxExecutable) {
 
-		let firefoxEdition: 'stable' | 'developer' | 'nightly' | undefined;
+		let waterfoxEdition: 'stable' | 'developer' | 'nightly' | undefined;
 		if (description.channel === 'release') {
-			firefoxEdition = 'stable';
+			waterfoxEdition = 'stable';
 		} else if (description.channel === 'aurora') {
-			firefoxEdition = 'developer';
+			waterfoxEdition = 'developer';
 		} else if (description.channel === 'nightly') {
-			firefoxEdition = 'nightly';
+			waterfoxEdition = 'nightly';
 		}
 
-		if (firefoxEdition) {
-			const candidates = getExecutableCandidates(firefoxEdition);
+		if (waterfoxEdition) {
+			const candidates = getExecutableCandidates(waterfoxEdition);
 			for (let i = 0; i < candidates.length; i++) {
 				if (await isExecutable(candidates[i])) {
-					firefoxExecutable = candidates[i];
+					waterfoxExecutable = candidates[i];
 					break;
 				}
 			}
 		}
 
-		if (!firefoxExecutable) return false;
+		if (!waterfoxExecutable) return false;
 	}
 
-	const firefoxArgs = config.profileDir ? [ '--profile', config.profileDir ] : [ '-P', description.profile ];
-	firefoxArgs.push(config.url);
+	const waterfoxArgs = config.profileDir ? [ '--profile', config.profileDir ] : [ '-P', description.profile ];
+	waterfoxArgs.push(config.url);
 
-	spawn(firefoxExecutable, firefoxArgs);
+	spawn(waterfoxExecutable, waterfoxArgs);
 
 	return true;
 }
 
-async function prepareDebugProfile(config: ParsedLaunchConfiguration): Promise<FirefoxProfile> {
+async function prepareDebugProfile(config: ParsedLaunchConfiguration): Promise<WaterfoxProfile> {
 
 	var profile = await createDebugProfile(config);
 
@@ -127,12 +127,12 @@ async function prepareDebugProfile(config: ParsedLaunchConfiguration): Promise<F
 	return profile;
 }
 
-function createDebugProfile(config: ParsedLaunchConfiguration): Promise<FirefoxProfile> {
-	return new Promise<FirefoxProfile>(async (resolve, reject) => {
+function createDebugProfile(config: ParsedLaunchConfiguration): Promise<WaterfoxProfile> {
+	return new Promise<WaterfoxProfile>(async (resolve, reject) => {
 
 		if (config.srcProfileDir) {
 
-			FirefoxProfile.copy({
+			WaterfoxProfile.copy({
 				profileDirectory: config.srcProfileDir,
 				destinationDirectory: config.profileDir
 			}, 
@@ -148,7 +148,7 @@ function createDebugProfile(config: ParsedLaunchConfiguration): Promise<FirefoxP
 		} else {
 
 			await fs.ensureDir(config.profileDir);
-			let profile = new FirefoxProfile({
+			let profile = new WaterfoxProfile({
 				destinationDirectory: config.profileDir
 			});
 			profile.shouldDeleteOnExit(false);

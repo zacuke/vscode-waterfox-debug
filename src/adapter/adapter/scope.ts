@@ -26,20 +26,20 @@ export abstract class ScopeAdapter implements VariablesProvider {
 		this.variablesProviderId = this.threadAdapter.debugSession.variablesProviders.register(this);
 	}
 
-	public static fromGrip(name: string, grip: FirefoxDebugProtocol.Grip, referenceFrame: FrameAdapter): ScopeAdapter {
+	public static fromGrip(name: string, grip: WaterfoxDebugProtocol.Grip, referenceFrame: FrameAdapter): ScopeAdapter {
 		if ((typeof grip === 'object') && (grip.type === 'object')) {
-			return new ObjectScopeAdapter(name, <FirefoxDebugProtocol.ObjectGrip>grip, referenceFrame);
+			return new ObjectScopeAdapter(name, <WaterfoxDebugProtocol.ObjectGrip>grip, referenceFrame);
 		} else {
 			return new SingleValueScopeAdapter(name, grip, referenceFrame);
 		}
 	}
 
-	public addThis(thisValue: FirefoxDebugProtocol.Grip) {
+	public addThis(thisValue: WaterfoxDebugProtocol.Grip) {
 		this.thisVariable = VariableAdapter.fromGrip(
 			'this', this.referenceExpression, this.referenceFrame, thisValue, false, this.threadAdapter);
 	}
 
-	public addReturnValue(returnValue: FirefoxDebugProtocol.Grip) {
+	public addReturnValue(returnValue: WaterfoxDebugProtocol.Grip) {
 		this.returnVariable = VariableAdapter.fromGrip(
 			'Return value', undefined, this.referenceFrame, returnValue, false, this.threadAdapter);
 	}
@@ -75,7 +75,7 @@ export class SingleValueScopeAdapter extends ScopeAdapter {
 
 	private variableAdapter: VariableAdapter;
 
-	public constructor(name: string, grip: FirefoxDebugProtocol.Grip, referenceFrame: FrameAdapter) {
+	public constructor(name: string, grip: WaterfoxDebugProtocol.Grip, referenceFrame: FrameAdapter) {
 		super(name, referenceFrame);
 		this.variableAdapter = VariableAdapter.fromGrip(
 			'', this.referenceExpression, this.referenceFrame, grip, false, this.threadAdapter);
@@ -90,7 +90,7 @@ export class ObjectScopeAdapter extends ScopeAdapter {
 
 	private variableAdapter: VariableAdapter;
 
-	public constructor(name: string, object: FirefoxDebugProtocol.ObjectGrip, referenceFrame: FrameAdapter) {
+	public constructor(name: string, object: WaterfoxDebugProtocol.ObjectGrip, referenceFrame: FrameAdapter) {
 		super(name, referenceFrame);
 		this.variableAdapter = VariableAdapter.fromGrip(
 			'', this.referenceExpression, this.referenceFrame, object, false, this.threadAdapter);
@@ -105,7 +105,7 @@ export class LocalVariablesScopeAdapter extends ScopeAdapter {
 
 	public variables: VariableAdapter[] = [];
 
-	public constructor(name: string, variableDescriptors: FirefoxDebugProtocol.PropertyDescriptors, referenceFrame: FrameAdapter) {
+	public constructor(name: string, variableDescriptors: WaterfoxDebugProtocol.PropertyDescriptors, referenceFrame: FrameAdapter) {
 		super(name, referenceFrame);
 
 		for (let varname in variableDescriptors) {
@@ -126,7 +126,7 @@ export class FunctionScopeAdapter extends ScopeAdapter {
 
 	public variables: VariableAdapter[] = [];
 
-	public constructor(name: string, bindings: FirefoxDebugProtocol.FunctionBindings, referenceFrame: FrameAdapter) {
+	public constructor(name: string, bindings: WaterfoxDebugProtocol.FunctionBindings, referenceFrame: FrameAdapter) {
 		super(name, referenceFrame);
 
 		bindings.arguments.forEach((arg) => {

@@ -3,7 +3,7 @@ import { VariableAdapter } from './variable';
 import { ThreadAdapter } from './thread';
 
 /**
- * Adapter class for representing a `consoleAPICall` event from Firefox.
+ * Adapter class for representing a `consoleAPICall` event from Waterfox.
  */
 export class ConsoleAPICallAdapter implements VariablesProvider {
 

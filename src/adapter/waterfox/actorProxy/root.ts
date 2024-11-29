@@ -31,7 +31,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 	private rootPromise?: Promise<FetchRootResult>;
 	private pendingProcessRequests = new PendingRequests<[TabActorProxy, ConsoleActorProxy]>();
 	private pendingTabsRequests = new PendingRequests<Map<string, [TabActorProxy, ConsoleActorProxy]>>();
-	private pendingAddonsRequests = new PendingRequests<FirefoxDebugProtocol.Addon[]>();
+	private pendingAddonsRequests = new PendingRequests<WaterfoxDebugProtocol.Addon[]>();
 
 	constructor(
 		private readonly enableCRAWorkaround: boolean,
@@ -80,17 +80,17 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 		})
 	}
 
-	public fetchAddons(): Promise<FirefoxDebugProtocol.Addon[]> {
+	public fetchAddons(): Promise<WaterfoxDebugProtocol.Addon[]> {
 
 		log.debug('Fetching addons');
 
-		return new Promise<FirefoxDebugProtocol.Addon[]>((resolve, reject) => {
+		return new Promise<WaterfoxDebugProtocol.Addon[]>((resolve, reject) => {
 			this.pendingAddonsRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'listAddons' });
 		})
 	}
 
-	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
+	public receiveResponse(response: WaterfoxDebugProtocol.Response): void {
 
 		if (response['applicationType']) {
 
@@ -98,10 +98,10 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 		} else if (response['tabs']) {
 
-			let tabsResponse = <FirefoxDebugProtocol.TabsResponse>response;
+			let tabsResponse = <WaterfoxDebugProtocol.TabsResponse>response;
 			let currentTabs = new Map<string, [TabActorProxy, ConsoleActorProxy]>();
 
-			// sometimes Firefox returns 0 tabs if the listTabs request was sent 
+			// sometimes Waterfox returns 0 tabs if the listTabs request was sent 
 			// shortly after launching it
 			if (tabsResponse.tabs.length === 0) {
 				log.info('Received 0 tabs - will retry in 100ms');
@@ -128,9 +128,9 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 					log.debug(`Tab ${tab.actor} opened`);
 
-					if ((tab as FirefoxDebugProtocol.Tab).consoleActor) {
+					if ((tab as WaterfoxDebugProtocol.Tab).consoleActor) {
 
-						const _tab = tab as FirefoxDebugProtocol.Tab;
+						const _tab = tab as WaterfoxDebugProtocol.Tab;
 						actorsForTab = [
 							new TabActorProxy(tab.actor, _tab.title, _tab.url,
 								this.enableCRAWorkaround, this.pathMapper, this.connection),
@@ -169,7 +169,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 			log.debug('Received root response');
 
-			let rootResponse = <FirefoxDebugProtocol.RootResponse>response;
+			let rootResponse = <WaterfoxDebugProtocol.RootResponse>response;
 			if (this.pendingRootRequest) {
 
 				let preferenceActor = this.connection.getOrCreate(rootResponse.preferenceActor,
@@ -204,7 +204,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 		} else if (response['addons']) {
 
-			let addonsResponse = <FirefoxDebugProtocol.AddonsResponse>response;
+			let addonsResponse = <WaterfoxDebugProtocol.AddonsResponse>response;
 			log.debug(`Received ${addonsResponse.addons.length} addons`);
 			this.pendingAddonsRequests.resolveOne(addonsResponse.addons);
 
@@ -216,7 +216,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 
 		} else if (response['form']) {
 
-			let processResponse = <FirefoxDebugProtocol.ProcessResponse>response;
+			let processResponse = <WaterfoxDebugProtocol.ProcessResponse>response;
 			log.debug('Received getProcess response');
 			this.pendingProcessRequests.resolveOne([
 				new TabActorProxy(
@@ -236,7 +236,7 @@ export class RootActorProxy extends EventEmitter implements ActorProxy {
 		}
 	}
 
-	public onInit(cb: (response: FirefoxDebugProtocol.InitialResponse) => void) {
+	public onInit(cb: (response: WaterfoxDebugProtocol.InitialResponse) => void) {
 		this.on('init', cb);
 	}
 

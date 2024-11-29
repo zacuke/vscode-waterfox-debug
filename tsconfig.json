@@ -11,9 +11,9 @@
 		"skipLibCheck": true
 	},
 	"include": [
-		"src/adapter/firefoxDebugAdapter.ts",
+		"src/adapter/waterfoxDebugAdapter.ts",
 		"src/adapter/util/forkedLauncher.ts",
-		"src/adapter/firefox/protocol.d.ts",
+		"src/adapter/waterfox/protocol.d.ts",
 		"src/extension/main.ts",
 		"src/typings/*.d.ts",
 		"src/test/test*.ts"

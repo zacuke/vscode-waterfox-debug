@@ -12,7 +12,7 @@ let isWindowsPlatform = detectWindowsPlatform();
 const windowsAbsolutePathRegEx = /^[a-zA-Z]:[\/\\]/;
 
 /**
- * This class is used to map the URLs as seen by Firefox to local paths as seen by VS Code.
+ * This class is used to map the URLs as seen by Waterfox to local paths as seen by VS Code.
  * It is configured using the `pathMappings` property in the launch or attach configuration.
  */
 export class PathMapper {
@@ -22,7 +22,7 @@ export class PathMapper {
 		private readonly addonConfig?: ParsedAddonConfiguration
 	) {}
 
-	public convertFirefoxSourceToPath(source: FirefoxDebugProtocol.Source): string | undefined {
+	public convertWaterfoxSourceToPath(source: WaterfoxDebugProtocol.Source): string | undefined {
 		if (!source) return undefined;
 
 		if (source.addonID && this.addonConfig && (source.addonID === this.addonConfig.id)) {
@@ -55,14 +55,14 @@ export class PathMapper {
 				let sourcePath: string | undefined;
 				if (originalPathOrUrl.startsWith('../')) {
 
-					let generatedPath = this.convertFirefoxUrlToPath(generatedUrl);
+					let generatedPath = this.convertWaterfoxUrlToPath(generatedUrl);
 					if (!generatedPath) return undefined;
 					sourcePath = path.join(path.dirname(generatedPath), originalPathOrUrl);
 
 				} else {
 
 					let sourceUrl = url.resolve(urlDirname(generatedUrl), originalPathOrUrl);
-					sourcePath = this.convertFirefoxUrlToPath(sourceUrl);
+					sourcePath = this.convertWaterfoxUrlToPath(sourceUrl);
 					if (!sourcePath) return undefined;
 
 				}
@@ -75,13 +75,13 @@ export class PathMapper {
 			}
 
 		} else if (source.url) {
-			return this.convertFirefoxUrlToPath(source.url);
+			return this.convertWaterfoxUrlToPath(source.url);
 		} else {
 			return undefined;
 		}
 	}
 
-	public convertFirefoxUrlToPath(url: string): string | undefined {
+	public convertWaterfoxUrlToPath(url: string): string | undefined {
 
 		for (var i = 0; i < this.pathMappings.length; i++) {
 

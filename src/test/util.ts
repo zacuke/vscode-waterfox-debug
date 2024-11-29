@@ -13,7 +13,7 @@ export async function initDebugClient(
 
 	await waitForUnoccupiedPort(6000, 1000);
 
-	let dc = new DebugClient('node', './dist/adapter.bundle.js', 'firefox');
+	let dc = new DebugClient('node', './dist/adapter.bundle.js', 'waterfox');
 
 	let launchArgs: LaunchConfiguration = {
 		request: 'launch',
@@ -21,7 +21,7 @@ export async function initDebugClient(
 	};
 
 	if (process.env['FIREFOX_EXECUTABLE']) {
-		launchArgs.firefoxExecutable = process.env['FIREFOX_EXECUTABLE'];
+		launchArgs.waterfoxExecutable = process.env['FIREFOX_EXECUTABLE'];
 	}
 
 	if (process.env['FIREFOX_PROFILE']) {
@@ -29,7 +29,7 @@ export async function initDebugClient(
 	}
 
 	if (process.env['HEADLESS'] === "true") {
-		launchArgs.firefoxArgs = ["-headless"];
+		launchArgs.waterfoxArgs = ["-headless"];
 	}
 
 	if (extraLaunchArgs !== undefined) {
@@ -78,7 +78,7 @@ export async function initDebugClientForAddon(
 	}
 
 	if (process.env['FIREFOX_EXECUTABLE']) {
-		dcArgs.firefoxExecutable = process.env['FIREFOX_EXECUTABLE'];
+		dcArgs.waterfoxExecutable = process.env['FIREFOX_EXECUTABLE'];
 	}
 
 	if (process.env['FIREFOX_PROFILE']) {
@@ -86,10 +86,10 @@ export async function initDebugClientForAddon(
 	}
 
 	if (process.env['HEADLESS'] === "true") {
-		dcArgs.firefoxArgs = ["-headless"];
+		dcArgs.waterfoxArgs = ["-headless"];
 	}
 
-	let dc = new DebugClient('node', './dist/adapter.bundle.js', 'firefox');
+	let dc = new DebugClient('node', './dist/adapter.bundle.js', 'waterfox');
 
 	await dc.start();
 	await Promise.all([

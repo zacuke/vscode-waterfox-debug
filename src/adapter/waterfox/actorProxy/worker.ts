@@ -37,7 +37,7 @@ export class WorkerActorProxy extends BaseActorProxy {
 
 		const requestTypes = await this.getRequestTypes();
 		const type = requestTypes.includes('getTarget') ? 'getTarget' : 'connect';
-		const response: FirefoxDebugProtocol.WorkerConnectedResponse = await this.sendRequest(
+		const response: WaterfoxDebugProtocol.WorkerConnectedResponse = await this.sendRequest(
 			{ type, options: { useSourceMaps: true } }
 		);
 
@@ -54,7 +54,7 @@ export class WorkerActorProxy extends BaseActorProxy {
 		return [threadActor, consoleActor];
 	}
 
-	handleEvent(event: FirefoxDebugProtocol.Event): void {
+	handleEvent(event: WaterfoxDebugProtocol.Event): void {
 		if (event.type === 'close') {
 			log.debug(`Worker ${this.name} closed`);
 			this.emit('close');

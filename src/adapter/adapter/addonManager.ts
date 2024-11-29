@@ -1,12 +1,12 @@
 import * as path from 'path';
 import { ParsedAddonConfiguration } from '../configuration';
-import { RootActorProxy } from '../firefox/actorProxy/root';
-import { AddonsActorProxy } from '../firefox/actorProxy/addons';
-import { PreferenceActorProxy } from '../firefox/actorProxy/preference';
-import { ConsoleActorProxy } from '../firefox/actorProxy/console';
-import { WebExtensionActorProxy } from '../firefox/actorProxy/webExtension';
-import { TabActorProxy } from '../firefox/actorProxy/tab';
-import { FirefoxDebugSession } from '../firefoxDebugSession';
+import { RootActorProxy } from '../waterfox/actorProxy/root';
+import { AddonsActorProxy } from '../waterfox/actorProxy/addons';
+import { PreferenceActorProxy } from '../waterfox/actorProxy/preference';
+import { ConsoleActorProxy } from '../waterfox/actorProxy/console';
+import { WebExtensionActorProxy } from '../waterfox/actorProxy/webExtension';
+import { TabActorProxy } from '../waterfox/actorProxy/tab';
+import { WaterfoxDebugSession } from '../waterfoxDebugSession';
 import { PopupAutohideEventBody } from '../../common/customEvents';
 import { isWindowsPlatform } from '../../common/util';
 
@@ -26,7 +26,7 @@ export class AddonManager {
 
 	constructor(
 		private readonly enableCRAWorkaround: boolean,
-		private readonly debugSession: FirefoxDebugSession
+		private readonly debugSession: WaterfoxDebugSession
 	) {
 		this.config = debugSession.config.addon!;
 	}
@@ -75,7 +75,7 @@ export class AddonManager {
 					let consoleActor: ConsoleActorProxy;
 					let webExtensionActor = new WebExtensionActorProxy(
 						addon, this.enableCRAWorkaround, this.debugSession.pathMapper,
-						this.debugSession.firefoxDebugConnection);
+						this.debugSession.waterfoxDebugConnection);
 
 					if (useConnect) {
 						[this.addonActor, consoleActor] = await webExtensionActor.connect();

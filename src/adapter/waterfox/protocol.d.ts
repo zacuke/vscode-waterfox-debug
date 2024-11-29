@@ -1,4 +1,4 @@
-declare namespace FirefoxDebugProtocol {
+declare namespace WaterfoxDebugProtocol {
 
 	interface Request {
 		to: string;

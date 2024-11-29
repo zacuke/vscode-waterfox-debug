@@ -17,7 +17,7 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 	private pendingStartListenersRequests = new PendingRequests<void>();
 	private pendingStopListenersRequests = new PendingRequests<void>();
 	private pendingResultIDRequests = new PendingRequests<number>();
-	private pendingEvaluateRequests = new Map<number, PendingRequest<FirefoxDebugProtocol.Grip>>();
+	private pendingEvaluateRequests = new Map<number, PendingRequest<WaterfoxDebugProtocol.Grip>>();
 	private pendingAutoCompleteRequests = new PendingRequests<string[]>();
 
 	constructor(
@@ -66,10 +66,10 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 	 * 2 answers: the first answer gives us a resultID for the evaluation result. The second answer
 	 * gives us the actual evaluation result.
 	 */
-	public evaluate(expr: string, frameActorName?: string): Promise<FirefoxDebugProtocol.Grip> {
+	public evaluate(expr: string, frameActorName?: string): Promise<WaterfoxDebugProtocol.Grip> {
 		log.debug(`Evaluating '${expr}' on console ${this.name}`);
 
-		return new Promise<FirefoxDebugProtocol.Grip>((resolveEvaluate, rejectEvaluate) => {
+		return new Promise<WaterfoxDebugProtocol.Grip>((resolveEvaluate, rejectEvaluate) => {
 
 			// we don't use a promise for the pendingResultIDRequest because we need the
 			// pendingEvaluateRequest to be enqueued *immediately* after receiving the resultID
@@ -106,7 +106,7 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 		this.connection.unregister(this);
 	}
 
-	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
+	public receiveResponse(response: WaterfoxDebugProtocol.Response): void {
 
 		if (response['startedListeners']) {
 
@@ -122,13 +122,13 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 
 			log.debug('Received cached messages');
 			for (let message of response.messages) {
-				if ((message as FirefoxDebugProtocol.CachedMessage).type === 'consoleAPICall') {
+				if ((message as WaterfoxDebugProtocol.CachedMessage).type === 'consoleAPICall') {
 					this.emit('consoleAPI', message.message);
-				} else if ((message as FirefoxDebugProtocol.CachedMessage).type === 'pageError') {
+				} else if ((message as WaterfoxDebugProtocol.CachedMessage).type === 'pageError') {
 					this.emit('pageError', message.pageError);
-				} else if ((message as FirefoxDebugProtocol.LegacyCachedMessage)._type === 'ConsoleAPI') {
+				} else if ((message as WaterfoxDebugProtocol.LegacyCachedMessage)._type === 'ConsoleAPI') {
 					this.emit('consoleAPI', message);
-				} else if ((message as FirefoxDebugProtocol.LegacyCachedMessage)._type === 'PageError') {
+				} else if ((message as WaterfoxDebugProtocol.LegacyCachedMessage)._type === 'PageError') {
 					this.emit('pageError', message);
 				}
 			}
@@ -136,22 +136,22 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 		} else if (response['type'] === 'consoleAPICall') {
 
 			log.debug(`Received ConsoleAPI message`);
-			this.emit('consoleAPI', (<FirefoxDebugProtocol.ConsoleAPICallResponse>response).message);
+			this.emit('consoleAPI', (<WaterfoxDebugProtocol.ConsoleAPICallResponse>response).message);
 
 		} else if (response['type'] === 'pageError') {
 
 			log.debug(`Received PageError message`);
-			this.emit('pageError', (<FirefoxDebugProtocol.PageErrorResponse>response).pageError);
+			this.emit('pageError', (<WaterfoxDebugProtocol.PageErrorResponse>response).pageError);
 
 		} else if (response['type'] === 'logMessage') {
 
 			log.debug(`Received LogMessage message`);
-			this.emit('logMessage', (<FirefoxDebugProtocol.LogMessageResponse>response).message);
+			this.emit('logMessage', (<WaterfoxDebugProtocol.LogMessageResponse>response).message);
 
 		} else if (response['type'] === 'evaluationResult') {
 
 			log.debug(`Received EvaluationResult message`);
-			let resultResponse = <FirefoxDebugProtocol.EvaluationResultResponse>response;
+			let resultResponse = <WaterfoxDebugProtocol.EvaluationResultResponse>response;
 			if (!this.pendingEvaluateRequests.has(resultResponse.resultID)) {
 				log.error('Received evaluationResult with unknown resultID');
 			} else {
@@ -172,7 +172,7 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 
 			log.debug(`Received autoComplete response`);
 			this.pendingAutoCompleteRequests.resolveOne(
-				(<FirefoxDebugProtocol.AutoCompleteResponse>response).matches);
+				(<WaterfoxDebugProtocol.AutoCompleteResponse>response).matches);
 
 		} else {
 
@@ -181,11 +181,11 @@ export class ConsoleActorProxy extends EventEmitter implements ActorProxy {
 		}
 	}
 
-	public onConsoleAPICall(cb: (body: FirefoxDebugProtocol.ConsoleAPICallResponseBody) => void) {
+	public onConsoleAPICall(cb: (body: WaterfoxDebugProtocol.ConsoleAPICallResponseBody) => void) {
 		this.on('consoleAPI', cb);
 	}
 
-	public onPageErrorCall(cb: (body: FirefoxDebugProtocol.PageErrorResponseBody) => void) {
+	public onPageErrorCall(cb: (body: WaterfoxDebugProtocol.PageErrorResponseBody) => void) {
 		this.on('pageError', cb);
 	}
 

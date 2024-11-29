@@ -20,14 +20,14 @@
 			"sourceMaps": true
 		},
 		{
-			"type": "firefox",
+			"type": "waterfox",
 			"request": "launch",
 			"name": "web test",
 			"debugServer": 4711,
 			"file": "${workspaceFolder}/testdata/web/index.html"
 		},
 		{
-			"type": "firefox",
+			"type": "waterfox",
 			"request": "launch",
 			"name": "webextension test",
 			"debugServer": 4711,

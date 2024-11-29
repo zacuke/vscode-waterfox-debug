@@ -14,11 +14,11 @@ export class ObjectGripActorProxy implements ActorProxy {
 
 	private _refCount = 0;
 
- 	private pendingPrototypeAndPropertiesRequests = new PendingRequests<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>();
+ 	private pendingPrototypeAndPropertiesRequests = new PendingRequests<WaterfoxDebugProtocol.PrototypeAndPropertiesResponse>();
  	private pendingVoidRequests = new PendingRequests<void>();
 
 	constructor(
-		private grip: FirefoxDebugProtocol.ObjectGrip,
+		private grip: WaterfoxDebugProtocol.ObjectGrip,
 		private connection: DebugConnection
 	) {
 		this.connection.register(this);
@@ -43,13 +43,13 @@ export class ObjectGripActorProxy implements ActorProxy {
 		}
 	}
 
-	public fetchPrototypeAndProperties(): Promise<FirefoxDebugProtocol.PrototypeAndPropertiesResponse> {
+	public fetchPrototypeAndProperties(): Promise<WaterfoxDebugProtocol.PrototypeAndPropertiesResponse> {
 
 		if (log.isDebugEnabled()) {
 			log.debug(`Fetching prototype and properties from ${this.name}`);
 		}
 
-		return new Promise<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>((resolve, reject) => {
+		return new Promise<WaterfoxDebugProtocol.PrototypeAndPropertiesResponse>((resolve, reject) => {
 			this.pendingPrototypeAndPropertiesRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'prototypeAndProperties' });
 		});
@@ -95,14 +95,14 @@ export class ObjectGripActorProxy implements ActorProxy {
 		});
 	}
 
-	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
+	public receiveResponse(response: WaterfoxDebugProtocol.Response): void {
 
 		if ((response['prototype'] !== undefined) && (response['ownProperties'] !== undefined)) {
 
 			if (log.isDebugEnabled()) {
 				log.debug(`Prototype and properties fetched from ${this.name}`);
 			}
-			this.pendingPrototypeAndPropertiesRequests.resolveOne(<FirefoxDebugProtocol.PrototypeAndPropertiesResponse>response);
+			this.pendingPrototypeAndPropertiesRequests.resolveOne(<WaterfoxDebugProtocol.PrototypeAndPropertiesResponse>response);
 
 		} else if (Object.keys(response).length === 1) {
 
@@ -113,7 +113,7 @@ export class ObjectGripActorProxy implements ActorProxy {
 
 		} else if (response['error'] === 'noSuchActor') {
 
-			log.warn(`No such actor ${this.grip.actor} - you will not be able to inspect this value; this is probably due to Firefox bug #1249962`);
+			log.warn(`No such actor ${this.grip.actor} - you will not be able to inspect this value; this is probably due to Waterfox bug #1249962`);
 			this.pendingPrototypeAndPropertiesRequests.rejectAll('No such actor');
 
 		} else {

@@ -8,11 +8,11 @@ let log = Log.create('SourceActorProxy');
 
 export interface ISourceActorProxy {
 	name: string;
-	source: FirefoxDebugProtocol.Source;
+	source: WaterfoxDebugProtocol.Source;
 	url: string | null;
 	getBreakableLines(): Promise<number[]>;
 	getBreakableLocations(line: number): Promise<MappedLocation[]>;
-	fetchSource(): Promise<FirefoxDebugProtocol.Grip>;
+	fetchSource(): Promise<WaterfoxDebugProtocol.Grip>;
 	setBlackbox(blackbox: boolean): Promise<void>;
 	dispose(): void;
 }
@@ -26,12 +26,12 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 
 	private pendingGetBreakableLinesRequest?: PendingRequest<number[]>;
 	private getBreakableLinesPromise?: Promise<number[]>;
-	private pendingGetBreakpointPositionsRequests = new PendingRequests<FirefoxDebugProtocol.BreakpointPositions>();
-	private pendingFetchSourceRequests = new PendingRequests<FirefoxDebugProtocol.Grip>();
+	private pendingGetBreakpointPositionsRequests = new PendingRequests<WaterfoxDebugProtocol.BreakpointPositions>();
+	private pendingFetchSourceRequests = new PendingRequests<WaterfoxDebugProtocol.Grip>();
 	private pendingBlackboxRequests = new PendingRequests<void>();
 	
 	constructor(
-		public readonly source: FirefoxDebugProtocol.Source,
+		public readonly source: WaterfoxDebugProtocol.Source,
 		private connection: DebugConnection
 	) {
 		this.connection.register(this);
@@ -76,11 +76,11 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 		}
 	}
 
-	public getBreakpointPositionsForRange(range: Range): Promise<FirefoxDebugProtocol.BreakpointPositions> {
+	public getBreakpointPositionsForRange(range: Range): Promise<WaterfoxDebugProtocol.BreakpointPositions> {
 
 		log.debug(`Fetching breakpoint positions of ${this.url} for range: ${JSON.stringify(range)}`);
 
-		return new Promise<FirefoxDebugProtocol.BreakpointPositions>((resolve, reject) => {
+		return new Promise<WaterfoxDebugProtocol.BreakpointPositions>((resolve, reject) => {
 			this.pendingGetBreakpointPositionsRequests.enqueue({ resolve, reject });
 
 			const request: any = { to: this.name, type: 'getBreakpointPositionsCompressed' };
@@ -95,11 +95,11 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 		});
 	}
 
-	public fetchSource(): Promise<FirefoxDebugProtocol.Grip> {
+	public fetchSource(): Promise<WaterfoxDebugProtocol.Grip> {
 
 		log.debug(`Fetching source of ${this.url}`);
 
-		return new Promise<FirefoxDebugProtocol.Grip>((resolve, reject) => {
+		return new Promise<WaterfoxDebugProtocol.Grip>((resolve, reject) => {
 			this.pendingFetchSourceRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'source' });
 		});
@@ -122,13 +122,13 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 		this.connection.unregister(this);
 	}
 
-	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
+	public receiveResponse(response: WaterfoxDebugProtocol.Response): void {
 
 		if (response['lines'] !== undefined) {
 
 			log.debug('Received getBreakableLines response');
 
-			let breakableLinesResponse = <FirefoxDebugProtocol.GetBreakableLinesResponse>response;
+			let breakableLinesResponse = <WaterfoxDebugProtocol.GetBreakableLinesResponse>response;
 			if (this.pendingGetBreakableLinesRequest) {
 				this.pendingGetBreakableLinesRequest.resolve(breakableLinesResponse.lines);
 				this.pendingGetBreakableLinesRequest = undefined;
@@ -140,13 +140,13 @@ export class SourceActorProxy implements ActorProxy, ISourceActorProxy {
 
 			log.debug('Received getBreakpointPositions response');
 
-			let breakpointPositionsResponse = <FirefoxDebugProtocol.GetBreakpointPositionsCompressedResponse>response;
+			let breakpointPositionsResponse = <WaterfoxDebugProtocol.GetBreakpointPositionsCompressedResponse>response;
 			this.pendingGetBreakpointPositionsRequests.resolveOne(breakpointPositionsResponse.positions);
 
 		} else if (response['source'] !== undefined) {
 
 			log.debug('Received fetchSource response');
-			let grip = <FirefoxDebugProtocol.Grip>response['source'];
+			let grip = <WaterfoxDebugProtocol.Grip>response['source'];
 			this.pendingFetchSourceRequests.resolveOne(grip);
 
 		} else if (response['error'] === 'noSuchActor') {

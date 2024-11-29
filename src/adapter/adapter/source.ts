@@ -1,6 +1,6 @@
 import { Log } from '../util/log';
 import { MappedLocation } from '../location';
-import { ISourceActorProxy } from '../firefox/actorProxy/source';
+import { ISourceActorProxy } from '../waterfox/actorProxy/source';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { Source } from 'vscode-debugadapter';
 import { ThreadAdapter } from './thread';
@@ -22,10 +22,10 @@ export class SourceAdapter {
 		return this._actor;
 	}
 
-	/** the breakpoints for this source that have been set in Firefox */
+	/** the breakpoints for this source that have been set in Waterfox */
 	private currentBreakpoints: BreakpointAdapter[] = [];
 
-	/** the breakpoints for this source that should be set in Firefox */
+	/** the breakpoints for this source that should be set in Waterfox */
 	private desiredBreakpoints: BreakpointInfo[] | undefined = undefined;
 
 	/** `true` while `syncBreakpoints()` is running  */
@@ -92,7 +92,7 @@ export class SourceAdapter {
 		this.checkAndSyncBreakpoints();
 	}
 
-	public findBreakpointAdapterForLocation(location: FirefoxDebugProtocol.SourceLocation): BreakpointAdapter | undefined {
+	public findBreakpointAdapterForLocation(location: WaterfoxDebugProtocol.SourceLocation): BreakpointAdapter | undefined {
 		return this.currentBreakpoints.find(
 			breakpointAdapter =>
 				breakpointAdapter.breakpointInfo &&
@@ -109,7 +109,7 @@ export class SourceAdapter {
 	}
 
 	/**
-	 * synchronize the breakpoints for this source with Firefox, i.e. calculate the difference
+	 * synchronize the breakpoints for this source with Waterfox, i.e. calculate the difference
 	 * between `currentBreakpoints` and `desiredBreakpoints` and add and remove breakpoints as needed
 	 */
 	private async syncBreakpoints(): Promise<void> {

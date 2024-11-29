@@ -2,7 +2,7 @@ import { VariablesProvider } from './variablesProvider';
 import { VariableAdapter } from './variable';
 import { FrameAdapter } from './frame';
 import { ThreadAdapter } from './thread';
-import { ObjectGripActorProxy } from '../firefox/actorProxy/objectGrip';
+import { ObjectGripActorProxy } from '../waterfox/actorProxy/objectGrip';
 
 /**
  * Adapter class for a javascript object.
@@ -25,7 +25,7 @@ export class ObjectGripAdapter implements VariablesProvider {
 
 	public constructor(
 		private readonly variableAdapter: VariableAdapter,
-		objectGrip: FirefoxDebugProtocol.ObjectGrip,
+		objectGrip: WaterfoxDebugProtocol.ObjectGrip,
 		public threadLifetime: boolean,
 		private readonly isPrototype: boolean
 	) {
@@ -126,7 +126,7 @@ export class ObjectGripAdapter implements VariablesProvider {
 
 				const propertyDescriptor = prototypeAndProperties.ownProperties[varname];
 				if ((varname !== '__proto__') && 
-					(<FirefoxDebugProtocol.AccessorPropertyDescriptor>propertyDescriptor).get) {
+					(<WaterfoxDebugProtocol.AccessorPropertyDescriptor>propertyDescriptor).get) {
 
 					variables.push(VariableAdapter.fromPropertyDescriptor(
 						varname, this.referenceExpression, this.referenceFrame,

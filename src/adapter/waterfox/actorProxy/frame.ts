@@ -12,11 +12,11 @@ let log = Log.create('FrameActorProxy');
  */
 export class FrameActorProxy implements ActorProxy {
 
-	private pendingGetEnvironmentRequest?: PendingRequest<FirefoxDebugProtocol.Environment>;
-	private getEnvironmentPromise?: Promise<FirefoxDebugProtocol.Environment>;
+	private pendingGetEnvironmentRequest?: PendingRequest<WaterfoxDebugProtocol.Environment>;
+	private getEnvironmentPromise?: Promise<WaterfoxDebugProtocol.Environment>;
 
 	constructor(
-		private frame: FirefoxDebugProtocol.Frame,
+		private frame: WaterfoxDebugProtocol.Frame,
 		private connection: DebugConnection
 	) {
 		this.connection.register(this);
@@ -26,13 +26,13 @@ export class FrameActorProxy implements ActorProxy {
 		return this.frame.actor;
 	}
 
-	public getEnvironment(): Promise<FirefoxDebugProtocol.Environment> {
+	public getEnvironment(): Promise<WaterfoxDebugProtocol.Environment> {
 
 		if (!this.getEnvironmentPromise) {
 
 			log.debug(`Fetching environment from ${this.name}`);
 
-			this.getEnvironmentPromise = new Promise<FirefoxDebugProtocol.Environment>((resolve, reject) => {
+			this.getEnvironmentPromise = new Promise<WaterfoxDebugProtocol.Environment>((resolve, reject) => {
 				this.pendingGetEnvironmentRequest = { resolve, reject };
 				this.connection.sendRequest({ to: this.name, type: 'getEnvironment' });
 			});
@@ -41,12 +41,12 @@ export class FrameActorProxy implements ActorProxy {
 		return this.getEnvironmentPromise;
 	}
 
-	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
+	public receiveResponse(response: WaterfoxDebugProtocol.Response): void {
 
 		if (this.pendingGetEnvironmentRequest) {
 
 			log.debug(`Environment fetched from ${this.name}`);
-			this.pendingGetEnvironmentRequest.resolve(response as (FirefoxDebugProtocol.Environment & FirefoxDebugProtocol.Response));
+			this.pendingGetEnvironmentRequest.resolve(response as (WaterfoxDebugProtocol.Environment & WaterfoxDebugProtocol.Response));
 
 		} else {
 

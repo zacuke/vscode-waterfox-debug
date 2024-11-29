@@ -46,16 +46,16 @@ export class DebugConfigurationProvider implements vscode.DebugConfigurationProv
 		debugConfiguration: vscode.DebugConfiguration & (LaunchConfiguration | AttachConfiguration)
 	): void {
 
-		const settings = vscode.workspace.getConfiguration('firefox', folder ? folder.uri : null);
+		const settings = vscode.workspace.getConfiguration('waterfox', folder ? folder.uri : null);
 
 		const executable = this.getSetting<string>(settings, 'executable');
 		if (executable) {
-			debugConfiguration.firefoxExecutable = executable;
+			debugConfiguration.waterfoxExecutable = executable;
 		}
 
 		const args = this.getSetting<string[]>(settings, 'args');
 		if (args) {
-			debugConfiguration.firefoxArgs = args;
+			debugConfiguration.waterfoxArgs = args;
 		}
 
 		const profileDir = this.getSetting<string>(settings, 'profileDir');
@@ -174,11 +174,11 @@ export class DebugConfigurationProvider implements vscode.DebugConfigurationProv
 		if (debugConfiguration.request === 'launch') {
 
 			if (debugConfiguration.file) {
-				check("Firefox can't open a file in a remote workspace")(debugConfiguration.file);
+				check("Waterfox can't open a file in a remote workspace")(debugConfiguration.file);
 			}
 
 			if (debugConfiguration.profileDir) {
-				check("Firefox can't have its profile in a remote workspace")(debugConfiguration.profileDir);
+				check("Waterfox can't have its profile in a remote workspace")(debugConfiguration.profileDir);
 			}
 		}
 	}

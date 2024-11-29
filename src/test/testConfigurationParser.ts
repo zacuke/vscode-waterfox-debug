@@ -35,8 +35,8 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.liftAccessorsFromPrototypes, 0);
 		assert.equal(parsedConfiguration.suggestPathMappingWizard, true);
 
-		assert.ok(parsedConfiguration.launch!.firefoxExecutable);
-		assert.equal([...parsedConfiguration.launch!.firefoxArgs].pop(), fileUrl);
+		assert.ok(parsedConfiguration.launch!.waterfoxExecutable);
+		assert.equal([...parsedConfiguration.launch!.waterfoxArgs].pop(), fileUrl);
 		assert.equal(parsedConfiguration.launch!.port, 6000);
 		assert.equal(parsedConfiguration.launch!.timeout, 5);
 		assert.equal(parsedConfiguration.launch!.preferences['devtools.debugger.remote-enabled'], true);
@@ -635,7 +635,7 @@ describe('The configuration parser', function() {
 			request: 'launch',
 			file: '/home/user/project/index.html',
 			profile: 'default',
-			profileDir: '/home/user/firefoxProfile'
+			profileDir: '/home/user/waterfoxProfile'
 		}), 'You can set either "profile" or "profileDir", but not both');
 	});
 
@@ -688,10 +688,10 @@ describe('The configuration parser', function() {
 			tmpDir
 		});
 
-		assert.ok(parsedConfiguration.launch!.profileDir.startsWith(tmpDir + '/vscode-firefox-debug-profile-'));
+		assert.ok(parsedConfiguration.launch!.profileDir.startsWith(tmpDir + '/vscode-waterfox-debug-profile-'));
 	});
 
-	it('should parse user-specified Firefox preferences', async function() {
+	it('should parse user-specified Waterfox preferences', async function() {
 
 		let parsedConfiguration = await parseConfiguration({
 			request: 'launch',
@@ -722,8 +722,8 @@ describe('The configuration parser', function() {
 
 		assert.equal(parsedConfiguration.attach!.port, 7000);
 		assert.equal(parsedConfiguration.launch!.port, 7000);
-		assert.ok(parsedConfiguration.launch!.firefoxArgs.indexOf('6000') < 0);
-		assert.ok(parsedConfiguration.launch!.firefoxArgs.indexOf('7000') >= 0);
+		assert.ok(parsedConfiguration.launch!.waterfoxArgs.indexOf('6000') < 0);
+		assert.ok(parsedConfiguration.launch!.waterfoxArgs.indexOf('7000') >= 0);
 	});
 
 	it('should copy "timeout" from a launch configuration', async function() {
@@ -737,15 +737,15 @@ describe('The configuration parser', function() {
 		assert.equal(parsedConfiguration.launch!.timeout, 10);
 	});
 
-	it('should add user-specified "firefoxArgs"', async function() {
+	it('should add user-specified "waterfoxArgs"', async function() {
 
 		let parsedConfiguration = await parseConfiguration({
 			request: 'launch',
 			file: '/home/user/project/index.html',
-			firefoxArgs: [ '-private' ]
+			waterfoxArgs: [ '-private' ]
 		});
 
-		assert.ok(parsedConfiguration.launch!.firefoxArgs.indexOf('-private') >= 0);
+		assert.ok(parsedConfiguration.launch!.waterfoxArgs.indexOf('-private') >= 0);
 	});
 
 	it('should allow installing WebExtensions that don\'t specify an ID in their manifest', async function() {
@@ -780,7 +780,7 @@ describe('The configuration parser', function() {
 			addonPath: path.join(__dirname, '../../testdata/webExtension/addOn')
 		});
 
-		assert.equal([...parsedConfiguration.launch!.firefoxArgs].pop(), 'about:blank');
+		assert.equal([...parsedConfiguration.launch!.waterfoxArgs].pop(), 'about:blank');
 	});
 
 	it('should allow setting "file" to define the start page for addon debugging', async function() {
@@ -800,7 +800,7 @@ describe('The configuration parser', function() {
 			addonPath: path.join(__dirname, '../../testdata/webExtension/addOn')
 		});
 
-		assert.equal([...parsedConfiguration.launch!.firefoxArgs].pop(), fileUrl);
+		assert.equal([...parsedConfiguration.launch!.waterfoxArgs].pop(), fileUrl);
 	});
 
 	it('should allow setting "url" to define the start page for addon debugging', async function() {
@@ -812,7 +812,7 @@ describe('The configuration parser', function() {
 			addonPath: path.join(__dirname, '../../testdata/webExtension/addOn')
 		});
 
-		assert.equal([...parsedConfiguration.launch!.firefoxArgs].pop(), 'https://mozilla.org');
+		assert.equal([...parsedConfiguration.launch!.waterfoxArgs].pop(), 'https://mozilla.org');
 	});
 });
 

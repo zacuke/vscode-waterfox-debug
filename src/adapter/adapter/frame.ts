@@ -4,7 +4,7 @@ import { EnvironmentAdapter } from './environment';
 import { ScopeAdapter } from './scope';
 import { StackFrame } from 'vscode-debugadapter';
 import { Registry } from './registry';
-import { FrameActorProxy } from '../firefox/actorProxy/frame';
+import { FrameActorProxy } from '../waterfox/actorProxy/frame';
 
 let log = Log.create('FrameAdapter');
 
@@ -18,7 +18,7 @@ export class FrameAdapter {
 
 	public constructor(
 		private readonly frameRegistry: Registry<FrameAdapter>,
-		public readonly frame: FirefoxDebugProtocol.Frame,
+		public readonly frame: WaterfoxDebugProtocol.Frame,
 		public readonly threadAdapter: ThreadAdapter
 	) {
 		this.id = frameRegistry.register(this);
@@ -33,7 +33,7 @@ export class FrameAdapter {
 		switch (this.frame.type) {
 
 			case 'call':
-				const callFrame = this.frame as FirefoxDebugProtocol.CallFrame;
+				const callFrame = this.frame as WaterfoxDebugProtocol.CallFrame;
 				name = callFrame.displayName || '[anonymous function]';
 				break;
 
@@ -64,7 +64,7 @@ export class FrameAdapter {
 
 		if (!this._scopeAdapters) {
 
-			const frameActor = new FrameActorProxy(this.frame, this.threadAdapter.debugSession.firefoxDebugConnection);
+			const frameActor = new FrameActorProxy(this.frame, this.threadAdapter.debugSession.waterfoxDebugConnection);
 			const environment = await frameActor.getEnvironment();
 			frameActor.dispose();
 

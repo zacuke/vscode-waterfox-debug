@@ -1,8 +1,8 @@
 {
-  "name": "firefox-debugadapter",
+  "name": "waterfox-debugadapter",
   "version": "2.9.11",
   "author": "Holger Benl <hbenl@evandor.de>",
-  "description": "Debug adapter for Firefox",
+  "description": "Debug adapter for Waterfox",
   "files": [
     "adapter.bundle.js",
     "launcher.bundle.js",
@@ -14,11 +14,11 @@
   "main": "adapter.bundle.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/firefox-devtools/vscode-firefox-debug.git"
+    "url": "git+https://github.com/waterfox-devtools/vscode-waterfox-debug.git"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/firefox-devtools/vscode-firefox-debug/issues"
+    "url": "https://github.com/waterfox-devtools/vscode-waterfox-debug/issues"
   },
-  "homepage": "https://github.com/firefox-devtools/vscode-firefox-debug"
+  "homepage": "https://github.com/waterfox-devtools/vscode-waterfox-debug"
 }

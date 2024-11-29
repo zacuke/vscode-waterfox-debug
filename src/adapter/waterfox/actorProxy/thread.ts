@@ -19,13 +19,13 @@ export interface IThreadActorProxy {
 	attach(options: AttachOptions): Promise<void>;
 	resume(exceptionBreakpoints: ExceptionBreakpoints | undefined, resumeLimitType?: 'next' | 'step' | 'finish'): Promise<void>;
 	interrupt(immediately?: boolean): Promise<void>;
-	fetchSources(): Promise<FirefoxDebugProtocol.Source[]>;
-	fetchStackFrames(start?: number, count?: number): Promise<FirefoxDebugProtocol.Frame[]>;
+	fetchSources(): Promise<WaterfoxDebugProtocol.Source[]>;
+	fetchStackFrames(start?: number, count?: number): Promise<WaterfoxDebugProtocol.Frame[]>;
 	setBreakpoint(location: MappedLocation, sourceActor: ISourceActorProxy, condition?: string, logValue?: string): Promise<void>;
 	pauseOnExceptions(pauseOnExceptions: boolean, ignoreCaughtExceptions: boolean): Promise<void>;
 	removeBreakpoint(location: MappedLocation, sourceActor: ISourceActorProxy): Promise<void>;
 	findOriginalLocation(generatedUrl: string, line: number, column?: number): Promise<UrlLocation | undefined>
-	onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedResponse) => void): void;
+	onPaused(cb: (event: WaterfoxDebugProtocol.ThreadPausedResponse) => void): void;
 	onResumed(cb: () => void): void;
 	onExited(cb: () => void): void;
 	onWrongState(cb: () => void): void;
@@ -39,7 +39,7 @@ export enum ExceptionBreakpoints {
 }
 
 /**
- * A ThreadActorProxy is a proxy for a "thread-like actor" (a Tab, Worker or Addon) in Firefox
+ * A ThreadActorProxy is a proxy for a "thread-like actor" (a Tab, Worker or Addon) in Waterfox
  * ([docs](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#interacting-with-thread-like-actors),
  * [spec](https://github.com/mozilla/gecko-dev/blob/master/devtools/shared/specs/thread.js))
  */
@@ -61,8 +61,8 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	private pendingInterruptRequest?: PendingRequest<void>;
 	private interruptPromise?: Promise<void>;
 
-	private pendingSourcesRequests = new PendingRequests<FirefoxDebugProtocol.Source[]>();
-	private pendingStackFramesRequests = new PendingRequests<FirefoxDebugProtocol.Frame[]>();
+	private pendingSourcesRequests = new PendingRequests<WaterfoxDebugProtocol.Source[]>();
+	private pendingStackFramesRequests = new PendingRequests<WaterfoxDebugProtocol.Frame[]>();
 	private pendingEmptyResponseRequests = new PendingRequests<void>();
 
 	/**
@@ -188,10 +188,10 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	 * Fetch the list of source files. This will also cause newSource events to be emitted for
 	 * every source file (including those that are loaded later and strings passed to eval())
 	 */
-	public fetchSources(): Promise<FirefoxDebugProtocol.Source[]> {
+	public fetchSources(): Promise<WaterfoxDebugProtocol.Source[]> {
 		log.debug(`Fetching sources from thread ${this.name}`);
 
-		return new Promise<FirefoxDebugProtocol.Source[]>((resolve, reject) => {
+		return new Promise<WaterfoxDebugProtocol.Source[]>((resolve, reject) => {
 			this.pendingSourcesRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ to: this.name, type: 'sources' });
 		});
@@ -200,10 +200,10 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	/**
 	 * Fetch StackFrames. This can only be called while the thread is paused.
 	 */
-	public fetchStackFrames(start = 0, count = 1000): Promise<FirefoxDebugProtocol.Frame[]> {
+	public fetchStackFrames(start = 0, count = 1000): Promise<WaterfoxDebugProtocol.Frame[]> {
 		log.debug(`Fetching stackframes from thread ${this.name}`);
 
-		return new Promise<FirefoxDebugProtocol.Frame[]>((resolve, reject) => {
+		return new Promise<WaterfoxDebugProtocol.Frame[]>((resolve, reject) => {
 			this.pendingStackFramesRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({
 				to: this.name, type: 'frames',
@@ -224,11 +224,11 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 		this.connection.unregister(this);
 	}
 
-	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
+	public receiveResponse(response: WaterfoxDebugProtocol.Response): void {
 
 		if (response['type'] === 'paused') {
 
-			let pausedResponse = <FirefoxDebugProtocol.ThreadPausedResponse>response;
+			let pausedResponse = <WaterfoxDebugProtocol.ThreadPausedResponse>response;
 			log.debug(`Received paused message of type ${pausedResponse.why.type}`);
 
 			switch (pausedResponse.why.type) {
@@ -290,7 +290,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 			}
 		} else if (response['sources']) {
 
-			let sources = <FirefoxDebugProtocol.Source[]>(response['sources']);
+			let sources = <WaterfoxDebugProtocol.Source[]>(response['sources']);
 			log.debug(`Received ${sources.length} sources from thread ${this.name}`);
 			this.pendingSourcesRequests.resolveOne(sources);
 
@@ -309,7 +309,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 
 		} else if (response['type'] === 'newSource') {
 
-			let source = <FirefoxDebugProtocol.Source>(response['source']);
+			let source = <WaterfoxDebugProtocol.Source>(response['source']);
 			log.debug(`New source ${source.url} on thread ${this.name}`);
 
 			if (this.enableCRAWorkaround && source.url?.endsWith('hot-update.js')) {
@@ -324,7 +324,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 
 		} else if (response['frames']) {
 
-			let frames = <FirefoxDebugProtocol.Frame[]>(response['frames']);
+			let frames = <WaterfoxDebugProtocol.Frame[]>(response['frames']);
 			log.debug(`Received ${frames.length} frames from thread ${this.name}`);
 			this.pendingStackFramesRequests.resolveOne(frames);
 
@@ -375,7 +375,7 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 			if (propertyCount === 1) {
 
 				if (this.pendingEmptyResponseRequests.isEmpty()) {
-					log.debug('Received unexpected response, this is probably due to Firefox bug #1577996');
+					log.debug('Received unexpected response, this is probably due to Waterfox bug #1577996');
 				} else {
 					log.debug('Received setBreakpoint or removeBreakpoint or pauseOnExceptions response');
 					this.pendingEmptyResponseRequests.resolveOne(undefined);
@@ -396,13 +396,13 @@ export class ThreadActorProxy extends EventEmitter implements ActorProxy, IThrea
 	 * resumeLimit, but not if it was paused due to an interrupt request or because an evaluate
 	 * request is finished
 	 */
-	public onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedResponse) => void) {
+	public onPaused(cb: (event: WaterfoxDebugProtocol.ThreadPausedResponse) => void) {
 		this.on('paused', cb);
 	}
 
 	/**
 	 * The resumed event is only sent when the thread is resumed without a corresponding request
-	 * (this happens when a tab in Firefox is reloaded or navigated to a different url while
+	 * (this happens when a tab in Waterfox is reloaded or navigated to a different url while
 	 * the corresponding thread is paused)
 	 */
 	public onResumed(cb: () => void) {

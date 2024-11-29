@@ -26,7 +26,7 @@ export function connect(port: number, host?: string): Promise<net.Socket> {
 /**
  * Try to connect to a TCP port and keep retrying for the number of seconds given by `timeout`
  * if the connection is rejected initially.
- * Used to connect to Firefox after launching it.
+ * Used to connect to Waterfox after launching it.
  */
 export async function waitForSocket(port: number, timeout: number): Promise<net.Socket> {
 	const maxIterations = timeout * 5;

@@ -5,16 +5,16 @@ import * as assert from 'assert';
 import * as uuid from 'uuid';
 import * as util from './util';
 import { delay } from '../common/util';
-import { FirefoxDebugSession } from '../adapter/firefoxDebugSession';
+import { WaterfoxDebugSession } from '../adapter/waterfoxDebugSession';
 import { parseConfiguration } from '../adapter/configuration';
 
 describe('Terminate and cleanup: The debugger', function() {
 
 	const TESTDATA_PATH = path.join(__dirname, '../../testdata');
 
-	it('should eventually delete the temporary profile after terminating Firefox', async function() {
+	it('should eventually delete the temporary profile after terminating Waterfox', async function() {
 
-		const tmpDir = path.join(os.tmpdir(), `vscode-firefox-debug-test-${uuid.v4()}`);
+		const tmpDir = path.join(os.tmpdir(), `vscode-waterfox-debug-test-${uuid.v4()}`);
 		const dc = await util.initDebugClient(TESTDATA_PATH, true, { tmpDir });
 
 		// check that the temporary profile has been created
@@ -35,14 +35,14 @@ describe('Terminate and cleanup: The debugger', function() {
 		throw new Error("The temporary profile hasn't been deleted after 5 seconds");
 	});
 
-	it('should eventually delete the temporary profile after a detached Firefox process was terminated', async function() {
+	it('should eventually delete the temporary profile after a detached Waterfox process was terminated', async function() {
 
 		if (os.platform() === 'darwin') {
 			this.skip();
 			return;
 		}
 
-		const tmpDir = path.join(os.tmpdir(), `vscode-firefox-debug-test-${uuid.v4()}`);
+		const tmpDir = path.join(os.tmpdir(), `vscode-waterfox-debug-test-${uuid.v4()}`);
 		const dc = await util.initDebugClient(TESTDATA_PATH, true, { tmpDir, reAttach: true });
 
 		// check that the temporary profile has been created
@@ -50,9 +50,9 @@ describe('Terminate and cleanup: The debugger', function() {
 
 		await dc.stop();
 
-		// attach to Firefox again and terminate it using the Terminator WebExtension
+		// attach to Waterfox again and terminate it using the Terminator WebExtension
 		const parsedConfig = await parseConfiguration({ request: 'attach' });
-		const ds = new FirefoxDebugSession(parsedConfig, () => undefined);
+		const ds = new WaterfoxDebugSession(parsedConfig, () => undefined);
 		await ds.start();
 		ds.addonsActor!.installAddon(path.resolve(__dirname, '../../dist/terminator'));
 

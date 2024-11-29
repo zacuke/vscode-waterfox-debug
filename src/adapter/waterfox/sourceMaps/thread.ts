@@ -43,11 +43,11 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		return this.underlyingActorProxy.name;
 	}
 
-	public async fetchSources(): Promise<FirefoxDebugProtocol.Source[]> {
+	public async fetchSources(): Promise<WaterfoxDebugProtocol.Source[]> {
 
 		let underlyingSources = await this.underlyingActorProxy.fetchSources();
 
-		let allMappedSources: FirefoxDebugProtocol.Source[] = [];
+		let allMappedSources: WaterfoxDebugProtocol.Source[] = [];
 		for (let source of underlyingSources) {
 			let info = await this.getOrCreateSourceMappingInfo(source);
 			let mappedSources = info.sources.map((actor) => actor.source);
@@ -58,7 +58,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 	}
 
 	private getOrCreateSourceMappingInfo(
-		source: FirefoxDebugProtocol.Source
+		source: WaterfoxDebugProtocol.Source
 	): Promise<SourceMappingInfo> {
 
 		if (this.sourceMappingInfos.has(source.actor)) {
@@ -91,7 +91,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 	}
 
 	private async createSourceMappingInfo(
-		source: FirefoxDebugProtocol.Source
+		source: WaterfoxDebugProtocol.Source
 	): Promise<SourceMappingInfo> {
 
 		if (log.isDebugEnabled()) {
@@ -118,7 +118,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		let rawSourceMap: RawSourceMap | undefined = undefined;
 		try {
 
-			const sourceMapPath = this.pathMapper.convertFirefoxUrlToPath(sourceMapUrl);
+			const sourceMapPath = this.pathMapper.convertWaterfoxUrlToPath(sourceMapUrl);
 			if (sourceMapPath && !isAbsoluteUrl(sourceMapPath)) {
 				try {
 					const sourceMapString = await fs.readFile(sourceMapPath, 'utf8');
@@ -191,7 +191,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 	public async fetchStackFrames(
 		start?: number,
 		count?: number
-	): Promise<FirefoxDebugProtocol.Frame[]> {
+	): Promise<WaterfoxDebugProtocol.Frame[]> {
 
 		let stackFrames = await this.underlyingActorProxy.fetchStackFrames(start, count);
 
@@ -200,7 +200,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		return stackFrames;
 	}
 
-	private async applySourceMapToFrame(frame: FirefoxDebugProtocol.Frame): Promise<void> {
+	private async applySourceMapToFrame(frame: WaterfoxDebugProtocol.Frame): Promise<void> {
 
 		let sourceMappingInfo: SourceMappingInfo | undefined;
 		const sourceMappingInfoPromise = this.getSourceMappingInfo(frame.where.actor);
@@ -225,12 +225,12 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 	}
 
 	private createOriginalSource(
-		generatedSource: FirefoxDebugProtocol.Source,
+		generatedSource: WaterfoxDebugProtocol.Source,
 		originalSourceUrl: string | null,
 		sourceMapUrl: string
-	): FirefoxDebugProtocol.Source {
+	): WaterfoxDebugProtocol.Source {
 
-		return <FirefoxDebugProtocol.Source>{
+		return <WaterfoxDebugProtocol.Source>{
 			actor: `${generatedSource.actor}!${originalSourceUrl}`,
 			url: originalSourceUrl,
 			introductionUrl: generatedSource.introductionUrl,
@@ -303,7 +303,7 @@ export class SourceMappingThreadActorProxy extends EventEmitter implements IThre
 		return undefined;
 	}
 
-	public onPaused(cb: (_event: FirefoxDebugProtocol.ThreadPausedResponse) => void): void {
+	public onPaused(cb: (_event: WaterfoxDebugProtocol.ThreadPausedResponse) => void): void {
 		this.underlyingActorProxy.onPaused(async (event) => {
 			await this.applySourceMapToFrame(event.frame);
 			cb(event);

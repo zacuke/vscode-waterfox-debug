@@ -23,7 +23,7 @@ export class FileNode extends TreeNode {
 		}
 
 		this.treeItem.command = {
-			command: 'extension.firefox.openScript',
+			command: 'extension.waterfox.openScript',
 			arguments: [ pathOrUri ],
 			title: ''
 		}

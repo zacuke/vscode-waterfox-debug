@@ -1,3 +1,14 @@
+Waterfox conversion steps:
+* Case sensitive Search and replace
+  * `Firefox` to `Waterfox`
+  * `firefox` to `waterfox`
+* Rollback the docs
+  * `git restore '*.md'`
+* Rename folder and files
+  * `./src/adapter/firefox` to `./src/adapter/waterfox`
+  * `./src/adapter/firefoxDebugAdapter.ts` to `./src/adapter/waterfoxDebugAdapter.ts`
+  * `./src/adapter/firefoxDebugSession.ts` to `./src/adapter/waterfoxDebugSession.ts`
+
 <h1 align="center">
   <br>
     <img src="https://github.com/firefox-devtools/vscode-firefox-debug/blob/master/icon.png?raw=true" alt="logo" width="200">

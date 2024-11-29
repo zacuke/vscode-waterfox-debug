@@ -16,7 +16,7 @@ export abstract class BaseActorProxy extends EventEmitter implements ActorProxy 
 		this.connection.register(this);
 	}
 
-	sendRequest<T extends Omit<FirefoxDebugProtocol.Request, 'to'>, S>(request: T): Promise<S> {
+	sendRequest<T extends Omit<WaterfoxDebugProtocol.Request, 'to'>, S>(request: T): Promise<S> {
 		return new Promise<S>((resolve, reject) => {
 			this.pendingRequests.enqueue({ resolve, reject });
 			this.connection.sendRequest({ ...request, to: this.name });
@@ -24,18 +24,18 @@ export abstract class BaseActorProxy extends EventEmitter implements ActorProxy 
 	}
 
 	async getRequestTypes(): Promise<string[]> {
-		return (await this.sendRequest<any, FirefoxDebugProtocol.RequestTypesResponse>(
+		return (await this.sendRequest<any, WaterfoxDebugProtocol.RequestTypesResponse>(
 			{ type: 'requestTypes' })
 		).requestTypes;
 	}
 
-	abstract handleEvent(event: FirefoxDebugProtocol.Event): void;
+	abstract handleEvent(event: WaterfoxDebugProtocol.Event): void;
 
-	receiveResponse(message: FirefoxDebugProtocol.Response): void {
+	receiveResponse(message: WaterfoxDebugProtocol.Response): void {
 		if (message.error) {
 			this.pendingRequests.rejectOne(message);
 		} else if (message.type && !this.responseTypes.includes(message.type)) {
-			this.handleEvent(message as FirefoxDebugProtocol.Event);
+			this.handleEvent(message as WaterfoxDebugProtocol.Event);
 		} else {
 			this.pendingRequests.resolveOne(message);
 		}

@@ -8,10 +8,10 @@ let log = Log.create('EnvironmentAdapter');
  * Abstract adapter base class for a lexical environment.
  * Used to create [`ScopeAdapter`](./scope.ts)s which then create `Scope` objects for VS Code.
  */
-export abstract class EnvironmentAdapter<T extends FirefoxDebugProtocol.Environment> {
+export abstract class EnvironmentAdapter<T extends WaterfoxDebugProtocol.Environment> {
 
 	protected environment: T;
-	protected parent?: EnvironmentAdapter<FirefoxDebugProtocol.Environment>;
+	protected parent?: EnvironmentAdapter<WaterfoxDebugProtocol.Environment>;
 
 	public constructor(environment: T) {
 		this.environment = environment;
@@ -21,16 +21,16 @@ export abstract class EnvironmentAdapter<T extends FirefoxDebugProtocol.Environm
 	}
 
 	/** factory function for creating an EnvironmentAdapter of the appropriate type */
-	public static from(environment: FirefoxDebugProtocol.Environment): EnvironmentAdapter<FirefoxDebugProtocol.Environment> {
+	public static from(environment: WaterfoxDebugProtocol.Environment): EnvironmentAdapter<WaterfoxDebugProtocol.Environment> {
 		switch (environment.type) {
 			case 'object':
-				return new ObjectEnvironmentAdapter(<FirefoxDebugProtocol.ObjectEnvironment>environment);
+				return new ObjectEnvironmentAdapter(<WaterfoxDebugProtocol.ObjectEnvironment>environment);
 			case 'function':
-				return new FunctionEnvironmentAdapter(<FirefoxDebugProtocol.FunctionEnvironment>environment);
+				return new FunctionEnvironmentAdapter(<WaterfoxDebugProtocol.FunctionEnvironment>environment);
 			case 'with':
-				return new WithEnvironmentAdapter(<FirefoxDebugProtocol.WithEnvironment>environment);
+				return new WithEnvironmentAdapter(<WaterfoxDebugProtocol.WithEnvironment>environment);
 			case 'block':
-				return new BlockEnvironmentAdapter(<FirefoxDebugProtocol.BlockEnvironment>environment);
+				return new BlockEnvironmentAdapter(<WaterfoxDebugProtocol.BlockEnvironment>environment);
 			default:
 				throw new Error(`Unknown environment type ${environment.type}`);
 		}
@@ -62,9 +62,9 @@ export abstract class EnvironmentAdapter<T extends FirefoxDebugProtocol.Environm
 	protected abstract getOwnScopeAdapter(frameAdapter: FrameAdapter): ScopeAdapter;
 }
 
-export class ObjectEnvironmentAdapter extends EnvironmentAdapter<FirefoxDebugProtocol.ObjectEnvironment> {
+export class ObjectEnvironmentAdapter extends EnvironmentAdapter<WaterfoxDebugProtocol.ObjectEnvironment> {
 
-	public constructor(environment: FirefoxDebugProtocol.ObjectEnvironment) {
+	public constructor(environment: WaterfoxDebugProtocol.ObjectEnvironment) {
 		super(environment);
 	}
 
@@ -82,7 +82,7 @@ export class ObjectEnvironmentAdapter extends EnvironmentAdapter<FirefoxDebugPro
 
 		} else {
 
-			let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
+			let objectGrip = <WaterfoxDebugProtocol.ObjectGrip>grip;
 			let name = `Object: ${objectGrip.class}`;
 			return new ObjectScopeAdapter(name, objectGrip, frameAdapter);
 
@@ -90,9 +90,9 @@ export class ObjectEnvironmentAdapter extends EnvironmentAdapter<FirefoxDebugPro
 	}
 }
 
-export class FunctionEnvironmentAdapter extends EnvironmentAdapter<FirefoxDebugProtocol.FunctionEnvironment> {
+export class FunctionEnvironmentAdapter extends EnvironmentAdapter<WaterfoxDebugProtocol.FunctionEnvironment> {
 
-	public constructor(environment: FirefoxDebugProtocol.FunctionEnvironment) {
+	public constructor(environment: WaterfoxDebugProtocol.FunctionEnvironment) {
 		super(environment);
 	}
 
@@ -111,9 +111,9 @@ export class FunctionEnvironmentAdapter extends EnvironmentAdapter<FirefoxDebugP
 	}
 }
 
-export class WithEnvironmentAdapter extends EnvironmentAdapter<FirefoxDebugProtocol.WithEnvironment> {
+export class WithEnvironmentAdapter extends EnvironmentAdapter<WaterfoxDebugProtocol.WithEnvironment> {
 
-	public constructor(environment: FirefoxDebugProtocol.WithEnvironment) {
+	public constructor(environment: WaterfoxDebugProtocol.WithEnvironment) {
 		super(environment);
 	}
 
@@ -131,7 +131,7 @@ export class WithEnvironmentAdapter extends EnvironmentAdapter<FirefoxDebugProto
 
 		} else {
 
-			let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
+			let objectGrip = <WaterfoxDebugProtocol.ObjectGrip>grip;
 			let name = `With: ${objectGrip.class}`;
 			return new ObjectScopeAdapter(name, objectGrip, frameAdapter);
 
@@ -139,9 +139,9 @@ export class WithEnvironmentAdapter extends EnvironmentAdapter<FirefoxDebugProto
 	}
 }
 
-export class BlockEnvironmentAdapter extends EnvironmentAdapter<FirefoxDebugProtocol.BlockEnvironment> {
+export class BlockEnvironmentAdapter extends EnvironmentAdapter<WaterfoxDebugProtocol.BlockEnvironment> {
 
-	public constructor(environment: FirefoxDebugProtocol.BlockEnvironment) {
+	public constructor(environment: WaterfoxDebugProtocol.BlockEnvironment) {
 		super(environment);
 	}
 

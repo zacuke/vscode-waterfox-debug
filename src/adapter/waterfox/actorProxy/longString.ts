@@ -15,7 +15,7 @@ export class LongStringGripActorProxy implements ActorProxy {
 	private pendingSubstringRequests = new PendingRequests<string>();
 
 	constructor(
-		private grip: FirefoxDebugProtocol.LongStringGrip,
+		private grip: WaterfoxDebugProtocol.LongStringGrip,
 		private connection: DebugConnection
 	) {
 		this.connection.register(this);
@@ -39,7 +39,7 @@ export class LongStringGripActorProxy implements ActorProxy {
 		});
 	}
 
-	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
+	public receiveResponse(response: WaterfoxDebugProtocol.Response): void {
 
 		if (response['substring'] !== undefined) {
 
@@ -48,7 +48,7 @@ export class LongStringGripActorProxy implements ActorProxy {
 
 		} else if (response['error'] === 'noSuchActor') {
 
-			log.warn(`No such actor ${this.grip.actor} - you will not be able to inspect this value; this is probably due to Firefox bug #1249962`);
+			log.warn(`No such actor ${this.grip.actor} - you will not be able to inspect this value; this is probably due to Waterfox bug #1249962`);
 			this.pendingSubstringRequests.rejectAll('No such actor');
 
 		} else if (Object.keys(response).length === 1) {

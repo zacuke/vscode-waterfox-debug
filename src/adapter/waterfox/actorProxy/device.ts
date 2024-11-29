@@ -10,8 +10,8 @@ let log = Log.create('DeviceActorProxy');
  */
 export class DeviceActorProxy implements ActorProxy {
 
-	private pendingDescriptionRequest?: PendingRequest<FirefoxDebugProtocol.DeviceDescription>;
-	private descriptionPromise?: Promise<FirefoxDebugProtocol.DeviceDescription>;
+	private pendingDescriptionRequest?: PendingRequest<WaterfoxDebugProtocol.DeviceDescription>;
+	private descriptionPromise?: Promise<WaterfoxDebugProtocol.DeviceDescription>;
 
 	constructor(
 		public readonly name: string,
@@ -20,12 +20,12 @@ export class DeviceActorProxy implements ActorProxy {
 		this.connection.register(this);
 	}
 
-	public getDescription(): Promise<FirefoxDebugProtocol.DeviceDescription> {
+	public getDescription(): Promise<WaterfoxDebugProtocol.DeviceDescription> {
 		if (!this.descriptionPromise) {
 
 			log.debug('Getting device description');
 
-			this.descriptionPromise =new Promise<FirefoxDebugProtocol.DeviceDescription>((resolve, reject) => {
+			this.descriptionPromise =new Promise<WaterfoxDebugProtocol.DeviceDescription>((resolve, reject) => {
 				this.pendingDescriptionRequest = { resolve, reject };
 				this.connection.sendRequest({ to: this.name, type: 'getDescription' });
 			});
@@ -38,7 +38,7 @@ export class DeviceActorProxy implements ActorProxy {
 		this.connection.unregister(this);
 	}
 
-	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
+	public receiveResponse(response: WaterfoxDebugProtocol.Response): void {
 
 		if (response['value']) {
 

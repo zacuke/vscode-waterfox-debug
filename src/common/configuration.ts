@@ -11,7 +11,7 @@ export interface LaunchConfiguration extends CommonConfiguration, DebugProtocol.
 	keepProfileChanges?: boolean;
 	preferences?: { [key: string]: boolean | number | string | null };
 	port?: number;
-	firefoxArgs?: string[];
+	waterfoxArgs?: string[];
 	timeout?: number;
 	reAttach?: boolean;
 }
@@ -32,7 +32,7 @@ export interface CommonConfiguration {
 	request: 'launch' | 'attach';
 	url?: string;
 	webRoot?: string;
-	firefoxExecutable?: string;
+	waterfoxExecutable?: string;
 	profileDir?: string;
 	reloadOnAttach?: boolean;
 	reloadOnChange?: ReloadConfiguration;

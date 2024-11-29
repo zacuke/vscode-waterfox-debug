@@ -40,7 +40,7 @@ export class TabDescriptorActorProxy implements ActorProxy {
 		return this.getTargetPromise;
 	}
 
-	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
+	public receiveResponse(response: WaterfoxDebugProtocol.Response): void {
 
 		if (response['frame']) {
 
@@ -48,7 +48,7 @@ export class TabDescriptorActorProxy implements ActorProxy {
 
 			if (this.pendingGetTargetRequest) {
 
-				const getTargetResponse = <FirefoxDebugProtocol.TabDescriptorTargetResponse>response;
+				const getTargetResponse = <WaterfoxDebugProtocol.TabDescriptorTargetResponse>response;
 
 				this.pendingGetTargetRequest.resolve([
 					new TabActorProxy(

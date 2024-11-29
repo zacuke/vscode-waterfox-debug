@@ -74,7 +74,7 @@ async function prepareTargetDir(
 	separateBuildDir: boolean
 ): Promise<TargetPaths> {
 
-	let targetDir = path.join(os.tmpdir(), `vscode-firefox-debug-test-${uuid.v4()}`);
+	let targetDir = path.join(os.tmpdir(), `vscode-waterfox-debug-test-${uuid.v4()}`);
 	await fs.mkdir(targetDir);
 	let scriptTags = bundle ? ['bundle.js'] : ['f.min.js', 'g.min.js'];
 

@@ -18,7 +18,7 @@ export class WebExtensionActorProxy extends EventEmitter implements ActorProxy {
 	private pendingConnectRequests = new PendingRequests<[TabActorProxy, ConsoleActorProxy]>();
 
 	constructor(
-		private readonly webExtensionInfo: FirefoxDebugProtocol.Addon,
+		private readonly webExtensionInfo: WaterfoxDebugProtocol.Addon,
 		private readonly enableCRAWorkaround: boolean,
 		private readonly pathMapper: PathMapper,
 		private readonly connection: DebugConnection
@@ -51,11 +51,11 @@ export class WebExtensionActorProxy extends EventEmitter implements ActorProxy {
 		})
 	}
 
-	public receiveResponse(response: FirefoxDebugProtocol.Response): void {
+	public receiveResponse(response: WaterfoxDebugProtocol.Response): void {
 
 		if (response['form']) {
 
-			let connectResponse = <FirefoxDebugProtocol.ProcessResponse>response;
+			let connectResponse = <WaterfoxDebugProtocol.ProcessResponse>response;
 			log.debug('Received connect response');
 			this.pendingConnectRequests.resolveOne([
 				new TabActorProxy(

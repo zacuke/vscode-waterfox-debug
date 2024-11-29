@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
-import { ExceptionBreakpoints, IThreadActorProxy } from '../firefox/actorProxy/thread';
-import { ConsoleActorProxy } from '../firefox/actorProxy/console';
-import { ISourceActorProxy } from '../firefox/actorProxy/source';
+import { ExceptionBreakpoints, IThreadActorProxy } from '../waterfox/actorProxy/thread';
+import { ConsoleActorProxy } from '../waterfox/actorProxy/console';
+import { ISourceActorProxy } from '../waterfox/actorProxy/source';
 import { FrameAdapter } from './frame';
 import { ScopeAdapter } from './scope';
 import { SourceAdapter } from './source';
@@ -12,10 +12,10 @@ import { ThreadCoordinator } from '../coordinator/thread';
 import { ThreadPauseCoordinator } from '../coordinator/threadPause';
 import { Variable } from 'vscode-debugadapter';
 import { Log } from '../util/log';
-import { FirefoxDebugSession } from '../firefoxDebugSession';
+import { WaterfoxDebugSession } from '../waterfoxDebugSession';
 import { pathsAreEqual } from '../util/misc';
 import { Location } from '../location';
-import { AttachOptions } from '../firefox/actorProxy/thread';
+import { AttachOptions } from '../waterfox/actorProxy/thread';
 import { PendingRequest } from '../util/pendingRequests';
 
 let log = Log.create('ThreadAdapter');
@@ -43,7 +43,7 @@ export class ThreadAdapter extends EventEmitter {
 
 	/**
 	 * Sometimes `SourceActor`s are referenced in stack frames before the corresponding `newSource`
-	 * event was sent by Firefox. In this case the `ThreadAdapter` returns a `Promise` for the
+	 * event was sent by Waterfox. In this case the `ThreadAdapter` returns a `Promise` for the
 	 * corresponding `SourceAdapter` which is resolved when the `newSource` event was received.
 	 */
 	private sourcePromises = new Map<string, Promise<SourceAdapter>>();
@@ -77,7 +77,7 @@ export class ThreadAdapter extends EventEmitter {
 		private readonly pauseCoordinator: ThreadPauseCoordinator,
 		public readonly name: string,
 		public readonly getUrl: () => string,
-		public readonly debugSession: FirefoxDebugSession
+		public readonly debugSession: WaterfoxDebugSession
 	) {
 		super();
 
@@ -96,9 +96,9 @@ export class ThreadAdapter extends EventEmitter {
 	
 				if (sourceAdapter.actor.source.isBlackBoxed) {
 
-					// skipping (or blackboxing) source files is usually done by Firefox itself,
+					// skipping (or blackboxing) source files is usually done by Waterfox itself,
 					// but when the debugger hits an exception in a source that was just loaded and
-					// should be skipped, we may not have been able to tell Firefox that we want
+					// should be skipped, we may not have been able to tell Waterfox that we want
 					// to skip this file, so we have to do it here
 					this.resume();
 					return;
@@ -114,7 +114,7 @@ export class ThreadAdapter extends EventEmitter {
 
 						if (breakpointAdapter.breakpointInfo.hitCount) {
 
-							// Firefox doesn't have breakpoints with hit counts, so we have to
+							// Waterfox doesn't have breakpoints with hit counts, so we have to
 							// implement this here
 							breakpointAdapter.hitCount++;
 							if (breakpointAdapter.hitCount < breakpointAdapter.breakpointInfo.hitCount) {
@@ -444,7 +444,7 @@ export class ThreadAdapter extends EventEmitter {
 		return await this.consoleActor.autoComplete(text, column, frameActorName);
 	}
 
-	private variableFromGrip(grip: FirefoxDebugProtocol.Grip | undefined, threadLifetime: boolean): VariableAdapter {
+	private variableFromGrip(grip: WaterfoxDebugProtocol.Grip | undefined, threadLifetime: boolean): VariableAdapter {
 		if (grip !== undefined) {
 			return VariableAdapter.fromGrip('', undefined, undefined, grip, threadLifetime, this);
 		} else {
@@ -495,10 +495,10 @@ export class ThreadAdapter extends EventEmitter {
 
 	/**
 	 * The `paused` event is sent when we receive a `paused` event from the thread actor and
-	 * neither the `ThreadCoordinator` nor the `ThreadAdapter` decide that Firefox should be
+	 * neither the `ThreadCoordinator` nor the `ThreadAdapter` decide that Waterfox should be
 	 * resumed immediately.
 	 */
-	public onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedReason) => void) {
+	public onPaused(cb: (event: WaterfoxDebugProtocol.ThreadPausedReason) => void) {
 		this.on('paused', cb);
 	}
 

@@ -52,7 +52,7 @@ export class VariableAdapter {
 		varname: string,
 		parentReferenceExpression: string | undefined,
 		referenceFrame: FrameAdapter | undefined,
-		grip: FirefoxDebugProtocol.Grip,
+		grip: WaterfoxDebugProtocol.Grip,
 		threadLifetime: boolean,
 		threadAdapter: ThreadAdapter,
 		useParentReferenceExpression?: boolean
@@ -89,24 +89,24 @@ export class VariableAdapter {
 
 					return new VariableAdapter(
 						varname, referenceExpression, referenceFrame,
-						`${(<FirefoxDebugProtocol.BigIntGrip>grip).text}n`, threadAdapter);
+						`${(<WaterfoxDebugProtocol.BigIntGrip>grip).text}n`, threadAdapter);
 
 				case 'longString':
 
 					return new VariableAdapter(
 						varname, referenceExpression, referenceFrame,
-						(<FirefoxDebugProtocol.LongStringGrip>grip).initial, threadAdapter);
+						(<WaterfoxDebugProtocol.LongStringGrip>grip).initial, threadAdapter);
 
 				case 'symbol':
 
-					let symbolName = (<FirefoxDebugProtocol.SymbolGrip>grip).name;
+					let symbolName = (<WaterfoxDebugProtocol.SymbolGrip>grip).name;
 					return new VariableAdapter(
 						varname, referenceExpression, referenceFrame,
 						`Symbol(${symbolName})`, threadAdapter);
 
 				case 'object':
 
-					let objectGrip = <FirefoxDebugProtocol.ObjectGrip>grip;
+					let objectGrip = <WaterfoxDebugProtocol.ObjectGrip>grip;
 					let displayValue = renderPreview(objectGrip);
 					let variableAdapter = new VariableAdapter(
 						varname, referenceExpression, referenceFrame, displayValue, threadAdapter);
@@ -132,23 +132,23 @@ export class VariableAdapter {
 		varname: string,
 		parentReferenceExpression: string | undefined,
 		referenceFrame: FrameAdapter | undefined,
-		propertyDescriptor: FirefoxDebugProtocol.PropertyDescriptor,
+		propertyDescriptor: WaterfoxDebugProtocol.PropertyDescriptor,
 		threadLifetime: boolean,
 		threadAdapter: ThreadAdapter
 	): VariableAdapter {
 
-		if ((<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value !== undefined) {
+		if ((<WaterfoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value !== undefined) {
 
 			return VariableAdapter.fromGrip(
 				varname, parentReferenceExpression, referenceFrame,
-				(<FirefoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value,
+				(<WaterfoxDebugProtocol.DataPropertyDescriptor>propertyDescriptor).value,
 				threadLifetime, threadAdapter);
 
 		} else {
 
 			let referenceExpression = accessorExpression(parentReferenceExpression, varname);
 
-			let accessorPropertyDescriptor = <FirefoxDebugProtocol.AccessorPropertyDescriptor>propertyDescriptor;
+			let accessorPropertyDescriptor = <WaterfoxDebugProtocol.AccessorPropertyDescriptor>propertyDescriptor;
 			let hasGetter = VariableAdapter.isFunctionGrip(accessorPropertyDescriptor.get);
 			let hasSetter = VariableAdapter.isFunctionGrip(accessorPropertyDescriptor.set);
 			let displayValue: string;
@@ -185,7 +185,7 @@ export class VariableAdapter {
 		varname: string,
 		parentReferenceExpression: string | undefined,
 		referenceFrame: FrameAdapter | undefined,
-		safeGetterValueDescriptor: FirefoxDebugProtocol.SafeGetterValueDescriptor,
+		safeGetterValueDescriptor: WaterfoxDebugProtocol.SafeGetterValueDescriptor,
 		threadLifetime: boolean,
 		threadAdapter: ThreadAdapter
 	): VariableAdapter {
@@ -209,11 +209,11 @@ export class VariableAdapter {
 		}
 	}
 
-	private static isFunctionGrip(grip: FirefoxDebugProtocol.Grip) {
+	private static isFunctionGrip(grip: WaterfoxDebugProtocol.Grip) {
 		return (
 			(typeof grip === 'object') &&
 			(grip.type === 'object') &&
-			((<FirefoxDebugProtocol.ObjectGrip>grip).class === 'Function')
+			((<WaterfoxDebugProtocol.ObjectGrip>grip).class === 'Function')
 		);
 	}
 }

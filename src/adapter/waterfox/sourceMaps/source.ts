@@ -26,7 +26,7 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 	private allBreakablesPromise?: Promise<Breakables>;
 
 	public constructor(
-		public readonly source: FirefoxDebugProtocol.Source,
+		public readonly source: WaterfoxDebugProtocol.Source,
 		private readonly sourceMappingInfo: SourceMappingInfo
 	) {}
 
@@ -151,7 +151,7 @@ export class SourceMappingSourceActorProxy implements ISourceActorProxy {
 		};
 	}
 
-	public async fetchSource(): Promise<FirefoxDebugProtocol.Grip> {
+	public async fetchSource(): Promise<WaterfoxDebugProtocol.Grip> {
 		if (log.isDebugEnabled()) log.debug(`Fetching source for ${this.url}`);
 		let embeddedSource = this.sourceMappingInfo.sourceContentFor(this.url);
 		if (embeddedSource) {

@@ -75,7 +75,7 @@ describe('Webpack sourcemaps: The debugger', function() {
 
 async function prepareTargetDir(): Promise<string> {
 
-	let targetDir = path.join(await fs.realpath(os.tmpdir()), `vscode-firefox-debug-test-${uuid.v4()}`);
+	let targetDir = path.join(await fs.realpath(os.tmpdir()), `vscode-waterfox-debug-test-${uuid.v4()}`);
 	await fs.mkdir(targetDir);
 	await sourceMapUtil.copyFiles(TESTDATA_PATH, targetDir, ['index.html', 'f.js', 'g.js']);
 

@@ -1,7 +1,7 @@
 import { Log } from '../util/log';
 import { EventEmitter } from 'events';
-import { ExceptionBreakpoints, IThreadActorProxy } from '../firefox/actorProxy/thread';
-import { ConsoleActorProxy } from '../firefox/actorProxy/console';
+import { ExceptionBreakpoints, IThreadActorProxy } from '../waterfox/actorProxy/thread';
+import { ConsoleActorProxy } from '../waterfox/actorProxy/console';
 import { ThreadPauseCoordinator, PauseType } from './threadPause';
 import { DelayedTask } from '../util/delayedTask';
 import { PendingRequest } from '../util/pendingRequests';
@@ -34,7 +34,7 @@ type ThreadTarget = 'paused' | 'running' | 'stepOver' | 'stepIn' | 'stepOut';
 export class ThreadCoordinator extends EventEmitter {
 
 	/**
-	 * whether we should break on uncaught or all exceptions, this setting is sent to Firefox
+	 * whether we should break on uncaught or all exceptions, this setting is sent to Waterfox
 	 * with the next request to resume the thread
 	 */
 	private exceptionBreakpoints: ExceptionBreakpoints | undefined;
@@ -52,8 +52,8 @@ export class ThreadCoordinator extends EventEmitter {
 	}
 
 	/** if the thread is paused, this will contain the reason for the pause */
-	private _threadPausedReason?: FirefoxDebugProtocol.ThreadPausedReason;
-	public get threadPausedReason(): FirefoxDebugProtocol.ThreadPausedReason | undefined {
+	private _threadPausedReason?: WaterfoxDebugProtocol.ThreadPausedReason;
+	public get threadPausedReason(): WaterfoxDebugProtocol.ThreadPausedReason | undefined {
 		return this._threadPausedReason;
 	}
 
@@ -78,7 +78,7 @@ export class ThreadCoordinator extends EventEmitter {
 	private queuedTasksToRunOnPausedThread: DelayedTask<any>[] = [];
 	private tasksRunningOnPausedThread = 0;
 
-	private queuedEvaluateTasks: DelayedTask<FirefoxDebugProtocol.Grip>[] = [];
+	private queuedEvaluateTasks: DelayedTask<WaterfoxDebugProtocol.Grip>[] = [];
 
 	constructor(
 		private threadId: number,
@@ -102,7 +102,7 @@ export class ThreadCoordinator extends EventEmitter {
 
 				// the thread was paused because it hit an exception, but we want to skip that
 				// (this can happen when the user changed the setting for exception breakpoints
-				// but we couldn't send the changed setting to Firefox yet)
+				// but we couldn't send the changed setting to Waterfox yet)
 				threadActor.resume(this.exceptionBreakpoints);
 
 			} else {
@@ -132,9 +132,9 @@ export class ThreadCoordinator extends EventEmitter {
 		this.exceptionBreakpoints = exceptionBreakpoints;
 
 		if ((this.threadState === 'resuming') || (this.threadState === 'running')) {
-			// We can only send the changed setting for exception breakpoints to Firefox when sending
+			// We can only send the changed setting for exception breakpoints to Waterfox when sending
 			// a resume request. By requesting to run a dummy action on the paused thread, we ensure
-			// that a resume request will be sent to Firefox (after the dummy action is finished).
+			// that a resume request will be sent to Waterfox (after the dummy action is finished).
 			this.runOnPausedThread(async () => undefined);
 		}
 	}
@@ -220,7 +220,7 @@ export class ThreadCoordinator extends EventEmitter {
 	public evaluate(
 		expr: string,
 		frameActorName: string | undefined
-	): Promise<FirefoxDebugProtocol.Grip> {
+	): Promise<WaterfoxDebugProtocol.Grip> {
 
 		let delayedTask = new DelayedTask(() => this.consoleActor.evaluate(expr, frameActorName));
 
@@ -230,7 +230,7 @@ export class ThreadCoordinator extends EventEmitter {
 		return delayedTask.promise;
 	}
 
-	public onPaused(cb: (event: FirefoxDebugProtocol.ThreadPausedResponse) => void) {
+	public onPaused(cb: (event: WaterfoxDebugProtocol.ThreadPausedResponse) => void) {
 		this.on('paused', cb);
 	}
 
@@ -376,7 +376,7 @@ export class ThreadCoordinator extends EventEmitter {
 		}
 	}
 
-	private async executeEvaluateTask(task: DelayedTask<FirefoxDebugProtocol.Grip>): Promise<void> {
+	private async executeEvaluateTask(task: DelayedTask<WaterfoxDebugProtocol.Grip>): Promise<void> {
 
 		if (this.threadState !== 'paused') {
 			log.error(`executeEvaluateTask called but threadState is ${this.threadState}`);

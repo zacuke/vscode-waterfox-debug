@@ -35,11 +35,11 @@ export function normalizePath(rawPath: string) {
  * extract an error message from an exception
  * [grip](https://github.com/mozilla/gecko-dev/blob/master/devtools/docs/backend/protocol.md#grips)
  */
-export function exceptionGripToString(grip: FirefoxDebugProtocol.Grip | null | undefined) {
+export function exceptionGripToString(grip: WaterfoxDebugProtocol.Grip | null | undefined) {
 
 	if ((typeof grip === 'object') && (grip !== null) && (grip.type === 'object')) {
 
-		let preview = (<FirefoxDebugProtocol.ObjectGrip>grip).preview;
+		let preview = (<WaterfoxDebugProtocol.ObjectGrip>grip).preview;
 		if (preview && (preview.kind === 'Error')) {
 
 			if (preview.name === 'ReferenceError') {
