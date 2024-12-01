@@ -2,7 +2,7 @@
   "name": "vscode-waterfox-debug",
   "displayName": "Debugger for Waterfox",
   "version": "2.9.11",
-  "author": "Holger Benl <hbenl@evandor.de>",
+  "author": "Lyle Keeton <zacuke@effectivesolutions.dev>",
   "publisher": "waterfox-devtools",
   "description": "Debug your web application or browser extension in Waterfox",
   "icon": "icon.png",
@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "reinstall": "rimraf node_modules package-lock.json && npm install",
-    "clean": "rimraf dist/*.bundle.js dist/*.bundle.js.map dist/mappings.wasm coverage .nyc_output vscode-waterfox-debug-*.vsix",
+    "clean": "rimraf --glob dist/*.bundle.js dist/*.bundle.js.map dist/mappings.wasm coverage .nyc_output vscode-waterfox-debug-*.vsix",
     "build": "webpack --mode=production",
     "watch": "webpack --watch --mode=development",
     "rebuild": "npm run clean && npm run build",
@@ -116,7 +116,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/waterfox-devtools/vscode-waterfox-debug.git"
+    "url": "https://github.com/zacuke/vscode-waterfox-debug.git"
   },
   "keywords": [
     "vscode",
@@ -125,9 +125,9 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/waterfox-devtools/vscode-waterfox-debug/issues"
+    "url": "https://github.com/zacuke/vscode-waterfox-debug/issues"
   },
-  "homepage": "https://github.com/waterfox-devtools/vscode-waterfox-debug",
+  "homepage": "https://github.com/zacuke/vscode-waterfox-debug",
   "extensionKind": [
     "ui"
   ],

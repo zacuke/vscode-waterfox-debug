@@ -319,8 +319,8 @@ export function getExecutableCandidates(edition?: 'stable' | 'developer' | 'nigh
 				return [ '/Applications/Waterfox.app/Contents/MacOS/waterfox' ];
 			} else if (platform === 'win32') {
 				return [
-					'C:\\Program Files\\Mozilla Waterfox\\waterfox.exe',
-					'C:\\Program Files (x86)\\Mozilla Waterfox\\waterfox.exe'
+					'C:\\Program Files\\Waterfox\\waterfox.exe',
+					'C:\\Program Files (x86)\\Waterfox\\waterfox.exe'
 				];
 			}
 			break;

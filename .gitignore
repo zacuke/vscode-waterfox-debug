@@ -5,3 +5,4 @@ dist/*.bundle.js
 dist/*.bundle.js.map
 dist/mappings.wasm
 dist/LICENSE
+dist/*LICENSE.txt
