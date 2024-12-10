@@ -36,7 +36,7 @@
     "escape-string-regexp": "4.0.0",
     "file-uri-to-path": "^2.0.0",
     "file-url": "^4.0.0",
-    "waterfox-profile": "^4.3.2",
+    "waterfox-profile": "^4.7.0-1",
     "fs-extra": "^11.1.1",
     "is-absolute-url": "3.0.3",
     "minimatch": "^9.0.3",

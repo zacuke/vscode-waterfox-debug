@@ -14,16 +14,18 @@ Waterfox conversion steps:
 * Fix `package.json`
   * Line 5 - author
   * Line 17 - add --glob
+  * Line 39 - waterfox-profile version
   * Line 117 - repo
   * Line 127 - bugs
   * Line 130 - homepage
 * Add `dist/*LICENSE.txt` to .gitignore
+* Replace icon.png
 * Update README.md below
 
 
 <h1 align="center">
   <br>
-    <img src="https://github.com/BrowserWorks/Waterfox/blob/0bb89c3da568ee305450bb33a28e577b836a077f/browser/branding/waterfox/content/about-logo.svg?raw=true" alt="logo" width="200">
+    <img src="https://github.com/zacuke/vscode-waterfox-debug/blob/master/icon.png?raw=true" alt="logo" width="200">
   <br>
   VS Code Debugger for Waterfox
   <br>
